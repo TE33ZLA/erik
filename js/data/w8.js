@@ -10,8 +10,8 @@
   const pct = (p) => T.pctT(p); // 0.15 -> "15%"
   const whole = (x) => Math.abs(x - Math.round(x)) < 0.005;
   const LM = (x, dp = 2) => (dp > 0 && whole(x) ? L.moneyT(Math.round(x)) : L.money(x, dp)); // money in working lines
-  const mil = (x) => `$${T.numT(x, 2)}m`; // plain-text $m amount
-  const milL = (x) => R`\$${L.numT(x, 2)}\text{m}`; // LaTeX $m amount
+  const mil = (x) => `${x < 0 ? '−' : ''}$${T.numT(Math.abs(x), 2)}m`; // plain-text $m amount
+  const milL = (x) => R`${x < 0 ? '-' : ''}\$${L.numT(Math.abs(x), 2)}\text{m}`; // LaTeX $m amount, sign first
   const ear = (d, x, y, yr = 365) => FIN.tradeCreditEAR(d, x, y, yr); // cost of forgoing the discount
   const terms = (d, x, y) => `${K(d * 100)}/${x}, net ${y}`; // "2/10, net 30"
   // LaTeX working for the trade-credit EAR
@@ -168,7 +168,9 @@
               why: R`\(EAR = ${earTex(d / 100, x, y)} = ${L.pct(e, 2)}\). That is ${take ? 'above' : 'below'} the bank’s ${pct(b)}, so ${take ? `borrow from the bank and pay on day ${x}` : `pay the full amount on day ${y}`}.`,
             };
           }
-          return null;
+          // fallback (never expected): the lecture's example
+          return { t: R`Terms **2/10, net 30**. The bank lends at 15%.`, opts: ['Take the discount', 'Forgo and pay on the last day'], a: 0,
+            why: R`\(EAR = ${earTex(0.02, 10, 30)} = ${L.pct(ear(0.02, 10, 30), 2)}\). That is above the bank’s 15%, so borrow from the bank and pay on day 10.` };
         },
         rounds: 10, seconds: 20,
       },
@@ -357,12 +359,12 @@
         why: R`The first number is the discount (%), the second is the discount window (days), and “net” is the due date for the full amount.` },
       { id: 'w8-q25', topic: 'terms', kind: 'mcq', level: 1, section: 'A', src: 'Lecture W8 slide 15',
         q: R`What do the terms **3/20, net 40** mean for the buyer?`,
-        choices: ['Take 3% off if paying within 20 days; otherwise pay the full amount after 40 days', 'Take 20% off if paying within 3 days', 'Pay 3% interest for every 20 days late', 'Take 3% off if paying within 40 days'], answer: 0,
+        choices: ['Take 3% off if paying within 20 days; otherwise pay the full amount by day 40', 'Take 20% off if paying within 3 days', 'Pay 3% interest for every 20 days late', 'Take 3% off if paying within 40 days'], answer: 0,
         why: R`A 3% discount for paying within 20 days. Otherwise the full price is due by day 40.` },
       { id: 'w8-q26', topic: 'terms', kind: 'mcq', level: 2, section: 'A', src: 'Task sheet W8 Part 1',
         q: R`A Ltd sells on terms of **1/10, net 55**. For each $100 sale, what does offering the discount cost A Ltd if a customer takes it?`,
         choices: ['$1, which is 1% of the sale', '$10, which is 10% of the sale', '$55, the full credit period', 'Nothing, because the customer pays sooner'], answer: 0,
-        why: R`The seller gives up the discount: 1% of $100 = $1. In return, the cash arrives much sooner.` },
+        why: R`The seller gives up the discount: \(1\% \times \$100 = \$1\). In return, the cash arrives much sooner.` },
       { id: 'w8-q27', topic: 'terms', kind: 'mcq', level: 2, section: 'A', src: 'Lecture W8 slide 17',
         q: R`Terms are 2/10, net 30 on a $100 bill. If you skip the discount and pay on day 30, what are you effectively doing?`,
         choices: [R`Borrowing $98 for 20 days at \(\frac{2}{98} = 2.04\%\)`, 'Borrowing $100 for 30 days at 2%', 'Borrowing $98 for 30 days at 2%', 'Getting 20 days of credit for free'], answer: 0,
@@ -375,7 +377,7 @@
         answer: P(ear(0.02, 10, 30)), unit: '%', dp: 2,
         mistakes: [
           { v: P(Math.pow(1.02, 365 / 20) - 1), why: R`The period rate is \(\frac{2}{98}\), not 2%: you borrow the discounted price.` },
-          { v: P(ear(0.02, 0, 30)), why: 'Use the extra days of credit, 30 − 10 = 20, not 30.' },
+          { v: P(ear(0.02, 0, 30)), why: R`Use the extra days of credit, \(30 - 10 = 20\), not 30.` },
           { v: P((2 / 98) * (365 / 20)), why: 'That is simple interest. The EAR compounds the 20-day rate.' },
         ],
         steps: [R`Period rate: \(\frac{2}{98} = 2.0408\%\) for \(30 - 10 = 20\) days.`, R`\[EAR = ${earTex(0.02, 10, 30)} = (1.020408)^{18.25} - 1 = ${L.pct(ear(0.02, 10, 30), 2)}\]`],
@@ -386,7 +388,7 @@
         answer: P(ear(0.03, 10, 40)), unit: '%', dp: 2,
         mistakes: [
           { v: P(Math.pow(1.03, 365 / 30) - 1), why: R`The period rate is \(\frac{3}{97}\), not 3%.` },
-          { v: P(ear(0.03, 0, 40)), why: 'Use 40 − 10 = 30 extra days, not 40.' },
+          { v: P(ear(0.03, 0, 40)), why: R`Use \(40 - 10 = 30\) extra days, not 40.` },
           { v: P((3 / 97) * (365 / 30)), why: 'That is simple interest. Compound the 30-day rate.' },
         ],
         steps: [R`Period rate: \(\frac{3}{97} = 3.0928\%\) for \(40 - 10 = 30\) days.`, R`\[EAR = ${earTex(0.03, 10, 40)} = ${L.pct(ear(0.03, 10, 40), 2)}\]`],
@@ -397,7 +399,7 @@
         answer: P(ear(0.02, 20, 60, 360)), unit: '%', dp: 2,
         mistakes: [
           { v: P(ear(0.02, 20, 60)), why: 'The question says to use a 360-day year, not 365.' },
-          { v: P(ear(0.02, 0, 60, 360)), why: 'Use 60 − 20 = 40 extra days, not 60.' },
+          { v: P(ear(0.02, 0, 60, 360)), why: R`Use \(60 - 20 = 40\) extra days, not 60.` },
           { v: P((2 / 98) * (360 / 40)), why: 'That is simple interest. Compound the 40-day rate 9 times.' },
         ],
         steps: [R`Period rate: \(\frac{2}{98} = 2.0408\%\) for \(60 - 20 = 40\) days. There are \(\frac{360}{40} = 9\) such periods a year.`, R`\[EAR = (1.020408)^{9} - 1 = ${L.pct(ear(0.02, 20, 60, 360), 2)}\]`],
@@ -424,13 +426,14 @@
         q: R`ABC Ltd offers 2/20, net 60 (EAR 19.94% with a 360-day year). Your bank lends at 15%. You need short-term finance. What should you do?`,
         choices: ['Take the discount, pay on day 20, and borrow from the bank', 'Give up the discount and pay on day 60', 'Give up the discount and pay on day 40', 'Take the discount, but pay on day 60'], answer: 0,
         why: R`The trade credit costs 19.94%, more than the bank’s 15%. Borrow from the bank and take the discount.`,
+        steps: [R`\[EAR = \left(1 + \frac{2}{98}\right)^{\frac{360}{60 - 20}} - 1 = ${L.pct(ear(0.02, 20, 60, 360), 2)}\]`, R`\(19.94\% > 15\%\): trade credit is the dearer loan. Take the discount, pay on day 20, and fund it with the bank loan.`],
         wrong: { 3: 'The discount is only available if you pay within 20 days.' } },
       { id: 'w8-q36', topic: 'payables', kind: 'num', level: 2, section: 'B', src: 'Tutorial W8 Q2(C)', formula: 'trade-credit',
         q: R`ABC Ltd offers 2/20, net 60, but you could stretch your payment by 20 days, to day 80. Using a **360-day** year, what is the effective annual cost of forgoing the discount now?`,
         answer: P(ear(0.02, 20, 80, 360)), unit: '%', dp: 2,
         mistakes: [
           { v: P(ear(0.02, 20, 60, 360)), why: 'That is the cost of paying on day 60. With stretching you pay on day 80.' },
-          { v: P(ear(0.02, 0, 80, 360)), why: 'Use 80 − 20 = 60 extra days, not 80.' },
+          { v: P(ear(0.02, 0, 80, 360)), why: R`Use \(80 - 20 = 60\) extra days, not 80.` },
           { v: P(ear(0.02, 20, 80)), why: 'The question says to use a 360-day year.' },
         ],
         steps: [R`Stretching makes the terms like 2/20, net 80: a \(80 - 20 = 60\)-day loan.`, R`\[EAR = (1.020408)^{\frac{360}{60}} - 1 = (1.020408)^{6} - 1 = ${L.pct(ear(0.02, 20, 80, 360), 2)}\]`],
@@ -445,7 +448,7 @@
         answer: UWE, unit: 'days', dp: 2,
         mistakes: [
           { v: 14000 / 250000 * 365, why: 'Divide the payables balance by daily COGS, not the other way round.' },
-          { v: 250000 / (14000 * 365) * 360, why: 'Daily COGS is already given. Just divide the balance by it.' },
+          { v: 250000 / (14000 * 365) * 360, why: 'Daily COGS is already given. Do not convert it with a 360-day year.' },
         ],
         steps: [R`\[\text{A/P days} = \frac{\text{Accounts payable}}{\text{Average daily COGS}} = \frac{250{,}000}{14{,}000} = ${L.num(UWE)} \text{ days}\]`],
         why: R`About 17.9 days. On 2/15, net 40 terms, that is too late for the discount and too early for the due date.` },
@@ -459,7 +462,7 @@
         answer: P(ear(0.01, 15, 40)), unit: '%', dp: 2,
         mistakes: [
           { v: P(Math.pow(1.01, 365 / 25) - 1), why: R`The period rate is \(\frac{1}{99}\), not 1%.` },
-          { v: P(ear(0.01, 0, 40)), why: 'Use 40 − 15 = 25 extra days, not 40.' },
+          { v: P(ear(0.01, 0, 40)), why: R`Use \(40 - 15 = 25\) extra days, not 40.` },
           { v: P((1 / 99) * (365 / 25)), why: 'That is simple interest. Compound the 25-day rate.' },
         ],
         steps: [R`\[EAR = ${earTex(0.01, 15, 40)} = ${L.pct(ear(0.01, 15, 40), 2)}\]`],
@@ -487,15 +490,44 @@
       { id: 'w8-q44', topic: 'payables', kind: 'mcq', level: 2, section: 'B', src: 'Task sheet W8 Part 1 (Company A)',
         q: R`Company A buys from Supplier E on **1/20, net 40**. The bank lends to Company A at 15%. Using a 365-day year, what should Company A do?`,
         choices: [R`Take the discount: the EAR is \(${L.pct(ear(0.01, 20, 40), 2)}\), above 15%. Borrow from the bank and pay on day 20.`, R`Forgo the discount: the EAR is \(${L.pct(ear(0.01, 20, 40), 2)}\), so pay on day 40.`, R`Forgo the discount: the cost is only 1%, so pay on day 40.`, 'Pay on day 30 to balance the two costs.'], answer: 0,
-        why: R`\(EAR = ${earTex(0.01, 20, 40)} = ${L.pct(ear(0.01, 20, 40), 2)}\) is above the 15% bank rate, so take the discount.` },
+        why: R`\(EAR = ${earTex(0.01, 20, 40)} = ${L.pct(ear(0.01, 20, 40), 2)}\) is above the 15% bank rate, so take the discount.`,
+        steps: [R`Period rate: \(\frac{1}{99} = 1.0101\%\) for \(40 - 20 = 20\) days.`, R`\[EAR = ${earTex(0.01, 20, 40)} = ${L.pct(ear(0.01, 20, 40), 2)}\]`, R`\(${L.pct(ear(0.01, 20, 40), 2)} > 15\%\): borrow from the bank and pay Supplier E on day 20.`] },
       { id: 'w8-q45', topic: 'payables', kind: 'mcq', level: 2, section: 'B', src: 'Task sheet W8 Part 1 (Company D)',
         q: R`Company D buys from Supplier C on **2/10, net 60**. The bank lends to Company D at 20%. Using a 365-day year, what should Company D do?`,
         choices: [R`Forgo the discount and pay on day 60: the EAR is \(${L.pct(ear(0.02, 10, 60), 2)}\), below 20%`, R`Take the discount and borrow at 20%: 2% for 50 days is expensive`, R`Forgo the discount and pay on day 10`, R`Take the discount and pay on day 60`], answer: 0,
-        why: R`\(EAR = ${earTex(0.02, 10, 60)} = ${L.pct(ear(0.02, 10, 60), 2)}\). That is cheaper than the bank, so use the trade credit fully.` },
+        why: R`\(EAR = ${earTex(0.02, 10, 60)} = ${L.pct(ear(0.02, 10, 60), 2)}\). That is cheaper than the bank, so use the trade credit fully.`,
+        steps: [R`Period rate: \(\frac{2}{98} = 2.0408\%\) for \(60 - 10 = 50\) days.`, R`\[EAR = ${earTex(0.02, 10, 60)} = ${L.pct(ear(0.02, 10, 60), 2)}\]`, R`\(${L.pct(ear(0.02, 10, 60), 2)} < 20\%\): skip the discount and pay Supplier C on day 60.`] },
       { id: 'w8-q46', topic: 'payables', kind: 'mcq', level: 2, section: 'A', src: 'Task sheet W8 Part 2 (Company C)',
         q: R`Company C’s supplier offers **2/10, net 30**. Company C’s A/P days are ${T.num(COC_AP)}. Is it managing its payables well?`,
         choices: ['No: it pays after the 30-day due date, which signals cash-flow trouble', 'Yes: it pays within the discount period', 'Yes: it pays exactly on the due date', 'No: it pays too early and wastes free credit'], answer: 0,
         why: R`\(\frac{2.2}{24/365} = ${L.num(COC_AP)}\) days is past day 30. It should take the discount (bank-funded) or at least pay by day 30.` },
+
+      { id: 'w8-q60', topic: 'payables', kind: 'mcq', level: 2, section: 'B', src: 'Task sheet W8 Part 1 (Company B)',
+        q: R`Company B buys from Supplier A on **1/10, net 55**. The bank lends to Company B at 15%. Using a 365-day year, what should Company B do?`,
+        choices: [R`Forgo the discount and pay on day 55: the EAR is \(${L.pct(ear(0.01, 10, 55), 2)}\), below 15%`, R`Take the discount and borrow at 15%, paying on day 10`, R`Forgo the discount and pay on day 30`, R`Take the discount but pay on day 55`], answer: 0,
+        why: R`\(EAR = ${earTex(0.01, 10, 55)} = ${L.pct(ear(0.01, 10, 55), 2)}\). The long 45-day window makes trade credit cheap, so use it fully.`,
+        steps: [R`Period rate: \(\frac{1}{99} = 1.0101\%\) for \(55 - 10 = 45\) days.`, R`\[EAR = ${earTex(0.01, 10, 55)} = ${L.pct(ear(0.01, 10, 55), 2)}\]`, R`\(${L.pct(ear(0.01, 10, 55), 2)} < 15\%\): skip the discount and pay on day 55.`] },
+      { id: 'w8-q61', topic: 'payables', kind: 'mcq', level: 2, section: 'B', src: 'Task sheet W8 Part 1 (Company C)',
+        q: R`Company C buys from Supplier B on **2/10, net 30**. The bank lends to Company C at 20%. Using a 365-day year, what should Company C do?`,
+        choices: [R`Take the discount: the EAR is \(${L.pct(ear(0.02, 10, 30), 2)}\), above 20%. Borrow and pay on day 10.`, R`Forgo the discount and pay on day 30, because 2% is less than 20%`, R`Forgo the discount and pay on day 20`, R`Take the discount but pay on day 30`], answer: 0,
+        why: R`\(EAR = ${earTex(0.02, 10, 30)} = ${L.pct(ear(0.02, 10, 30), 2)}\), far above the 20% bank rate.`,
+        steps: [R`\[EAR = ${earTex(0.02, 10, 30)} = ${L.pct(ear(0.02, 10, 30), 2)}\]`, R`\(${L.pct(ear(0.02, 10, 30), 2)} > 20\%\): borrow from the bank and pay on day 10.`],
+        wrong: { 1: R`The 2% is for 20 days only. As a yearly rate it is about 44.6%.` } },
+      { id: 'w8-q62', topic: 'payables', kind: 'mcq', level: 2, section: 'B', src: 'Task sheet W8 Part 1 (Company E)',
+        q: R`Company E buys from Supplier D on **2/15, net 35**. The bank lends to Company E at 18%. Using a 365-day year, what should Company E do?`,
+        choices: [R`Take the discount: borrow at 18% and pay on day 15`, R`Forgo the discount and pay on day 35`, R`Forgo the discount and pay on day 25`, R`Take the discount but pay on day 35`], answer: 0,
+        why: R`\(EAR = ${earTex(0.02, 15, 35)} = ${L.pct(ear(0.02, 15, 35), 2)}\), well above 18%. If E cannot pay by day 15, it should wait until day 35.`,
+        steps: [R`\[EAR = ${earTex(0.02, 15, 35)} = ${L.pct(ear(0.02, 15, 35), 2)}\]`, R`\(${L.pct(ear(0.02, 15, 35), 2)} > 18\%\): take the discount and pay on day 15.`] },
+      { id: 'w8-q63', topic: 'tcost', kind: 'mcq', level: 2, section: 'B', src: 'Task sheet W8 Part 1',
+        q: R`Five firms in one supply chain face the terms and bank rates in the table. Using a 365-day year, which firms should **forgo** the discount and pay on the last day?`,
+        table: { head: ['Company', 'Terms from its supplier', 'Bank rate'], rows: [['A', '1/20, net 40', '15%'], ['B', '1/10, net 55', '15%'], ['C', '2/10, net 30', '20%'], ['D', '2/10, net 60', '20%'], ['E', '2/15, net 35', '18%']] },
+        choices: ['B and D', 'A and C', 'A, C and E', 'Only D'], answer: 0,
+        why: R`Only B (\(${L.pct(ear(0.01, 10, 55), 2)}\)) and D (\(${L.pct(ear(0.02, 10, 60), 2)}\)) have trade credit cheaper than their bank.`,
+        steps: [
+          R`A: \(${L.pct(ear(0.01, 20, 40), 2)} > 15\%\), take. B: \(${L.pct(ear(0.01, 10, 55), 2)} < 15\%\), forgo.`,
+          R`C: \(${L.pct(ear(0.02, 10, 30), 2)} > 20\%\), take. D: \(${L.pct(ear(0.02, 10, 60), 2)} < 20\%\), forgo.`,
+          R`E: \(${L.pct(ear(0.02, 15, 35), 2)} > 18\%\), take.`,
+        ] },
 
       /* ----- receivables and credit policy ----- */
       { id: 'w8-q47', topic: 'receivables', kind: 'mcq', level: 1, section: 'A', src: 'Lecture W8 slide 22',
@@ -596,7 +628,7 @@
             steps: [
               R`Current assets: \(${cash.toFixed(1)} + ${ar.toFixed(1)} + ${inv.toFixed(1)} = ${ca.toFixed(1)}\)`,
               R`Current liabilities: \(${ap.toFixed(1)} + ${accr.toFixed(1)} = ${cl.toFixed(1)}\)`,
-              R`\[NWC = ${L.numT(ca, 2)} - ${L.numT(cl, 2)} = ${milL(nwc)}\]`,
+              R`\[NWC = ${ca.toFixed(1)} - ${cl.toFixed(1)} = ${milL(nwc)}\]`,
             ],
             why: R`Only current items count. PP&E and long-term debt are left out.`,
           };
@@ -701,7 +733,7 @@
               { v: cogs / inv, why: 'That is inventory turnover (times a year), not days.' },
             ], 'days', 2),
             steps: [R`Average daily COGS \(= \frac{${K(cogs, 2)}}{365} = ${L.numT(cogs / 365, 5)}\)`, R`\[\text{Inventory days} = \frac{${K(inv, 2)}}{${K(cogs, 2)}/365} = ${L.num(d)} \text{ days}\]`],
-            why: R`Inventory days = inventory \(\div\) average daily COGS.`,
+            why: R`\(\text{Inventory days} = \frac{\text{Inventory}}{COGS/365}\): stock is held at cost, so use COGS.`,
           };
         } },
       { id: 'w8-g-ardays', topic: 'receivables', level: 1, section: 'B', formula: 'ar-days',
@@ -720,7 +752,7 @@
               { v: sales / ar, why: 'That is receivables turnover (times a year), not days.' },
             ], 'days', 2),
             steps: [R`Average daily sales \(= \frac{${K(sales, 2)}}{365} = ${L.numT(sales / 365, 5)}\)`, R`\[\text{A/R days} = \frac{${K(ar, 2)}}{${K(sales, 2)}/365} = ${L.num(d)} \text{ days}\]`],
-            why: R`A/R days = receivables \(\div\) average daily sales: the average time customers take to pay.`,
+            why: R`\(\text{A/R days} = \frac{\text{Accounts receivable}}{Sales/365}\): the average time customers take to pay.`,
           };
         } },
       { id: 'w8-g-apdays', topic: 'payables', level: 1, section: 'B', formula: 'ap-days',
@@ -739,7 +771,7 @@
               { v: cogs / ap, why: 'That is payables turnover (times a year), not days.' },
             ], 'days', 2),
             steps: [R`Average daily COGS \(= \frac{${K(cogs, 2)}}{365} = ${L.numT(cogs / 365, 5)}\)`, R`\[\text{A/P days} = \frac{${K(ap, 2)}}{${K(cogs, 2)}/365} = ${L.num(d)} \text{ days}\]`],
-            why: R`A/P days = payables \(\div\) average daily COGS: the average time the firm takes to pay suppliers.`,
+            why: R`\(\text{A/P days} = \frac{\text{Accounts payable}}{COGS/365}\): the average time the firm takes to pay suppliers.`,
           };
         } },
       { id: 'w8-g-ccc', topic: 'ccc', level: 2, section: 'B', formula: 'ccc', src: 'Tutorial W8 Q1',
@@ -846,6 +878,7 @@
             ],
             answer: 0,
             why: R`The discount (${d}%) comes first, then the discount window (${x} days). “Net ${y}” is the due date for the full amount.`,
+            steps: [R`\(d = ${d}\%\): the discount for paying early.`, R`${x} days: the discount window.`, R`Net ${y}: the full amount is due by day ${y}.`],
           };
         } },
       { id: 'w8-g-period', topic: 'tcost', level: 1, section: 'B', formula: 'trade-credit', src: 'Lecture W8 slide 16',
@@ -877,7 +910,7 @@
             answer: P(e), unit: '%', dp: 2,
             mistakes: uniq(P(e), [
               { v: P(Math.pow(1 + d, yr / (y - x)) - 1), why: R`The period rate is \(\frac{d}{1-d}\), not \(d\): you borrow the discounted price.` },
-              { v: P(ear(d, 0, y, yr)), why: `Use the extra days, ${y} − ${x} = ${y - x}, not ${y}.` },
+              { v: P(ear(d, 0, y, yr)), why: R`Use the extra days, \(${y} - ${x} = ${y - x}\), not ${y}.` },
               { v: P((d / (1 - d)) * (yr / (y - x))), why: 'That is simple interest. The EAR compounds the period rate.' },
               { v: P(ear(d, x, y, yr === 365 ? 360 : 365)), why: `This question uses a ${yr}-day year.` },
             ], '%', 2),

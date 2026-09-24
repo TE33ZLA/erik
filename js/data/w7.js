@@ -12,6 +12,7 @@
   const npvPerp = (q, p, v, r, inv) => ((p - v) * q) / r - inv;
   const pv = (x, r, t) => x / Math.pow(1 + r, t);
   const pct = (p) => T.pctT(p); // 0.35 -> "35%"
+  const mL = (x, dp = 2) => R`${x < 0 ? '-' : ''}\$${L.numT(Math.abs(x), dp)}\text{m}`; // LaTeX $m amount, sign first
   // money for working lines: whole dollars without ".00", otherwise cents
   const whole = (x) => Math.abs(x - Math.round(x)) < 0.005;
   const LM = (x, dp = 2) => (dp > 0 && whole(x) ? L.moneyT(Math.round(x)) : L.money(x, dp));
@@ -109,66 +110,66 @@
   })();
 
   /* ---------- static decision trees ---------- */
-  const TREE_ELEC = decide('t = 0', [
-    ['Research: −$500,000', chance('t = 1', [
-      ['33% success', end('$150,000 a year forever (worth $1.25m at t = 1)')],
+  const TREE_ELEC = decide(R`\(t = 0\)`, [
+    ['Research: −$500,000', chance(R`\(t = 1\)`, [
+      ['33% success', end(R`$150,000 a year forever (worth $1.25m at \(t = 1\))`)],
       ['67% failure', end('$0')],
     ])],
     ['Do not research', end('$0')],
   ]);
-  const TREE_GROCER = decide('t = 0', [
+  const TREE_GROCER = decide(R`\(t = 0\)`, [
     ['Advertise: −$250,000', chance(undefined, [
       ['40%', end('+$100,000 a year, years 1–5')],
       ['60%', end('+$50,000 a year, years 1–5')],
     ])],
     ['Do not advertise', end('$0')],
   ]);
-  const TREE_INNO = decide('t = 0', [
-    ['Develop: −$250,000', chance('t = 2', [
+  const TREE_INNO = decide(R`\(t = 0\)`, [
+    ['Develop: −$250,000', chance(R`\(t = 2\)`, [
       ['30% success', chance(undefined, [
         ['40% high demand', end('$600,000 a year, years 3–7')],
         ['60% low demand', end('$200,000 a year, years 3–7')],
       ])],
-      ['70% failure', end('Sell equipment: $50,000 at t = 2')],
+      ['70% failure', end(R`Sell equipment: $50,000 at \(t = 2\)`)],
     ])],
     ['Do not develop', end('$0')],
   ]);
-  const TREE_CHIP_UP = decide('t = 3, after high demand', [
+  const TREE_CHIP_UP = decide(R`\(t = 3\), after high demand`, [
     ['Upgrade: −$3m', chance(undefined, [['0.8 high', end('$1m a year, years 4–8')], ['0.2 low', end('$0.5m a year, years 4–8')]])],
     ['Do not upgrade', chance(undefined, [['0.8 high', end('$0.6m a year, years 4–8')], ['0.2 low', end('$0.2m a year, years 4–8')]])],
   ]);
-  const TREE_CHIP_B = chance('Buy B: −$3m at t = 0', [
-    ['0.7 high', end('$0.6m a year in years 1–3, then best choice at t = 3 worth $1.971m')],
-    ['0.3 low', end('$0.2m a year in years 1–3, then best choice at t = 3 worth $1.365m')],
+  const TREE_CHIP_B = chance(R`Buy B: −$3m at \(t = 0\)`, [
+    ['0.7 high', end(R`$0.6m a year in years 1–3, then best choice at \(t = 3\) worth $1.971m`)],
+    ['0.3 low', end(R`$0.2m a year in years 1–3, then best choice at \(t = 3\) worth $1.365m`)],
   ]);
-  const TREE_CHIP_A = chance('Buy A: −$4m at t = 0', [
-    ['0.7 high: $1m a year, years 1–3', chance('t = 3', [['0.8 high', end('$1m a year, years 4–8')], ['0.2 low', end('$0.5m a year, years 4–8')]])],
-    ['0.3 low: $0.5m a year, years 1–3', chance('t = 3', [['0.4 high', end('$1m a year, years 4–8')], ['0.6 low', end('$0.5m a year, years 4–8')]])],
+  const TREE_CHIP_A = chance(R`Buy A: −$4m at \(t = 0\)`, [
+    ['0.7 high: $1m a year, years 1–3', chance(R`\(t = 3\)`, [['0.8 high', end('$1m a year, years 4–8')], ['0.2 low', end('$0.5m a year, years 4–8')]])],
+    ['0.3 low: $0.5m a year, years 1–3', chance(R`\(t = 3\)`, [['0.4 high', end('$1m a year, years 4–8')], ['0.6 low', end('$0.5m a year, years 4–8')]])],
   ]);
   const balloonTree = (C, H, Lo, sal, probs) => chance(`Buy: −${T.moneyT(C)}`, [
-    [`${probs ? probs[0] + ' ' : ''}high year 1 (${T.moneyT(H)})`, chance('t = 2', [
+    [`${probs ? probs[0] + ' ' : ''}high year 1 (${T.moneyT(H)})`, chance(R`\(t = 2\)`, [
       [`${probs ? probs[1] + ' ' : ''}high`, end(T.moneyT(H))],
       [`${probs ? probs[2] + ' ' : ''}low`, end(T.moneyT(Lo))],
     ])],
-    [`${probs ? probs[3] + ' ' : ''}low year 1 (${T.moneyT(Lo)})`, decide('t = 1', [
-      ['Keep', chance('t = 2', [
+    [`${probs ? probs[3] + ' ' : ''}low year 1 (${T.moneyT(Lo)})`, decide(R`\(t = 1\)`, [
+      ['Keep', chance(R`\(t = 2\)`, [
         [`${probs ? probs[4] + ' ' : ''}high`, end(T.moneyT(H))],
         [`${probs ? probs[5] + ' ' : ''}low`, end(T.moneyT(Lo))],
       ])],
-      ['Sell', end(`${T.moneyT(sal)} at t = 1`)],
+      ['Sell', end(R`${T.moneyT(sal)} at \(t = 1\)`)],
     ])],
   ]);
   const BALLOON_PROBS = ['75%', '80%', '20%', '25%', '20%', '80%'];
   const TREE_UNTER_Q = chance('Quarter of fleet: −$30m (saves $5m a year in years 1–2)', [
-    ['90% approved', decide('t = 2', [
+    ['90% approved', decide(R`\(t = 2\)`, [
       ['Upgrade the rest: −$70m', end('$30m a year, years 3–9')],
       ['No upgrade', end('$5m a year, years 3–9')],
     ])],
-    ['10% banned', end('Sell the fleet for $80m at t = 2')],
+    ['10% banned', end(R`Sell the fleet for $80m at \(t = 2\)`)],
   ]);
   const TREE_UNTER_E = chance('Entire fleet: −$100m (saves $30m a year)', [
     ['70% approved', end('$30m a year, years 1–9')],
-    ['30% banned', end('$30m in years 1–2, then sell for $10m at t = 2')],
+    ['30% banned', end(R`$30m in years 1–2, then sell for $10m at \(t = 2\)`)],
   ]);
 
   root.registerPack({
@@ -201,7 +202,7 @@
       { h: 'Scenario analysis', points: [
         R`Change **several** assumptions **together**, as one story: worst, base and best case.`,
         R`Worst case: \(\frac{(75 - 62) \times 5{,}500}{0.12} - 500{,}000 = \$95{,}833\). Best case: \(\frac{(85 - 58) \times 6{,}500}{0.08} - 500{,}000 = \$1{,}693{,}750\).`,
-        R`Sensitivity = one input at a time. Scenario = many inputs at once. Do not swap them.`,
+        R`Sensitivity: one input at a time. Scenario: many inputs at once. Do not swap them.`,
       ] },
       { h: 'Decision trees', points: [
         R`A **decision node** (□) is a choice you make. Keep the branch with the **highest NPV**.`,
@@ -281,7 +282,7 @@
           { t: 'Choose a large or small balloon now, and maybe sell it later', bin: 'tree', why: 'Two decision points with uncertainty between them: a decision tree.' },
           { t: 'Weight each branch by its probability at every chance node', bin: 'tree', why: 'Expected values at chance nodes are how decision trees are solved.' },
           { t: 'Put worst, base and best cases side by side', bin: 'scen', why: 'Comparing whole cases is scenario analysis.' },
-          { t: 'Ask: how far can unit sales fall before NPV hits zero?', bin: 'sens', why: 'Moving one input to find NPV = 0 is break-even, a form of sensitivity analysis.' },
+          { t: 'Ask: how far can unit sales fall before NPV hits zero?', bin: 'sens', why: R`Moving one input to find \(NPV = 0\) is break-even, a form of sensitivity analysis.` },
         ],
         rounds: 12, seconds: 12,
       },
@@ -306,7 +307,7 @@
             const hi = Math.max(a, b), lo = Math.min(a, b), avg = (a + b) / 2;
             const order = rng.shuffle([hi, lo, avg]);
             const fmt = (x) => (x < 0 ? `−$${-x}k` : `$${x}k`);
-            return { t: R`Decision node □ at t = 3: Upgrade, NPV ${fmt(a)}. Do not upgrade, NPV ${fmt(b)}. Value carried back?`, opts: order.map(fmt), a: order.indexOf(hi),
+            return { t: R`Decision node □ at \(t = 3\): Upgrade, NPV ${fmt(a)}. Do not upgrade, NPV ${fmt(b)}. Value carried back?`, opts: order.map(fmt), a: order.indexOf(hi),
               why: R`At a decision node you choose the **highest** NPV: ${fmt(hi)}.` };
           }
           if (kind === 'node') {
@@ -325,7 +326,7 @@
           const order = rng.shuffle([0, 1, 2]);
           return { t: R`\(P(H_1 \text{ and } H_2) = ${L.numT(j * 100, 2)}\%\) and \(P(H_1) = ${L.numT(m * 100, 2)}\%\). What is \(P(H_2 \mid H_1)\)?`,
             opts: order.map((k) => `${K(vals[k] * 100, 2)}%`), a: order.indexOf(0),
-            why: R`Conditional = joint \(\div\) first branch: \(\frac{${L.dec(j)}}{${L.dec(m)}} = ${L.dec(c)}\).` };
+            why: R`\(P(H_2 \mid H_1) = \frac{P(H_1 \text{ and } H_2)}{P(H_1)} = \frac{${L.dec(j)}}{${L.dec(m)}} = ${L.dec(c)}\)` };
         },
         rounds: 10, seconds: 20,
       },
@@ -347,7 +348,7 @@
         answer: false, why: R`The survey is a **sunk cost**. It is spent whatever the firm decides, so it is not an incremental cash flow.` },
       { id: 'w7-q04', topic: 'fcf', kind: 'mcq', level: 2, section: 'A', src: 'Tutorial W7 Q2',
         q: R`InnoCam will borrow $100,000 at 6.5% p.a. to help fund a project. How should the interest enter the project’s cash flows?`,
-        choices: ['Leave it out: it is a financing cost, already in the required return', 'Subtract $6,500 every year', 'Subtract the $100,000 loan at t = 0', 'Add the $100,000 loan as an inflow at t = 0'], answer: 0,
+        choices: ['Leave it out: it is a financing cost, already in the required return', 'Subtract $6,500 every year', R`Subtract the $100,000 loan at \(t = 0\)`, R`Add the $100,000 loan as an inflow at \(t = 0\)`], answer: 0,
         why: R`The required return already reflects the cost of funding. Subtracting the interest as well would **double count** it.` },
       { id: 'w7-q05', topic: 'fcf', kind: 'tf', level: 1, section: 'A', src: 'Tutorial W7 concept check Q2',
         q: R`Sensitivity, scenario and decision-tree analysis will still fail if the data and assumptions used as inputs are unreliable.`,
@@ -372,10 +373,10 @@
         why: R`Each unit adds \(\text{Price} - \text{Cost per unit}\) to EBIT. You need enough units to cover SG&A **and** depreciation.`,
         wrong: { 1: 'Each unit also has a cost, so divide by the margin per unit, not the price.', 2: 'Depreciation is a cost above EBIT, so it must be covered too.' } },
       { id: 'w7-q10', topic: 'breakeven', kind: 'num', level: 2, section: 'B', src: 'Lecture W7 slide 10 (extension)', formula: 'npv',
-        q: R`Lecture project: price $80, cost $60 per unit, initial cost $500,000, the same sales every year forever, no tax. The cost of capital is 10%. How many units a year give **NPV = 0**?`,
+        q: R`Lecture project: price $80, cost $60 per unit, initial cost $500,000, the same sales every year forever, no tax. The cost of capital is 10%. How many units a year make the NPV **zero**?`,
         answer: (500000 * 0.10) / (80 - 60), unit: 'units', dp: 0,
         mistakes: [
-          { v: 500000 / 20, why: 'That earns back the whole cost in a single year. The cash flow lasts forever, so NPV = 0 needs far fewer units.' },
+          { v: 500000 / 20, why: R`That earns back the whole cost in a single year. The cash flow lasts forever, so \(NPV = 0\) needs far fewer units.` },
           { v: (500000 * 0.10) / 80, why: 'Divide by the margin per unit ($20), not by the price ($80).' },
           { v: (500000 * 0.10) / 60, why: 'Divide by the margin per unit ($20), not by the cost per unit ($60).' },
         ],
@@ -514,9 +515,9 @@
         tree: TREE_ELEC,
         answer: ELEC.npv, unit: '$', dp: 2,
         mistakes: [
-          { v: -500000 + ELEC.e1, why: 'That forgets to discount the expected payoff from t = 1 back to today.' },
+          { v: -500000 + ELEC.e1, why: R`That forgets to discount the expected payoff from \(t = 1\) back to today.` },
           { v: -500000 + ELEC.v1 / 1.12, why: 'That ignores the 67% chance of failure.' },
-          { v: -500000 + ELEC.e1 / Math.pow(1.12, 2), why: 'The perpetuity is already valued at t = 1, so discount it one year, not two.' },
+          { v: -500000 + ELEC.e1 / Math.pow(1.12, 2), why: R`The perpetuity is already valued at \(t = 1\), so discount it one year, not two.` },
         ],
         steps: [
           R`Value of success at \(t = 1\): \[PV_1 = \frac{150{,}000}{0.12} = \$1{,}250{,}000\]`,
@@ -560,8 +561,8 @@
         answer: INNO.npv, unit: '$', dp: 2,
         mistakes: [
           { v: INNO.npv - 20000, why: 'The $20,000 training fee is sunk. It has been paid whatever InnoCam decides.' },
-          { v: -250000 + INNO.v2, why: 'The expected value sits at t = 2. Discount it back two years.' },
-          { v: -250000 + 0.3 * INNO.pv2 + (0.7 * 50000) / Math.pow(1.15, 2), why: 'The annuity starts in year 3, so its value lands at t = 2. Discount it two more years.' },
+          { v: -250000 + INNO.v2, why: R`The expected value sits at \(t = 2\). Discount it back two years.` },
+          { v: -250000 + 0.3 * INNO.pv2 + (0.7 * 50000) / Math.pow(1.15, 2), why: R`The annuity starts in year 3, so its value lands at \(t = 2\). Discount it two more years.` },
           { v: -250000 + (0.3 * INNO.pv2) / Math.pow(1.15, 2), why: 'Include the $50,000 salvage on the failure branch.' },
         ],
         steps: [
@@ -593,7 +594,7 @@
           { v: 45, why: R`Divide the joint probability by \(P(H_1)\). Do not multiply.` },
         ],
         steps: [R`\[P(H_1) = 0.60 + 0.15 = 0.75\]`, R`\[P(H_2 \mid H_1) = \frac{P(H_1 \text{ and } H_2)}{P(H_1)} = \frac{0.60}{0.75} = 0.80\]`],
-        why: R`Conditional probability = joint probability \(\div\) the probability of the first branch.` },
+        why: R`\(P(H_2 \mid H_1) = \frac{P(H_1 \text{ and } H_2)}{P(H_1)}\): the joint probability divided by the probability of the first branch.` },
       { id: 'w7-q36', topic: 'prob', kind: 'num', level: 2, section: 'B', src: 'Tutorial W7 Q3',
         q: R`Same balloon market: HH 60%, HL 15%, LL 20%. What is the **joint** probability that demand is low in year 1 **and** high in year 2?`,
         answer: P(1 - 0.60 - 0.15 - 0.20), unit: '%', dp: 0,
@@ -646,8 +647,8 @@
         tree: TREE_CHIP_B,
         answer: CHIP.B, unit: '$m', dp: 3,
         mistakes: [
-          { v: CHIP.bNoCF, why: 'Include the cash flows in years 1–3 as well as the value at t = 3.' },
-          { v: CHIP.bNoDisc, why: 'The t = 3 values must be discounted three years back to today.' },
+          { v: CHIP.bNoCF, why: R`Include the cash flows in years 1–3 as well as the value at \(t = 3\).` },
+          { v: CHIP.bNoDisc, why: R`The \(t = 3\) values must be discounted three years back to today.` },
           { v: CHIP.bAlwaysUp, why: 'After high demand the best choice is NOT to upgrade. Use the higher NPV at each decision node.' },
         ],
         steps: [
@@ -657,11 +658,11 @@
         ],
         why: R`Work backwards: the best \(t = 3\) values, plus years 1–3 cash flows, discounted and weighted by 0.7 and 0.3.` },
       { id: 'w7-q44', topic: 'option', kind: 'num', level: 3, section: 'B', src: 'Lecture W7 Example 2', boss: true,
-        q: R`Machine A costs $4m and lasts 8 years. It earns $1m a year when demand is high and $0.5m when it is low. P(high in years 1–3) = 0.7. After a high period, P(high in years 4–8) = 0.8. After a low period, P(low in years 4–8) = 0.6. \(r = 10\%\). What is \(NPV_A\) (in $m)?`,
+        q: R`Machine A costs $4m and lasts 8 years. It earns $1m a year when demand is high and $0.5m when it is low. Demand in years 1–3 is high with probability 0.7. After a high period, it stays high in years 4–8 with probability 0.8. After a low period, it stays low with probability 0.6. \(r = 10\%\). What is \(NPV_A\) (in $m)?`,
         tree: TREE_CHIP_A,
         answer: CHIP.A, unit: '$m', dp: 3,
         mistakes: [
-          { v: CHIP.aNoDisc, why: 'The t = 3 values must be discounted three years back to today.' },
+          { v: CHIP.aNoDisc, why: R`The \(t = 3\) values must be discounted three years back to today.` },
           { v: CHIP.aUncond, why: 'That uses 0.7 for years 4–8 too. After year 3, use the conditional probabilities (0.8 or 0.4).' },
           { v: CHIP.A + 4, why: 'Subtract the $4m cost of machine A.' },
         ],
@@ -683,7 +684,7 @@
         mistakes: [
           { v: LARGE.npvKeep, why: 'That ignores the option to sell. After a low year 1, selling for $60,750 beats keeping.' },
           { v: LARGE.npvJoint, why: 'That uses joint probabilities on the year-2 branches. Use conditional ones (0.8 / 0.2).' },
-          { v: LARGE.npvOnce, why: 'Year-2 cash flows need two years of discounting: one to t = 1, then one more to today.' },
+          { v: LARGE.npvOnce, why: R`Year-2 cash flows need two years of discounting: one to \(t = 1\), then one more to today.` },
         ],
         steps: [
           R`Probabilities: \(P(H_1) = 0.75\), \(P(H_2 \mid H_1) = 0.8\); \(P(L_1) = 0.25\), \(P(L_2 \mid L_1) = 0.8\), \(P(H_2 \mid L_1) = 0.2\).`,
@@ -716,8 +717,8 @@
         tree: TREE_UNTER_Q,
         answer: UNTER.quarter, unit: '$m', dp: 2,
         mistakes: [
-          { v: UNTER.quarterNoOpt, why: 'That ignores the option to upgrade after approval. Upgrading is worth $76.05m at t = 2.' },
-          { v: UNTER.quarterNoDisc2, why: 'The upgrade decision is valued at t = 2. Discount it two years back to today.' },
+          { v: UNTER.quarterNoOpt, why: R`That ignores the option to upgrade after approval. Upgrading is worth $76.05m at \(t = 2\).` },
+          { v: UNTER.quarterNoDisc2, why: R`The upgrade decision is valued at \(t = 2\). Discount it two years back to today.` },
           { v: UNTER.quarterNoSavings, why: 'Include the $5m savings in years 1 and 2 on every branch.' },
         ],
         steps: [
@@ -732,7 +733,7 @@
         answer: UNTER.entire, unit: '$m', dp: 2,
         mistakes: [
           { v: UNTER.entireNoBan, why: 'That ignores the 30% chance of a ban after year 2.' },
-          { v: UNTER.entireNoSalvage, why: 'If banned, the fleet is still sold for $10m at t = 2. Include it.' },
+          { v: UNTER.entireNoSalvage, why: R`If banned, the fleet is still sold for $10m at \(t = 2\). Include it.` },
           { v: UNTER.entireNoDisc, why: 'Discount each year’s savings back to today.' },
         ],
         steps: [
@@ -867,7 +868,7 @@
               { v: (inv * r) / margin, why: `That treats the cash flow as a perpetuity. It only lasts ${n} years.` },
               { v: inv / (price * factor), why: R`Divide by the margin per unit, \(\text{price} - \text{cost}\), not by the price.` }];
           return {
-            q: R`${co} is weighing a project that costs ${T.moneyT(inv)} today. Each unit sells for ${T.moneyT(price)} and costs ${T.moneyT(cost)} to make. Sales are the same every year, ${perp ? 'forever' : `for ${n} years`}. Ignore tax. The cost of capital is ${pct(r)}. How many units a year give **NPV = 0**?`,
+            q: R`${co} is weighing a project that costs ${T.moneyT(inv)} today. Each unit sells for ${T.moneyT(price)} and costs ${T.moneyT(cost)} to make. Sales are the same every year, ${perp ? 'forever' : `for ${n} years`}. Ignore tax. The cost of capital is ${pct(r)}. How many units a year make the NPV **zero**?`,
             givens: [['I', L.moneyT(inv)], [R`P - v`, L.moneyT(margin)], ['r', L.pctT(r)], ['n', perp ? R`\infty` : String(n)]],
             answer: q, unit: 'units', dp: 0,
             mistakes: uniq(q, ms, 'units', 0),
@@ -1071,12 +1072,12 @@
           const wrongK = k === 1 ? 2 : k - 1;
           return {
             q: R`A chance node sits at \(t = ${k}\). At that date the project is worth ${T.moneyT(good)} (probability ${pct(p)}) or ${T.moneyT(bad)} (probability ${pct(1 - p)}). The discount rate is ${pct(r)}. What is the chance node worth **today**?`,
-            tree: chance(`t = ${k}`, [[pct(p), end(T.moneyT(good))], [pct(1 - p), end(T.moneyT(bad))]]),
+            tree: chance(R`\(t = ${k}\)`, [[pct(p), end(T.moneyT(good))], [pct(1 - p), end(T.moneyT(bad))]]),
             givens: [['p', L.pctT(p)], ['V_{good}', L.moneyT(good)], ['V_{bad}', L.moneyT(bad)], ['r', L.pctT(r)], ['t', String(k)]],
             answer: ans, unit: '$', dp: 2,
             mistakes: uniq(ans, [
-              { v: ev, why: `That is the expected value at t = ${k}. Discount it back to today.` },
-              { v: pv(ev, r, wrongK), why: `The node is at t = ${k}, so discount for ${k} year${k > 1 ? 's' : ''}.` },
+              { v: ev, why: R`That is the expected value at \(t = ${k}\). Discount it back to today.` },
+              { v: pv(ev, r, wrongK), why: R`The node is at \(t = ${k}\), so discount for ${k} year${k > 1 ? 's' : ''}.` },
               { v: pv((good + bad) / 2, r, k), why: 'Use the probabilities, not a simple average.' },
             ], '$', 2),
             steps: [
@@ -1099,7 +1100,7 @@
           const npv = pvE - inv;
           return {
             q: R`${co} can spend ${T.moneyT(inv)} on a campaign. Net cash flow then rises by ${T.moneyT(hi)} a year for ${n} years (probability ${pct(p)}) or by ${T.moneyT(lo)} a year (probability ${pct(1 - p)}). The discount rate is ${pct(r)}. What is the NPV of the campaign?`,
-            tree: decide('t = 0', [[`Invest: −${T.moneyT(inv)}`, chance(undefined, [[pct(p), end(`+${T.moneyT(hi)} a year, years 1–${n}`)], [pct(1 - p), end(`+${T.moneyT(lo)} a year, years 1–${n}`)]])], ['Do not invest', end('$0')]]),
+            tree: decide(R`\(t = 0\)`, [[`Invest: −${T.moneyT(inv)}`, chance(undefined, [[pct(p), end(`+${T.moneyT(hi)} a year, years 1–${n}`)], [pct(1 - p), end(`+${T.moneyT(lo)} a year, years 1–${n}`)]])], ['Do not invest', end('$0')]]),
             givens: [['I', L.moneyT(inv)], ['p_H', L.pctT(p)], ['CF_H', L.moneyT(hi)], ['CF_L', L.moneyT(lo)], ['n', String(n)], ['r', L.pctT(r)]],
             answer: npv, unit: '$', dp: 2,
             mistakes: uniq(npv, [
@@ -1131,13 +1132,13 @@
           const npv = v0 - inv;
           return {
             q: R`${co} can spend ${T.moneyT(inv)} now to develop a product over ${D} years. The tree shows what can happen. A ${T.moneyT(sunk)} staff training fee was paid last month. A ${T.moneyT(loan)} loan at ${pct(i)} p.a. will fund part of the cost. The required return is ${pct(r)} p.a. What is the NPV?`,
-            tree: decide('t = 0', [
-              [`Develop: −${T.moneyT(inv)}`, chance(`t = ${D}`, [
+            tree: decide(R`\(t = 0\)`, [
+              [`Develop: −${T.moneyT(inv)}`, chance(R`\(t = ${D}\)`, [
                 [`${pct(p)} success`, chance(undefined, [
                   [`${pct(q)} high demand`, end(`${T.moneyT(hi)} a year, years ${D + 1}–${D + n}`)],
                   [`${pct(1 - q)} low demand`, end(`${T.moneyT(lo)} a year, years ${D + 1}–${D + n}`)],
                 ])],
-                [`${pct(1 - p)} failure`, end(`Sell equipment: ${T.moneyT(S)} at t = ${D}`)],
+                [`${pct(1 - p)} failure`, end(R`Sell equipment: ${T.moneyT(S)} at \(t = ${D}\)`)],
               ])],
               ['Do not develop', end('$0')],
             ]),
@@ -1145,8 +1146,8 @@
             answer: npv, unit: '$', dp: 2,
             mistakes: uniq(npv, [
               { v: npv - sunk, why: 'The training fee is sunk. It has been paid whatever the firm decides.' },
-              { v: vD - inv, why: `The expected value sits at t = ${D}. Discount it back ${D} years.` },
-              { v: -inv + p * pvD + pv((1 - p) * S, r, D), why: `The annuity starts in year ${D + 1}, so its value lands at t = ${D}. Discount it ${D} more years.` },
+              { v: vD - inv, why: R`The expected value sits at \(t = ${D}\). Discount it back ${D} years.` },
+              { v: -inv + p * pvD + pv((1 - p) * S, r, D), why: R`The annuity starts in year ${D + 1}, so its value lands at \(t = ${D}\). Discount it ${D} more years.` },
               { v: -inv + pv(p * pvD, r, D), why: 'Include the salvage value on the failure branch.' },
             ], '$', 2),
             steps: [
@@ -1157,6 +1158,7 @@
               R`\[NPV = -${L.moneyT(inv)} + \frac{${LM(vD)}}{${L.onePlus(r)}^{${D}}} = -${L.moneyT(inv)} + ${LM(v0)} = ${LM(npv)}\]`,
               npv >= 0 ? R`NPV > 0, so **proceed**.` : R`NPV < 0, so **do not** proceed.`,
             ],
+            calc: `${n} [N] · ${K(r * 100)} [I/YR] · ${K(e, 2)} [PMT] · 0 [FV] · [PV] → −${T.money(pvD)}; then ${D} [N] · 0 [PMT] · ${K(vD, 2)} [FV] · [PV] → −${T.money(v0)}`,
             why: R`Value the success branch at \(t = ${D}\), weight it with the failure branch, then discount ${D} years. Sunk and financing costs stay out.`,
           };
         } },
@@ -1174,11 +1176,11 @@
             const best = names[vals.indexOf(hi)];
             return {
               q: R`At \(t = ${k}\), managers must choose one option. The tree shows each option’s NPV, measured at \(t = ${k}\). The discount rate is ${pct(r)}. What is this decision node worth **today**?`,
-              tree: decide(`t = ${k}`, names.map((nm, j) => [nm, end(`NPV at t = ${k}: ${T.moneyT(vals[j])}`)])),
+              tree: decide(R`\(t = ${k}\)`, names.map((nm, j) => [nm, end(R`NPV at \(t = ${k}\): ${T.moneyT(vals[j])}`)])),
               givens: [['r', L.pctT(r)], ['t', String(k)]],
               answer: ans, unit: '$', dp: 2,
               mistakes: uniq(ans, [
-                { v: hi, why: `That is the value at t = ${k}. Discount it back to today.` },
+                { v: hi, why: R`That is the value at \(t = ${k}\). Discount it back to today.` },
                 { v: pv(avg, r, k), why: 'At a decision node you choose the best option. You do not average.' },
                 { v: pv(lo, r, k), why: 'Choose the option with the highest NPV, not the lowest.' },
               ], '$', 2),
@@ -1201,13 +1203,13 @@
           const npv = -inv + pv(e1, r, 1);
           return {
             q: R`${co} can spend ${T.moneyT(inv)} today on one year of research. If it succeeds (probability ${pct(p)}), it earns ${T.moneyT(c)} a year forever, valued at the end of the research year (\(t = 1\)). If it fails, it earns nothing. The discount rate is ${pct(r)}. What is the NPV?`,
-            tree: decide('t = 0', [[`Research: −${T.moneyT(inv)}`, chance('t = 1', [[`${pct(p)} success`, end(`${T.moneyT(c)} a year forever`)], [`${pct(1 - p)} failure`, end('$0')]])], ['Do not research', end('$0')]]),
+            tree: decide(R`\(t = 0\)`, [[`Research: −${T.moneyT(inv)}`, chance(R`\(t = 1\)`, [[`${pct(p)} success`, end(`${T.moneyT(c)} a year forever`)], [`${pct(1 - p)} failure`, end('$0')]])], ['Do not research', end('$0')]]),
             givens: [['I', L.moneyT(inv)], ['p', L.pctT(p)], ['C', L.moneyT(c)], ['r', L.pctT(r)]],
             answer: npv, unit: '$', dp: 2,
             mistakes: uniq(npv, [
-              { v: -inv + e1, why: 'That forgets to discount the expected payoff from t = 1 back to today.' },
+              { v: -inv + e1, why: R`That forgets to discount the expected payoff from \(t = 1\) back to today.` },
               { v: -inv + pv(v1, r, 1), why: `That ignores the ${pct(1 - p)} chance of failure.` },
-              { v: -inv + pv(e1, r, 2), why: 'The perpetuity is already valued at t = 1, so discount it one year, not two.' },
+              { v: -inv + pv(e1, r, 2), why: R`The perpetuity is already valued at \(t = 1\), so discount it one year, not two.` },
             ], '$', 2),
             steps: [
               R`Value of success at \(t = 1\): \[\frac{${L.moneyT(c)}}{${L.dec(r)}} = ${LM(v1)}\]`,
@@ -1264,6 +1266,7 @@
               [`${pct(p1)} high`, chance('Year 2', [[`${pct(c)} high`, end('HH')], [`${pct(1 - c)} low`, end('HL')]])],
               [`${pct(1 - p1)} low`, chance('Year 2', [[`${pct(1 - q)} high`, end('LH')], [`${pct(q)} low`, end('LL')]])],
             ]),
+            givens: [[R`P(H_1)`, L.pctT(p1)], [R`P(H_2 \mid H_1)`, L.pctT(c)], [R`P(L_2 \mid L_1)`, L.pctT(q)]],
             answer: P(ans), unit: '%', dp: 2,
             mistakes: uniq(P(ans), [
               { v: P(cond), why: 'That is the conditional probability of the year-2 branch. Multiply it by the year-1 probability.' },
@@ -1288,6 +1291,7 @@
             const w = (x) => (x === 'H' ? 'high' : 'low');
             return {
               q: R`Joint probabilities for two years of demand: high then high ${pct(hh)}; high then low ${pct(hl)}; low then low ${pct(ll)}. The last path (low then high) is not given. What is \(P(${ask[0]}_2 \mid ${ask[2]}_1)\), the chance of ${w(ask[0])} demand in year 2 **given** ${w(ask[2])} demand in year 1?`,
+              givens: [['P(HH)', L.pctT(hh)], ['P(HL)', L.pctT(hl)], ['P(LL)', L.pctT(ll)]],
               answer: P(ans), unit: '%', dp: 2,
               mistakes: uniq(P(ans), [
                 { v: P(joint), why: `That is the joint probability. Divide it by P(${w(ask[2])} in year 1).` },
@@ -1300,7 +1304,7 @@
                 R`\[P(${ask[2]}_1) = ${ask[2] === 'H' ? R`${L.dec(hh)} + ${L.dec(hl)}` : R`${L.dec(lh)} + ${L.dec(ll)}`} = ${L.dec(marg)}\]`,
                 R`\[P(${ask[0]}_2 \mid ${ask[2]}_1) = \frac{P(${ask[2]}_1 \text{ and } ${ask[0]}_2)}{P(${ask[2]}_1)} = \frac{${L.dec(joint)}}{${L.dec(marg)}} = ${L.numT(ans, 4)}\]`,
               ],
-              why: R`Conditional probability = joint probability \(\div\) probability of the year-1 branch.`,
+              why: R`\(P(\text{year 2} \mid \text{year 1}) = \frac{P(\text{both})}{P(\text{year 1})}\): the joint probability divided by the year-1 probability.`,
             };
           }
           return null;
@@ -1320,17 +1324,17 @@
             const ans = Math.max(keep, sell), sellWins = sell > keep;
             return {
               q: R`${co} bought an asset for ${T.moneyT(C)}. Year 1 demand was **low**. Now, at \(t = 1\), it can sell the asset for ${pct(s)} of its cost, or keep it for one more year. If kept, year-2 cash flow is ${T.moneyT(H)} (probability ${pct(qH)}) or ${T.moneyT(Lo)}. \(r = ${L.pctT(r)}\). What is this decision node worth at \(t = 1\)?`,
-              tree: decide('t = 1, after a low year', [
-                ['Keep', chance('t = 2', [[`${pct(qH)} high`, end(T.moneyT(H))], [`${pct(1 - qH)} low`, end(T.moneyT(Lo))]])],
-                ['Sell', end(`${T.moneyT(sell)} at t = 1`)],
+              tree: decide(R`\(t = 1\), after a low year`, [
+                ['Keep', chance(R`\(t = 2\)`, [[`${pct(qH)} high`, end(T.moneyT(H))], [`${pct(1 - qH)} low`, end(T.moneyT(Lo))]])],
+                ['Sell', end(R`${T.moneyT(sell)} at \(t = 1\)`)],
               ]),
               givens: [['C', L.moneyT(C)], ['s', L.pctT(s)], ['CF_H', L.moneyT(H)], ['CF_L', L.moneyT(Lo)], [R`P(H_2 \mid L_1)`, L.pctT(qH)], ['r', L.pctT(r)]],
               answer: ans, unit: '$', dp: 2,
               mistakes: uniq(ans, [
                 { v: Math.min(keep, sell), why: 'That is the worse choice. At a decision node, keep the better branch.' },
-                { v: Math.max(E, sell), why: 'The year-2 cash flow arrives at t = 2. Discount it one year before you compare.' },
+                { v: Math.max(E, sell), why: R`The year-2 cash flow arrives at \(t = 2\). Discount it one year before you compare.` },
                 { v: keep + sell, why: 'You cannot keep the asset and sell it too. Choose one branch.' },
-                { v: Math.max(keep, sell / (1 + r)), why: 'The sale price is received at t = 1, so it is not discounted.' },
+                { v: Math.max(keep, sell / (1 + r)), why: R`The sale price is received at \(t = 1\), so it is not discounted.` },
               ], '$', 2),
               steps: [
                 R`Keep: \[\frac{${L.dec(qH)} \times ${L.moneyT(H)} + ${L.dec(1 - qH)} \times ${L.moneyT(Lo)}}{${L.onePlus(r)}} = \frac{${LM(E)}}{${L.onePlus(r)}} = ${LM(keep)}\]`,
@@ -1360,7 +1364,7 @@
             const mm = (x) => `$${K(x, 2)}m`;
             return {
               q: R`Demand was **high** in years 1–3 (it had a ${pct(p0)} chance). At \(t = 3\) the firm can upgrade its machine for ${mm(U)}. After a high period, demand stays high in years 4–8 with probability ${pct(pc)}. The tree shows the yearly cash flows. \(r = ${L.pctT(r)}\). What is the decision node at \(t = 3\) worth (in $m)?`,
-              tree: decide('t = 3, after high demand', [
+              tree: decide(R`\(t = 3\), after high demand`, [
                 [`Upgrade: −${mm(U)}`, chance(undefined, [[`${pct(pc)} high`, end(`${mm(uh)} a year, years 4–8`)], [`${pct(1 - pc)} low`, end(`${mm(ul)} a year, years 4–8`)]])],
                 ['Do not upgrade', chance(undefined, [[`${pct(pc)} high`, end(`${mm(nh)} a year, years 4–8`)], [`${pct(1 - pc)} low`, end(`${mm(nl)} a year, years 4–8`)]])],
               ]),
@@ -1373,11 +1377,68 @@
               ], '$m', 3),
               steps: [
                 R`Expected yearly cash flow. Upgrade: \(${L.dec(pc)} \times ${K(uh, 2)} + ${L.dec(1 - pc)} \times ${K(ul, 2)} = ${L.numT(Eup, 4)}\). No upgrade: \(${L.dec(pc)} \times ${K(nh, 2)} + ${L.dec(1 - pc)} \times ${K(nl, 2)} = ${L.numT(Eno, 4)}\).`,
-                R`\[NPV_3^{up} = -${K(U, 2)} + ${L.numT(Eup, 4)} \times ${L.numT(a, 6)} = \$${L.numT(up, 4)}\text{m}\]`,
-                R`\[NPV_3^{no} = ${L.numT(Eno, 4)} \times ${L.numT(a, 6)} = \$${L.numT(no, 4)}\text{m}\]`,
+                R`\[NPV_3^{up} = -${K(U, 2)} + ${L.numT(Eup, 4)} \times ${L.numT(a, 6)} = ${mL(up, 4)}\]`,
+                R`\[NPV_3^{no} = ${L.numT(Eno, 4)} \times ${L.numT(a, 6)} = ${mL(no, 4)}\]`,
                 upWins ? R`Upgrading is worth more, so **upgrade**.` : R`Not upgrading is worth more, so **do not upgrade**.`,
               ],
+              calc: `5 [N] · ${K(r * 100)} [I/YR] · ${K(Eup, 4)} [PMT] · 0 [FV] · [PV] → −${K(Eup * a, 4)} (upgrade, before the cost); ${K(Eno, 4)} [PMT] · [PV] → −${K(Eno * a, 4)}`,
               why: R`Value each branch at \(t = 3\) with the conditional probabilities, then keep the higher NPV.`,
+            };
+          }
+          return null;
+        } },
+      { id: 'w7-g-chip', topic: 'option', level: 3, section: 'B', src: 'Lecture W7 Example 2', boss: true,
+        make(rng) {
+          for (let k = 0; k < 80; k++) {
+            const r = rng.step(0.08, 0.12, 0.01), C = rng.step(2, 4, 0.5);
+            const p = rng.pick([0.6, 0.65, 0.7, 0.75]), a = rng.pick([0.7, 0.75, 0.8, 0.85]), b = rng.pick([0.5, 0.6, 0.7]);
+            const cfH = rng.step(0.4, 0.9, 0.05), cfL = +(cfH * rng.step(0.25, 0.5, 0.05)).toFixed(2);
+            const uH = +(cfH * rng.step(1.5, 2.5, 0.1)).toFixed(2), uL = +(cfL * rng.step(1.1, 1.6, 0.1)).toFixed(2);
+            const a5 = FIN.pvifa(r, 5), a3 = FIN.pvifa(r, 3), d3 = Math.pow(1 + r, 3);
+            // choose the upgrade cost so that each pattern of t = 3 decisions appears
+            const gH = (a * (uH - cfH) + (1 - a) * (uL - cfL)) * a5, gL = ((1 - b) * (uH - cfH) + b * (uL - cfL)) * a5;
+            const pattern = rng.pick(['UN', 'UN', 'NN', 'UU']);
+            const Uraw = pattern === 'UN' ? gL + (gH - gL) * rng.step(0.2, 0.8, 0.1) : pattern === 'NN' ? gH * rng.step(1.15, 1.6, 0.05) : gL * rng.step(0.4, 0.85, 0.05);
+            const U = Math.round(Uraw * 4) / 4;
+            if (U < 0.25) continue;
+            const eUpH = a * uH + (1 - a) * uL, eNoH = a * cfH + (1 - a) * cfL; // after a high period: P(high) = a
+            const eUpL = (1 - b) * uH + b * uL, eNoL = (1 - b) * cfH + b * cfL; // after a low period: P(low) = b
+            const upH = -U + eUpH * a5, noH = eNoH * a5, upL = -U + eUpL * a5, noL = eNoL * a5;
+            if (Math.abs(upH - noH) < 0.05 || Math.abs(upL - noL) < 0.05) continue;
+            const bH = Math.max(upH, noH), bL = Math.max(upL, noL);
+            const hi = bH / d3 + cfH * a3, lo = bL / d3 + cfL * a3;
+            const npv = -C + p * hi + (1 - p) * lo;
+            if (Math.abs(npv) < 0.05) continue;
+            const branch = (x, y) => -C + p * (x / d3 + cfH * a3) + (1 - p) * (y / d3 + cfL * a3);
+            const eUpU = p * uH + (1 - p) * uL, eNoU = p * cfH + (1 - p) * cfL; // wrong: unconditional P(high) for years 4–8
+            const bU = Math.max(-U + eUpU * a5, eNoU * a5);
+            const mm = (x) => `$${K(x, 2)}m`;
+            const node = (ph) => decide(R`\(t = 3\)`, [
+              [`Upgrade: −${mm(U)}`, chance(undefined, [[`${pct(ph)} high`, end(`${mm(uH)} a year, years 4–8`)], [`${pct(1 - ph)} low`, end(`${mm(uL)} a year, years 4–8`)]])],
+              ['No upgrade', chance(undefined, [[`${pct(ph)} high`, end(`${mm(cfH)} a year, years 4–8`)], [`${pct(1 - ph)} low`, end(`${mm(cfL)} a year, years 4–8`)]])],
+            ]);
+            const choose = (x, y) => (x > y ? '**upgrade**' : '**do not upgrade**');
+            return {
+              q: R`A firm can buy a machine for ${mm(C)}. It lasts 8 years. At \(t = 3\) the firm may upgrade it for ${mm(U)}. The tree shows the demand probabilities and the yearly cash flows. \(r = ${L.pctT(r)}\). What is the machine’s NPV today (in $m)?`,
+              tree: chance(`Buy: −${mm(C)}`, [
+                [`${pct(p)} high: ${mm(cfH)} a year, years 1–3`, node(a)],
+                [`${pct(1 - p)} low: ${mm(cfL)} a year, years 1–3`, node(1 - b)],
+              ]),
+              givens: [['C', R`\$${K(C, 2)}\text{m}`], ['U', R`\$${K(U, 2)}\text{m}`], ['r', L.pctT(r)]],
+              answer: npv, unit: '$m', dp: 3,
+              mistakes: uniq(npv, [
+                { v: branch(noH, noL), why: R`That ignores the option to upgrade. Where upgrading has the higher NPV at \(t = 3\), use it.` },
+                { v: branch(upH, upL), why: 'That always upgrades. At each decision node, keep the higher NPV.' },
+                { v: -C + p * (bH + cfH * a3) + (1 - p) * (bL + cfL * a3), why: R`The \(t = 3\) values must be discounted three years back to today.` },
+                { v: branch(bU, bU), why: 'For years 4–8, use the conditional probabilities after a high or a low period.' },
+              ], '$m', 3),
+              steps: [
+                R`After high demand (\(t = 3\)). Upgrade: \(-${K(U, 2)} + ${L.numT(eUpH, 4)} \times ${L.numT(a5, 4)} = ${L.numT(upH, 4)}\). No upgrade: \(${L.numT(eNoH, 4)} \times ${L.numT(a5, 4)} = ${L.numT(noH, 4)}\). So ${choose(upH, noH)}.`,
+                R`After low demand (\(t = 3\)). Upgrade: \(-${K(U, 2)} + ${L.numT(eUpL, 4)} \times ${L.numT(a5, 4)} = ${L.numT(upL, 4)}\). No upgrade: \(${L.numT(eNoL, 4)} \times ${L.numT(a5, 4)} = ${L.numT(noL, 4)}\). So ${choose(upL, noL)}.`,
+                R`High branch today: \(\frac{${L.numT(bH, 4)}}{${L.onePlus(r)}^{3}} + ${K(cfH, 2)} \times ${L.numT(a3, 4)} = ${L.numT(hi, 4)}\). Low branch today: \(\frac{${L.numT(bL, 4)}}{${L.onePlus(r)}^{3}} + ${K(cfL, 2)} \times ${L.numT(a3, 4)} = ${L.numT(lo, 4)}\).`,
+                R`\[NPV = -${K(C, 2)} + ${L.dec(p)} \times ${L.numT(hi, 4)} + ${L.dec(1 - p)} \times ${L.numT(lo, 4)} = ${mL(npv, 3)}\]`,
+              ],
+              why: R`Solve the two \(t = 3\) upgrade decisions first. Then add the years 1–3 cash flows, discount, and weight the branches.`,
             };
           }
           return null;
@@ -1405,7 +1466,7 @@
                 b.abandon ? { v: b.npvKeep, why: 'That ignores the option to sell. After a low year 1, selling is worth more than keeping.' }
                   : { v: b.npvSell, why: 'Selling after a low year 1 is worth less than keeping. Take the higher branch.' },
                 { v: b.npvJoint, why: R`That uses joint probabilities on the year-2 branches. Use conditional ones: joint \(\div\) year-1 probability.` },
-                { v: b.npvOnce, why: 'Year-2 cash flows need two years of discounting: one to t = 1, then one more to today.' },
+                { v: b.npvOnce, why: R`Year-2 cash flows need two years of discounting: one to \(t = 1\), then one more to today.` },
               ], '$', 2),
               steps: [
                 R`\(P(H_1) = ${L.dec(hh)} + ${L.dec(hl)} = ${L.dec(b.pH1)}\), \(P(H_2 \mid H_1) = \frac{${L.dec(hh)}}{${L.dec(b.pH1)}} = ${L.numT(b.pH2H, 4)}\). \(P(L_1) = ${L.dec(b.pL1)}\), \(P(L_2 \mid L_1) = \frac{${L.dec(ll)}}{${L.dec(b.pL1)}} = ${L.numT(b.pL2L, 4)}\).`,
@@ -1437,21 +1498,21 @@
             return {
               q: R`${co} runs a taxi fleet. It can fit self-driving kits to a quarter of the fleet now. The tree shows the costs, the savings and the regulator’s review at \(t = 2\). Savings are ${mm(s)} a year in years 1–2 on every branch. \(r = ${L.pctT(r)}\), no tax. What is the NPV at \(t = 0\) of this plan (in $m)?`,
               tree: chance(`Quarter of fleet: −${mm(Qc)}`, [
-                [`${pct(p2)} approved`, decide('t = 2', [[`Upgrade the rest: −${mm(U)}`, end(`${mm(S)} a year, years 3–${N}`)], ['No upgrade', end(`${mm(s)} a year, years 3–${N}`)]])],
-                [`${pct(1 - p2)} banned`, end(`Sell the fleet for ${mm(V)} at t = 2`)],
+                [`${pct(p2)} approved`, decide(R`\(t = 2\)`, [[`Upgrade the rest: −${mm(U)}`, end(`${mm(S)} a year, years 3–${N}`)], ['No upgrade', end(`${mm(s)} a year, years 3–${N}`)]])],
+                [`${pct(1 - p2)} banned`, end(R`Sell the fleet for ${mm(V)} at \(t = 2\)`)],
               ]),
               givens: [['I', R`\$${Qc}\text{m}`], ['p', L.pctT(p2)], ['r', L.pctT(r)], ['n', R`${N - 2} \text{ years after } t = 2`]],
               answer: npv, unit: '$m', dp: 2,
               mistakes: uniq(npv, [
-                { v: -Qc + p2 * (s / (1 + r) + (s + other2) / Math.pow(1 + r, 2)) + (1 - p2) * ban, why: upWins ? 'That ignores the option to upgrade after approval.' : 'Upgrading is not worth it here. Compare the two NPVs at t = 2 and keep the higher.' },
-                { v: -Qc + p2 * (s / (1 + r) + s / Math.pow(1 + r, 2) + best2) + (1 - p2) * ban, why: 'The t = 2 decision value must be discounted two years back to today.' },
+                { v: -Qc + p2 * (s / (1 + r) + (s + other2) / Math.pow(1 + r, 2)) + (1 - p2) * ban, why: upWins ? 'That ignores the option to upgrade after approval.' : R`Upgrading is not worth it here. Compare the two NPVs at \(t = 2\) and keep the higher.` },
+                { v: -Qc + p2 * (s / (1 + r) + s / Math.pow(1 + r, 2) + best2) + (1 - p2) * ban, why: R`The \(t = 2\) decision value must be discounted two years back to today.` },
                 { v: -Qc + p2 * (best2 / Math.pow(1 + r, 2)) + (1 - p2) * (V / Math.pow(1 + r, 2)), why: `Include the ${mm(s)} savings in years 1 and 2 on every branch.` },
               ], '$m', 2),
               steps: [
-                R`At \(t = 2\), if approved. Upgrade: \(-${U} + ${S} \times ${L.numT(a, 6)} = \$${L.numT(up2, 2)}\text{m}\). No upgrade: \(${s} \times ${L.numT(a, 6)} = \$${L.numT(no2, 2)}\text{m}\). ${upWins ? '**Upgrade.**' : '**Do not upgrade.**'}`,
+                R`At \(t = 2\), if approved. Upgrade: \(-${U} + ${S} \times ${L.numT(a, 6)} = ${mL(up2, 2)}\). No upgrade: \(${s} \times ${L.numT(a, 6)} = ${mL(no2, 2)}\). ${upWins ? '**Upgrade.**' : '**Do not upgrade.**'}`,
                 R`Approved branch at \(t = 0\): \(\frac{${s}}{${L.onePlus(r)}} + \frac{${s} + ${L.numT(best2, 2)}}{${L.onePlus(r)}^{2}} = ${L.numT(app, 4)}\)`,
                 R`Banned branch at \(t = 0\): \(\frac{${s}}{${L.onePlus(r)}} + \frac{${s} + ${V}}{${L.onePlus(r)}^{2}} = ${L.numT(ban, 4)}\)`,
-                R`\[NPV_0 = -${Qc} + ${L.dec(p2)} \times ${L.numT(app, 4)} + ${L.dec(1 - p2)} \times ${L.numT(ban, 4)} = \$${L.numT(npv, 2)}\text{m}\]`,
+                R`\[NPV_0 = -${Qc} + ${L.dec(p2)} \times ${L.numT(app, 4)} + ${L.dec(1 - p2)} \times ${L.numT(ban, 4)} = ${mL(npv, 2)}\]`,
               ],
               why: R`Solve the \(t = 2\) upgrade decision first. Then weight the approve and ban branches and discount to today.`,
             };

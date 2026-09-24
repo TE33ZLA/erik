@@ -122,10 +122,10 @@
         R`Real to nominal: \(CF^{nominal}_t = CF^{real}_t \times (1 + i)^{t}\). Done consistently, both ways give the same NPV.`,
       ] },
       { h: 'The replacement decision', points: [
-        R`**Part 1, initial investment:** new price + shipping + installation, minus the after-tax sale value of the old asset, plus the NWC increase.`,
-        R`**Part 2, operating cash flows:** incremental (new − old) savings and revenues, taxed, plus the tax shield on the **incremental** depreciation (new − old).`,
-        R`**Part 3, terminal cash flow:** the last operating cash flow + NWC recovered + after-tax salvage.`,
-        R`Replace if the NPV of the incremental cash flows is positive (or IRR > k).`,
+        R`**Part 1, initial investment:** the new price, shipping and installation, minus the after-tax sale value of the old asset, plus the NWC increase.`,
+        R`**Part 2, operating cash flows:** the incremental (new minus old) savings and revenues, taxed, plus the tax shield on the **incremental** depreciation (new minus old).`,
+        R`**Part 3, terminal cash flow:** the last operating cash flow, plus the NWC recovered, plus the after-tax salvage.`,
+        R`Replace if the NPV of the incremental cash flows is positive (or \(IRR > k\)).`,
       ] },
     ],
 
@@ -181,7 +181,7 @@
           { t: 'Extra inventory needed to run the project', bin: 'inc', why: 'An increase in NWC is a cash outflow.' },
           { t: 'Working capital recovered at the end', bin: 'inc', why: 'The NWC comes back as a cash inflow at the end.' },
           { t: 'After-tax salvage value of the new machine', bin: 'inc', why: 'Cash from selling the machine at the end, after tax.' },
-          { t: 'Depreciation tax shield', bin: 'inc', why: 'Depreciation cuts tax: Dep × tc is real cash saved.' },
+          { t: 'Depreciation tax shield', bin: 'inc', why: R`Depreciation cuts tax: \(Dep \times t_c\) is real cash saved.` },
           { t: 'Depreciation, treated as a cash payment', bin: 'exc', why: 'Depreciation is not a cash outflow. Only its tax saving counts.' },
           { t: 'Tax on the gain from selling the old machine', bin: 'inc', why: 'Selling above book value creates tax to pay.' },
           { t: 'Consultant’s fee that is owed whatever you decide', bin: 'exc', why: 'Sunk: you owe it either way.' },
@@ -244,8 +244,8 @@
         answer: FIN.ocf(9000, 4000, 3000, 0.3), unit: '$', dp: 2,
         mistakes: [
           { v: 1400, why: 'That is earnings after tax. Add back the $3,000 of depreciation: it is not a cash cost.' },
-          { v: 3500, why: 'That ignores the depreciation tax shield of $3,000 × 0.30 = $900.' },
-          { v: 6500, why: 'That mixes the two methods. With the tax-shield method, add Dep × tc ($900), not the full $3,000.' },
+          { v: 3500, why: R`That ignores the depreciation tax shield: \(\$3{,}000 \times 0.30 = \$900\).` },
+          { v: 6500, why: R`That mixes the two methods. With the tax-shield method, add \(Dep \times t_c = \$900\), not the full $3,000.` },
         ],
         steps: [
           R`Method 1, add back depreciation:`,
@@ -346,7 +346,7 @@
       { id: 'w5-q18', topic: 'dep', kind: 'mcq', level: 1, section: 'B', src: 'Lecture W5 Example 5',
         q: R`Nutson Bolz’s new machine costs $50,000, plus $3,000 shipping and $2,000 installation. It is depreciated straight-line to zero over 5 years, even though it can be sold for $10,000 at the end. What is its yearly depreciation?`,
         choices: ['$11,000', '$10,000', '$8,000', '$9,000'], answer: 0,
-        wrong: { 1: 'Shipping and installation are part of the cost: $55,000 ÷ 5.', 2: 'It is depreciated to zero, so do not subtract the $10,000 salvage.', 3: 'That is the incremental depreciation (new $11,000 minus old $2,000).' },
+        wrong: { 1: R`Shipping and installation are part of the cost: \(\$55{,}000 \div 5\).`, 2: 'It is depreciated to zero, so do not subtract the $10,000 salvage.', 3: 'That is the incremental depreciation (new $11,000 minus old $2,000).' },
         why: R`\(Dep = \frac{\$50{,}000 + \$3{,}000 + \$2{,}000}{5} = \$11{,}000\). The salvage is taxed when the machine is sold.` },
 
       /* ----- net working capital ----- */
@@ -386,7 +386,7 @@
           { v: 11800, why: 'NWC recovery is not taxed. Only the gain on the machine is.' },
         ],
         steps: [R`After-tax sale of the machine: \(\$1{,}000 - (\$1{,}000 - \$0) \times 0.40 = \$600\).`, R`\[CF_n = \$10{,}000 + \$2{,}000 + \$600 = \$12{,}600\]`],
-        why: R`Final operating cash flow + NWC recovery + after-tax salvage.` },
+        why: R`Add the final operating cash flow, the NWC recovered and the after-tax salvage.` },
       { id: 'w5-q25', topic: 'salvage', kind: 'num', level: 2, section: 'B', formula: 'salvage',
         q: R`A machine with a book value of $40,000 is sold for $30,000. The tax rate is 30%. What is the **after-tax cash** from the sale?`,
         answer: FIN.afterTaxSalvage(30000, 40000, 0.3), unit: '$', dp: 2,
@@ -472,7 +472,7 @@
         q: R`The nominal interest rate is 14% and inflation is 5%. What is the **real** interest rate?`,
         answer: P(EX2_REAL), unit: '%', dp: 2,
         mistakes: [
-          { v: 9, why: 'Subtracting is only an approximation. Use the Fisher relation: 1.14 ÷ 1.05 − 1.' },
+          { v: 9, why: R`Subtracting is only an approximation. Use the Fisher relation: \(\frac{1.14}{1.05} - 1\).` },
           { v: P(1.14 * 1.05 - 1), why: 'That multiplies. To remove inflation, divide by 1.05.' },
         ],
         steps: [R`\[1 + r_{real} = \frac{1 + r_{nominal}}{1 + i} = \frac{1.14}{1.05} = ${L.numT(1.14 / 1.05, 6)}\]`, R`\[r_{real} = ${L.pct(EX2_REAL, 4)}\]`],
@@ -497,7 +497,7 @@
         answer: -10000 + FIN.pvAnnuity(5000, EX3_REAL, 3), unit: '$', dp: 2,
         mistakes: [
           { v: -10000 + FIN.pvAnnuity(5000, 0.15, 3), why: 'Real cash flows need the real rate. Discounting them at 15% understates the NPV.' },
-          { v: -10000 + FIN.pvAnnuity(5000, 0.05, 3), why: 'The real rate is 1.15 ÷ 1.10 − 1 = 4.5455%, not the 5% shortcut.' },
+          { v: -10000 + FIN.pvAnnuity(5000, 0.05, 3), why: R`The real rate is \(\frac{1.15}{1.10} - 1 = 4.5455\%\), not the 5% shortcut.` },
           { v: FIN.npv(EX3_REAL, [-10000, 5500, 6050, 6655]), why: 'You inflated the cash flows but used the real rate. Keep them consistent.' },
         ],
         steps: [
@@ -521,14 +521,14 @@
         table: NB_TABLE,
         answer: NB.init, unit: '$', dp: 2,
         mistakes: [
-          { v: -55000 + 15000 - 5000, why: 'Selling the old machine above book value creates tax: ($15,000 − $10,000) × 47% = $2,350.' },
+          { v: -55000 + 15000 - 5000, why: R`Selling the old machine above book value creates tax: \((\$15{,}000 - \$10{,}000) \times 47\% = \$2{,}350\).` },
           { v: -55000 + 15000 - 2350, why: 'Include the $5,000 increase in working capital.' },
           { v: NB.init - 2500, why: 'The training was paid 3 months ago: a sunk cost. Charge none of it.' },
           { v: -55000 + 15000 * 0.53 - 5000, why: 'Only the gain over book value is taxed, not the whole sale price.' },
         ],
         steps: [
           R`Old machine: \(Dep = \frac{\$20{,}000}{10} = \$2{,}000\) a year, so after 5 years \(BV = \$10{,}000\).`,
-          stmt([['New machine (incl. shipping, installation)', -55000], ['Sale of old machine', 15000], ['Tax on gain (5,000 × 47%)', -2350], ['Increase in NWC', -5000], ['Initial investment', NB.init, 1]]),
+          stmt([['New machine, shipping, installation', -55000], ['Sale of old machine', 15000], ['Tax on gain (5,000 × 47%)', -2350], ['Increase in NWC', -5000], ['Initial investment', NB.init, 1]]),
         ],
         why: R`New cost, minus the after-tax proceeds of the old machine, plus the working capital. Training and interest are ignored.` },
       { id: 'w5-q48', topic: 'replace', kind: 'num', level: 2, section: 'B', src: 'Lecture W5 Example 5', formula: 'fcf',
@@ -546,7 +546,7 @@
           R`Incremental depreciation: \(\frac{\$55{,}000}{5} - \frac{\$20{,}000}{10} = \$11{,}000 - \$2{,}000 = \$9{,}000\).`,
           stmt([['Savings', 21000], ['Incremental depreciation', -9000], ['EBIT', 12000, 1], ['Tax at 47%', -5640], ['EAT', 6360, 1], ['Add back depreciation', 9000], ['Operating cash flow', NB.ocf, 1]]),
         ],
-        why: R`Incremental (new − old) savings, taxed, plus the add-back of the incremental depreciation.` },
+        why: R`Take the incremental savings (new minus old), deduct the incremental depreciation, tax the result, then add the depreciation back.` },
       { id: 'w5-q49', topic: 'replace', kind: 'num', level: 2, section: 'B', src: 'Lecture W5 Example 5', formula: 'salvage',
         q: R`For Nutson Bolz (details below), the operating cash flow is $15,360 a year. What is the **terminal cash flow** in year 5?`,
         table: NB_TABLE,
@@ -574,9 +574,9 @@
         q: R`A $60,000 machine would replace a worker paid $25,500 a year. It costs $8,000 a year to maintain and is depreciated straight-line to zero over 20 years. The tax rate is 30%. What is the yearly **free cash flow** from the swap?`,
         answer: SV.fcf, unit: '$', dp: 2,
         mistakes: [
-          { v: (25500 - 8000) * 0.7, why: 'That ignores the depreciation tax shield: $3,000 × 0.30 = $900.' },
+          { v: (25500 - 8000) * 0.7, why: R`That ignores the depreciation tax shield: \(\$3{,}000 \times 0.30 = \$900\).` },
           { v: (25500 - 8000 - 3000) * 0.7, why: 'That is earnings after tax. Add back the $3,000 of depreciation.' },
-          { v: (25500 - 8000) * 0.7 + 3000, why: 'That mixes the two methods. Add Dep × tc ($900), not the full $3,000.' },
+          { v: (25500 - 8000) * 0.7 + 3000, why: R`That mixes the two methods. Add \(Dep \times t_c = \$900\), not the full $3,000.` },
         ],
         steps: [
           R`\(Dep = \frac{\$60{,}000}{20} = \$3{,}000\).`,
@@ -604,7 +604,7 @@
           { v: -472500, why: 'Shipping and installation ($50,000) are part of the new unit’s cost.' },
           { v: -597500, why: 'Only the $25,000 gain is taxed, not the whole sale price.' },
         ],
-        steps: [stmt([['New unit incl. shipping and installation', -750000], ['Working capital', -40000], ['Sale of old unit', 275000], ['Tax on gain (25,000 × 30%)', -7500], ['Net initial investment', -522500, 1]])],
+        steps: [stmt([['New unit, shipping, installation', -750000], ['Working capital', -40000], ['Sale of old unit', 275000], ['Tax on gain (25,000 × 30%)', -7500], ['Net initial investment', -522500, 1]])],
         why: R`The loan is financing, so it does not appear. The old unit’s sale is taxed only on its gain over book value.` },
       { id: 'w5-q54', topic: 'replace', kind: 'mcq', level: 3, section: 'B', src: 'Tutorial W5 Q3 (IFC)', boss: true,
         q: R`IFC’s incremental cash flows from replacing its unit are below. The cost of capital is 12%. What should IFC do?`,
@@ -629,7 +629,7 @@
 
       /* ----- full project analysis (case study) ----- */
       { id: 'w5-q57', topic: 'project', kind: 'mcq', level: 2, section: 'A', src: 'Tutorial W5 case study (Monash Fibre)',
-        q: R`Consultants value Monash Fibre’s project at $48.75 million: 10 years × $4.875 million of net income. What is wrong with their analysis?`,
+        q: R`Consultants value Monash Fibre’s project at $48.75 million: 10 years of net income at $4.875 million a year. What is wrong with their analysis?`,
         table: CASE_TABLE,
         choices: ['They used earnings, not cash flows; ignored the $10m working capital; kept $1m of non-incremental overhead; and did not discount', 'They forgot to include their own $1m fee', 'They forgot the interest on the loan for the equipment', 'Nothing: ten years of earnings is the right value'], answer: 0,
         why: R`Value comes from discounted, incremental free cash flows. Add back depreciation, subtract the $25m equipment and $10m NWC, drop the $1m of overhead that happens anyway, and discount.` },
@@ -687,8 +687,8 @@
               answer: ocf, unit: '$', dp: 2,
               mistakes: clean([
                 { v: ni, why: 'That is earnings after tax. Add back the depreciation, which is not a cash cost.' },
-                { v: (rev - cost) * (1 - tc), why: 'That ignores the depreciation tax shield (Dep × tc).' },
-                { v: (rev - cost) * (1 - tc) + dep, why: 'That mixes the two methods. With the tax-shield method, add Dep × tc, not the full Dep.' },
+                { v: (rev - cost) * (1 - tc), why: R`That ignores the depreciation tax shield, \(Dep \times t_c\).` },
+                { v: (rev - cost) * (1 - tc) + dep, why: R`That mixes the two methods. With the tax-shield method, add \(Dep \times t_c\), not the full \(Dep\).` },
               ], ocf, '$', 2),
               steps: [
                 R`Method 1, add back depreciation:`,
@@ -736,14 +736,14 @@
               mistakes: clean([
                 { v: (rev - cost) * (1 - tc), why: 'That ignores depreciation. Earnings are after depreciation.' },
                 { v: earn + dep, why: 'That adds depreciation back, which gives the operating cash flow, not the earnings.' },
-                { v: ebit, why: 'That is before tax. Multiply by (1 − tc).' },
+                { v: ebit, why: R`That is before tax. Multiply by \((1 - t_c)\).` },
                 { v: (rev - cost - price / n) * (1 - tc), why: 'The installation cost is depreciated too.' },
               ], earn, '$', 2),
               steps: [
                 R`\[Dep = \frac{${L.moneyT(price)} + ${L.moneyT(inst)}}{${n}} = ${M(dep)}\]`,
                 R`\[\text{Earnings} = (${L.moneyT(rev)} - ${L.moneyT(cost)} - ${M(dep)})(1 - ${L.dec(tc)}) = ${M(earn)}\]`,
               ],
-              why: 'Incremental earnings = (Rev − Costs − Dep)(1 − tc). They are a step towards the cash flow.',
+              why: R`Incremental earnings \(= (Rev - Costs - Dep)(1 - t_c)\). They are a step towards the cash flow.`,
             };
           }
           return null;
@@ -829,7 +829,7 @@
               { v: (price + inst - rv) / n, why: 'Shipping is part of the depreciable cost too.' },
             ], dep, '$', 2).slice(0, 3),
             steps: [R`\[Dep = \frac{\text{Cost} - \text{Residual}}{\text{Life}} = \frac{${L.moneyT(cost)} - ${L.moneyT(rv)}}{${n}} = ${M(dep)}\]`],
-            why: 'Straight-line spreads (cost − residual value) evenly over the depreciable life.',
+            why: 'Straight-line spreads the cost, less the residual value, evenly over the depreciable life.',
           };
         } },
       { id: 'w5-g-bv', topic: 'dep', level: 1, section: 'B', formula: 'salvage',
@@ -844,10 +844,10 @@
               { v: cost - dep, why: `Take off ${k} years of depreciation, not one.` },
               { v: price - k * (price / n), why: 'The installation cost is part of the depreciable cost.' },
               { v: cost - (k + 1) * dep, why: `The machine is ${k} years old, so ${k} years of depreciation have been claimed.` },
-              { v: k * dep, why: 'That is the accumulated depreciation. Book value = cost minus it.' },
+              { v: k * dep, why: 'That is the accumulated depreciation. Book value is the cost minus this amount.' },
             ], bv, '$', 2),
             steps: [R`\[Dep = \frac{${L.moneyT(cost)}}{${n}} = ${M(dep)} \text{ a year}\]`, R`\[BV = ${L.moneyT(cost)} - ${k} \times ${M(dep)} = ${M(bv)}\]`],
-            why: 'Book value = cost − accumulated depreciation. You need it to tax a sale correctly.',
+            why: R`\(BV = \text{cost} - \text{accumulated depreciation}\). You need it to tax a sale correctly.`,
           };
         } },
 
@@ -866,7 +866,7 @@
             answer: ats, unit: '$', dp: 2,
             mistakes: clean([
               { v: sv, why: gain > 0 ? 'The gain over book value is taxed.' : 'The loss below book value saves tax. Add the saving.' },
-              { v: sv * (1 - tc), why: 'Only the gain (SV − BV) is taxed, not the whole price.' },
+              { v: sv * (1 - tc), why: R`Only the gain \((SV - BV)\) is taxed, not the whole price.` },
               { v: sv + gain * tc, why: gain > 0 ? 'Sign slip: tax on a gain is subtracted.' : 'Sign slip: a loss saves tax, so the saving is added.' },
             ], ats, '$', 2),
             steps: [
@@ -902,7 +902,7 @@
         } },
       { id: 'w5-g-terminal', topic: 'salvage', level: 2, section: 'B', formula: 'salvage', src: 'Mock MST Q19',
         make(rng) {
-          const ocf = rng.step(5, 200, 1) * 1000, nwc = rng.step(1, 50, 1) * 1000, tc = rng.pick(TAX);
+          const ocf = rng.step(5, 200, 1) * 1000, nwc = rng.step(5, 60, 1) * 1000, tc = rng.pick(TAX);
           const bv = rng.chance(0.6) ? 0 : rng.step(1, 20, 1) * 1000;
           let sv = rng.step(1, 40, 1) * 1000;
           if (sv === bv) sv += 1000;
@@ -912,7 +912,7 @@
             givens: [['OCF', L.moneyT(ocf)], ['SV', L.moneyT(sv)], ['BV', L.moneyT(bv)], ['NWC', L.moneyT(nwc)], ['t_c', L.pctT(tc)]],
             answer: term, unit: '$', dp: 2,
             mistakes: clean([
-              { v: ocf + nwc + sv, why: 'Tax the gain (or credit the loss) on the machine: SV − (SV − BV) × tc.' },
+              { v: ocf + nwc + sv, why: R`Tax the gain (or credit the loss) on the machine: \(SV - (SV - BV)\,t_c\).` },
               { v: ocf + ats, why: 'Add the working capital that is recovered.' },
               { v: ocf + nwc * (1 - tc) + ats, why: 'Recovered working capital is not taxed.' },
             ], term, '$', 2),
@@ -920,7 +920,7 @@
               R`After-tax salvage: \(${L.moneyT(sv)} - (${L.moneyT(sv)} - ${L.moneyT(bv)})(${L.dec(tc)}) = ${M(ats)}\).`,
               R`\[CF_n = ${L.moneyT(ocf)} + ${L.moneyT(nwc)} + ${M(ats)} = ${M(term)}\]`,
             ],
-            why: 'Terminal cash flow = final operating cash flow + NWC recovered + after-tax salvage.',
+            why: 'The terminal cash flow is the final operating cash flow, plus the NWC recovered, plus the after-tax salvage.',
           };
         } },
 
@@ -1023,7 +1023,7 @@
                 givens: [['r_{nom}', L.pctT(nom)], ['i', L.pctT(i)]],
                 answer: P(real), unit: '%', dp: 2,
                 mistakes: clean([
-                  { v: P(nom - i), why: 'Subtracting is only an approximation. Divide: (1 + nominal) ÷ (1 + inflation) − 1.' },
+                  { v: P(nom - i), why: R`Subtracting is only an approximation. Divide: \(\frac{1 + r_{nom}}{1 + i} - 1\).` },
                   { v: P((1 + nom) * (1 + i) - 1), why: 'Multiplying adds inflation. To remove it, divide.' },
                 ], P(real), '%', 2),
                 steps: [R`\[1 + r_{real} = \frac{1 + r_{nom}}{1 + i} = \frac{${L.onePlus(nom)}}{${L.onePlus(i)}} = ${L.numT((1 + nom) / (1 + i), 6)}\]`, R`\[r_{real} = ${L.pct(real, 4)}\]`],
@@ -1037,7 +1037,7 @@
               givens: [['r_{real}', L.pctT(real)], ['i', L.pctT(i)]],
               answer: P(nom), unit: '%', dp: 2,
               mistakes: clean([
-                { v: P(real + i), why: 'Adding is only an approximation. Multiply: (1 + real)(1 + inflation) − 1.' },
+                { v: P(real + i), why: R`Adding is only an approximation. Multiply: \((1 + r_{real})(1 + i) - 1\).` },
                 { v: P(FIN.fisherReal(real, i)), why: 'That removes inflation. To add it, multiply.' },
               ], P(nom), '%', 2),
               steps: [R`\[1 + r_{nom} = (1 + r_{real})(1 + i) = ${L.onePlus(real)} \times ${L.onePlus(i)} = ${L.numT((1 + real) * (1 + i), 6)}\]`, R`\[r_{nom} = ${L.pct(nom, 4)}\]`],
@@ -1055,7 +1055,7 @@
             givens: [[R`CF^{real}_{${t}}`, L.moneyT(c)], ['i', L.pctT(i)], ['t', String(t)]],
             answer: nom, unit: '$', dp: 2,
             mistakes: clean([
-              { v: c * (1 + i * t), why: 'Inflation compounds: use (1 + i) to the power t.' },
+              { v: c * (1 + i * t), why: R`Inflation compounds: multiply by \((1 + i)^{t}\).` },
               { v: c / Math.pow(1 + i, t), why: 'That removes inflation. Real to nominal multiplies.' },
               { v: c * (1 + i), why: `Apply ${t} years of inflation, not one.` },
             ], nom, '$', 2),
@@ -1080,7 +1080,7 @@
               answer: npv, unit: '$', dp: 2,
               mistakes: clean([
                 { v: -i0 + FIN.pvAnnuity(c, nom, n), why: 'Real cash flows need the real rate. The nominal rate understates the NPV.' },
-                { v: -i0 + FIN.pvAnnuity(c, nom - i, n), why: 'The real rate is (1 + nominal) ÷ (1 + inflation) − 1, not nominal − inflation.' },
+                { v: -i0 + FIN.pvAnnuity(c, nom - i, n), why: R`The real rate is \(\frac{1 + r_{nom}}{1 + i} - 1\), not \(r_{nom} - i\).` },
                 { v: FIN.npv(real, nomCfs), why: 'You inflated the cash flows but used the real rate. Keep them consistent.' },
               ], npv, '$', 2),
               steps: [
@@ -1088,7 +1088,7 @@
                 R`\[NPV = -${L.moneyT(i0)} + ${L.moneyT(c)} \times \frac{1}{${L.dec(real, 6)}}\left(1 - \frac{1}{(1 + ${L.dec(real, 6)})^{${n}}}\right) = ${M(npv)}\]`,
                 R`Check, nominal with nominal: inflate each cash flow by \((${L.onePlus(i)})^{t}\) and discount at ${T.pctT(nom)}. The NPV is the same.`,
               ],
-              calc: `${n} [N] · ${T.numT(real * 100, 6)} [I/YR] · ${c} [PMT] · 0 [FV] · [PV] → then add −${i0}`,
+              calc: `${cfKeys([-i0].concat(Array(n).fill(c)))} · ${T.numT(real * 100, 6)} [I/YR] · [NPV] → ${T.money(npv)}`,
               why: 'Real with real, or nominal with nominal: both give the same NPV.',
             };
           }
@@ -1100,15 +1100,16 @@
         make(rng) {
           for (let tries = 0; tries < 60; tries++) {
             const tc = rng.pick(TAX);
-            const oldCost = rng.step(20, 400, 5) * 1000, oldLife = rng.int(6, 12), age = rng.int(2, oldLife - 2);
+            const oldLife = rng.int(6, 12), age = rng.int(2, oldLife - 2), oldCost = oldLife * rng.step(2, 40, 0.5) * 1000;
             const bv = oldCost * (1 - age / oldLife);
             const sale = round(bv * rng.step(0.5, 1.6, 0.05), 1000);
-            if (Math.abs(sale - bv) < 1000) continue;
+            if (Math.abs(sale - bv) < Math.max(1000, 0.1 * bv)) continue;
             const price = rng.step(50, 800, 5) * 1000, ship = rng.step(2, 40, 1) * 1000, nwc = rng.step(2, 60, 1) * 1000;
             const tax = (sale - bv) * tc;
             const init = -(price + ship) + sale - tax - nwc;
+            if (init > -0.2 * (price + ship)) continue; // keep the t = 0 cash flow a clear outflow
             return {
-              q: R`${rng.company()} may replace an old machine. The old one cost ${T.money(oldCost, 0)} ${age} years ago and is depreciated straight-line to zero over ${oldLife} years. It can be sold today for ${T.money(sale, 0)}. The new one costs ${T.money(price, 0)} plus ${T.money(ship, 0)} for shipping and installation. Inventory must rise by ${T.money(nwc, 0)}. The tax rate is ${T.pctT(tc)}. What is the **initial investment** at \(t = 0\)?`,
+              q: R`${rng.company()} may replace an old machine.\n• Old machine: bought ${age} years ago for ${T.money(oldCost, 0)}, straight-line to $0 over ${oldLife} years. It sells today for ${T.money(sale, 0)}.\n• New machine: ${T.money(price, 0)}, plus ${T.money(ship, 0)} for shipping and installation.\n• Inventory rises by ${T.money(nwc, 0)}.\n• The tax rate is ${T.pctT(tc)}.\nWhat is the cash flow at \(t = 0\) (the **initial investment**)? Enter an outflow as a negative number.`,
               answer: init, unit: '$', dp: 2,
               mistakes: clean([
                 { v: init + tax, why: sale > bv ? 'The old machine sells above book value: tax is due on the gain.' : 'The old machine sells below book value: the loss saves tax.' },
@@ -1118,9 +1119,9 @@
               ], init, '$', 2),
               steps: [
                 R`Old machine: \(BV = ${L.moneyT(oldCost)} - ${age} \times \frac{${L.moneyT(oldCost)}}{${oldLife}} = ${M(bv)}\).`,
-                stmt([['New machine incl. shipping and installation', -(price + ship)], ['Sale of old machine', sale], [sale > bv ? 'Tax on the gain' : 'Tax saved on the loss', -tax], ['Increase in NWC', -nwc], ['Initial investment', init, 1]]),
+                stmt([['New machine, shipping, installation', -(price + ship)], ['Sale of old machine', sale], [sale > bv ? 'Tax on the gain' : 'Tax saved on the loss', -tax], ['Increase in NWC', -nwc], ['Initial investment', init, 1]]),
               ],
-              why: 'Initial investment = new cost + extras − after-tax sale of the old machine + NWC.',
+              why: 'The initial investment is the new cost and extras, minus the after-tax sale of the old machine, plus the NWC.',
             };
           }
           return null;
@@ -1129,8 +1130,7 @@
         make(rng) {
           for (let tries = 0; tries < 60; tries++) {
             const tc = rng.pick(TAX), n = rng.int(3, 8);
-            const price = rng.step(30, 500, 5) * 1000, ship = rng.step(1, 30, 1) * 1000;
-            const dNew = (price + ship) / n;
+            const dNew = rng.step(8, 90, 0.5) * 1000, ship = rng.step(1, 30, 1) * 1000, price = dNew * n - ship;
             const dOld = round(dNew * rng.step(0.1, 0.6, 0.05), 100);
             const dInc = dNew - dOld;
             const save = round(dNew * rng.step(1, 2.5, 0.05), 500);
@@ -1142,7 +1142,7 @@
               q: R`A new machine costs ${T.money(price, 0)} plus ${T.money(ship, 0)} to install. It is depreciated straight-line to zero over ${n} years. It replaces an old machine that is being depreciated by ${T.money(dOld, 0)} a year. The swap cuts operating costs by ${T.money(save, 0)} a year${addRev ? ` and adds ${T.money(addRev, 0)} of revenue` : ''}. The tax rate is ${T.pctT(tc)}. What is the incremental **operating cash flow** each year?`,
               answer: ocf, unit: '$', dp: 2,
               mistakes: clean([
-                { v: (addRev + save - dNew) * (1 - tc) + dNew, why: 'The old machine’s depreciation is lost. Use the incremental depreciation (new − old).' },
+                { v: (addRev + save - dNew) * (1 - tc) + dNew, why: 'The old machine’s depreciation is lost. Use the incremental depreciation (new minus old).' },
                 { v: ebit * (1 - tc), why: 'Add back the incremental depreciation: it is not cash.' },
                 { v: ebit * (1 - tc) + dNew, why: 'Add back the same incremental depreciation you subtracted, not the new machine’s.' },
                 { v: (addRev + save) * (1 - tc), why: 'That ignores the tax shield on the incremental depreciation.' },
@@ -1163,7 +1163,7 @@
           const sv = rng.step(5, 100, 1) * 1000;
           const nwc = w0 + (n - 1) * w1, ats = sv * (1 - tc), term = ocf + nwc + ats;
           return {
-            q: R`A replacement project lasts ${n} years. Working capital of ${T.money(w0, 0)} is put in at the start, plus ${T.money(w1, 0)} more in each of years 1 to ${n - 1}. All of it is recovered in year ${n}. The new machine is fully depreciated and sells for ${T.money(sv, 0)} in year ${n}. Year ${n}’s operating cash flow is ${T.money(ocf, 0)} and the tax rate is ${T.pctT(tc)}. What is the **terminal cash flow**?`,
+            q: R`A replacement project lasts ${n} years.\n• Working capital: ${T.money(w0, 0)} at the start, plus ${T.money(w1, 0)} more in each of years 1 to ${n - 1}. All of it is recovered in year ${n}.\n• The new machine is fully depreciated. It sells for ${T.money(sv, 0)} in year ${n}.\n• Year ${n}’s operating cash flow is ${T.money(ocf, 0)}.\n• The tax rate is ${T.pctT(tc)}.\nWhat is the **terminal cash flow**?`,
             answer: term, unit: '$', dp: 2,
             mistakes: clean([
               { v: ocf + w0 + ats, why: `The ${T.money(w1, 0)} added in each of years 1 to ${n - 1} is recovered too.` },
@@ -1176,7 +1176,7 @@
               R`After-tax salvage: \(${L.moneyT(sv)} - (${L.moneyT(sv)} - \$0)(${L.dec(tc)}) = ${M(ats)}\).`,
               R`\[CF_{${n}} = ${L.moneyT(ocf)} + ${L.moneyT(nwc)} + ${M(ats)} = ${M(term)}\]`,
             ],
-            why: 'Terminal cash flow = last operating cash flow + all NWC recovered + after-tax salvage.',
+            why: 'The terminal cash flow is the last operating cash flow, plus all the NWC recovered, plus the after-tax salvage.',
           };
         } },
 
@@ -1186,15 +1186,16 @@
           for (let tries = 0; tries < 200; tries++) {
             const tc = rng.pick([0.3, 0.3, 0.35, 0.4]), n = rng.int(4, 6), r = rng.step(0.08, 0.16, 0.01);
             const age = rng.int(2, 6), oldLife = age + n;
-            const oldCost = rng.step(20, 150, 5) * 1000, dOld = oldCost / oldLife, bvOld = oldCost - age * dOld;
+            const dOld = rng.step(2, 15, 0.5) * 1000, oldCost = dOld * oldLife, bvOld = oldCost - age * dOld;
             const sale = round(bvOld * rng.step(0.5, 1.6, 0.05), 1000);
-            if (Math.abs(sale - bvOld) < 1000) continue;
-            const price = rng.step(40, 300, 5) * 1000, ship = rng.step(2, 20, 1) * 1000;
-            const dNew = (price + ship) / n, dInc = dNew - dOld;
+            if (Math.abs(sale - bvOld) < Math.max(1000, 0.1 * bvOld)) continue;
+            const dNew = rng.step(8, 60, 0.5) * 1000, ship = rng.step(2, 20, 1) * 1000, price = dNew * n - ship;
+            const dInc = dNew - dOld;
             if (dInc <= 0) continue;
             const salv = round(price * rng.step(0, 0.2, 0.02), 1000), nwc = rng.step(2, 20, 1) * 1000;
             const training = rng.step(2, 10, 1) * 1000, interest = round(price * rng.step(0.04, 0.08, 0.01), 100);
             const init = -(price + ship) + sale - (sale - bvOld) * tc - nwc;
+            if (init > -0.2 * (price + ship)) continue; // keep the t = 0 cash flow a clear outflow
             const endExtra = nwc + salv * (1 - tc);
             const ocf0 = -(init + endExtra / Math.pow(1 + r, n)) / FIN.pvifa(r, n);
             const save = round(((ocf0 - dInc * tc) / (1 - tc)) * rng.step(0.85, 1.2, 0.01), 500);
@@ -1203,7 +1204,7 @@
             const term = ocf + endExtra;
             const cfs = [init].concat(Array(n - 1).fill(ocf)).concat([term]);
             const npv = FIN.npv(r, cfs);
-            if (Math.abs(npv) < 0.01 * price) continue;
+            if (Math.abs(npv) < 0.03 * price) continue;
             const part = rng.pick(['init', 'ocf', 'term', 'npv', 'npv']);
             const co = rng.company();
             const table = { head: ['Item', 'Details'], rows: [
@@ -1214,17 +1215,17 @@
               ['Other facts', `Staff training for a similar machine was paid last month: ${cell(training)}. A bank loan for the new machine costs ${cell(interest)} a year in interest.`],
               ['Tax and required return', `Tax ${T.pctT(tc)}. Required return ${T.pctT(r)}.`],
             ] };
-            const label = { init: 'initial investment at t = 0', ocf: `incremental operating cash flow in each of years 1 to ${n}`, term: `terminal cash flow in year ${n} (including that year’s operating cash flow)`, npv: 'NPV of replacing the machine' }[part];
+            const label = { init: R`cash flow at \(t = 0\) (the **initial investment**)`, ocf: `**incremental operating cash flow** in each of years 1 to ${n}`, term: `**terminal cash flow** in year ${n} (including that year’s operating cash flow)`, npv: '**NPV** of replacing the machine' }[part];
             const s1 = [
               R`**Part 1.** Old machine: \(BV = ${L.moneyT(oldCost)} - ${age} \times ${M(dOld)} = ${M(bvOld)}\).`,
-              stmt([['New machine incl. shipping and installation', -(price + ship)], ['Sale of old machine', sale], [sale > bvOld ? 'Tax on the gain' : 'Tax saved on the loss', -(sale - bvOld) * tc], ['Increase in NWC', -nwc], ['Initial investment', init, 1]]),
+              stmt([['New machine, shipping, installation', -(price + ship)], ['Sale of old machine', sale], [sale > bvOld ? 'Tax on the gain' : 'Tax saved on the loss', -(sale - bvOld) * tc], ['Increase in NWC', -nwc], ['Initial investment', init, 1]]),
             ];
             const s2 = [
               R`**Part 2.** \(\Delta Dep = ${M(dNew)} - ${M(dOld)} = ${M(dInc)}\).`,
               stmt([['Cost savings', save], ['Incremental depreciation', -dInc], ['EBIT', save - dInc, 1], [`Tax at ${T.pctT(tc)}`, -(save - dInc) * tc], ['Add back depreciation', dInc], ['Operating cash flow', ocf, 1]]),
             ];
             const s3 = [R`**Part 3.** \(CF_{${n}} = ${M(ocf)} + ${L.moneyT(nwc)} + ${L.moneyT(salv)}(1 - ${L.dec(tc)}) = ${M(term)}\).`];
-            const s4 = [R`**NPV.** \[NPV = ${M(init)} + ${annuityPV(+ocf.toFixed(2), r, n - 1)} + \frac{${M(term)}}{(${L.onePlus(r)})^{${n}}} = ${M(npv)}\]`, R`${npv > 0 ? 'NPV > 0: replace the machine.' : 'NPV < 0: keep the old machine.'} The training (sunk) and the interest (financing) are ignored.`];
+            const s4 = [R`**NPV.** \[NPV = ${M(init)} + ${annuityPV(+ocf.toFixed(2), r, n - 1)} + \frac{${M(term)}}{(${L.onePlus(r)})^{${n}}} = ${M(npv)}\]`, R`${npv > 0 ? R`\(NPV > 0\): replace the machine.` : R`\(NPV < 0\): keep the old machine.`} The training (sunk) and the interest (financing) are ignored.`];
             const steps = part === 'init' ? s1 : part === 'ocf' ? s2 : part === 'term' ? s2.concat(s3) : s1.concat(s2, s3, s4);
             const ans = { init, ocf, term, npv }[part];
             const ms = {
@@ -1252,13 +1253,13 @@
               ],
             }[part];
             return {
-              q: R`${co} is thinking of replacing an old machine with a new one (details below). The old machine would last another ${n} years. What is the **${label}**?`,
+              q: R`${co} is thinking of replacing an old machine with a new one (details below). The old machine would last another ${n} years. What is the ${label}?`,
               table,
               answer: ans, unit: '$', dp: 2,
               mistakes: clean(ms, ans, '$', 2),
               steps,
               calc: part === 'npv' ? npvKeys(cfs, r) : undefined,
-              why: part === 'npv' ? `NPV ${npv > 0 ? '> 0: replacing adds value' : '< 0: replacing destroys value'}.` : 'Work through the three parts: initial investment, operating cash flows, terminal cash flow.',
+              why: part === 'npv' ? (npv > 0 ? R`\(NPV > 0\): replacing adds value.` : R`\(NPV < 0\): replacing destroys value.`) : 'Work through the three parts: initial investment, operating cash flows, terminal cash flow.',
             };
           }
           return null;
@@ -1267,10 +1268,13 @@
         make(rng) {
           for (let tries = 0; tries < 100; tries++) {
             const K = rng.step(10, 40, 1), n = rng.pick([5, 8, 10]), dep = K / n;
-            const R0 = rng.step(15, 60, 1), C = round(R0 * rng.step(0.5, 0.75, 0.01), 0.5);
             const S = rng.step(1, 5, 0.5), Sinc = round(S * rng.step(0.25, 0.75, 0.05), 0.5);
             if (!(Sinc > 0 && Sinc < S)) continue;
             const W = rng.step(2, 12, 1), F = rng.step(0.5, 2, 0.5), tc = rng.pick([0.3, 0.35]), r = rng.step(0.08, 0.16, 0.01);
+            // aim the yearly FCF near its break-even level so that both accept and reject cases occur
+            const target = ((K + W - W / Math.pow(1 + r, n)) / FIN.pvifa(r, n)) * rng.step(0.8, 1.3, 0.01);
+            const cRatio = rng.step(0.5, 0.7, 0.01);
+            const R0 = round(((target - dep) / (1 - tc) + Sinc + dep) / (1 - cRatio), 0.5), C = round(R0 * cRatio, 0.5);
             const ebit = R0 - C - Sinc - dep;
             if (ebit <= 0.05 * R0) continue;
             const fcf = ebit * (1 - tc) + dep;
@@ -1284,11 +1288,16 @@
               ['Sales revenue', T.moneyT(R0, 3) + 'm'], ['Cost of goods sold', T.moneyT(-C, 3) + 'm'], ['Selling, general and admin (SG&A)', T.moneyT(-S, 3) + 'm'],
               ['Depreciation', T.moneyT(-dep, 3) + 'm'], ['Income tax', T.moneyT(-(R0 - C - S - dep) * tc, 3) + 'm'], ['Net income', T.moneyT(niRep, 3) + 'm'],
             ] };
-            const facts = R`The report is from consultants who are owed ${T.moneyT(F, 3)}m whatever you decide. The equipment costs ${T.moneyT(K, 3)}m today and is depreciated straight-line to zero over ${n} years. The project needs ${T.moneyT(W, 3)}m of working capital now, recovered in year ${n}. Only ${T.moneyT(Sinc, 3)}m of the SG&A is caused by the project. Tax is ${T.pctT(tc)}.`;
+            const facts = R`The consultants who wrote the report below are owed ${T.moneyT(F, 3)}m whatever you decide.
+• The equipment costs ${T.moneyT(K, 3)}m today. It is depreciated straight-line to zero over ${n} years.
+• Working capital of ${T.moneyT(W, 3)}m is needed now and recovered in year ${n}.
+• Only ${T.moneyT(Sinc, 3)}m of the SG&A is caused by the project.
+• Tax is ${T.pctT(tc)}.`;
             const stepFcf = stmt([['Sales revenue', R0], ['Cost of goods sold', -C], ['Incremental SG&A only', -Sinc], ['Depreciation', -dep], ['EBIT', ebit, 1], [`Tax at ${T.pctT(tc)}`, -ebit * tc], ['Add back depreciation', dep], ['Free cash flow', fcf, 1]], (v) => mil(v));
             if (!askNpv) {
               return {
-                q: R`${co}: ${facts} What is the project’s **free cash flow** in each of years 1 to ${n - 1}?`,
+                q: R`${co} is considering an expansion. ${facts}
+What is the project’s **free cash flow** in each of years 1 to ${n - 1}?`,
                 table,
                 answer: fcf, unit: '$m', dp: 3,
                 mistakes: clean([
@@ -1302,12 +1311,14 @@
               };
             }
             return {
-              q: R`${co}: ${facts} The cost of capital is ${T.pctT(r)}. What is the project’s **NPV**?`,
+              q: R`${co} is considering an expansion. ${facts}
+• The cost of capital is ${T.pctT(r)}.
+What is the project’s **NPV**?`,
               table,
               answer: npv, unit: '$m', dp: 3,
               mistakes: clean([
                 { v: npv - W / Math.pow(1 + r, n), why: 'The working capital is recovered in the final year. Include it.' },
-                { v: npv + W - W / Math.pow(1 + r, n), why: 'The working capital needed now is an outflow at t = 0.' },
+                { v: npv + W - W / Math.pow(1 + r, n), why: R`The working capital needed now is an outflow at \(t = 0\).` },
                 { v: npv - F, why: 'The consultants’ fee is owed whatever you decide: it is sunk.' },
                 { v: npv - (S - Sinc) * (1 - tc) * FIN.pvifa(r, n), why: 'Only the incremental SG&A counts.' },
               ], npv, '$m', 3),
@@ -1317,7 +1328,7 @@
                 R`\[NPV = -${mil(K + W)} + ${annuityPV(+fcf.toFixed(4), r, n)}\text{m} + \frac{${mil(W)}}{(${L.onePlus(r)})^{${n}}} = ${mil(npv)}\]`,
               ],
               calc: npvKeys(cfs, r, 'm'),
-              why: `NPV ${npv > 0 ? '> 0: accept' : '< 0: reject'}. Earnings × years is not a valuation.`,
+              why: R`${npv > 0 ? R`\(NPV > 0\): accept.` : R`\(NPV < 0\): reject.`} Adding up years of earnings is not a valuation.`,
             };
           }
           return null;
@@ -1326,8 +1337,12 @@
         make(rng) {
           for (let tries = 0; tries < 100; tries++) {
             const price = rng.step(20, 200, 5) * 1000, n = rng.pick([5, 8, 10, 15, 20]), dep = price / n;
-            const maint = rng.step(1, 15, 0.5) * 1000, sal = Math.max(20000, round(price * rng.step(0.15, 0.5, 0.01) + maint, 500)), ben = rng.chance(0.5) ? rng.step(1, 10, 0.5) * 1000 : 0;
+            const maint = rng.step(1, 15, 0.5) * 1000, ben = rng.chance(0.5) ? rng.step(1, 10, 0.5) * 1000 : 0;
             const tc = rng.pick([0.3, 0.3, 0.35, 0.4]), r = rng.step(0.08, 0.16, 0.01);
+            // aim the free cash flow near break-even so that both buy and do-not-buy cases occur
+            const target = (price / FIN.pvifa(r, n)) * rng.step(0.75, 1.3, 0.01);
+            const sal = round((target - dep) / (1 - tc) + maint + dep - ben, 500);
+            if (sal < 15000) continue;
             const ebit = sal + ben - maint - dep;
             if (ebit <= 0) continue;
             const fcf = ebit * (1 - tc) + dep;
@@ -1336,8 +1351,7 @@
             if (Math.abs(npv) < 0.02 * price || !Number.isFinite(irr) || irr > 0.8) continue;
             const f1 = (sal + ben - maint) * (1 - tc), f2 = ben ? (sal - maint - dep) * (1 - tc) + dep : null;
             const askIrr = rng.chance(0.3);
-            const who = rng.person();
-            const q = R`${who} could replace a worker with a machine. The machine costs ${T.money(price, 0)} and lasts ${n} years (straight-line to $0). It saves the worker’s ${T.money(sal, 0)} salary${ben ? ` and ${T.money(ben, 0)} of benefits` : ''} a year, but costs ${T.money(maint, 0)} a year to maintain. Tax is ${T.pctT(tc)} and the cost of capital is ${T.pctT(r)}. What is the **${askIrr ? 'IRR' : 'NPV'}** of buying the machine?`;
+            const q = R`A factory owner asks {NAME} whether to replace a worker with a machine. The machine costs ${T.money(price, 0)} and lasts ${n} years (straight-line to $0). It saves the worker’s ${T.money(sal, 0)} salary${ben ? ` and ${T.money(ben, 0)} of benefits` : ''} a year, but costs ${T.money(maint, 0)} a year to maintain. Tax is ${T.pctT(tc)} and the cost of capital is ${T.pctT(r)}. What is the **${askIrr ? 'IRR' : 'NPV'}** of buying the machine?`;
             const steps = [
               R`\(Dep = \frac{${L.moneyT(price)}}{${n}} = ${M(dep)}\).`,
               stmt([['Savings', sal + ben], ['Maintenance', -maint], ['Depreciation', -dep], ['EBIT', ebit, 1], [`Tax at ${T.pctT(tc)}`, -ebit * tc], ['Add back depreciation', dep], ['Free cash flow', fcf, 1]]),
@@ -1355,7 +1369,7 @@
                 ], P(irr), '%', 2),
                 steps,
                 calc: `${n} [N] · −${price} [PV] · ${+fcf.toFixed(2)} [PMT] · 0 [FV] · [I/YR] → ${T.num(irr * 100)}`,
-                why: `IRR ${irr > r ? '> k: buy the machine' : '< k: do not buy it'}.`,
+                why: irr > r ? R`\(IRR > k\): buy the machine.` : R`\(IRR < k\): do not buy it.`,
               };
             }
             return {
@@ -1368,7 +1382,7 @@
               ], npv, '$', 2),
               steps,
               calc: npvKeys(cfs, r),
-              why: `NPV ${npv > 0 ? '> 0: buy the machine' : '< 0: do not buy it'}.`,
+              why: npv > 0 ? R`\(NPV > 0\): buy the machine.` : R`\(NPV < 0\): do not buy it.`,
             };
           }
           return null;

@@ -14,7 +14,9 @@
   const t4 = (x) => T.num(x, 4);                 // plain-text number with 4 decimals (matrix cells)
   const sum = (xs) => xs.reduce((a, b) => a + b, 0);
   const andList = (xs) => (xs.length < 2 ? xs.join('') : xs.slice(0, -1).join(', ') + ' and ' + xs[xs.length - 1]);
-  const two = (rng) => { const a = rng.company(); let b = rng.company(); while (b === a) b = rng.company(); return [a, b]; };
+  /** k different fictional company names */
+  const cos = (rng, k) => { const out = []; while (out.length < k) { const c = rng.company(); if (!out.includes(c)) out.push(c); } return out; };
+  const two = (rng) => cos(rng, 2);
   const hp = (x) => (x < 0 ? `${T.numT(-x, 4)} [+/−]` : T.numT(x, 4)); // HP10bII+ entry of a signed number
   const STATES = ['Recession', 'Normal', 'Boom'];
   const PROBS = [[0.25, 0.5, 0.25], [0.2, 0.5, 0.3], [0.3, 0.5, 0.2], [0.25, 0.6, 0.15], [0.2, 0.6, 0.2], [0.15, 0.6, 0.25], [0.1, 0.6, 0.3], [0.3, 0.4, 0.3], [0.2, 0.55, 0.25]];
@@ -661,7 +663,7 @@
         ],
         why: R`Its expected return is \(0.4(10.4\%) + 0.6(9.2\%) = 9.68\%\).` },
       { id: 'w9-q53', topic: 'port', kind: 'num', level: 3, section: 'B', formula: 'port-var', src: 'Lecture W9 Example 3(c)', boss: true,
-        q: R`Use the matrix. Of $500,000, you invest $200,000 in SSBB, $200,000 in WW and $100,000 in the risk-free asset. What is the **standard deviation** of this portfolio (Portfolio C)?`,
+        q: R`Your manager gives {NAME} $500,000 to invest: $200,000 in SSBB, $200,000 in WW and $100,000 in the risk-free asset. Use the matrix. What is the **standard deviation** of this portfolio (Portfolio C)?`,
         table: MX_TABLE,
         answer: P(sPC), unit: '%', dp: 2,
         mistakes: [
@@ -732,7 +734,7 @@
         steps: [R`\[\beta_{SSBB} = \frac{Cov(R_{SSBB},R_M)}{\sigma_M^2} = \frac{0.0040}{0.0100} = 0.4\]`, R`Likewise \(\beta_{WW} = \frac{0.0020}{0.0100} = 0.2\).`],
         why: 'Read the covariance with the market from the bottom row, and the market variance from the diagonal.' },
       { id: 'w9-q66', topic: 'beta', kind: 'num', level: 1, section: 'B', formula: 'port-beta', src: 'Tutorial W9 Q7(c)',
-        q: R`News Corporation has a beta of 1.7 and CBA has a beta of 1.0. What is the beta of a portfolio with 60% in News Corporation and 40% in CBA?`,
+        q: R`Suppose News Corporation shares have a beta of 1.7 and CBA shares have a beta of 1.0. What is the beta of a portfolio with 60% in News Corporation and 40% in CBA?`,
         answer: FIN.portBeta([0.6, 0.4], [1.7, 1.0]), unit: '', dp: 2,
         mistakes: [
           { v: 1.35, why: 'That is a simple average. Weight each beta by the portfolio weight.' },
@@ -763,7 +765,7 @@
         steps: [R`\[E[R_i] = r_f + \beta_i(E[R_M] - r_f) = 5\% + 1.5(11\% - 5\%) = 5\% + 9\% = 14\%\]`],
         why: 'Risk-free rate plus beta times the market risk premium.' },
       { id: 'w9-q69', topic: 'capm', kind: 'num', level: 1, section: 'B', formula: 'capm', src: 'Tutorial W9 Q7(a)',
-        q: R`News Corporation shares have a beta of 1.7. The risk-free rate is 4% and the expected market return is 10%. Using CAPM, what is the expected return on News Corporation shares?`,
+        q: R`Suppose News Corporation shares have a beta of 1.7. The risk-free rate is 4% and the expected market return is 10%. Using CAPM, what is the expected return on News Corporation shares?`,
         answer: P(FIN.capm(0.04, 1.7, 0.10)), unit: '%', dp: 2,
         mistakes: [
           { v: 21, why: R`Use the market risk premium \(10\% - 4\% = 6\%\), not \(10\%\).` },
@@ -773,7 +775,7 @@
         steps: [R`\[E[R] = 4\% + 1.7(10\% - 4\%) = 4\% + 10.2\% = 14.2\%\]`, R`For CBA (\(\beta = 1\)): \(4\% + 1(6\%) = 10\%\), the same as the market.`],
         why: 'A beta of 1.7 earns 1.7 times the market risk premium on top of the risk-free rate.' },
       { id: 'w9-q70', topic: 'capm', kind: 'num', level: 2, section: 'B', formula: 'port-beta', src: 'Tutorial W9 Q7(d)',
-        q: R`A portfolio holds 60% News Corporation (expected return 14.2%, beta 1.7) and 40% CBA (expected return 10%, beta 1.0). The risk-free rate is 4% and the market return is 10%. What is the portfolio’s expected return?`,
+        q: R`Suppose a portfolio holds 60% News Corporation shares (expected return 14.2%, beta 1.7) and 40% CBA shares (expected return 10%, beta 1.0). The risk-free rate is 4% and the market return is 10%. What is the portfolio’s expected return?`,
         answer: P(FIN.capm(0.04, 1.42, 0.10)), unit: '%', dp: 2,
         mistakes: [
           { v: 12.1, why: 'That is a simple average. Use the 60/40 weights.' },
@@ -1001,7 +1003,7 @@
       /* ---------- choosing by CV ---------- */
       { id: 'w9-g-cv-choose', topic: 'cv', level: 2, section: 'B', formula: 'cv', src: 'Tutorial W9 Q3',
         make(rng) {
-          const names = rng.sample(['Acacia', 'Boronia', 'Coolabah', 'Grevillea', 'Jarrah', 'Kurrajong', 'Waratah', 'Wattle'], 4).map((x) => x + ' Ltd');
+          const names = cos(rng, 4);
           for (let tries = 0; tries < 60; tries++) {
             const as = names.map((nm) => { const e = rng.step(0.03, 0.2, 0.001), s = rng.step(0.04, 0.3, 0.001); return { nm, e, s, cv: s / e }; });
             const byCV = as.slice().sort((a, b) => a.cv - b.cv);
@@ -1139,7 +1141,7 @@
       { id: 'w9-g-port-ret', topic: 'port', level: 1, section: 'B', formula: 'port-ret', src: 'Lecture W9 Example 7',
         make(rng) {
           const k = rng.chance(0.6) ? 2 : 3;
-          const names = rng.sample(['Acacia Ltd', 'Boronia Ltd', 'Coolabah Ltd', 'Jarrah Ltd', 'Waratah Ltd'], k);
+          const names = cos(rng, k);
           const amts = names.map(() => rng.step(2000, 30000, 1000));
           const es = names.map(() => rng.step(0.03, 0.18, 0.005));
           if (Math.abs(amts[1] - amts[0]) < 0.2 * (amts[0] + amts[1])) amts[1] = amts[0] > 15000 ? amts[0] - 8000 : amts[0] + 9000;
@@ -1250,7 +1252,7 @@
       /* ---------- portfolio beta ---------- */
       { id: 'w9-g-port-beta', topic: 'beta', level: 1, section: 'B', formula: 'port-beta', src: 'Lecture W9 SML Example 2(a)',
         make(rng) {
-          const names = rng.sample(['Acacia Ltd', 'Boronia Ltd', 'Coolabah Ltd', 'Jarrah Ltd', 'Waratah Ltd'], 3);
+          const names = cos(rng, 3);
           const withRf = rng.chance(0.3);
           let amts, bs, aF, tot, ws, bp;
           for (let t = 0; t < 50; t++) {
@@ -1344,7 +1346,7 @@
             kind: 'mcq',
             q: R`${co} has a beta of ${T.numT(b, 2)}. Analysts expect it to return ${tp(er, 3)}. The risk-free rate is ${tp(rf, 1)} and the expected market return is ${tp(rm, 1)}. According to CAPM, the share is…`,
             givens: [['\\beta', nt(b, 2)], ['r_f', pcT(rf)], ['E[R_M]', pcT(rm)], ['\\text{Forecast}', pcT(er)]],
-            chart: { type: 'sml', rf, rm, points: [{ name: co, beta: b, er }] },
+            chart: { type: 'sml', rf, rm, points: [{ name: co.split(' ')[0], beta: b, er }] }, // short label keeps it inside the plot
             choices: ['Undervalued: it plots above the SML, so buy', 'Overvalued: it plots below the SML, so sell', 'Fairly priced: it plots on the SML', 'Impossible to judge without its standard deviation'],
             answer: ans,
             steps: [R`Required return: \[E[R] = ${pcT(rf)} + ${nt(b, 2)}(${pcT(rm)} - ${pcT(rf)}) = ${pcT(req)}\]`,

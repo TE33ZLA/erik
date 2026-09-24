@@ -15,11 +15,16 @@
 
   /* ---------------- item makers ---------------- */
   function rapidItem(spec, rng) {
-    const useGen = spec.gen && (!spec.items || !spec.items.length || rng.chance(0.5));
-    if (useGen) {
-      const it = spec.gen(rng);
-      if (it) return normalise(spec, it);
+    const hasItems = !!(spec.items && spec.items.length);
+    if (spec.gen && (!hasItems || rng.chance(0.5))) {
+      // A generator may reject a draw (returns null); try a few more before falling back.
+      for (let i = 0; i < 8; i++) {
+        let it = null;
+        try { it = spec.gen(rng); } catch (e) { it = null; }
+        if (it) return normalise(spec, it);
+      }
     }
+    if (!hasItems) return null;
     if (!M.deck || !M.deck.length) M.deck = rng.shuffle(spec.items.slice());
     return normalise(spec, M.deck.pop());
   }
@@ -109,6 +114,7 @@
     M.phase = 'ask';
     const g = M.spec.game;
     M.item = g === 'timeline' ? timelineItem(M.rng) : g === 'sml' ? smlItem(M.rng, M.market) : rapidItem(M.spec, M.rng);
+    if (!M.item) { M.round--; M.total = M.round; return finish(); } // nothing left to ask
     hud();
     const stage = document.getElementById('stage');
     let visual = '';

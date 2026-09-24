@@ -123,7 +123,7 @@
           { t: 'The firm’s bonds fall in price. Pre-tax cost of debt?', bin: 'up', why: 'A lower bond price means a higher yield to maturity, which is the cost of debt.' },
           { t: 'The share price doubles; the value of debt is unchanged. Weight of equity in the WACC?', bin: 'up', why: R`\(\frac{E}{V}\) uses market values, so a higher share price raises the equity weight.` },
         ],
-        rounds: 12, seconds: 12,
+        rounds: 12, seconds: 15,
       },
     },
 
@@ -203,7 +203,7 @@
         choices: ['Market values of equity, preference shares and debt', 'Book values from the balance sheet', 'The number of shares and bonds on issue', 'Equal weights for each source'], answer: 0,
         why: 'Market values show what investors would pay for each claim today. Book values are historical accounting numbers.' },
       { id: 'wx-q12', topic: 'wacc', kind: 'num', level: 2, section: 'B', formula: 'wacc', src: 'Formula sheet: Cost of Capital',
-        q: R`A firm’s capital is shown below. The company tax rate is 30%. What is its **WACC**?`,
+        q: R`The CFO asks {NAME} to work out the firm’s WACC. The firm’s capital is shown below. The company tax rate is 30%. What is its **WACC**?`,
         table: { head: ['Source', 'Market value', 'Book value', 'Cost'], rows: [['Equity', '$600m', '$250m', '12%'], ['Preference shares', '$100m', '$100m', '8%'], ['Debt', '$300m', '$320m', '6% (pre-tax)']] },
         answer: P(FIN.wacc({ E: 600, P: 100, D: 300, re: 0.12, rp: 0.08, rd: 0.06, tc: 0.3 })), unit: '%', dp: 2,
         mistakes: [

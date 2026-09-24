@@ -163,7 +163,10 @@
     opts = opts || {};
     let s = String(str || '');
     if (s.indexOf('{NAME}') >= 0) s = s.split('{NAME}').join(opts.name || 'you');
-    return segments(s).map((seg) => (seg.type === 'text' ? seg.v.replace(/\*\*/g, '').replace(/\\n/g, '\n').replace(/\n+/g, '. ') : ' ' + texToSpeech(seg.v) + ' '))
+    // Line breaks and bullets become a spoken pause, without doubling punctuation that is already there.
+    const text = (v) => v.replace(/\*\*/g, '').replace(/\\n/g, '\n').replace(/\s*•\s*/g, '\n')
+      .replace(/([.:;!?…])?[ \t]*\n+\s*/g, (m, p) => (p || '.') + ' ');
+    return segments(s).map((seg) => (seg.type === 'text' ? text(seg.v) : ' ' + texToSpeech(seg.v) + ' '))
       .join('').replace(/\s+/g, ' ').trim();
   }
 

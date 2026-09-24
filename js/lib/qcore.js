@@ -23,6 +23,13 @@
 
   function display(v, q) { return FMT.answerText(v, q.unit || '', q.dp === undefined ? 2 : q.dp); }
 
+  /** A listed mistake this close to the answer is a rounding difference, not a different method:
+   *  it is never offered as a distractor and never narrows the acceptance window. */
+  function nearMiss(q, v) {
+    const dp = q.dp === undefined ? 2 : q.dp;
+    return Math.abs(v - q.answer) < Math.max(2.01 * Math.pow(10, -dp), Math.abs(q.answer) * 0.0005);
+  }
+
   /** Acceptance window for a numeric answer. Never wide enough to accept a listed mistake. */
   function tolerance(q) {
     const dp = q.dp === undefined ? 2 : q.dp;
@@ -30,7 +37,7 @@
     let tol = q.tol !== undefined ? q.tol : Math.max(1.01 * Math.pow(10, -dp), Math.abs(q.answer) * 0.001);
     (q.mistakes || []).forEach((m) => {
       const d = Math.abs(m.v - q.answer);
-      if (d > floor) tol = Math.min(tol, Math.max(floor, 0.4 * d));
+      if (d > floor && !nearMiss(q, m.v)) tol = Math.min(tol, Math.max(floor, 0.4 * d));
     });
     return Math.max(tol, floor * 1.0001);
   }
@@ -64,7 +71,7 @@
     const out = [{ v: q.answer, correct: true }];
     const add = (v, why) => {
       if (!Number.isFinite(v) || out.length >= 4) return;
-      if (Math.abs(v - q.answer) <= tol) return;
+      if (Math.abs(v - q.answer) <= tol || nearMiss(q, v)) return;
       if (Math.abs(q.answer) > 0 && Math.abs(v) > 50 * Math.abs(q.answer) + 10) return; // absurd
       const d = display(v, q);
       if (shown.has(d)) return;
@@ -84,5 +91,5 @@
     return { options: final.map((o) => ({ v: o.v, text: display(o.v, q), tex: FMT.answerTex(o.v, q.unit || '', dp), why: o.why || null, correct: !!o.correct })), answer: final.findIndex((o) => o.correct) };
   }
 
-  root.QCORE = { parseNumber, tolerance, checkNumeric, buildChoices, display };
+  root.QCORE = { parseNumber, tolerance, nearMiss, checkNumeric, buildChoices, display };
 })(typeof window !== 'undefined' ? window : globalThis);
