@@ -3,6 +3,8 @@
   'use strict';
   const { FIN, L, T, FMT } = root;
   const R = String.raw;
+  /** money for workings: whole dollars without cents, otherwise 2 decimals */
+  const M = (x) => (Math.abs(x - Math.round(x)) < 0.005 ? L.money(Math.round(x), 0) : L.money(x));
   const P = (r) => +(r * 100).toFixed(8); // decimal rate -> percent units for answers
   /** drop distractors that are not finite or would display the same as the answer or each other */
   function clean(ms, ans, unit, dp) {
@@ -44,18 +46,18 @@
   const irrKeys = (cfs, irr) => `${cfKeys(cfs)} · [IRR/YR] → ${T.num(irr * 100)}`;
   /** "−$100.00 + $9.09 − $3.00" */
   function signedSum(vals) {
-    return vals.map((v, k) => (k === 0 ? L.money(v) : (v < 0 ? '- ' + L.money(-v) : '+ ' + L.money(v)))).join(' ');
+    return vals.map((v, k) => (k === 0 ? M(v) : (v < 0 ? '- ' + M(-v) : '+ ' + M(v)))).join(' ');
   }
   /** PV of each cash flow, one line each */
   function pvBlock(cfs, r) {
-    const lines = cfs.map((c, t) => (t === 0 ? R`PV_{0} &= ${L.moneyT(c)}` : R`PV_{${t}} &= \frac{${L.moneyT(c)}}{(${L.onePlus(r)})^{${t}}} = ${L.money(disc(c, r, t))}`));
+    const lines = cfs.map((c, t) => (t === 0 ? R`PV_{0} &= ${L.moneyT(c)}` : R`PV_{${t}} &= \frac{${L.moneyT(c)}}{(${L.onePlus(r)})^{${t}}} = ${M(disc(c, r, t))}`));
     return R`\[\begin{aligned} ${lines.join(R` \\ `)} \end{aligned}\]`;
   }
   function npvSteps(cfs, r) {
     return [
       R`Discount every cash flow back to \(t = 0\): \[NPV = \sum_{t=0}^{${cfs.length - 1}} \frac{NCF_t}{(1+k)^{t}}\]`,
       pvBlock(cfs, r),
-      R`\[NPV = ${signedSum(cfs.map((c, t) => disc(c, r, t)))} = ${L.money(FIN.npv(r, cfs))}\]`,
+      R`\[NPV = ${signedSum(cfs.map((c, t) => disc(c, r, t)))} = ${M(FIN.npv(r, cfs))}\]`,
     ];
   }
   /** running totals up to year `upto` */
@@ -265,7 +267,7 @@
           const pay = Math.round(cash * (1 + irr));
           const npv = cash - pay / (1 + k);
           return { t: R`\(+${L.money(cash, 0)}\) today, \(-${L.money(pay, 0)}\) in one year. \(IRR = ${L.pctT(irr)}\), \(k = ${L.pctT(k)}\).`, opts: ['Accept', 'Reject'], a: npv > 0 ? 0 : 1,
-            why: npv > 0 ? R`Borrowing at ${T.pctT(irr)} when money costs ${T.pctT(k)} is cheap: \(NPV = ${L.money(npv)}\).` : R`This is borrowing at ${T.pctT(irr)}, above \(k\): \(NPV = ${L.money(npv)}\).` };
+            why: npv > 0 ? R`Borrowing at ${T.pctT(irr)} when money costs ${T.pctT(k)} is cheap: \(NPV = ${M(npv)}\).` : R`This is borrowing at ${T.pctT(irr)}, above \(k\): \(NPV = ${M(npv)}\).` };
         },
         rounds: 12, seconds: 12,
       },
@@ -386,7 +388,7 @@
       { id: 'w4-q17', topic: 'npv', kind: 'mcq', level: 2, section: 'A', src: 'MST 2026 Q9',
         q: R`A project costs $1 million today. It returns a total of $1.2 million, spread evenly over the next 15 years. A manager says: “It returns more than it costs, so it creates value.” What is the best reply?`,
         choices: ['Not necessarily: value depends on the present value of the cash flows, not their total', 'Correct: any project that returns more than it costs creates value', 'Wrong: any project that lasts 15 years destroys value', 'Correct, as long as the payback period is under 15 years'], answer: 0,
-        why: R`Dollars that arrive years from now are worth less today. At 10%, $80,000 a year for 15 years is worth only \(${L.money(FIN.pvAnnuity(80000, 0.1, 15))}\), less than the $1 million cost.` },
+        why: R`Dollars that arrive years from now are worth less today. At 10%, $80,000 a year for 15 years is worth only \(${M(FIN.pvAnnuity(80000, 0.1, 15))}\), less than the $1 million cost.` },
       { id: 'w4-q18', topic: 'npv', kind: 'num', level: 1, section: 'B', src: 'Lecture W4 Example 1', formula: 'npv',
         q: R`The cost of capital is 10%. What is the **NPV** of Project L?`,
         table: cfTable([EX_L], ['Project L']),
@@ -430,7 +432,7 @@
           { v: FIN.pvAnnuity(550000, 0.08, 5), why: 'That is only the PV of the inflows. Subtract the $2,000,000 cost.' },
           { v: -2e6 + FIN.pvAnnuityDue(550000, 0.08, 5), why: 'That treats the inflows as an annuity due. They arrive at the end of each year.' },
         ],
-        steps: [R`\[NPV = -C_0 + C \times \frac{1}{k}\left(1 - \frac{1}{(1+k)^{n}}\right)\]`, R`\[NPV = -\$2{,}000{,}000 + ${annuityPV(550000, 0.08, 5)} = -\$2{,}000{,}000 + ${L.money(FIN.pvAnnuity(550000, 0.08, 5))} = ${L.money(-2e6 + FIN.pvAnnuity(550000, 0.08, 5))}\]`],
+        steps: [R`\[NPV = -C_0 + C \times \frac{1}{k}\left(1 - \frac{1}{(1+k)^{n}}\right)\]`, R`\[NPV = -\$2{,}000{,}000 + ${annuityPV(550000, 0.08, 5)} = -\$2{,}000{,}000 + ${M(FIN.pvAnnuity(550000, 0.08, 5))} = ${M(-2e6 + FIN.pvAnnuity(550000, 0.08, 5))}\]`],
         calc: npvKeys([-2000000, 550000, 550000, 550000, 550000, 550000], 0.08),
         why: R`The five equal inflows are an ordinary annuity. Their PV is bigger than the cost, so the NPV is positive.` },
       { id: 'w4-q22', topic: 'npv', kind: 'num', level: 3, section: 'B', src: 'MST 2026 Q12', formula: 'npv', boss: true,
@@ -443,9 +445,9 @@
           { v: -80000 + FIN.pvAnnuity(30000, 0.06, 8), why: 'Do not forget the second investment of $40,000.' },
         ],
         steps: [
-          R`Investment in today’s dollars: \[\$80{,}000 + \frac{\$40{,}000}{1.06} = \$80{,}000 + ${L.money(40000 / 1.06)} = ${L.money(80000 + 40000 / 1.06)}\]`,
-          R`PV of the inflows (ordinary annuity): \[${annuityPV(30000, 0.06, 8)} = ${L.money(FIN.pvAnnuity(30000, 0.06, 8))}\]`,
-          R`\[NPV = ${L.money(FIN.pvAnnuity(30000, 0.06, 8))} - ${L.money(80000 + 40000 / 1.06)} = ${L.money(-80000 - 40000 / 1.06 + FIN.pvAnnuity(30000, 0.06, 8))}\]`,
+          R`Investment in today’s dollars: \[\$80{,}000 + \frac{\$40{,}000}{1.06} = \$80{,}000 + ${M(40000 / 1.06)} = ${M(80000 + 40000 / 1.06)}\]`,
+          R`PV of the inflows (ordinary annuity): \[${annuityPV(30000, 0.06, 8)} = ${M(FIN.pvAnnuity(30000, 0.06, 8))}\]`,
+          R`\[NPV = ${M(FIN.pvAnnuity(30000, 0.06, 8))} - ${M(80000 + 40000 / 1.06)} = ${M(-80000 - 40000 / 1.06 + FIN.pvAnnuity(30000, 0.06, 8))}\]`,
         ],
         calc: npvKeys([-80000, -10000, 30000, 30000, 30000, 30000, 30000, 30000, 30000], 0.06),
         why: R`Bring every cash flow to \(t = 0\). At \(t = 1\) the net cash flow is \(30{,}000 - 40{,}000 = -\$10{,}000\).` },
@@ -457,7 +459,7 @@
           { v: FIN.pvAnnuityDue(25000, 0.09, 4), why: 'The inflows start in one year, so this is an ordinary annuity, not an annuity due.' },
           { v: FIN.pvAnnuity(25000, 0.09, 3), why: 'There are four inflows, not three.' },
         ],
-        steps: [R`The most you can pay is the outlay that makes \(NPV = 0\), which is the PV of the inflows.`, R`\[PV = ${annuityPV(25000, 0.09, 4)} = ${L.money(FIN.pvAnnuity(25000, 0.09, 4))}\]`],
+        steps: [R`The most you can pay is the outlay that makes \(NPV = 0\), which is the PV of the inflows.`, R`\[PV = ${annuityPV(25000, 0.09, 4)} = ${M(FIN.pvAnnuity(25000, 0.09, 4))}\]`],
         calc: `${cfKeys([0, 25000, 25000, 25000, 25000])} · 9 [I/YR] · [NPV] → ${T.money(FIN.pvAnnuity(25000, 0.09, 4))}`,
         why: R`Pay more than the PV of the inflows and the NPV turns negative.` },
       { id: 'w4-q24', topic: 'npv', kind: 'num', level: 3, section: 'B', src: 'Tutorial W4 Q7', formula: 'pv-grow-perp', boss: true,
@@ -479,7 +481,7 @@
       { id: 'w4-q25', topic: 'npv', kind: 'mcq', level: 2, section: 'A', src: 'Tutorial W4 Q3',
         q: R`A property project costs $20 million. At a 23% discount rate its NPV is −$6.53 million. Its IRR is 14.29%. What happens at a **10%** discount rate?`,
         choices: ['The NPV becomes positive, so the decision changes to accept', 'The NPV stays negative, so it is still rejected', 'The IRR falls to 10%, so the project breaks even', 'Nothing: the discount rate does not affect NPV'], answer: 0,
-        why: R`10% is below the 14.29% IRR, so the NPV must be positive: \(NPV_{10\%} = ${L.money(FIN.npv(0.1, Q3CF))}\). Discount rates are estimates, and a different rate can flip the decision.` },
+        why: R`10% is below the 14.29% IRR, so the NPV must be positive: \(NPV_{10\%} = ${M(FIN.npv(0.1, Q3CF))}\). Discount rates are estimates, and a different rate can flip the decision.` },
       { id: 'w4-q26', topic: 'npv', kind: 'num', level: 2, section: 'B', src: 'Tutorial W4 Q3', formula: 'npv',
         q: R`A property project costs $20 million today ($15m for land, a $4m council fee and $1m to lease equipment). Its cash flows are below. What is the **NPV at 10%**?`,
         table: { head: ['Year', 'Cash flow'], rows: [[0, '−$20,000,000'], [1, '$1,500,000'], [2, '$3,278,000'], [3, '$5,000,000'], [4, '$6,450,000'], ['5 to 20', '$2,500,000 each year']] },
@@ -489,7 +491,7 @@
           { v: FIN.npv(0.1, Q3CF) + 20e6, why: 'That is only the PV of the inflows. Subtract the $20 million cost.' },
           { v: sum(Q3CF), why: 'That ignores discounting.' },
         ],
-        steps: [R`Enter the first four cash flows one by one, then $2,500,000 sixteen times (years 5 to 20).`, R`\[NPV_{10\%} = ${L.money(FIN.npv(0.1, Q3CF))} > 0\]`, R`At 23% the same cash flows give \(NPV = ${L.money(FIN.npv(0.23, Q3CF))}\), and the IRR is \(${L.pct(FIN.irr(Q3CF))}\).`],
+        steps: [R`Enter the first four cash flows one by one, then $2,500,000 sixteen times (years 5 to 20).`, R`\[NPV_{10\%} = ${M(FIN.npv(0.1, Q3CF))} > 0\]`, R`At 23% the same cash flows give \(NPV = ${M(FIN.npv(0.23, Q3CF))}\), and the IRR is \(${L.pct(FIN.irr(Q3CF))}\).`],
         calc: npvKeys(Q3CF, 0.1),
         why: R`At 10% the project is accepted; at 23% it is rejected. The IRR of 14.29% sits between the two rates.` },
       { id: 'w4-q27', topic: 'npv', kind: 'num', level: 2, section: 'B', src: 'Mock MST Q08', formula: 'npv',
@@ -589,7 +591,7 @@
           { v: P(FIN.irr(EX_S)), why: 'That is the IRR of S alone.' },
           { v: P(FIN.irr(EX_S) - FIN.irr(EX_L)), why: 'The crossover is not the gap between the IRRs. Find the IRR of the differences.' },
         ],
-        steps: [R`Incremental cash flows \(L - S\): \(0,\; -60,\; +10,\; +60\).`, R`Find the IRR of the differences: \[0 = \frac{-60}{1+r} + \frac{10}{(1+r)^{2}} + \frac{60}{(1+r)^{3}} \;\Rightarrow\; r = ${L.pct(FIN.crossover(EX_L, EX_S))}\]`, R`Check: at 8.68%, \(NPV_L = NPV_S = ${L.money(FIN.npv(FIN.crossover(EX_L, EX_S), EX_L))}\).`],
+        steps: [R`Incremental cash flows \(L - S\): \(0,\; -60,\; +10,\; +60\).`, R`Find the IRR of the differences: \[0 = \frac{-60}{1+r} + \frac{10}{(1+r)^{2}} + \frac{60}{(1+r)^{3}} \;\Rightarrow\; r = ${L.pct(FIN.crossover(EX_L, EX_S))}\]`, R`Check: at 8.68%, \(NPV_L = NPV_S = ${M(FIN.npv(FIN.crossover(EX_L, EX_S), EX_L))}\).`],
         calc: irrKeys([0, -60, 10, 60], FIN.crossover(EX_L, EX_S)),
         chart: { type: 'npv', projects: [{ name: 'Project L', cfs: EX_L }, { name: 'Project S', cfs: EX_S }], rMax: 0.25 },
         why: R`At 8.68% both projects have the same NPV. Below it L wins on NPV; above it S wins.` },
@@ -657,7 +659,7 @@
       { id: 'w4-q50', topic: 'pitfalls', kind: 'tf', level: 2, section: 'A', src: 'Lecture W4 Pitfall 4',
         q: R`A project has cash flows of +$1,000, −$3,000 and +$2,500 in years 0, 1 and 2. It has **no IRR**, yet its NPV at 10% is positive.`,
         answer: true,
-        why: R`This NPV is positive at every discount rate, so it never crosses zero: no IRR exists. At 10%, \(NPV = 1{,}000 - \frac{3{,}000}{1.1} + \frac{2{,}500}{1.1^{2}} = ${L.money(FIN.npv(0.1, [1000, -3000, 2500]))}\).` },
+        why: R`This NPV is positive at every discount rate, so it never crosses zero: no IRR exists. At 10%, \(NPV = 1{,}000 - \frac{3{,}000}{1.1} + \frac{2{,}500}{1.1^{2}} = ${M(FIN.npv(0.1, [1000, -3000, 2500]))}\).` },
       { id: 'w4-q51', topic: 'pitfalls', kind: 'mcq', level: 2, section: 'A', src: 'Lecture W4',
         q: R`Why can the NPV profiles of two mutually exclusive projects **cross**?`,
         choices: ['Differences in size (scale) or in the timing of their cash flows', 'Differences in their payback cut-offs', 'Because one project is independent', 'Because the cost of capital is the same for both'], answer: 0,
@@ -697,9 +699,9 @@
           { v: (180000 - 125000) / 125000, why: 'Discount the inflows first. Undiscounted profit is not NPV.' },
         ],
         steps: [
-          R`\[PV = ${annuityPV(60000, 0.1, 3)} = ${L.money(HOBART.npv + HOBART.out)}\]`,
-          R`\[NPV = ${L.money(HOBART.npv + HOBART.out)} - \$125{,}000 = ${L.money(HOBART.npv)}\]`,
-          R`\[PI = \frac{NPV}{\text{Initial investment}} = \frac{${L.money(HOBART.npv)}}{\$125{,}000} = ${L.num(HOBART.pi, 3)}\]`,
+          R`\[PV = ${annuityPV(60000, 0.1, 3)} = ${M(HOBART.npv + HOBART.out)}\]`,
+          R`\[NPV = ${M(HOBART.npv + HOBART.out)} - \$125{,}000 = ${M(HOBART.npv)}\]`,
+          R`\[PI = \frac{NPV}{\text{Initial investment}} = \frac{${M(HOBART.npv)}}{\$125{,}000} = ${L.num(HOBART.pi, 3)}\]`,
         ],
         why: R`Every dollar invested in Hobart creates about 19 cents of NPV, the best ratio of the four cities.` },
       { id: 'w4-q59', topic: 'pi', kind: 'mcq', level: 3, section: 'B', src: 'Lecture W4 Example 2', formula: 'pi', boss: true,
@@ -707,7 +709,7 @@
         table: { head: ['City', 'Initial outlay', 'Annual inflow'], rows: CAFES.map((c) => [c.nm, cell(c.out), cell(c.a)]) },
         choices: ['Hobart, Sydney and Melbourne', 'All four cities', 'Hobart, Melbourne and Perth', 'Sydney and Melbourne only'], answer: 0,
         steps: [
-          R`\[\begin{aligned} ${CAFES.map((c) => R`\text{${c.nm}}: NPV &= ${L.money(c.npv)}, & PI &= ${L.num(c.pi, 3)}`).join(R` \\ `)} \end{aligned}\]`,
+          R`\[\begin{aligned} ${CAFES.map((c) => R`\text{${c.nm}}: NPV &= ${M(c.npv)}, & PI &= ${L.num(c.pi, 3)}`).join(R` \\ `)} \end{aligned}\]`,
           R`Rank by PI: Hobart, Sydney, Melbourne, Perth. Perth has \(PI < 0\), so reject it anyway.`,
           R`Hobart + Sydney + Melbourne costs \(\$925{,}000\), within the \(\$1{,}000{,}000\) limit.`,
         ],
@@ -718,10 +720,10 @@
         choices: ['C and D', 'A only', 'B and C', 'A and D'], answer: 0,
         wrong: { 1: 'A uses the whole budget for an NPV of $11.37m. C and D together create $22.96m.', 3: 'A and D cost $55m, over the budget.' },
         steps: [
-          R`\[\begin{aligned} ${T4.map((p) => R`${p.nm}: NPV &= ${L.money(p.npv * 1e6)}, & PI &= ${L.num(p.pi, 3)}`).join(R` \\ `)} \end{aligned}\]`,
+          R`\[\begin{aligned} ${T4.map((p) => R`${p.nm}: NPV &= ${M(p.npv * 1e6)}, & PI &= ${L.num(p.pi, 3)}`).join(R` \\ `)} \end{aligned}\]`,
           R`Rank by PI: D, C, A, B. Take D ($20m) and C ($15m): exactly $35m.`,
         ],
-        why: R`Ranking by PI picks D (0.739) and C (0.546). Together they use the $35m and create \(${L.money((T4[2].npv + T4[3].npv) * 1e6)}\) of NPV.` },
+        why: R`Ranking by PI picks D (0.739) and C (0.546). Together they use the $35m and create \(${M((T4[2].npv + T4[3].npv) * 1e6)}\) of NPV.` },
 
       /* ----- unequal lives and retirement ----- */
       { id: 'w4-q61', topic: 'lives', kind: 'mcq', level: 1, section: 'A', src: 'Tutorial W4 concept check 5', formula: 'eav',
@@ -744,8 +746,8 @@
           { v: NPV_X_CLEAN, why: 'That is the NPV of all the costs. Turn it into an equal yearly amount.' },
         ],
         steps: [
-          R`\[NPV_X = -\$4{,}000 - ${annuityPV(100, 0.1, 10)} = ${L.money(NPV_X_CLEAN)}\]`,
-          R`\[EAC = \frac{NPV \times k}{1 - \frac{1}{(1+k)^{n}}} = \frac{${L.money(NPV_X_CLEAN)} \times 0.10}{1 - \frac{1}{1.1^{10}}} = ${L.money(FIN.eac(NPV_X_CLEAN, 0.1, 10))}\]`,
+          R`\[NPV_X = -\$4{,}000 - ${annuityPV(100, 0.1, 10)} = ${M(NPV_X_CLEAN)}\]`,
+          R`\[EAC = \frac{NPV \times k}{1 - \frac{1}{(1+k)^{n}}} = \frac{${M(NPV_X_CLEAN)} \times 0.10}{1 - \frac{1}{1.1^{10}}} = ${M(FIN.eac(NPV_X_CLEAN, 0.1, 10))}\]`,
         ],
         why: R`Cleaner X costs \(\$750.98\) a year. Cleaner Y (5 years) costs \(\$763.80\) a year, so X is cheaper even though Y’s NPV looks better.` },
       { id: 'w4-q65', topic: 'lives', kind: 'num', level: 3, section: 'B', src: 'Lecture W4 (replacement chain)', formula: 'npv', boss: true,
@@ -757,17 +759,17 @@
           { v: 2 * NPV_Y_CLEAN, why: 'The second cycle starts in year 5, so discount its NPV by 1.1 to the power 5.' },
           { v: NPV_Y_CLEAN + NPV_Y_CLEAN / Math.pow(1.1, 6), why: 'The second cycle’s NPV is valued at t = 5 (when it starts), not t = 6.' },
         ],
-        steps: [R`The second cycle’s NPV is valued at \(t = 5\), when it starts.`, R`\[NPV_{chain} = ${L.money(NPV_Y_CLEAN)} + \frac{${L.money(NPV_Y_CLEAN)}}{1.1^{5}} = ${L.money(FIN.chainNPV(NPV_Y_CLEAN, 0.1, 5, 2))}\]`],
+        steps: [R`The second cycle’s NPV is valued at \(t = 5\), when it starts.`, R`\[NPV_{chain} = ${M(NPV_Y_CLEAN)} + \frac{${M(NPV_Y_CLEAN)}}{1.1^{5}} = ${M(FIN.chainNPV(NPV_Y_CLEAN, 0.1, 5, 2))}\]`],
         calc: npvKeys([-1000, -500, -500, -500, -500, -1500, -500, -500, -500, -500, -500], 0.1),
-        why: R`Over the same 10 years, X costs \(${L.money(NPV_X_CLEAN)}\) and Y costs \(${L.money(FIN.chainNPV(NPV_Y_CLEAN, 0.1, 5, 2))}\). X is cheaper.` },
+        why: R`Over the same 10 years, X costs \(${M(NPV_X_CLEAN)}\) and Y costs \(${M(FIN.chainNPV(NPV_Y_CLEAN, 0.1, 5, 2))}\). X is cheaper.` },
       { id: 'w4-q66', topic: 'lives', kind: 'mcq', level: 2, section: 'B', src: 'Tutorial W4 Q5', formula: 'eav',
         q: R`Billy’s two projects are mutually exclusive and will be **repeated** into the future. The cost of capital is 10%. Which should he choose?`,
         table: { head: ['Year', 'Project S', 'Project L'], rows: [[0, '−$100,000', '−$100,000'], [1, '$60,000', '$33,500'], [2, '$60,000', '$33,500'], [3, '', '$33,500'], [4, '', '$33,500']] },
         choices: ['S, because it has the higher equivalent annual annuity', 'L, because it has the higher NPV', 'L, because it lasts twice as long', 'Either, because both NPVs are positive'], answer: 0,
         steps: [
-          R`Naive NPVs: \(NPV_S = ${L.money(NPV_BS)}\) and \(NPV_L = ${L.money(NPV_BL)}\). L looks better, but the lives differ.`,
-          R`\[EAA_S = \frac{${L.money(NPV_BS)} \times 0.1}{1 - \frac{1}{1.1^{2}}} = ${L.money(FIN.eac(NPV_BS, 0.1, 2))} \qquad EAA_L = \frac{${L.money(NPV_BL)} \times 0.1}{1 - \frac{1}{1.1^{4}}} = ${L.money(FIN.eac(NPV_BL, 0.1, 4))}\]`,
-          R`Replacement chain check: S twice over 4 years has \(NPV = ${L.money(FIN.chainNPV(NPV_BS, 0.1, 2, 2))} > ${L.money(NPV_BL)}\).`,
+          R`Naive NPVs: \(NPV_S = ${M(NPV_BS)}\) and \(NPV_L = ${M(NPV_BL)}\). L looks better, but the lives differ.`,
+          R`\[EAA_S = \frac{${M(NPV_BS)} \times 0.1}{1 - \frac{1}{1.1^{2}}} = ${M(FIN.eac(NPV_BS, 0.1, 2))} \qquad EAA_L = \frac{${M(NPV_BL)} \times 0.1}{1 - \frac{1}{1.1^{4}}} = ${M(FIN.eac(NPV_BL, 0.1, 4))}\]`,
+          R`Replacement chain check: S twice over 4 years has \(NPV = ${M(FIN.chainNPV(NPV_BS, 0.1, 2, 2))} > ${M(NPV_BL)}\).`,
         ],
         why: R`With repetition, S creates more value per year. Both methods agree: choose S. (The tutorial’s decision line shows $7,547.37, a typo for $7,547.30.)` },
       { id: 'w4-q67', topic: 'lives', kind: 'num', level: 2, section: 'B', src: 'Tutorial W4 Q5', formula: 'eav',
@@ -778,8 +780,8 @@
           { v: NPV_BS * 0.1, why: 'NPV × k is a perpetuity payment. This project lasts only 2 years.' },
           { v: NPV_BS, why: 'That is the NPV. Spread it over the 2 years as an annuity.' },
         ],
-        steps: [R`\[NPV_S = -100{,}000 + \frac{60{,}000}{1.1} + \frac{60{,}000}{1.1^{2}} = ${L.money(NPV_BS)}\]`, R`\[EAA = \frac{NPV \times k}{1 - \frac{1}{(1+k)^{n}}} = \frac{${L.money(NPV_BS)} \times 0.1}{1 - \frac{1}{1.1^{2}}} = ${L.money(FIN.eac(NPV_BS, 0.1, 2))}\]`],
-        why: R`S is worth the same as \(${L.money(FIN.eac(NPV_BS, 0.1, 2))}\) a year for 2 years. L’s EAA is only \(${L.money(FIN.eac(NPV_BL, 0.1, 4))}\).` },
+        steps: [R`\[NPV_S = -100{,}000 + \frac{60{,}000}{1.1} + \frac{60{,}000}{1.1^{2}} = ${M(NPV_BS)}\]`, R`\[EAA = \frac{NPV \times k}{1 - \frac{1}{(1+k)^{n}}} = \frac{${M(NPV_BS)} \times 0.1}{1 - \frac{1}{1.1^{2}}} = ${M(FIN.eac(NPV_BS, 0.1, 2))}\]`],
+        why: R`S is worth the same as \(${M(FIN.eac(NPV_BS, 0.1, 2))}\) a year for 2 years. L’s EAA is only \(${M(FIN.eac(NPV_BL, 0.1, 4))}\).` },
       { id: 'w4-q68', topic: 'lives', kind: 'num', level: 2, section: 'B', src: 'Textbook Ch 8 P28', formula: 'eav',
         q: R`Utopia Tours will keep one bus model forever. **Old Reliable** costs $200,000 plus $4,000 a year for 7 years. The discount rate is 11%. What is its **equivalent annual cost**? (Enter a cost as a negative number.)`,
         answer: FIN.eac(OR_NPV, 0.11, 7), unit: '$', dp: 2,
@@ -789,15 +791,15 @@
           { v: -200000 / 7 - 4000, why: 'Spreading the price evenly ignores the time value of money. Use the annuity formula.' },
         ],
         steps: [
-          R`\[NPV = -\$200{,}000 - ${annuityPV(4000, 0.11, 7)} = ${L.money(OR_NPV)}\]`,
-          R`\[EAC = \frac{${L.money(OR_NPV)} \times 0.11}{1 - \frac{1}{1.11^{7}}} = ${L.money(FIN.eac(OR_NPV, 0.11, 7))}\]`,
-          R`Short and Sweet ($100,000 plus $2,000 a year for 4 years): \(NPV = ${L.money(SS_NPV)}\), \(EAC = ${L.money(FIN.eac(SS_NPV, 0.11, 4))}\).`,
+          R`\[NPV = -\$200{,}000 - ${annuityPV(4000, 0.11, 7)} = ${M(OR_NPV)}\]`,
+          R`\[EAC = \frac{${M(OR_NPV)} \times 0.11}{1 - \frac{1}{1.11^{7}}} = ${M(FIN.eac(OR_NPV, 0.11, 7))}\]`,
+          R`Short and Sweet ($100,000 plus $2,000 a year for 4 years): \(NPV = ${M(SS_NPV)}\), \(EAC = ${M(FIN.eac(SS_NPV, 0.11, 4))}\).`,
         ],
         why: R`Old Reliable costs about $46,443 a year; Short and Sweet about $34,233. Utopia Tours should buy Short and Sweet.` },
       { id: 'w4-q69', topic: 'lives', kind: 'mcq', level: 2, section: 'B', src: 'Textbook Ch 8 P28', formula: 'eav',
         q: R`Utopia Tours will keep one bus model forever. Old Reliable: $200,000 plus $4,000 a year for 7 years. Short and Sweet: $100,000 plus $2,000 a year for 4 years. The discount rate is 11%. Which bus should it choose?`,
         choices: ['Short and Sweet', 'Old Reliable', 'Either: they cost the same per year', 'Neither can be compared, because the lives differ'], answer: 0,
-        steps: [R`\(EAC_{OR} = ${L.money(FIN.eac(OR_NPV, 0.11, 7))}\) per year.`, R`\(EAC_{SS} = ${L.money(FIN.eac(SS_NPV, 0.11, 4))}\) per year.`],
+        steps: [R`\(EAC_{OR} = ${M(FIN.eac(OR_NPV, 0.11, 7))}\) per year.`, R`\(EAC_{SS} = ${M(FIN.eac(SS_NPV, 0.11, 4))}\) per year.`],
         why: R`Compare costs per year, not total NPVs. Short and Sweet is about $12,210 a year cheaper.` },
       { id: 'w4-q70', topic: 'lives', kind: 'num', level: 2, section: 'B', src: 'Textbook Ch 8 P29', formula: 'eav',
         q: R`Hassle-Free Web must buy $15,000 of equipment now and spend $2,000 a year for 3 years to host a hotel’s website. Its cost of capital is 10%. What is the **lowest annual fee** it can charge and still add value?`,
@@ -807,13 +809,13 @@
           { v: 2000, why: 'The fee must also cover the $15,000 of equipment.' },
           { v: -HF_NPV / 3, why: 'Dividing the NPV by 3 ignores the time value of money. Use the annuity formula.' },
         ],
-        steps: [R`\[NPV_{costs} = -\$15{,}000 - ${annuityPV(2000, 0.1, 3)} = ${L.money(HF_NPV)}\]`, R`\[EAC = \frac{${L.money(-HF_NPV)} \times 0.1}{1 - \frac{1}{1.1^{3}}} = ${L.money(-FIN.eac(HF_NPV, 0.1, 3))} \text{ a year}\]`],
+        steps: [R`\[NPV_{costs} = -\$15{,}000 - ${annuityPV(2000, 0.1, 3)} = ${M(HF_NPV)}\]`, R`\[EAC = \frac{${M(-HF_NPV)} \times 0.1}{1 - \frac{1}{1.1^{3}}} = ${M(-FIN.eac(HF_NPV, 0.1, 3))} \text{ a year}\]`],
         why: R`Any fee above about $8,032 a year gives a positive NPV. The hotel now pays $10,000, so Hassle-Free can undercut it.` },
       { id: 'w4-q71', topic: 'lives', kind: 'mcq', level: 3, section: 'B', src: 'Lecture W4 recap (General Foods)', boss: true,
         q: R`General Foods’ machine is 6 years old and can last 2 more years at most. The cost of capital is 10% and there is no tax. When should the machine be **retired**?`,
         table: { head: ['End of year', 'Net cash flow', 'Residual value'], rows: [[6, '—', '$18,000'], [7, '$22,000', '$9,000'], [8, '$14,000', '$0']] },
         choices: ['At the end of year 8', 'Now, at the end of year 6', 'At the end of year 7', 'It does not matter: every option is worth the same'], answer: 0,
-        steps: [R`Retire now: \(\$18{,}000\).`, R`Retire at the end of year 7: \(\frac{22{,}000 + 9{,}000}{1.1} = ${L.money(31000 / 1.1)}\).`, R`Retire at the end of year 8: \(\frac{22{,}000}{1.1} + \frac{14{,}000}{1.1^{2}} = ${L.money(22000 / 1.1 + 14000 / 1.21)}\).`],
+        steps: [R`Retire now: \(\$18{,}000\).`, R`Retire at the end of year 7: \(\frac{22{,}000 + 9{,}000}{1.1} = ${M(31000 / 1.1)}\).`, R`Retire at the end of year 8: \(\frac{22{,}000}{1.1} + \frac{14{,}000}{1.1^{2}} = ${M(22000 / 1.1 + 14000 / 1.21)}\).`],
         why: R`Keeping the machine to the end of year 8 has the highest PV, so it maximises shareholder wealth.` },
     ],
 
@@ -966,7 +968,7 @@
             ],
             steps: [
               R`The inflows are an ordinary annuity: \[NPV = -C_0 + C \times \frac{1}{k}\left(1 - \frac{1}{(1+k)^{n}}\right)\]`,
-              R`\[NPV = ${L.moneyT(-cost)} + ${annuityPV(c, r, n)} = ${L.moneyT(-cost)} + ${L.money(pv)} = ${L.money(npv)}\]`,
+              R`\[NPV = ${L.moneyT(-cost)} + ${annuityPV(c, r, n)} = ${L.moneyT(-cost)} + ${M(pv)} = ${M(npv)}\]`,
             ],
             calc: npvKeys(cfs, r),
             why: R`${npv > 0 ? 'The PV of the inflows is bigger than the cost: accept.' : 'The PV of the inflows is smaller than the cost: reject.'}`,
@@ -986,7 +988,7 @@
               { v: FIN.pvAnnuityDue(c, r, n), why: 'The first inflow is in one year: an ordinary annuity, not an annuity due.' },
               { v: FIN.pvAnnuity(c, r, n - 1), why: `There are ${n} inflows, not ${n - 1}.` },
             ],
-            steps: [R`The most you can invest is the amount that makes \(NPV = 0\): the PV of the inflows.`, R`\[PV = ${annuityPV(c, r, n)} = ${L.money(pv)}\]`],
+            steps: [R`The most you can invest is the amount that makes \(NPV = 0\): the PV of the inflows.`, R`\[PV = ${annuityPV(c, r, n)} = ${M(pv)}\]`],
             calc: `${cfKeys([0].concat(Array(n).fill(c)))} · ${rateKey(r)} [I/YR] · [NPV] → ${T.money(pv)}`,
             why: 'Invest more than the PV of the inflows and the NPV turns negative.',
           };
@@ -1017,9 +1019,9 @@
             answer: npv, unit: '$', dp: 2,
             mistakes,
             steps: [
-              g === 0 ? R`A level perpetuity starting at \(t = 1\): \[PV = \frac{C}{k} = \frac{${L.moneyT(c1)}}{${L.dec(r)}} = ${L.money(pv)}\]`
-                : R`A growing perpetuity starting at \(t = 1\): \[PV = \frac{C_1}{k - g} = \frac{${L.moneyT(c1)}}{${L.dec(r)} - (${L.dec(g)})} = ${L.money(pv)}\]`,
-              R`\[NPV = ${L.money(pv)} - ${L.moneyT(cost)} = ${L.money(npv)}\]`,
+              g === 0 ? R`A level perpetuity starting at \(t = 1\): \[PV = \frac{C}{k} = \frac{${L.moneyT(c1)}}{${L.dec(r)}} = ${M(pv)}\]`
+                : R`A growing perpetuity starting at \(t = 1\): \[PV = \frac{C_1}{k - g} = \frac{${L.moneyT(c1)}}{${L.dec(r)} - (${L.dec(g)})} = ${M(pv)}\]`,
+              R`\[NPV = ${M(pv)} - ${L.moneyT(cost)} = ${M(npv)}\]`,
             ],
             why: R`The perpetuity formula values the cash flows at \(t = 0\), one period before the first one. ${npv > 0 ? 'NPV > 0, so buy.' : 'NPV < 0, so do not buy.'}`,
           };
@@ -1069,9 +1071,9 @@
               { v: pvIn - i0, why: 'Do not forget the second investment.' },
             ],
             steps: [
-              R`Investment in today’s dollars: \[${L.moneyT(i0)} + \frac{${L.moneyT(i1)}}{${L.onePlus(r)}} = ${L.money(pvOut)}\]`,
-              R`PV of the inflows (ordinary annuity): \[${annuityPV(c, r, n)} = ${L.money(pvIn)}\]`,
-              R`\[NPV = ${L.money(pvIn)} - ${L.money(pvOut)} = ${L.money(npv)}\]`,
+              R`Investment in today’s dollars: \[${L.moneyT(i0)} + \frac{${L.moneyT(i1)}}{${L.onePlus(r)}} = ${M(pvOut)}\]`,
+              R`PV of the inflows (ordinary annuity): \[${annuityPV(c, r, n)} = ${M(pvIn)}\]`,
+              R`\[NPV = ${M(pvIn)} - ${M(pvOut)} = ${M(npv)}\]`,
             ],
             calc: npvKeys(cfs, r),
             why: R`Bring every cash flow to \(t = 0\). At \(t = 1\) the net cash flow is \(${L.moneyT(c - i1)}\).`,
@@ -1110,7 +1112,7 @@
               steps: [
                 R`The IRR is the rate that makes the NPV zero: \[0 = ${cfs.map((c, t) => (t === 0 ? L.moneyT(c) : R`\frac{${L.moneyT(c)}}{(1+IRR)^{${t}}}`)).join(' + ')}\]`,
                 R`Solve with the calculator (or by trial and error): \(IRR = ${L.pct(irr)}\).`,
-                R`Check: \(NPV\) at \(${L.pct(irr)}\) is \(${L.money(FIN.npv(irr, cfs))}\).`,
+                R`Check: \(NPV\) at \(${L.pct(irr)}\) is \(${M(FIN.npv(irr, cfs))}\).`,
                 R`\(IRR ${irr > k ? '>' : '<'} k = ${L.pctT(k)}\), so ${irr > k ? 'accept' : 'reject'}.`,
               ],
               calc: irrKeys(cfs, irr),
@@ -1170,9 +1172,9 @@
             wrong: hiIrr ? { 2: 'This is a borrowing-type project (cash in, then out). Its IRR is the rate you pay, so a high IRR is bad.' } : { 3: 'This is a borrowing-type project. Borrowing below the cost of capital is good.' },
             steps: [
               R`The signs are \(+\) then \(-\): you receive cash first and pay later. That is **borrowing**, and the IRR is the rate you pay.`,
-              R`\[NPV = ${signedSum(cfs.map((c, t) => disc(c, k, t)))} = ${L.money(npv)}\]`,
+              R`\[NPV = ${signedSum(cfs.map((c, t) => disc(c, k, t)))} = ${M(npv)}\]`,
             ],
-            why: R`${hiIrr ? `Borrowing at ${T.pct(irrT)} when money costs ${T.pctT(k)} destroys value.` : `Borrowing at ${T.pct(irrT)} when money costs ${T.pctT(k)} is cheap.`} \(NPV = ${L.money(npv)}\). Trust the NPV.`,
+            why: R`${hiIrr ? `Borrowing at ${T.pct(irrT)} when money costs ${T.pctT(k)} destroys value.` : `Borrowing at ${T.pct(irrT)} when money costs ${T.pctT(k)} is cheap.`} \(NPV = ${M(npv)}\). Trust the NPV.`,
           };
         } },
 
@@ -1195,7 +1197,7 @@
               { v: y0 + cost, why: 'Include the initial outlay: the y-intercept is the sum of ALL the cash flows.' },
               { v: FIN.npv(r, cfs), why: 'That is the NPV at the cost of capital. The y-axis is where the discount rate is 0%.' },
             ],
-            steps: [R`On the y-axis the discount rate is 0%, so nothing is discounted.`, R`\[NPV_{0\%} = ${signedSum(cfs)} = ${L.money(y0)}\]`],
+            steps: [R`On the y-axis the discount rate is 0%, so nothing is discounted.`, R`\[NPV_{0\%} = ${signedSum(cfs)} = ${M(y0)}\]`],
             why: 'The y-intercept of an NPV profile is the plain sum of the cash flows. The x-intercept is the IRR.',
           };
         } },
@@ -1216,7 +1218,7 @@
             steps: [
               R`Incremental cash flows \(${a} - ${b}\): ${pr.diff.map((d) => R`\(${L.moneyT(d)}\)`).join(', ')}.`,
               R`The crossover rate is the IRR of these differences: \(${L.pct(pr.cross)}\).`,
-              R`Check: at \(${L.pct(pr.cross)}\), \(NPV_{${a}} = NPV_{${b}} = ${L.money(FIN.npv(pr.cross, pr.A))}\).`,
+              R`Check: at \(${L.pct(pr.cross)}\), \(NPV_{${a}} = NPV_{${b}} = ${M(FIN.npv(pr.cross, pr.A))}\).`,
             ],
             calc: irrKeys(pr.diff, pr.cross),
             why: `Below ${T.pct(pr.cross)}, ${a} has the higher NPV. Above it, ${b} does.`,
@@ -1243,7 +1245,7 @@
               answer: nA > nB ? 0 : 1,
               wrong: { 2: 'They are mutually exclusive: only one can be chosen.' },
               steps: [
-                R`\(NPV_{${a}} = ${L.money(nA)}\) and \(NPV_{${b}} = ${L.money(nB)}\) at \(k = ${L.pctT(k)}\).`,
+                R`\(NPV_{${a}} = ${M(nA)}\) and \(NPV_{${b}} = ${M(nB)}\) at \(k = ${L.pctT(k)}\).`,
                 R`\(IRR_{${a}} = ${L.pct(pr.irrA)}\) and \(IRR_{${b}} = ${L.pct(pr.irrB)}\). Crossover rate \(= ${L.pct(pr.cross)}\).`,
                 conflict ? R`\(k\) is below the crossover rate, so NPV and IRR **conflict**. Follow NPV.` : R`\(k\) is above the crossover rate, so NPV and IRR agree.`,
               ],
@@ -1272,9 +1274,9 @@
                 { v: (n * a - out) / out, why: 'Discount the inflows first. Undiscounted profit is not NPV.' },
               ].filter((m) => Math.abs(m.v - pi) >= 0.004), pi, '', 3),
               steps: [
-                R`\[PV = ${annuityPV(a, r, n)} = ${L.money(pv)}\]`,
-                R`\[NPV = ${L.money(pv)} - ${L.moneyT(out)} = ${L.money(npv)}\]`,
-                R`\[PI = \frac{NPV}{\text{Initial investment}} = \frac{${L.money(npv)}}{${L.moneyT(out)}} = ${L.num(pi, 3)}\]`,
+                R`\[PV = ${annuityPV(a, r, n)} = ${M(pv)}\]`,
+                R`\[NPV = ${M(pv)} - ${L.moneyT(out)} = ${M(npv)}\]`,
+                R`\[PI = \frac{NPV}{\text{Initial investment}} = \frac{${M(npv)}}{${L.moneyT(out)}} = ${L.num(pi, 3)}\]`,
               ],
               why: R`${pi > 0 ? R`\(PI > 0\): the store creates value, so accept.` : R`\(PI < 0\): the store destroys value, so reject.`}`,
             };
@@ -1331,10 +1333,10 @@
               answer: 0,
               wrong: { 1: 'That ranks by NPV. With a budget limit, rank by PI (NPV per dollar invested).', 2: 'That ignores the budget limit.' },
               steps: [
-                R`\[\begin{aligned} ${byPi.map((p) => R`\text{${p.nm}}: NPV &= ${L.money(p.npv)}, & PI &= ${L.num(p.pi, 3)}`).join(R` \\ `)} \end{aligned}\]`,
+                R`\[\begin{aligned} ${byPi.map((p) => R`\text{${p.nm}}: NPV &= ${M(p.npv)}, & PI &= ${L.num(p.pi, 3)}`).join(R` \\ `)} \end{aligned}\]`,
                 R`Rank by PI and fund from the top: ${list(chosen.map((p) => p.nm))} cost \(${L.moneyT(spent)}\) in total.`,
-                budget === spent ? R`That uses the whole budget. Total NPV \(= ${L.money(sum(chosen.map((p) => p.npv)))}\).`
-                  : R`Nothing else with \(PI > 0\) fits in the \(${L.moneyT(budget - spent)}\) left. Total NPV \(= ${L.money(sum(chosen.map((p) => p.npv)))}\).`,
+                budget === spent ? R`That uses the whole budget. Total NPV \(= ${M(sum(chosen.map((p) => p.npv)))}\).`
+                  : R`Nothing else with \(PI > 0\) fits in the \(${L.moneyT(budget - spent)}\) left. Total NPV \(= ${M(sum(chosen.map((p) => p.npv)))}\).`,
               ],
               why: R`Under hard rationing, rank by \(PI = \frac{NPV}{\text{investment}}\) and fund from the top until the money runs out.`,
             };
@@ -1365,7 +1367,7 @@
               ],
               steps: [
                 ...npvSteps(cfs, r),
-                R`\[EAA = \frac{NPV \times k}{1 - \frac{1}{(1+k)^{n}}} = \frac{${L.money(npv)} \times ${L.dec(r)}}{1 - \frac{1}{(${L.onePlus(r)})^{${n}}}} = ${L.money(eaa)}\]`,
+                R`\[EAA = \frac{NPV \times k}{1 - \frac{1}{(1+k)^{n}}} = \frac{${M(npv)} \times ${L.dec(r)}}{1 - \frac{1}{(${L.onePlus(r)})^{${n}}}} = ${M(eaa)}\]`,
               ],
               calc: `${npvKeys(cfs, r)} · then ${n} [N] · ${rateKey(r)} [I/YR] · −${T.num(npv).replace(/,/g, '')} [PV] · 0 [FV] · [PMT] → ${T.money(eaa)}`,
               why: 'The EAA is the level annual payment with the same NPV as the project.',
@@ -1398,9 +1400,9 @@
               choices: [`Project ${a}`, `Project ${b}`, 'Either: they create the same value', 'Neither: both destroy value'],
               answer: eS > eL ? 0 : 1,
               steps: [
-                R`\(NPV_{${a}} = ${L.money(npvS)}\) and \(NPV_{${b}} = ${L.money(npvL)}\). The lives differ, so compare yearly equivalents.`,
-                R`\[EAA_{${a}} = \frac{${L.money(npvS)} \times ${L.dec(r)}}{1 - \frac{1}{(${L.onePlus(r)})^{${nS}}}} = ${L.money(eS)}\]`,
-                R`\[EAA_{${b}} = \frac{${L.money(npvL)} \times ${L.dec(r)}}{1 - \frac{1}{(${L.onePlus(r)})^{${nL}}}} = ${L.money(eL)}\]`,
+                R`\(NPV_{${a}} = ${M(npvS)}\) and \(NPV_{${b}} = ${M(npvL)}\). The lives differ, so compare yearly equivalents.`,
+                R`\[EAA_{${a}} = \frac{${M(npvS)} \times ${L.dec(r)}}{1 - \frac{1}{(${L.onePlus(r)})^{${nS}}}} = ${M(eS)}\]`,
+                R`\[EAA_{${b}} = \frac{${M(npvL)} \times ${L.dec(r)}}{1 - \frac{1}{(${L.onePlus(r)})^{${nL}}}} = ${M(eL)}\]`,
               ],
               why: R`Pick the higher EAA: Project ${eS > eL ? a : b}.${conflict ? ' The naive NPV points the other way, because it ignores the difference in lives.' : ''}`,
             };
@@ -1422,8 +1424,8 @@
               { v: npv, why: 'That is the NPV of all the costs. Turn it into an equal yearly amount.' },
             ],
             steps: [
-              R`\[NPV = -${L.moneyT(p)} - ${annuityPV(oc, r, n)} = ${L.money(npv)}\]`,
-              R`\[EAC = \frac{NPV \times k}{1 - \frac{1}{(1+k)^{n}}} = \frac{${L.money(npv)} \times ${L.dec(r)}}{1 - \frac{1}{(${L.onePlus(r)})^{${n}}}} = ${L.money(eac)}\]`,
+              R`\[NPV = -${L.moneyT(p)} - ${annuityPV(oc, r, n)} = ${M(npv)}\]`,
+              R`\[EAC = \frac{NPV \times k}{1 - \frac{1}{(1+k)^{n}}} = \frac{${M(npv)} \times ${L.dec(r)}}{1 - \frac{1}{(${L.onePlus(r)})^{${n}}}} = ${M(eac)}\]`,
             ],
             calc: `${n} [N] · ${rateKey(r)} [I/YR] · ${keyNum(npv)} [PV] · 0 [FV] · [PMT] → ${T.money(-eac)}`,
             why: 'The EAC is the equal yearly cost with the same PV as buying and running the machine. Compare EACs across machines with different lives.',
@@ -1452,9 +1454,9 @@
               { v: offByOne, why: `A new cycle starts in the year the previous one ends (year ${ns}), not a year later.` },
             ],
             steps: [
-              R`One cycle: \(NPV_1 = ${L.money(npv1)}\).`,
+              R`One cycle: \(NPV_1 = ${M(npv1)}\).`,
               R`Each new cycle starts when the last one ends, so its NPV is valued at \(t = ${ns}${m > 2 ? `, ${2 * ns}` : ''}\).`,
-              R`\[NPV_{chain} = ${Array.from({ length: m }, (_, j) => (j === 0 ? L.money(npv1) : R`\frac{${L.money(npv1)}}{(${L.onePlus(r)})^{${j * ns}}}`)).join(' + ')} = ${L.money(chain)}\]`,
+              R`\[NPV_{chain} = ${Array.from({ length: m }, (_, j) => (j === 0 ? M(npv1) : R`\frac{${M(npv1)}}{(${L.onePlus(r)})^{${j * ns}}}`)).join(' + ')} = ${M(chain)}\]`,
             ],
             calc: npvKeys(flows, r),
             why: R`Replacement chain: repeat the short project until both end together, then compare NPVs over the same ${nl} years.`,
@@ -1488,9 +1490,9 @@
               table: { head: ['End of year', 'Net cash flow', 'Residual value'], rows: rv.map((v, j) => [age + j, j === 0 ? '—' : cell(cf[j]), cell(v)]) },
               choices,
               answer: best,
-              steps: pvs.map((v, j) => (j === 0 ? R`Retire now: \(${L.money(v)}\).`
-                : R`Retire at the end of year ${age + j}: \(${Array.from({ length: j }, (_, i) => R`\frac{${L.moneyT(cf[i + 1])}${i + 1 === j && rv[j] > 0 ? ' + ' + L.moneyT(rv[j]) : ''}}{(${L.onePlus(r)})^{${i + 1}}}`).join(' + ')} = ${L.money(v)}\).`)),
-              why: R`Compare the PV of every retirement date and pick the highest: ${best === 0 ? 'retire now' : `keep it to the end of year ${age + best}`} (\(${L.money(pvs[best])}\)).`,
+              steps: pvs.map((v, j) => (j === 0 ? R`Retire now: \(${M(v)}\).`
+                : R`Retire at the end of year ${age + j}: \(${Array.from({ length: j }, (_, i) => R`\frac{${L.moneyT(cf[i + 1])}${i + 1 === j && rv[j] > 0 ? ' + ' + L.moneyT(rv[j]) : ''}}{(${L.onePlus(r)})^{${i + 1}}}`).join(' + ')} = ${M(v)}\).`)),
+              why: R`Compare the PV of every retirement date and pick the highest: ${best === 0 ? 'retire now' : `keep it to the end of year ${age + best}`} (\(${M(pvs[best])}\)).`,
             };
           }
           return null;

@@ -244,7 +244,7 @@
         ],
         steps: [R`\[r = (1 + HPR)^{1/T} - 1 = (1.4421)^{1/4} - 1 = 0.0958 = 9.58\%\text{ per year}\]`],
         calc: '4 [N] · −1 [PV] · 0 [PMT] · 1.4421 [FV] · [I/YR] → 9.58',
-        why: 'Annualising undoes the compounding: take the T-th root of (1 + HPR), then subtract 1.' },
+        why: R`Annualising undoes the compounding: take the \(T\)-th root of \((1 + HPR)\), then subtract 1.` },
       { id: 'w9-q06', topic: 'ret', kind: 'mcq', level: 2, section: 'A', formula: 'hpr',
         q: R`A share rises 50% in year 1 and then falls 50% in year 2. What is the two-year holding period return?`,
         choices: ['−25%', '0%', '+25%', '−50%'], answer: 0,
@@ -399,7 +399,7 @@
           R`For the Russell 2000: mean \(${pc(FIN.mean(RUS))}\) and SD \(${pc(FIN.sdS(RUS))}\).`,
         ],
         calc: `[C ALL] · 0.08 [Σ+] · 0.15 [Σ+] · 0.12 [+/−] [Σ+] · 0.11 [Σ+] · 0.09 [Σ+] · 0.06 [+/−] [Σ+] · [x̄,ȳ] → ${T.numT(FIN.mean(NIK), 4)} · [Sx,Sy] → ${T.numT(FIN.sdS(NIK), 4)}`,
-        why: 'Use the sample formula: divide by T − 1, then take the square root.' },
+        why: R`Use the sample formula: divide by \(T - 1\), then take the square root.` },
       { id: 'w9-q20', topic: 'corr', kind: 'num', level: 2, section: 'B', formula: 'cov-sample', src: 'Tutorial W9 Q2(b)',
         q: R`Using the six monthly returns below (a sample), what is the **covariance** between the Nikkei and the Russell 2000? Give a decimal to 6 places.`,
         table: NIK_TABLE,
@@ -533,7 +533,7 @@
           R`\[Cov = \frac{(0.13 - 0.0267)(0.06 - 0.0167) + (0.07 - 0.0267)(0.09 - 0.0167) + (-0.12 - 0.0267)(-0.10 - 0.0167)}{3 - 1}\]`,
           R`\[Cov = \frac{${nt(covDS * 2, 6)}}{2} = ${nt(covDS, 6)}\]`,
         ],
-        why: 'Multiply the paired deviations, add them, and divide by N − 1.' },
+        why: R`Multiply the paired deviations, add them, and divide by \(N - 1\).` },
       { id: 'w9-q41', topic: 'corr', kind: 'num', level: 2, section: 'B', formula: 'corr', src: 'Lecture W9 Example 6(b)',
         q: R`For the DJIA and S&P 500: \(Cov = 0.012383\), \(\sigma_{DJIA} = 0.1305\) and \(\sigma_{S\&P} = 0.1021\). What is the **correlation coefficient**? (4 decimal places)`,
         answer: 0.012383 / (0.1305 * 0.1021), unit: '', dp: 4, tol: 0.0006,
@@ -888,7 +888,7 @@
                 { v: P(sum(rs) / n), why: 'That is the average yearly return, not the total return.' },
               ],
               steps: [R`\[HPR = (1+R_1)(1+R_2)\cdots(1+R_{${n}}) - 1\]`, hprStep],
-              why: 'Returns compound, so multiply the (1 + R) factors, then subtract 1.',
+              why: R`Returns compound, so multiply the \((1 + R)\) factors, then subtract 1.`,
             };
           }
           return {
@@ -908,10 +908,13 @@
       /* ---------- expected return from probabilities ---------- */
       { id: 'w9-g-exp-prob', topic: 'prob', level: 1, section: 'B', formula: 'exp-ret', src: 'Tutorial W9 Q1(a)',
         make(rng) {
-          const ps = rng.pick(PROBS);
-          const rs = [rng.step(-0.15, 0.03, 0.01), rng.step(0.04, 0.14, 0.01), rng.step(0.15, 0.35, 0.01)];
-          if (Math.abs((rs[0] + rs[2]) / 2 - rs[1]) < 0.01) rs[2] = +(rs[2] + 0.04).toFixed(2); // avoid evenly spaced returns
-          const e = FIN.expRet(ps, rs);
+          let ps, rs, e;
+          for (let t = 0; t < 50; t++) {
+            ps = rng.pick(PROBS);
+            rs = [rng.step(-0.15, 0.03, 0.01), rng.step(0.04, 0.14, 0.01), rng.step(0.15, 0.35, 0.01)];
+            e = FIN.expRet(ps, rs);
+            if (Math.abs((rs[0] + rs[2]) / 2 - rs[1]) >= 0.01 && Math.abs(e) >= 0.01) break; // avoid evenly spaced returns and tiny answers
+          }
           const mistakes = [
             { v: P(sum(rs) / 3), why: 'That is a simple average. Weight each return by its probability.' },
             { v: P(rs[1]), why: 'That is the most likely return, not the probability-weighted average.' },
@@ -972,7 +975,7 @@
               R`\[SD = \sqrt{${nt(v, 6)}} = ${nt(s, 4)} = ${pc(s)}\]`,
             ],
             calc: `[C ALL] · ${rs.map((x) => `${hp(x)} [Σ+]`).join(' · ')} · [x̄,ȳ] → ${T.numT(m, 4)} · [Sx,Sy] → ${T.numT(s, 4)}`,
-            why: 'For past data: mean, squared deviations, divide by T − 1, square root.',
+            why: R`For past data: find the mean, square the deviations, divide by \(T - 1\), then take the square root.`,
           };
         } },
       /* ---------- coefficient of variation ---------- */
@@ -1055,7 +1058,7 @@
                 { v: cov / (si * si * sj * sj), why: 'Divide by the standard deviations, not the variances. A correlation is always between −1 and +1.' },
               ],
               steps: [R`\[\rho = \frac{Cov(R_1,R_2)}{\sigma_1\,\sigma_2} = \frac{${nt(cov, 5)}}{${nt(si, 3)} \times ${nt(sj, 3)}} = \frac{${nt(cov, 5)}}{${nt(si * sj, 6)}} = ${nt(r, 4)}\]`],
-              why: 'Correlation is the covariance scaled by both standard deviations, so it always lies between −1 and +1.',
+              why: R`Correlation is the covariance scaled by both standard deviations, so it always lies between \(-1\) and \(+1\).`,
             };
           }
           const c = rho * si * sj;
@@ -1102,17 +1105,19 @@
               R`\[Cov = \frac{${nt(c * (n - 1), 6)}}{${n - 1}} = ${nt(c, 6)}\]`,
             ],
             calc: `[C ALL] · ${xs.map((x, i) => `${hp(x)} [INPUT] ${hp(ys[i])} [Σ+]`).join(' · ')} · [x̂,r] [SWAP] → r · [Sx,Sy] → Sx, [SWAP] → Sy · Cov = r × Sx × Sy`,
-            why: 'Multiply the paired deviations from the means, add them up, and divide by N − 1.',
+            why: R`Multiply the paired deviations from the means, add them up, and divide by \(N - 1\).`,
           };
         } },
       /* ---------- portfolio weights ---------- */
       { id: 'w9-g-weights', topic: 'port', level: 1, section: 'B', formula: 'port-ret', src: 'Tutorial W9 Q4',
         make(rng) {
           const [a, b] = two(rng);
-          const nA = rng.step(50, 500, 5), pA = rng.step(5, 80, 0.5);
-          let nB = rng.step(50, 500, 5); if (nB === nA) nB += 25;
-          let pB = rng.step(5, 80, 0.5); if (pB === pA) pB += 3;
-          if (Math.abs(nA * pA - nB * pB) < 0.02 * (nA * pA + nB * pB)) pB = +(pB * 1.3 + 2).toFixed(1);
+          let nA, pA, nB, pB;
+          for (let t = 0; t < 50; t++) {
+            nA = rng.step(50, 500, 5); pA = rng.step(5, 80, 0.5); nB = rng.step(50, 500, 5); pB = rng.step(5, 80, 0.5);
+            const wA = (nA * pA) / (nA * pA + nB * pB);
+            if (nA !== nB && pA !== pB && wA >= 0.1 && wA <= 0.9 && Math.abs(wA - 0.5) >= 0.02) break;
+          }
           const vA = nA * pA, vB = nB * pB, w = vA / (vA + vB);
           const askA = rng.chance(0.5);
           const ans = askA ? w : 1 - w;
@@ -1246,12 +1251,16 @@
       { id: 'w9-g-port-beta', topic: 'beta', level: 1, section: 'B', formula: 'port-beta', src: 'Lecture W9 SML Example 2(a)',
         make(rng) {
           const names = rng.sample(['Acacia Ltd', 'Boronia Ltd', 'Coolabah Ltd', 'Jarrah Ltd', 'Waratah Ltd'], 3);
-          const amts = names.map(() => rng.step(5000, 50000, 1000));
-          const bs = names.map(() => rng.step(0.4, 2, 0.05));
           const withRf = rng.chance(0.3);
-          const aF = withRf ? rng.step(5000, 40000, 1000) : 0;
-          const tot = sum(amts) + aF, ws = amts.map((x) => x / tot);
-          const bp = FIN.portBeta(ws, bs);
+          let amts, bs, aF, tot, ws, bp;
+          for (let t = 0; t < 50; t++) {
+            amts = names.map(() => rng.step(5000, 50000, 1000));
+            bs = names.map(() => rng.step(0.4, 2, 0.05));
+            aF = withRf ? rng.step(5000, 40000, 1000) : 0;
+            tot = sum(amts) + aF; ws = amts.map((x) => x / tot);
+            bp = FIN.portBeta(ws, bs);
+            if (Math.abs(bp - sum(bs) / 3) >= 0.015 && Math.abs(bp / 3 - (bp - ws[2] * bs[2])) >= 0.01) break; // weighting must matter
+          }
           const mistakes = [
             { v: sum(bs) / 3, why: 'That is a simple average. Weight each beta by its share of the portfolio.' },
             { v: bp - ws[2] * bs[2], why: 'Include every share in the weighted average.' },
@@ -1446,7 +1455,7 @@
                 R`\[\rho = \frac{${nt(c, 6)}}{${nt(sx, 6)} \times ${nt(sy, 6)}} = ${nt(r, 4)}\]`,
               ],
               calc: `[C ALL] · ${xs.map((x, i) => `${hp(x)} [INPUT] ${hp(ys[i])} [Σ+]`).join(' · ')} · [x̂,r] [SWAP] → ${T.numT(r, 4)}`,
-              why: 'Use N − 1 for the covariance and for both SDs. The divisors then cancel, and ρ always lands between −1 and +1.',
+              why: R`Use \(N - 1\) for the covariance and for both SDs. The divisors then cancel, and \(\rho\) always lands between \(-1\) and \(+1\).`,
             };
           }
           return null;
@@ -1585,7 +1594,7 @@
                 R`\[w = \frac{${nt(bt, 4)} - ${nt(bB, 2)}}{${nt(bA, 2)} - ${nt(bB, 2)}} = ${pc(w)}\]`,
                 R`Check: \(E[R_A] = ${pc(eA)}\), \(E[R_B] = ${pc(eB)}\), and \(${nt(w, 4)}(${pc(eA)}) + ${nt(1 - w, 4)}(${pc(eB)}) = ${pc(w * eA + (1 - w) * eB)}\).`,
               ],
-              why: 'Turn the target return into a target beta, then solve the weighted average for w.',
+              why: R`Turn the target return into a target beta, then solve the weighted average for \(w\).`,
             };
           }
           return null;

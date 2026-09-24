@@ -47,6 +47,8 @@
         <h1 class="logo" aria-label="Corporate Ladder"><span>Corporate</span><span>Ladder</span></h1>
         <p class="tagline">Start as an intern. Beat the finance fiends on every floor. Reach the boardroom as <b>CFO</b>.</p>
         <ul class="title-points"><li>9 floors, one per week of the unit, from time value of money to risk and return.</li><li>Every calculation comes with a worked solution in LaTeX and HP10bII+ keystrokes.</li><li>Built for dyslexic readers: read-aloud, number highlighting, relaxed timers and font choices.</li></ul>
+        <div class="boss-row" aria-label="Floor bosses">${root.PACKS.map((p) => { const b = p.nodes.find((n) => n.kind === 'boss'); return b ? `<figure class="boss-mini" style="--floor:${p.color}" title="Floor ${p.floor}: ${esc(b.enemy.name)}"><span aria-hidden="true">${ART.monsterSVG(b.enemy, { boss: true })}</span><figcaption>${p.floor}</figcaption></figure>` : ''; }).join('')}</div>
+        <p class="muted small">Nine bosses wait upstairs.</p>
       </div>
       <form class="newgame card" data-submit="start-game" autocomplete="off">
         <h2>Create your character</h2>
