@@ -13,8 +13,10 @@
   const mt = (x) => (Number.isInteger(r2(x)) ? T.moneyT(x) : T.money(x)); // plain-text money (cents only when needed)
   const ml = (x) => (Number.isInteger(r2(x)) ? L.moneyT(x) : L.money(x)); // LaTeX money (cents only when needed)
   const kn = (x) => String(r2(x)); // a number as typed on the calculator
+  /** 'a' or 'an' before a written number: an 8% coupon, an 11% return, an $18,000 loan, a $1,000 bond */
+  const aan = (x) => { const h = (String(x).match(/\d+/) || [''])[0]; return /^8/.test(h) || h === '11' || h === '18' ? 'an' : 'a'; };
+  const Aan = (x) => (aan(x) === 'an' ? 'An' : 'A');
   const ml4 = (x) => { const s = L.moneyT(x, 4); return /\.\d$/.test(s) ? s + '0' : s; }; // LaTeX money with 2 to 4 decimals
-  const art = (n) => ([8, 11, 18].includes(n) ? 'An' : 'A'); // article before a number of years
   const pk = (r) => T.numT(r * 100, 6); // a rate in percent, for [I/YR]
   const when = (t) => (t === 0 ? 'now' : t === 1 ? 'in one year' : `in ${t} years`);
   const listText = (xs) => (xs.length > 1 ? xs.slice(0, -1).join(', ') + ' and ' + xs[xs.length - 1] : xs[0]);
@@ -56,7 +58,15 @@
   MST12.npv = MST12.inflow - MST12.cost;
   const EX12 = FIN.interpolate(0.13, 1.72, 0.14, -6.69);
 
-  root.registerPack({
+  /** Drop distractors that sit too close to the answer: they make unfair options and over-strict typed answers. */
+  function tidy(q) {
+    if (!q || !Array.isArray(q.mistakes) || !Number.isFinite(q.answer)) return q;
+    const a = q.answer, gap = Math.max(0.002 * Math.abs(a), 0.05);
+    q.mistakes = dedupe(q.mistakes.filter((m) => Number.isFinite(m.v) && Math.abs(m.v - a) >= gap));
+    return q;
+  }
+
+  const PACK = {
     id: 'w2', floor: 2, week: 'Week 2',
     title: 'Annuity Arcade',
     topic: 'Financial mathematics II: streams, annuities and perpetuities',
@@ -575,7 +585,7 @@
         q: R`It is 1 July 2016. You need $10,000 on 1 July 2021, and you can earn 8% p.a. Your father offers **either** five payments of $1,704.56 (on 1 July 2017 to 2021), **or** $7,500 on 1 July 2017. Which should you take?`,
         choices: [R`The $7,500: by 2021 it grows to \(7{,}500 \times 1.08^{4} = \$10{,}203.67\)`, R`The payments: \(5 \times 1{,}704.56 = \$8{,}522.80\) is more than $7,500`, 'The $7,500, because it is still worth $7,500 in 2021', 'They are worth exactly the same'], answer: 0,
         wrong: { 1: 'That adds dollars from different dates, which ignores interest.' },
-        why: R`Compare at the same date. The payments grow to exactly $10,000 by 2021. The $7,500 grows to ${L.money(7500 * 1.08 ** 4)}, so it is better.` },
+        why: R`Compare at the same date. The payments grow to exactly $10,000 by 2021. The $7,500 grows to ${T.money(7500 * 1.08 ** 4)}, so it is better.` },
       { id: 'w2-q50', topic: 'save', kind: 'num', level: 2, section: 'B', src: 'Tutorial W2 Q2(d)', formula: 'fv-annuity',
         q: R`It is 1 July 2016. You need $10,000 on 1 July 2021. Your father gives you $4,000 **today**. You add equal **half-yearly** deposits, the first in six months and the last on 1 July 2021. The bank pays 8% p.a., compounded semi-annually. How big must each deposit be?`,
         answer: -FIN.tvm.solvePMT(10, 0.04, -4000, 10000), unit: '$', dp: 2,
@@ -1184,7 +1194,7 @@
             ],
           }[ask];
           return {
-            q: R`A ${mt(pv)} loan at ${T.pctT(r)} p.a. is repaid with ${n} annual payments of ${T.money(pay)}. The schedule starts below. ${qEnd}`,
+            q: R`${Aan(mt(pv))} ${mt(pv)} loan at ${T.pctT(r)} p.a. is repaid with ${n} annual payments of ${T.money(pay)}. The schedule starts below. ${qEnd}`,
             givens: [['PV', ml(pv)], ['r', L.pctT(r)], ['PMT', L.money(pay)]],
             table: { head: ['Year', 'Opening', 'Payment', 'Interest', 'Principal', 'Closing'],
               rows: [['1', T.money(pv), T.money(pay), T.money(rows[0].int), T.money(rows[0].prin), T.money(rows[0].end)]]
@@ -1202,7 +1212,7 @@
           const i = apr / 12, N = yrs * 12, k = rng.int(2, 10), left = N - 12 * k;
           const pay = FIN.pmt(pv, i, N), bal = FIN.loanBalance(pv, i, N, 12 * k);
           return {
-            q: R`You take out a ${yrs}-year mortgage of ${mt(pv)} at ${T.pctT(apr)} p.a., with monthly payments at the end of each month. How much do you still owe **after ${k} years**?`,
+            q: R`You take out a mortgage of ${mt(pv)} over ${yrs} years at ${T.pctT(apr)} p.a., with monthly payments at the end of each month. How much do you still owe **after ${k} years**?`,
             givens: [['PV', ml(pv)], ['i', R`\frac{${L.dec(apr)}}{12}`], ['n', String(N)], [R`\text{paid}`, R`${k} \times 12 = ${12 * k}`]],
             answer: bal, unit: '$', dp: 2,
             mistakes: [
@@ -1349,7 +1359,7 @@
           const pvT = college ? FIN.pvAnnuityDue(x, r, m) : FIN.pvAnnuity(x, r, m);
           const pmt = FIN.pmtForFV(pvT, r, T0);
           const q = college
-            ? R`A ${m}-year degree starts in ${T0} years. Fees are ${mt(x)} a year, paid at the **start** of each year of study (the first at year ${T0}). You save an equal amount at the end of each year, from year 1 to year ${T0}. The rate is ${T.pctT(r)} p.a. How much must you save each year?`
+            ? R`A degree lasting ${m} years starts in ${T0} years. Fees are ${mt(x)} a year, paid at the **start** of each year of study (the first at year ${T0}). You save an equal amount at the end of each year, from year 1 to year ${T0}. The rate is ${T.pctT(r)} p.a. How much must you save each year?`
             : R`You retire in ${T0} years. You then want to withdraw ${mt(x)} at the **end** of each year for ${m} years (the first at year ${T0 + 1}). You save an equal amount at the end of each year, from year 1 to year ${T0}. The rate is ${T.pctT(r)} p.a. How much must you save each year?`;
           return {
             q,
@@ -1390,7 +1400,7 @@
             const exact = FIN.tvm.solveI(n, -price, c, 0);
             const p1 = Math.round(r1 * 100), p2 = Math.round(r2x * 100);
             return {
-              q: R`${art(n)} ${n}-year ordinary annuity of ${mt(c)} a year costs ${mt(price)}. At ${p1}% its PV is ${T.money(pv1)}. At ${p2}% its PV is ${T.money(pv2)}. Use **interpolation** to estimate the rate of return.`,
+              q: R`An ordinary annuity pays ${mt(c)} a year for ${n} years. It costs ${mt(price)}. At ${p1}% its PV is ${T.money(pv1)}. At ${p2}% its PV is ${T.money(pv2)}. Use **interpolation** to estimate the rate of return.`,
               givens: [['C', ml(c)], ['n', String(n)], [R`\text{Price}`, ml(price)], [R`PV(${p1}\%)`, L.money(pv1)], [R`PV(${p2}\%)`, L.money(pv2)]],
               answer: P(ip.r), unit: '%', dp: 2,
               mistakes: [
@@ -1517,5 +1527,8 @@
           };
         } },
     ],
-  });
+  };
+
+  PACK.generators.forEach((g) => { const make = g.make; g.make = (rng) => tidy(make(rng)); });
+  root.registerPack(PACK);
 })(typeof window !== 'undefined' ? window : globalThis);

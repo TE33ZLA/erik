@@ -99,3 +99,7 @@ LaTeX string with KaTeX.
 The questions are based on the BFC2140 lecture slides, tutorials, the mock MST and the MST
 solutions. Floor 9 is a preview built only from the formula sheet, because the course
 material provided did not include those lectures yet.
+
+Where a slide or solution rounds early or has a typo, the game uses the exact value.
+[`docs/COURSE_NOTES.md`](docs/COURSE_NOTES.md) lists every such place, plus worked answers
+for the Week 9 tutorial, which had no solution file.
