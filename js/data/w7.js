@@ -1131,7 +1131,7 @@
           inv = Math.round(inv / 10000) * 10000;
           const npv = v0 - inv;
           return {
-            q: R`${co} can spend ${T.moneyT(inv)} now to develop a product over ${D} years. The tree shows what can happen. A ${T.moneyT(sunk)} staff training fee was paid last month. A ${T.moneyT(loan)} loan at ${pct(i)} p.a. will fund part of the cost. The required return is ${pct(r)} p.a. What is the NPV?`,
+            q: R`${co} can spend ${T.moneyT(inv)} now to develop a product over ${D} years. The tree shows what can happen. Last month it paid a staff training fee of ${T.moneyT(sunk)}. A loan of ${T.moneyT(loan)} at ${pct(i)} p.a. will fund part of the cost. The required return is ${pct(r)} p.a. What is the NPV?`,
             tree: decide(R`\(t = 0\)`, [
               [`Develop: −${T.moneyT(inv)}`, chance(R`\(t = ${D}\)`, [
                 [`${pct(p)} success`, chance(undefined, [

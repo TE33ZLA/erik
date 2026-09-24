@@ -730,7 +730,7 @@
             if (ebit <= 0.05 * rev) continue;
             const earn = ebit * (1 - tc);
             return {
-              q: R`A firm buys a ${T.money(price, 0)} machine and pays ${T.money(inst, 0)} to install it. It is depreciated straight-line to zero over ${n} years. It adds ${T.money(rev, 0)} of revenue and ${T.money(cost, 0)} of costs a year. The tax rate is ${T.pctT(tc)}. What are the **incremental earnings** each year?`,
+              q: R`A firm buys a machine for ${T.money(price, 0)} and pays ${T.money(inst, 0)} to install it. It is depreciated straight-line to zero over ${n} years. It adds ${T.money(rev, 0)} of revenue and ${T.money(cost, 0)} of costs a year. The tax rate is ${T.pctT(tc)}. What are the **incremental earnings** each year?`,
               givens: [[R`\text{Machine}`, L.moneyT(price)], [R`\text{Installation}`, L.moneyT(inst)], ['n', String(n)], [R`\Delta \text{Rev}`, L.moneyT(rev)], [R`\Delta \text{Costs}`, L.moneyT(cost)], ['t_c', L.pctT(tc)]],
               answer: earn, unit: '$', dp: 2,
               mistakes: clean([

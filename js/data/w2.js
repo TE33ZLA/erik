@@ -18,8 +18,6 @@
   const Aan = (x) => (aan(x) === 'an' ? 'An' : 'A');
   const ml4 = (x) => { const s = L.moneyT(x, 4); return /\.\d$/.test(s) ? s + '0' : s; }; // LaTeX money with 2 to 4 decimals
   const pk = (r) => T.numT(r * 100, 6); // a rate in percent, for [I/YR]
-  const when = (t) => (t === 0 ? 'now' : t === 1 ? 'in one year' : `in ${t} years`);
-  const listText = (xs) => (xs.length > 1 ? xs.slice(0, -1).join(', ') + ' and ' + xs[xs.length - 1] : xs[0]);
   const yrsW = (k) => (k === 1 ? '1 year' : `${k} years`);
   /** LaTeX pieces for a rate per period: annual (m = 1) or APR / m */
   const rt = (apr, m = 1) => (m === 1 ? { r: L.dec(apr), one: L.onePlus(apr) }
@@ -213,11 +211,11 @@
         tl: { n: 3, at: { 1: 'deposit', 3: 'value here' }, unit: 'Year', hi: [1, 3] },
         why: R`It sits in the account from \(t = 1\) to \(t = 3\): \(3 - 1 = 2\) years. So multiply it by \((1+r)^{2}\).` },
       { id: 'w2-q05', topic: 'mixed', kind: 'num', level: 1, section: 'B', src: 'Mock MST Q03', formula: 'pv-lump',
-        q: R`A car dealer asks you to pay $7,000 today, $5,000 at the end of year 1, $4,000 at the end of year 2 and $3,000 at the end of year 3. A safe investment earns 4% p.a. What is the present value of all your payments?`,
+        q: R`A car dealer asks you to pay $7,000 today. You then pay $5,000 at the end of year 1, $4,000 at the end of year 2 and $3,000 at the end of year 3. A safe investment earns 4% p.a. What is the present value of all your payments?`,
         tl: { cfs: [7000, 5000, 4000, 3000], unit: 'Year' },
         answer: MOCK03.pv, unit: '$', dp: 2,
         mistakes: [
-          { v: FIN.pvStream([0].concat(MOCK03.cfs), 0.04), why: 'That treats the $7,000 as paid at t = 1. It is paid today, so it is not discounted.' },
+          { v: FIN.pvStream([0].concat(MOCK03.cfs), 0.04), why: R`That treats the $7,000 as paid at \(t = 1\). It is paid today, so it is not discounted.` },
           { v: 19000, why: 'That just adds the payments and ignores the time value of money.' },
           { v: MOCK03.pv - 7000, why: 'You left out the $7,000 paid today.' },
         ],
@@ -241,7 +239,7 @@
       { id: 'w2-q08', topic: 'perp', kind: 'mcq', level: 1, section: 'B', src: 'Tutorial W2 concept check Q2', formula: 'pv-perp',
         q: R`A British consol bond pays £1,000 of interest each year, forever. The interest rate is 5%. The **first** payment is **one year from now**. What is the bond worth today?`,
         choices: ['£20,000', '£21,000', '£10,000', '£19,047.62'], answer: 0,
-        wrong: { 1: 'That adds an extra payment today. The first payment is a year away.', 3: 'That discounts one extra year. C / r already gives the value today.' },
+        wrong: { 1: 'That adds an extra payment today. The first payment is a year away.', 3: R`That discounts one extra year. \(\frac{C}{r}\) already gives the value today.` },
         why: R`\(PV = \frac{C}{r} = \frac{1{,}000}{0.05} = 20{,}000\). The formula lands one period before the first payment, which is today.` },
       { id: 'w2-q09', topic: 'perp', kind: 'mcq', level: 1, section: 'B', src: 'Tutorial W2 concept check Q3', formula: 'pv-perp',
         q: R`The same consol pays £1,000 a year forever at 5%. This time the first payment arrives **tomorrow** (effectively today). What is it worth today?`,
@@ -265,7 +263,7 @@
         q: R`You borrow $180,000 at 9% p.a., compounded monthly. The loan is **interest-only** and is never repaid. What is the monthly payment?`,
         answer: 180000 * 0.0075, unit: '$', dp: 2,
         mistakes: [
-          { v: 16200, why: 'That is a whole year of interest. Use the monthly rate: 9% ÷ 12 = 0.75%.' },
+          { v: 16200, why: R`That is a whole year of interest. Use the monthly rate: \(\frac{9\%}{12} = 0.75\%\).` },
           { v: FIN.pmt(180000, 0.0075, 360), why: 'That repays the loan over 30 years. An interest-only loan never repays the principal.' },
           { v: 180000 * (Math.pow(1.09, 1 / 12) - 1), why: R`That treats 9% as an EAR. “Compounded monthly” means \(\frac{9\%}{12} = 0.75\%\) per month.` },
         ],
@@ -294,7 +292,7 @@
         mistakes: [
           { v: 2420 / 0.08, why: R`That is the value at \(t = 2\). Discount it 2 years to today.` },
           { v: 2420 / 0.08 / 1.08 ** 3, why: R`That discounts 3 years. \(\frac{C}{r}\) already lands at \(t = 2\), so discount only 2 years.` },
-          { v: 2420 / 0.08 / 1.08, why: 'That discounts only 1 year. From t = 2 back to t = 0 is 2 years.' },
+          { v: 2420 / 0.08 / 1.08, why: R`That discounts only 1 year. From \(t = 2\) back to \(t = 0\) is 2 years.` },
         ],
         steps: [
           R`The first payment is at \(t = 3\), so \(\frac{C}{r}\) gives the value at \(t = 2\): \[PV_2 = \frac{2{,}420}{0.08} = \$30{,}250\]`,
@@ -436,7 +434,7 @@
         q: R`Asset 2 pays a lump sum of $700 at \(t = 1\). The rate is 5% p.a. Find its **equivalent annuity**: the 5-year annuity **due** (payments at \(t = 0\) to \(t = 4\)) with the same present value.`,
         answer: (700 / 1.05) / (FIN.pvifa(0.05, 5) * 1.05), unit: '$', dp: 2,
         mistakes: [
-          { v: (700 / 1.05) / FIN.pvifa(0.05, 5), why: 'That is an ordinary annuity. These payments start today, so also divide by (1 + r).' },
+          { v: (700 / 1.05) / FIN.pvifa(0.05, 5), why: R`That is an ordinary annuity. These payments start today, so also divide by \((1+r)\).` },
           { v: 140, why: 'That spreads $700 evenly and ignores discounting.' },
           { v: (700 / 1.05) / 5, why: 'That spreads the PV evenly. Later payments must be discounted too.' },
         ],
@@ -513,7 +511,7 @@
           R`\[\text{Principal}_2 = 1{,}285.46 - ${L.num(4164.54 * 0.09)} = ${L.money(1285.46 - r2(4164.54 * 0.09))}\]`,
           R`\[\text{Closing}_2 = 4{,}164.54 - ${L.num(1285.46 - r2(4164.54 * 0.09))} = ${L.money(4164.54 - r2(1285.46 - r2(4164.54 * 0.09)))}\]`,
         ],
-        why: 'Interest = opening balance × rate. It falls every year because the balance falls.' },
+        why: R`Interest \(=\) opening balance \(\times\) rate. It falls every year because the balance falls.` },
       { id: 'w2-q44', topic: 'loan', kind: 'num', level: 2, section: 'B', src: 'MST 2026 Q14', formula: 'loan-balance',
         q: R`You take out a 30-year, $250,000 mortgage at 7.2% p.a., with monthly payments at the end of each month. How much do you still owe **after 4 years**?`,
         answer: MST14.bal, unit: '$', dp: 2,
@@ -615,7 +613,7 @@
           R`\[FV = \frac{200}{0.0045}\left(1.0045^{180} - 1\right) = ${L.money(FIN.fvAnnuity(200, 0.0045, 180))}\]`,
         ],
         calc: `180 [N] · 0.45 [I/YR] · 0 [PV] · −200 [PMT] · [FV] → ${T.money(FIN.fvAnnuity(200, 0.0045, 180))}`,
-        why: 'Count only the months when deposits are made: 15 years × 12.' },
+        why: R`Count only the months when deposits are made: \(15 \times 12 = 180\).` },
 
       /* ----- solving for r and n ----- */
       { id: 'w2-q52', topic: 'rate', kind: 'mcq', level: 1, section: 'A', src: 'Lecture W2 Example 12',
@@ -652,7 +650,7 @@
         mistakes: [
           { v: FIN.nper(20000, 30000, 0.005), why: 'That ignores the $100 monthly deposits.' },
           { v: FIN.tvm.solveN(0.005, -20000, -100, 30000) / 12, why: 'That is in years. The question asks for months.' },
-          { v: 100, why: 'That ignores interest: $10,000 ÷ $100.' },
+          { v: 100, why: R`That ignores interest: \(\frac{\$10{,}000}{\$100} = 100\).` },
         ],
         steps: [
           R`The balance after \(n\) months must reach $30,000: \[20{,}000(1.005)^{n} + \frac{100}{0.005}\left(1.005^{n} - 1\right) = 30{,}000\]`,
@@ -661,6 +659,108 @@
         ],
         calc: `0.5 [I/YR] · −20000 [PV] · −100 [PMT] · 30000 [FV] · [N] → ${T.num(FIN.tvm.solveN(0.005, -20000, -100, 30000))}`,
         why: 'Both the lump sum and the deposits grow. Solve for the number of periods.' },
+
+      /* ----- more course examples and concept checks ----- */
+      { id: 'w2-q60', topic: 'growth', kind: 'num', level: 1, section: 'B', src: 'Lecture W2 Example 10', formula: 'pv-grow-perp',
+        q: R`A government security pays interest once a year, forever. The first payment of $3 is at the end of year 1. Payments then grow at 2% a year. The discount rate is 10%. What is the security worth today?`,
+        answer: FIN.pvGrowPerp(3, 0.10, 0.02), unit: '$', dp: 2,
+        mistakes: [
+          { v: 3 / 0.10, why: R`That ignores the growth. Divide by \(r - g\), not \(r\).` },
+          { v: (3 * 1.02) / 0.08, why: 'The first payment is already $3 at year 1. Do not grow it again.' },
+          { v: 3 / 0.12, why: 'Subtract g from r. Do not add it.' },
+        ],
+        steps: [R`\[PV = \frac{C_1}{r - g} = \frac{3}{0.10 - 0.02} = ${L.money(FIN.pvGrowPerp(3, 0.10, 0.02))}\]`],
+        why: R`Growing perpetuity: the next payment divided by \((r - g)\).` },
+      { id: 'w2-q61', topic: 'loan', kind: 'num', level: 1, section: 'B', src: 'Lecture W2 Example 11', formula: 'pv-annuity',
+        q: R`You borrow $5,000 at 9% p.a. and repay it with five equal annual payments, the first one in a year. How big is each payment?`,
+        answer: FIN.pmt(5000, 0.09, 5), unit: '$', dp: 2,
+        mistakes: [
+          { v: 1000, why: 'That ignores interest. The payments must also cover interest on the balance.' },
+          { v: 1450, why: 'That is the first payment of an equal-principal loan ($1,000 + $450 interest). Equal payments come from the annuity formula.' },
+          { v: FIN.pmt(5000, 0.09, 5) / 1.09, why: 'That treats the payments as starting today. They start in one year.' },
+        ],
+        steps: [
+          R`The loan is the PV of the payments: \[5{,}000 = C \times \frac{1}{0.09}\left(1 - \frac{1}{1.09^{5}}\right) = C \times ${L.numT(FIN.pvifa(0.09, 5), 6)}\]`,
+          R`\[C = \frac{5{,}000}{${L.numT(FIN.pvifa(0.09, 5), 6)}} = ${L.money(FIN.pmt(5000, 0.09, 5))}\]`,
+          R`Total paid: \(5 \times 1{,}285.46 = \$6{,}427.30\), so the interest is $1,427.30.`,
+        ],
+        calc: `5 [N] · 9 [I/YR] · −5000 [PV] · 0 [FV] · [PMT] → ${T.money(FIN.pmt(5000, 0.09, 5))}`,
+        why: 'Set the loan equal to the PV of an ordinary annuity and solve for C.' },
+      { id: 'w2-q62', topic: 'loan', kind: 'num', level: 1, section: 'B', src: 'Tutorial W2 Q1(a)', formula: 'pv-annuity',
+        q: R`You borrow $400,000 to buy a house. The loan is over 30 years at 7% p.a., with payments at the end of each month. What is the monthly payment?`,
+        answer: T1.pay, unit: '$', dp: 2,
+        mistakes: [
+          { v: FIN.pmt(400000, 0.07, 30) / 12, why: 'An annual payment divided by 12 is not the monthly payment. Work in months from the start.' },
+          { v: 400000 / 360, why: 'That ignores interest.' },
+          { v: FIN.pmt(400000, 0.07 / 12, 30), why: R`That uses 30 periods. Monthly payments need \(n = 30 \times 12 = 360\).` },
+        ],
+        steps: [
+          R`Monthly: \(i = \frac{0.07}{12}\) and \(n = 30 \times 12 = 360\).`,
+          R`\[PMT = \frac{400{,}000 \times \frac{0.07}{12}}{1 - \left(1 + \frac{0.07}{12}\right)^{-360}} = ${L.money(T1.pay)}\]`,
+        ],
+        calc: `360 [N] · 7 ÷ 12 = [I/YR] · −400000 [PV] · 0 [FV] · [PMT] → ${T.money(T1.pay)}`,
+        why: 'Monthly loan: monthly rate, number of months, then the annuity formula solved for C.' },
+      { id: 'w2-q63', topic: 'loan', kind: 'num', level: 2, section: 'B', src: 'Tutorial W2 Q1(b)', formula: 'loan-balance',
+        q: R`Same mortgage: $400,000 over 30 years at 7% p.a., with monthly payments of $2,661.21. You sell the house after 5 years. How much do you still owe the bank?`,
+        answer: T1.bal, unit: '$', dp: 2,
+        mistakes: [
+          { v: 400000 - 60 * 2661.21, why: 'Subtracting payments ignores interest. Early payments are mostly interest.' },
+          { v: 400000 * (1 - 5 / 30), why: 'Principal is not repaid evenly. In the early years very little principal is repaid.' },
+          { v: FIN.pvAnnuity(2661.21, 0.07 / 12, 355), why: '5 years is 60 monthly payments, not 5.' },
+        ],
+        steps: [
+          R`Payments left: \(360 - 60 = 300\).`,
+          R`Balance = PV of the remaining payments: \[\frac{2{,}661.21}{\frac{0.07}{12}}\left(1 - \frac{1}{\left(1 + \frac{0.07}{12}\right)^{300}}\right) = ${L.money(T1.bal)}\]`,
+          R`Check: the loan grows to \(400{,}000\left(1 + \frac{0.07}{12}\right)^{60} = ${L.money(400000 * Math.pow(1 + 0.07 / 12, 60))}\). The 60 payments grow to \(${L.money(FIN.fvAnnuity(T1.pay, 0.07 / 12, 60))}\). The difference is the balance.`,
+        ],
+        calc: `300 [N] · 7 ÷ 12 = [I/YR] · 2661.21 [PMT] · 0 [FV] · [PV] → −${T.money(T1.bal)}`,
+        why: 'What you still owe is the PV of the payments you have not made yet.' },
+      { id: 'w2-q64', topic: 'save', kind: 'num', level: 1, section: 'B', src: 'Tutorial W2 Q2(a)', formula: 'fv-annuity',
+        q: R`It is 1 July 2016. You need $10,000 on 1 July 2021. You will make equal annual deposits, the first on 1 July 2017 and the last on 1 July 2021. The bank pays 8% p.a., compounded annually. How big is each deposit?`,
+        tl: { n: 5, at: { 1: 'C', 2: 'C', 3: 'C', 4: 'C', 5: 'C' }, unit: 'Year', hi: [5], labels: { 0: '2016', 1: '2017', 2: '2018', 3: '2019', 4: '2020', 5: '2021' } },
+        answer: FIN.pmtForFV(10000, 0.08, 5), unit: '$', dp: 2,
+        mistakes: [
+          { v: FIN.pmtForFV(10000, 0.08, 4), why: 'Deposits from 2017 to 2021 make 5 deposits, not 4.' },
+          { v: 2000, why: 'That ignores interest. The deposits earn interest, so you need less.' },
+          { v: FIN.pmt(10000, 0.08, 5), why: 'That is a loan payment: it treats $10,000 as money received today. It is a future target.' },
+        ],
+        steps: [
+          R`Deposits on 1 July 2017 to 2021: \(n = 5\), with the last one on the target date.`,
+          R`\[C = \frac{FV \times r}{(1+r)^{n} - 1} = \frac{10{,}000 \times 0.08}{1.08^{5} - 1} = ${L.money(FIN.pmtForFV(10000, 0.08, 5))}\]`,
+        ],
+        calc: `5 [N] · 8 [I/YR] · 0 [PV] · 10000 [FV] · [PMT] → −${T.money(FIN.pmtForFV(10000, 0.08, 5))}`,
+        why: 'A future target: solve the FV of an annuity for the deposit.' },
+      { id: 'w2-q65', topic: 'save', kind: 'num', level: 1, section: 'B', src: 'Lecture W2 Excel PMT example', formula: 'fv-annuity',
+        q: R`You want to save $50,000 in 18 years, saving a constant amount at the end of each month. Your savings earn 6% p.a., compounded monthly. How much must you save each month?`,
+        answer: FIN.pmtForFV(50000, 0.005, 216), unit: '$', dp: 2,
+        mistakes: [
+          { v: 50000 / 216, why: 'That ignores interest. The deposits earn interest, so you need less.' },
+          { v: FIN.pmtForFV(50000, 0.06, 18) / 12, why: 'An annual deposit divided by 12 is not the monthly deposit. Work in months from the start.' },
+          { v: FIN.pmt(50000, 0.005, 216), why: 'That is a loan payment. $50,000 is a future target, so use the FV of an annuity.' },
+        ],
+        steps: [
+          R`Monthly: \(i = \frac{6\%}{12} = 0.5\%\) and \(n = 18 \times 12 = 216\).`,
+          R`\[C = \frac{50{,}000 \times 0.005}{1.005^{216} - 1} = ${L.money(FIN.pmtForFV(50000, 0.005, 216))}\]`,
+        ],
+        calc: `216 [N] · 0.5 [I/YR] · 0 [PV] · 50000 [FV] · [PMT] → −${T.money(FIN.pmtForFV(50000, 0.005, 216))}`,
+        why: 'Monthly saving: monthly rate, number of months, FV of an annuity.' },
+      { id: 'w2-q66', topic: 'due', kind: 'mcq', level: 2, section: 'A', formula: 'pv-annuity-due',
+        q: R`An annuity due makes \(n\) payments of \(C\), the first one today. Which of these has the same present value?`,
+        choices: [R`\(C\) plus an ordinary annuity of \(n - 1\) payments`, R`An ordinary annuity of \(n + 1\) payments`, R`An ordinary annuity of \(n\) payments, divided by \((1+r)\)`, R`\(n \times C\)`], answer: 0,
+        wrong: { 2: 'Dividing makes it smaller. An annuity due is worth more than an ordinary annuity.' },
+        why: R`Today’s payment is worth \(C\). The other \(n - 1\) payments start in one period, so they form an ordinary annuity. It matches \(PV_{ord} \times (1+r)\).` },
+      { id: 'w2-q67', topic: 'loan', kind: 'tf', level: 1, section: 'A',
+        q: R`On an amortised loan with equal payments, the same amount of principal is repaid every year.`,
+        answer: false,
+        why: R`The payment is equal, but its split changes. Early payments are mostly interest. Later payments are mostly principal.` },
+      { id: 'w2-q68', topic: 'growth', kind: 'tf', level: 1, section: 'A', formula: 'pv-grow-perp',
+        q: R`When \(r > g > 0\), a growing perpetuity is worth more than a level perpetuity with the same first payment.`,
+        answer: true,
+        why: R`\(\frac{C_1}{r - g} > \frac{C_1}{r}\) because the denominator is smaller. Every payment after the first is bigger, so the value is higher.` },
+      { id: 'w2-q69', topic: 'annuity', kind: 'mcq', level: 2, section: 'A', formula: 'pv-annuity',
+        q: R`Why does the ordinary annuity formula give a value **one period before** the first payment?`,
+        choices: ['It discounts the first payment by one period, the second by two, and so on', 'Because the payments are made at the start of each period', 'Because it compounds every payment forward by one period', 'Because the last payment is left out'], answer: 0,
+        why: R`The formula adds up \(\frac{C}{1+r} + \frac{C}{(1+r)^{2}} + \cdots + \frac{C}{(1+r)^{n}}\). The first payment gets one period of discounting, so the value sits one period before it.` },
 
       /* ----- boss-level static ----- */
       { id: 'w2-q57', topic: 'save', kind: 'num', level: 3, section: 'B', src: 'Tutorial W2 Q5', formula: 'fv-annuity', boss: true,
@@ -725,14 +825,14 @@
           const parts = cfs.map((c, t) => c * FIN.fvif(r, n - t));
           const sum = cfs.reduce((a, b) => a + b, 0);
           return {
-            q: R`${who} deposits ${listText(cfs.map((c, t) => `${mt(c)} ${when(t)}`))}. The account pays ${T.pctT(r)} p.a., compounded annually. How much is in the account at the end of year ${n}, just after the last deposit?`,
+            q: R`${who} makes these deposits into an account paying ${T.pctT(r)} p.a., compounded annually:\n${cfs.map((c, t) => `• ${t === 0 ? 'Today' : `End of year ${t}`}: ${mt(c)}`).join('\n')}\nHow much is in the account at the end of year ${n}, just after the last deposit?`,
             givens: cfs.map((c, t) => [`C_{${t}}`, ml(c)]).concat([['r', L.pctT(r)]]),
             tl: { n, at: Object.fromEntries(cfs.map((c, t) => [t, mt(c)])), unit: 'Year', hi: [n] },
             answer: fv, unit: '$', dp: 2,
             mistakes: [
               { v: sum, why: `That just adds the deposits. Each one also earns interest until year ${n}.` },
               { v: fv * (1 + r), why: `That compounds every deposit one year too many. The deposit at year ${n} earns no interest.` },
-              { v: pv, why: `That is the value today (t = 0). The question asks for the value at year ${n}.` },
+              { v: pv, why: R`That is the value today (\(t = 0\)). The question asks for the value at year ${n}.` },
             ],
             steps: [
               R`**Value additivity:** move every deposit to \(t = ${n}\), then add. A deposit made at \(t\) grows for \(${n} - t\) years.`,
@@ -752,13 +852,13 @@
           const pv = FIN.pvStream(cfs, r);
           const parts = cfs.map((c, t) => c / FIN.fvif(r, t));
           const sum = cfs.reduce((a, b) => a + b, 0);
-          const items = cfs.map((c, t) => (c ? `${mt(c)} ${t === 0 ? 'today' : `at the end of year ${t}`}` : null)).filter(Boolean);
+          const items = cfs.map((c, t) => (c ? `• ${t === 0 ? 'Today' : `End of year ${t}`}: ${mt(c)}` : null)).filter(Boolean).join('\n');
           const q = today
-            ? R`To buy a delivery van from ${rng.company()}, you must pay ${listText(items)}. A safe investment earns ${T.pctT(r)} p.a. What is the present value of all your payments?`
-            : R`An investment will pay you ${listText(items)}. The interest rate is ${T.pctT(r)} p.a. What is the investment worth today?`;
+            ? R`To buy a delivery van from ${rng.company()}, you must make these payments:\n${items}\nA safe investment earns ${T.pctT(r)} p.a. What is the present value of all your payments?`
+            : R`An investment will pay you:\n${items}\nThe interest rate is ${T.pctT(r)} p.a. What is the investment worth today?`;
           const mistakes = [
             { v: sum, why: 'That adds cash flows from different dates, which ignores the time value of money.' },
-            { v: FIN.pvStream([0].concat(cfs), r), why: 'That discounts every cash flow one period too many. The [CFj] list starts at t = 0.' },
+            { v: FIN.pvStream([0].concat(cfs), r), why: R`That discounts every cash flow one period too many. The [CFj] list starts at \(t = 0\).` },
           ];
           if (today) mistakes.push({ v: pv - cfs[0], why: 'You left out the payment made today. It counts at full value.' });
           else mistakes.push({ v: FIN.fvStream(cfs, r), why: `That is the value at year ${n}, not today.` });
@@ -806,7 +906,7 @@
                 R`\[PV = \frac{C}{r} = \frac{${ml(c)}}{${L.dec(r)}} = ${L.money(base)}\]`,
               ],
               calc: `${kn(c)} ÷ ${L.dec(r)} = ${T.money(base)}`,
-              why: 'A level perpetuity: PV = C ÷ r, valued one period before the next payment.',
+              why: R`A level perpetuity: \(PV = \frac{C}{r}\), valued one period before the next payment.`,
             };
           }
           tl.at[0] = mt(c) + ' + ?';
@@ -823,7 +923,7 @@
               R`\[PV = C + \frac{C}{r} = ${ml(c)} + \frac{${ml(c)}}{${L.dec(r)}} = ${ml(c)} + ${L.money(base)} = ${L.money(base + c)}\]`,
             ],
             calc: `${kn(c)} ÷ ${L.dec(r)} + ${kn(c)} = ${T.money(base + c)}`,
-            why: 'When the first payment is today, add it to C ÷ r.',
+            why: R`When the first payment is today, add it to \(\frac{C}{r}\).`,
           };
         } },
       { id: 'w2-g-io', topic: 'perp', level: 1, section: 'B', formula: 'pv-perp', src: 'MST 2026 Q13',
@@ -835,9 +935,9 @@
             givens: [['PV', ml(pv)], ['APR', L.pctT(apr)], ['i', R`\frac{${L.dec(apr)}}{12}`]],
             answer: c, unit: '$', dp: 2,
             mistakes: [
-              { v: pv * apr, why: 'That is a whole year of interest. A monthly payment uses APR ÷ 12.' },
+              { v: pv * apr, why: R`That is a whole year of interest. A monthly payment uses \(\frac{APR}{12}\).` },
               { v: FIN.pmt(pv, i, 360), why: 'That repays the loan over 30 years. An interest-only loan never repays principal, so it is a perpetuity.' },
-              { v: pv * (Math.pow(1 + apr, 1 / 12) - 1), why: 'That treats the rate as an EAR. A rate compounded monthly means APR ÷ 12 per month.' },
+              { v: pv * (Math.pow(1 + apr, 1 / 12) - 1), why: R`That treats the rate as an EAR. A rate compounded monthly means \(\frac{APR}{12}\) per month.` },
             ],
             steps: [
               R`For the lender, a loan that is never repaid is a **perpetuity**: \(PV = \frac{C}{i}\), so \(C = PV \times i\).`,
@@ -854,10 +954,10 @@
           const k = rng.int(2, 6), c = rng.step(500, 10000, 100), r = rng.step(0.04, 0.12, 0.005);
           const v1 = c / r, pv = v1 / FIN.fvif(r, k - 1);
           const mistakes = [
-            { v: v1, why: `That is the value at t = ${k - 1}. Discount it back ${yrsW(k - 1)} to today.` },
-            { v: v1 / FIN.fvif(r, k), why: `That discounts ${yrsW(k)}. C ÷ r already lands at t = ${k - 1}, so discount only ${yrsW(k - 1)}.` },
+            { v: v1, why: R`That is the value at \(t = ${k - 1}\). Discount it back ${yrsW(k - 1)} to today.` },
+            { v: v1 / FIN.fvif(r, k), why: R`That discounts ${yrsW(k)}. \(\frac{C}{r}\) already lands at \(t = ${k - 1}\), so discount only ${yrsW(k - 1)}.` },
           ];
-          if (k > 2) mistakes.push({ v: v1 / FIN.fvif(r, k - 2), why: `That discounts only ${yrsW(k - 2)}. From t = ${k - 1} back to today is ${yrsW(k - 1)}.` });
+          if (k > 2) mistakes.push({ v: v1 / FIN.fvif(r, k - 2), why: R`That discounts only ${yrsW(k - 2)}. From \(t = ${k - 1}\) back to today is ${yrsW(k - 1)}.` });
           else mistakes.push({ v: v1 + c, why: 'There is no payment today. Nothing is added.' });
           return {
             q: R`At ${T.pctT(r)} p.a., what is the value today of ${mt(c)} per year **forever**, with the **first** payment **${k} years** from today?`,
@@ -870,7 +970,7 @@
               R`Discount ${yrsW(k - 1)} to today: \[PV_0 = \frac{${L.num(v1)}}{(${L.onePlus(r)})^{${k - 1}}} = ${L.money(pv)}\]`,
             ],
             calc: `${kn(c)} ÷ ${L.dec(r)} = ${T.money(v1)} · then ${k - 1} [N] · ${pk(r)} [I/YR] · 0 [PMT] · ${kn(v1)} [FV] · [PV] → −${T.money(pv)}`,
-            why: `Step back one period from the first payment (to t = ${k - 1}), then discount to today.`,
+            why: R`Step back one period from the first payment (to \(t = ${k - 1}\)), then discount to today.`,
           };
         } },
       { id: 'w2-g-defann', topic: 'deferred', level: 2, section: 'B', formula: 'pv-annuity', src: 'Tutorial W2 Q3; Mock MST Q04',
@@ -886,8 +986,8 @@
             tl: tlLevel(k, n, mt(c), 'Year', { 0: '?' }, [0]),
             answer: pv, unit: '$', dp: 2,
             mistakes: [
-              { v: vk, why: `That is the value at t = ${k - 1}. Discount it back ${yrsW(k - 1)} to today.` },
-              { v: vk / FIN.fvif(r, k), why: `That discounts ${yrsW(k)}. The annuity formula already lands at t = ${k - 1}.` },
+              { v: vk, why: R`That is the value at \(t = ${k - 1}\). Discount it back ${yrsW(k - 1)} to today.` },
+              { v: vk / FIN.fvif(r, k), why: R`That discounts ${yrsW(k)}. The annuity formula already lands at \(t = ${k - 1}\).` },
               { v: (c * n) / FIN.fvif(r, k - 1), why: 'That adds the payments before discounting. Use the annuity formula for them.' },
             ],
             steps: [
@@ -966,7 +1066,7 @@
               answer: pv, unit: '$', dp: 2,
               mistakes: [
                 { v: ord, why: 'That is an ordinary annuity. The first payment is today, so use the annuity due formula.' },
-                { v: FIN.pvAnnuityDue(c, i, m), why: `Count the payments: t = 0 to t = ${m} is ${n} payments, not ${m}.` },
+                { v: FIN.pvAnnuityDue(c, i, m), why: R`Count the payments: \(t = 0\) to \(t = ${m}\) is ${n} payments, not ${m}.` },
                 { v: c * n, why: 'That adds the payments and ignores discounting.' },
               ],
               steps: [
@@ -975,7 +1075,7 @@
                 R`\[PV_{due} = ${pvaTex(c, rt(i), n)}(${L.onePlus(i)}) = ${L.num(ord)} \times ${L.onePlus(i)} = ${L.money(pv)}\]`,
               ],
               calc: `BEG mode · ${n} [N] · ${pk(i)} [I/YR] · ${kn(c)} [PMT] · 0 [FV] · [PV] → −${T.money(pv)} · then back to END mode`,
-              why: 'The first payment is today, so this is an annuity due: the ordinary annuity value times (1 + r).',
+              why: R`The first payment is today, so this is an annuity due: the ordinary annuity value times \((1+r)\).`,
             };
           }
           if (kind === 1) {
@@ -988,7 +1088,7 @@
               answer: pv, unit: '$', dp: 2,
               mistakes: [
                 { v: ord, why: 'That treats the payments as end-of-year. They are paid at the start of each year.' },
-                { v: ord / (1 + r), why: 'An annuity due is worth more than an ordinary annuity, so multiply by (1 + r). Do not divide.' },
+                { v: ord / (1 + r), why: R`An annuity due is worth more than an ordinary annuity, so multiply by \((1+r)\). Do not divide.` },
                 { v: c * n, why: 'That adds the payments and ignores discounting.' },
               ],
               steps: [
@@ -1012,7 +1112,7 @@
             mistakes: [
               { v: ord, why: 'That treats the deposits as end-of-year. Start-of-year deposits each earn one more year of interest.' },
               { v: c * n, why: 'That adds the deposits and ignores interest.' },
-              { v: ord / (1 + r), why: 'An annuity due grows more than an ordinary annuity, so multiply by (1 + r). Do not divide.' },
+              { v: ord / (1 + r), why: R`An annuity due grows more than an ordinary annuity, so multiply by \((1+r)\). Do not divide.` },
             ],
             steps: [
               R`\[FV_{due} = \frac{C}{r}\left((1+r)^{n} - 1\right)(1+r)\]`,
@@ -1076,12 +1176,12 @@
             mistakes: justPaid
               ? [
                 { v: c / (r - g), why: R`That uses the payment just made. Use the next one: \(C_1 = C_0(1+g)\).` },
-                { v: c1 / r, why: 'That ignores the growth. Divide by r − g.' },
+                { v: c1 / r, why: R`That ignores the growth. Divide by \(r - g\).` },
                 { v: c1 / (r + g), why: 'Subtract g from r. Do not add it.' },
               ]
               : [
                 { v: c * (1 + g) / (r - g), why: 'The first payment is already next year’s amount. Do not grow it again.' },
-                { v: c / r, why: 'That ignores the growth. Divide by r − g.' },
+                { v: c / r, why: R`That ignores the growth. Divide by \(r - g\).` },
                 { v: c / (r + g), why: 'Subtract g from r. Do not add it.' },
               ],
             steps: (justPaid ? [R`The formula needs the **next** payment: \(C_1 = ${ml(c)} \times ${L.onePlus(g)} = ${ml4(c1)}\).`] : [])
@@ -1089,7 +1189,7 @@
                 R`\[PV = \frac{C_1}{r - g} = \frac{${ml4(c1)}}{${L.dec(r)} - ${L.dec(g)}} = ${L.money(pv)}\]`,
               ]),
             calc: `${+c1.toFixed(4)} ÷ (${L.dec(r)} − ${L.dec(g)}) = ${T.money(pv)}`,
-            why: 'Growing perpetuity: next payment divided by (r − g).',
+            why: R`Growing perpetuity: the next payment divided by \((r - g)\).`,
           };
         } },
       { id: 'w2-g-gann', topic: 'growth', level: 2, section: 'B', formula: 'pv-grow-annuity', src: 'Lecture W2 Example 9',
@@ -1150,7 +1250,7 @@
             mistakes: [
               { v: FIN.pmt(pv, apr, yrs) / 12, why: 'An annual payment divided by 12 is not the monthly payment. Work in months from the start.' },
               { v: pv / N, why: 'That ignores interest.' },
-              { v: FIN.pmt(pv, i, yrs), why: `That uses ${yrs} periods. Monthly payments need n = ${yrs} × 12 = ${N}.` },
+              { v: FIN.pmt(pv, i, yrs), why: R`That uses ${yrs} periods. Monthly payments need \(n = ${yrs} \times 12 = ${N}\).` },
             ],
             steps: [
               R`Monthly rate \(i = \frac{${L.dec(apr)}}{12}\) and \(n = ${N}\).`,
@@ -1513,7 +1613,7 @@
             tl: { n: k + 2, at, unit: 'Year', hi: [0] },
             answer: v, unit: '$', dp: 2,
             mistakes: [
-              { v: a + b + cAtK / FIN.fvif(r, k + 1), why: `The perpetuity starts at year ${k + 1}, so C ÷ r lands at year ${k}. Discount ${k} years, not ${k + 1}.` },
+              { v: a + b + cAtK / FIN.fvif(r, k + 1), why: R`The perpetuity starts at year ${k + 1}, so \(\frac{C}{r}\) lands at year ${k}. Discount ${k} years, not ${k + 1}.` },
               { v: a + bAt1 + c, why: 'The annuity starts at year 2, so its formula value sits at year 1. Discount it one more year.' },
               { v: a + b + cAtK, why: `The perpetuity value sits at year ${k}. Discount it back to today.` },
             ],

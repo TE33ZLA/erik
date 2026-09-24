@@ -209,18 +209,18 @@
         game: 'rapid', title: 'Model Matcher', intro: 'Which valuation model fits each security? Match them fast.',
         bins: [{ id: 'zero', label: R`Zero growth \(\frac{D}{r}\)` }, { id: 'const', label: R`Constant growth \(\frac{D_1}{r - g}\)` }, { id: 'var', label: 'Variable growth (4 steps)' }, { id: 'bond', label: 'Bond: coupons + face value' }],
         items: [
-          { t: 'A preference share paying a fixed $3 a year, forever', bin: 'zero', why: 'A fixed dividend forever is a perpetuity: D ÷ r.' },
+          { t: 'A preference share paying a fixed $3 a year, forever', bin: 'zero', why: R`A fixed dividend forever is a perpetuity: \(\frac{D}{r}\).` },
           { t: 'Dividends of $2 a year that never change', bin: 'zero', why: 'No growth: the zero-growth (perpetuity) model.' },
-          { t: 'Dividends growing at 4% a year, forever', bin: 'const', why: 'Constant growth forever: D1 ÷ (r − g).' },
-          { t: 'A $1.50 dividend just paid, growing 3% a year forever', bin: 'const', why: 'Constant growth: grow D0 to D1, then D1 ÷ (r − g).' },
+          { t: 'Dividends growing at 4% a year, forever', bin: 'const', why: R`Constant growth forever: \(\frac{D_1}{r - g}\).` },
+          { t: 'A $1.50 dividend just paid, growing 3% a year forever', bin: 'const', why: R`Constant growth: grow \(D_0\) to \(D_1\), then use \(\frac{D_1}{r - g}\).` },
           { t: 'Dividends grow 20% for 3 years, then 5% forever', bin: 'var', why: 'Growth changes, so value the early dividends one by one, then add a terminal price.' },
           { t: 'Growth starts at 25% and falls 5 points a year to 5%', bin: 'var', why: 'Changing growth: the 4-step variable-growth method.' },
           { t: 'Pays $40 every six months and $1,000 in 10 years', bin: 'bond', why: 'Coupons plus a face value at maturity: the bond formula.' },
-          { t: 'Zero-coupon: pays $1,000 in 30 years', bin: 'bond', why: 'A zero-coupon bond: FV ÷ (1 + i)^n.' },
+          { t: 'Zero-coupon: pays $1,000 in 30 years', bin: 'bond', why: R`A zero-coupon bond: \(\frac{FV}{(1+i)^{n}}\).` },
           { t: 'A government bond with 5% annual coupons, 10 years left', bin: 'bond', why: 'Coupons (an annuity) plus the face value (a lump sum).' },
           { t: 'Growth of 6.5% for 6 years, then 3.5% forever', bin: 'var', why: 'Two growth phases: a growing annuity, then a growing perpetuity.' },
           { t: 'A mature utility whose dividends grow 2% a year, forever', bin: 'const', why: 'Steady growth forever: the constant-growth model.' },
-          { t: 'A share paying a constant dividend with no growth', bin: 'zero', why: 'Constant dividend: P0 = D ÷ r.' },
+          { t: 'A share paying a constant dividend with no growth', bin: 'zero', why: R`Constant dividend: \(P_0 = \frac{D}{r}\).` },
           { t: 'A corporate bond with semi-annual coupons, repaid at maturity', bin: 'bond', why: 'Halve the coupon and yield, double n, and use the bond formula.' },
           { t: 'A fast grower now that will become a stable grower later', bin: 'var', why: 'High growth first, constant growth later: variable growth.' },
         ],
@@ -265,7 +265,7 @@
         q: R`Find the value of a 30-year zero-coupon bond with a $1,000 par value and a required return of 6% p.a.`,
         answer: FIN.zeroPrice(1000, 0.06, 30), unit: '$', dp: 2,
         mistakes: [
-          { v: 1000 / (1 + 0.06 * 30), why: 'That uses simple interest. Discount with (1 + i) to the power n.' },
+          { v: 1000 / (1 + 0.06 * 30), why: R`That uses simple interest. Discount with \((1+i)^{n}\).` },
           { v: 1000 / 1.06 ** 29, why: 'That discounts 29 years. The face value arrives at year 30.' },
           { v: FIN.zeroPrice(1000, 0.06, 30, 2), why: 'That compounds semi-annually. Nothing says semi-annual, so use annual periods.' },
         ],
@@ -418,7 +418,7 @@
         q: R`A $1,000 bond has 19 half-years left. It pays a $60 coupon every six months and is expected to sell for $896.64. What is its **effective annual** yield to maturity?`,
         answer: P((1 + T6C) ** 2 - 1), unit: '%', dp: 2,
         mistakes: [
-          { v: P(2 * T6C), why: 'That is the nominal yield (2 × 7%). Convert it to an effective annual yield.' },
+          { v: P(2 * T6C), why: R`That is the nominal yield (\(2 \times 7\%\)). Convert it to an effective annual yield.` },
           { v: P(T6C), why: 'That is the yield per half-year.' },
           { v: P((1 + T6C / 2) ** 2 - 1), why: 'The 7% is already a half-year yield. Do not halve it again.' },
         ],
@@ -427,12 +427,12 @@
           R`\[EAY = (1 + 0.07)^{2} - 1 = ${L.pct((1 + T6C) ** 2 - 1)}\]`,
         ],
         calc: `19 [N] · −896.64 [PV] · 60 [PMT] · 1000 [FV] · [I/YR] → ${T.num(T6C * 100)} · then 1.07² − 1 = ${T.num(((1 + T6C) ** 2 - 1) * 100)}%`,
-        why: 'The calculator gives a half-year yield. Square (1 + i) to make it effective annual.' },
+        why: R`The calculator gives a half-year yield. Square \((1+i)\) to make it effective annual.` },
       { id: 'w3-q27', topic: 'yield', kind: 'num', level: 2, section: 'B', src: 'Mock MST Q30', formula: 'eay',
         q: R`A $1,000 bond has 8 years to maturity and a 10% coupon rate, paid **semi-annually**. It is priced at $896.64. What is its **effective** yield to maturity?`,
         answer: P((1 + M30) ** 2 - 1), unit: '%', dp: 2,
         mistakes: [
-          { v: P(2 * M30), why: 'That is the nominal yield. Convert: (1 + half-year yield)² − 1.' },
+          { v: P(2 * M30), why: R`That is the nominal yield. Convert it: \((1 + i_{\text{half}})^{2} - 1\).` },
           { v: P((1 + M30 / 2) ** 2 - 1), why: 'The calculator result is already per half-year. Do not halve it again.' },
           { v: P(FIN.bondYieldPeriodic(896.64, 1000, 100, 8)), why: 'That treats the coupons as annual. They are paid every six months.' },
         ],
@@ -531,14 +531,14 @@
         answer: 3 / 0.08, unit: '$', dp: 2,
         mistakes: [
           { v: 3 / 0.08 + 3, why: 'No dividend is due today. The next one comes in a year.' },
-          { v: 3 / 0.08 / 1.08, why: 'D ÷ r already gives today’s value. Do not discount again.' },
+          { v: 3 / 0.08 / 1.08, why: R`\(\frac{D}{r}\) already gives today’s value. Do not discount again.` },
           { v: 3 / 0.8, why: 'Check the decimal: 8% is 0.08, not 0.8.' },
         ],
         steps: [
           R`\[P_0 = \frac{D}{r} = \frac{3}{0.08} = \$37.50\]`,
           R`In five years it is still worth \(\frac{3}{0.08} = \$37.50\). Nothing grows, so the price stays the same.`,
         ],
-        why: 'A preference share is a perpetuity: dividend ÷ required return.' },
+        why: R`A preference share is a perpetuity: \(P_0 = \frac{D}{r}\).` },
       { id: 'w3-q40', topic: 'pref', kind: 'tf', level: 1, section: 'A', src: 'Tutorial W3 Q4',
         q: R`A preference share’s dividend is fixed and its required return does not change. Its price in five years will be the same as today.`,
         answer: true,
@@ -579,20 +579,20 @@
         mistakes: [
           { v: 0.15 / 0.05, why: R`That uses \(D_0\). Use the next dividend: \(D_1 = 0.15 \times 1.05 = 0.1575\).` },
           { v: 0.1575 / 0.15, why: 'Subtract g from the required return. Do not add it.' },
-          { v: 0.1575 / 0.10, why: 'That ignores growth. Divide by r − g.' },
+          { v: 0.1575 / 0.10, why: R`That ignores growth. Divide by \(r - g\).` },
         ],
         steps: [
           R`\[D_1 = D_0(1+g) = 0.15 \times 1.05 = \$0.1575\]`,
           R`\[P_0 = \frac{D_1}{r_E - g} = \frac{0.1575}{0.10 - 0.05} = \$3.15\]`,
           R`Check: dividend yield \(= \frac{0.1575}{3.15} = 5\%\), capital gains yield \(= g = 5\%\). Together they make \(r_E = 10\%\).`,
         ],
-        why: 'Grow the dividend just paid by one year, then divide by (r − g).' },
+        why: R`Grow the dividend just paid by one year, then divide by \((r - g)\).` },
       { id: 'w3-q49', topic: 'ddm', kind: 'num', level: 2, section: 'B', src: 'Mock MST Q17', formula: 'share-ddm',
         q: R`Trusty Gets’ Lucky Ltd has **just paid** a dividend of $2.00. Dividends will grow at 6% a year forever. The discount rate is 16%. What is the share’s expected price in **one year**?`,
-        answer: FIN.ddmConst(2 * 1.06 ** 2, 0.16, 0.06), unit: '$', dp: 2,
+        answer: FIN.ddmConst(2 * 1.06 ** 2, 0.16, 0.06), unit: '$', dp: 2, tol: 0.035, // also accept the mock solution's $22.50
         mistakes: [
           { v: FIN.ddmConst(2 * 1.06, 0.16, 0.06), why: R`That is today’s price \(P_0\). The price in one year uses \(D_2\).` },
-          { v: FIN.ddmConst(2 * 1.06, 0.16, 0.06) * 1.16, why: 'The price grows at g = 6%, not at the 16% required return.' },
+          { v: FIN.ddmConst(2 * 1.06, 0.16, 0.06) * 1.16, why: R`The price grows at \(g = 6\%\), not at the 16% required return.` },
           { v: 2 / 0.10, why: R`That uses \(D_0\). \(P_1\) needs \(D_2 = D_0(1+g)^{2}\).` },
         ],
         steps: [
@@ -607,7 +607,7 @@
         mistakes: [
           { v: 2.7, why: 'The price grows with the dividends. It is not fixed like a preference share.' },
           { v: FIN.ddmConst(0.2 * 1.08 ** 5, 0.16, 0.08), why: R`\(P_5\) uses \(D_6\), not \(D_5\).` },
-          { v: 2.7 * 1.16 ** 5, why: 'The price grows at g = 8%, not at the 16% required return.' },
+          { v: 2.7 * 1.16 ** 5, why: R`The price grows at \(g = 8\%\), not at the 16% required return.` },
         ],
         steps: [
           R`\[P_5 = P_0(1+g)^{5} = 2.70 \times 1.08^{5} = ${L.money(2.7 * 1.08 ** 5)}\]`,
@@ -761,6 +761,42 @@
         calc: `6 [N] · 12 [I/YR] · −25.56 [PV] · 5 [PMT] · [FV] → ${T.money(M17.pn)}`,
         why: 'Treat it like a bond: the dividends are the coupons and the future price is the face value.' },
 
+      /* ----- more course examples ----- */
+      { id: 'w3-q69', topic: 'pref', kind: 'num', level: 1, section: 'B', src: 'Lecture W3 Example 6', formula: 'share-zero',
+        q: R`Wave Industries is expected to pay a constant dividend of $3 per share a year, forever. The discount rate is 15%. What is the share worth?`,
+        answer: FIN.ddmZero(3, 0.15), unit: '$', dp: 2,
+        mistakes: [
+          { v: 3 / 0.15 + 3, why: 'No dividend is due today. The next one comes in a year.' },
+          { v: 3 / 0.15 / 1.15, why: R`\(\frac{D}{r}\) already gives today’s value. Do not discount again.` },
+          { v: FIN.pvAnnuity(3, 0.15, 10), why: 'That values only 10 years of dividends. These dividends last forever.' },
+        ],
+        steps: [R`A constant dividend forever is a perpetuity: \[P_0 = \frac{D}{r_E} = \frac{3}{0.15} = \$20.00\]`],
+        why: R`Zero growth: the share is a perpetuity, \(\frac{D}{r}\).` },
+      { id: 'w3-q70', topic: 'ddm', kind: 'num', level: 1, section: 'B', src: 'Mock MST Q14', formula: 'share-ddm',
+        q: R`Spacefood Products will pay a dividend of $2.40 per share **at the end of this year**. The dividend is expected to grow by 3% a year, forever. The equity cost of capital is 10%. What is one share worth today?`,
+        answer: FIN.ddmConst(2.4, 0.10, 0.03), unit: '$', dp: 2,
+        mistakes: [
+          { v: FIN.ddmConst(2.4 * 1.03, 0.10, 0.03), why: 'The $2.40 is already next year’s dividend. Do not grow it again.' },
+          { v: 2.4 / 0.10, why: R`That ignores growth. Divide by \(r_E - g\).` },
+          { v: 2.4 / 0.13, why: R`Subtract \(g\) from \(r_E\). Do not add it.` },
+        ],
+        steps: [R`\[P_0 = \frac{D_1}{r_E - g} = \frac{2.40}{0.10 - 0.03} = ${L.money(FIN.ddmConst(2.4, 0.10, 0.03))}\]`],
+        why: R`The dividend at the end of this year is \(D_1\), so it goes straight on top.` },
+      { id: 'w3-q71', topic: 'ddm', kind: 'num', level: 1, section: 'B', src: 'Mock MST Q16', formula: 'share-ddm',
+        q: R`Trusty Gets’ Lucky Ltd has **just paid** a dividend of $2.00 per share. It plans to increase dividends by 6% a year, indefinitely. The discount rate is 16%. What is the share price today?`,
+        answer: FIN.ddmConst(2 * 1.06, 0.16, 0.06), unit: '$', dp: 2,
+        mistakes: [
+          { v: 2 / 0.10, why: R`That uses \(D_0\). Use \(D_1 = 2.00 \times 1.06 = 2.12\).` },
+          { v: 2.12 / 0.22, why: R`Subtract \(g\) from \(r_E\). Do not add it.` },
+          { v: 2.12 / 0.16, why: R`That ignores growth. Divide by \(r_E - g\).` },
+        ],
+        steps: [
+          R`\[D_1 = D_0(1+g) = 2.00 \times 1.06 = \$2.12\]`,
+          R`\[P_0 = \frac{D_1}{r_E - g} = \frac{2.12}{0.16 - 0.06} = ${L.money(FIN.ddmConst(2 * 1.06, 0.16, 0.06))}\]`,
+          R`\(D_0\) has already been paid, so it is not part of today’s price.`,
+        ],
+        why: R`Just paid means \(D_0\). Grow it one year to get \(D_1\), then use the constant-growth model.` },
+
       /* ----- boss-level static ----- */
       { id: 'w3-q67', topic: 'vargrowth', kind: 'num', level: 3, section: 'B', src: 'MST 2026 Q18', formula: 'pv-grow-annuity', boss: true,
         q: R`A company has **just paid** a $2.00 dividend. Dividends will grow at 6.5% a year for the next 6 years, then at 3.5% a year forever. The required return is 9%. What is the share worth today?`,
@@ -783,7 +819,7 @@
         mistakes: [
           { v: FIN.bondPrice(1000, 0.10, 0.15, 8, 2), why: 'That ignores the restructure and prices a normal bond.' },
           { v: M12.p - 500 / 1.075 ** 16, why: 'You left out the $500 of skipped coupons that are repaid at maturity.' },
-          { v: FIN.npv(0.15, M12.cfs), why: 'Use the half-year rate: 15% ÷ 2 = 7.5% per period.' },
+          { v: FIN.npv(0.15, M12.cfs), why: R`Use the half-year rate: \(\frac{15\%}{2} = 7.5\%\) per period.` },
         ],
         steps: [
           R`Per half-year: \(C = \$50\), \(i = 7.5\%\), \(n = 16\). Periods 1–10 pay nothing, so \(10 \times 50 = \$500\) is repaid at maturity.`,
@@ -830,12 +866,12 @@
             givens: [['FV', ml(face)], ['y', L.pctT(y)], ['n', semi ? R`${n} \times 2 = ${2 * n}` : String(n)]],
             answer: price, unit: '$', dp: 2,
             mistakes: semi ? [
-              { v: FIN.zeroPrice(face, y, n, 1), why: 'That compounds once a year. This yield compounds semi-annually: use y ÷ 2 and 2n periods.' },
+              { v: FIN.zeroPrice(face, y, n, 1), why: R`That compounds once a year. This yield compounds semi-annually: use \(\frac{y}{2}\) and \(2n\) periods.` },
               { v: face / Math.pow(1 + y / 2, n), why: `Halve the rate and double the periods: ${2 * n} half-years, not ${n}.` },
               { v: face / (1 + y * n), why: 'That uses simple interest. Discount with compounding.' },
               { v: face, why: 'A zero-coupon bond pays nothing until maturity, so today it is worth less than its face value.' },
             ] : [
-              { v: face / (1 + y * n), why: 'That uses simple interest. Discount with (1 + y) to the power n.' },
+              { v: face / (1 + y * n), why: R`That uses simple interest. Discount with \((1+y)^{n}\).` },
               { v: face / Math.pow(1 + y, n - 1), why: `That discounts ${n - 1} years. The face value arrives at year ${n}.` },
               { v: face, why: 'A zero-coupon bond pays nothing until maturity, so today it is worth less than its face value.' },
             ],
@@ -922,7 +958,7 @@
               { v: FIN.bondPrice(1000, c, y, N, 2), why: 'That ignores the restructure and prices a normal bond.' },
               { v: price - (s * cp) / FIN.fvif(i, n), why: `You left out the ${mt(s * cp)} of skipped coupons that are repaid at maturity.` },
               { v: FIN.npv(i, cfsK), why: `${k} years is ${s} half-years of skipped coupons, not ${k}.` },
-              { v: FIN.npv(y, cfs), why: `Use the half-year rate: ${T.pctT(y)} ÷ 2 = ${T.pctT(i)} per period.` },
+              { v: FIN.npv(y, cfs), why: R`Use the half-year rate: \(\frac{${L.pctT(y)}}{2} = ${L.pctT(i)}\) per period.` },
             ]),
             steps: [
               R`Per half-year: \(C = ${ml(cp)}\), \(i = ${L.pctT(i)}\), \(n = ${n}\). Periods 1–${s} pay nothing, so \(${s} \times ${ml(cp)} = ${ml(s * cp)}\) is repaid at maturity.`,
@@ -975,7 +1011,7 @@
               ],
               steps: [R`\[EAY = \left(1 + \frac{y}{2}\right)^{2} - 1 = \left(1 + \frac{${L.dec(y)}}{2}\right)^{2} - 1 = ${L.pct(eay, 4)}\]`],
               calc: `${pk(y)} [NOM%] · 2 [P/YR] · [EFF%] → ${T.num(eay * 100, 4)} (then set P/YR back to 1)`,
-              why: 'EAY = (1 + y/2)² − 1 for a semi-annual bond.',
+              why: R`\(EAY = \left(1 + \frac{y}{2}\right)^{2} - 1\) for a semi-annual bond.`,
             };
           }
           const yp = rng.step(0.015, 0.075, 0.0001), eay = Math.pow(1 + yp, 2) - 1;
@@ -1041,7 +1077,7 @@
               givens: [['P', L.money(price)], ['C', ml(cp)], ['n', R`${yrs} \times 2 = ${n}`], ['FV', R`\$1{,}000`]],
               answer: P(eay), unit: '%', dp: 2,
               mistakes: dedupe([
-                { v: P(2 * yp), why: 'That is the nominal yield (2 × the half-year yield). Convert it to an effective annual yield.' },
+                { v: P(2 * yp), why: R`That is the nominal yield (\(2 \times\) the half-year yield). Convert it to an effective annual yield.` },
                 { v: P(Math.pow(1 + yp / 2, 2) - 1), why: 'The calculator result is already the half-year yield. Do not halve it again.' },
                 { v: P(yp), why: 'That is the yield per half-year.' },
                 { v: P(Math.pow(1 + c / 2, 2) - 1), why: 'That uses the coupon rate. The yield must come from the price.' },
@@ -1052,7 +1088,7 @@
                 R`\[EAY = (1 + i)^{2} - 1 = (${L.onePlus(yp, 6)})^{2} - 1 = ${L.pct(eay, 2)}\]`,
               ],
               calc: `${n} [N] · −${kn(price)} [PV] · ${kn(cp)} [PMT] · 1000 [FV] · [I/YR] → ${T.num(yp * 100, 4)} · then (1 + ${T.numT(yp, 6)})² − 1 = ${T.num(eay * 100)}%`,
-              why: 'Solve for the half-year yield, then compound it: EAY = (1 + i)² − 1.',
+              why: R`Solve for the half-year yield, then compound it: \(EAY = (1+i)^{2} - 1\).`,
             };
           }
           return null;
@@ -1167,18 +1203,18 @@
               givens: [['D', dvl(d)], ['r', L.pctT(r)]],
               answer: p, unit: '$', dp: 2,
               mistakes: later ? [
-                { v: p * Math.pow(1 + r, later), why: 'The price does not grow. The dividend is fixed, so the price stays D ÷ r.' },
-                { v: p / Math.pow(1 + r, later), why: `That is today’s value of the future price. The question asks for the price in ${later} years, which is still D ÷ r.` },
+                { v: p * Math.pow(1 + r, later), why: R`The price does not grow. The dividend is fixed, so the price stays \(\frac{D}{r}\).` },
+                { v: p / Math.pow(1 + r, later), why: R`That is today’s value of the future price. The question asks for the price in ${later} years, which is still \(\frac{D}{r}\).` },
                 { v: p + d, why: 'That year’s dividend has just been paid, so it is not part of the price.' },
               ] : [
                 { v: p + d, why: 'No dividend is paid today. The next one is in a year.' },
-                { v: p / (1 + r), why: 'D ÷ r already gives today’s value. Do not discount again.' },
+                { v: p / (1 + r), why: R`\(\frac{D}{r}\) already gives today’s value. Do not discount again.` },
                 { v: d / (10 * r), why: R`Check the decimal: ${T.pctT(r)} is \(${L.dec(r)}\).` },
               ],
               steps: [
                 R`A fixed dividend forever is a perpetuity: \[P = \frac{D}{r} = \frac{${dvl(d)}}{${L.dec(r)}} = ${L.money(p)}\]`,
               ].concat(later ? [R`In ${later} years the share still pays ${dv(d)} forever, so its price is the same.`] : []),
-              why: 'Preference share = perpetuity: D ÷ r. With no growth, the price stays the same over time.',
+              why: R`Preference share \(=\) perpetuity: \(\frac{D}{r}\). With no growth, the price stays the same over time.`,
             };
           }
           const dq = rng.step(0.25, 2.5, 0.05), rA = rng.step(0.04, 0.12, 0.004), rq = rA / 4, p = dq / rq;
@@ -1217,7 +1253,7 @@
                 R`\[P_0 = \frac{D_1}{r_E - g} = \frac{${dvl(d1)}}{${L.dec(r)} - ${L.dec(g)}} = ${L.money(p)}\]`,
               ],
               calc: `${+d1.toFixed(4)} ÷ (${L.dec(r)} − ${L.dec(g)}) = ${T.money(p)}`,
-              why: 'Grow the dividend just paid by one year, then divide by (r − g).',
+              why: R`Grow the dividend just paid by one year, then divide by \((r - g)\).`,
             };
           }
           const d1 = rng.step(0.20, 5.00, 0.05), p = d1 / (r - g);
@@ -1232,7 +1268,7 @@
             ],
             steps: [R`\[P_0 = \frac{D_1}{r_E - g} = \frac{${dvl(d1)}}{${L.dec(r)} - ${L.dec(g)}} = ${L.money(p)}\]`],
             calc: `${d1} ÷ (${L.dec(r)} − ${L.dec(g)}) = ${T.money(p)}`,
-            why: 'Constant growth forever: next dividend ÷ (r − g).',
+            why: R`Constant growth forever: next dividend divided by \((r - g)\).`,
           };
         } },
       { id: 'w3-g-ddmfut', topic: 'ddm', level: 2, section: 'B', formula: 'share-ddm', src: 'Tutorial W3 Q5; Mock MST Q17',

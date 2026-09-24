@@ -1033,7 +1033,7 @@
           const d = rng.pick([0.2, 0.25, 0.3, 0.4, 0.5]), r = rng.step(0.08, 0.12, 0.01);
           const npv = adv - lost / (1 + r) + roy / (r + d);
           return {
-            q: R`${who} is paid a ${T.money(adv * 1e6, 0)} advance today to write a book. Writing takes a year, and ${who} gives up ${T.money(lost * 1e6, 0)} of consulting income paid at \(t = 1\). Royalties start at ${T.money(roy * 1e6, 0)} at \(t = 1\), then **fall by ${T.pctT(d)} a year** forever. The cost of capital is ${T.pctT(r)}. What is the **NPV** of the deal?`,
+            q: R`${who} is paid an advance of ${T.money(adv * 1e6, 0)} today to write a book. Writing takes a year, and ${who} gives up ${T.money(lost * 1e6, 0)} of consulting income paid at \(t = 1\). Royalties start at ${T.money(roy * 1e6, 0)} at \(t = 1\), then **fall by ${T.pctT(d)} a year** forever. The cost of capital is ${T.pctT(r)}. What is the **NPV** of the deal?`,
             givens: [[R`\text{Advance}`, L.moneyT(adv) + R`\text{m}`], [R`\text{Lost income}_1`, L.moneyT(lost) + R`\text{m}`], ['C_1', L.moneyT(roy) + R`\text{m}`], ['g', L.pctT(-d)], ['k', L.pctT(r)]],
             answer: npv, unit: '$m', dp: 3,
             mistakes: [

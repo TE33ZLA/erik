@@ -208,9 +208,10 @@ em, i:not([class]) { font-style: normal; }
 .logo span:last-child { color: var(--accent); }
 .tagline { font-size: 1.15rem; max-width: 34ch; }
 .title-points { color: var(--ink-2); }
-.boss-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0 4px; }
-.boss-mini { margin: 0; width: 64px; display: grid; justify-items: center; border-radius: 12px; background: color-mix(in srgb, var(--floor) 16%, var(--panel)); border: 1.5px solid color-mix(in srgb, var(--floor) 40%, var(--line)); padding: 2px 2px 0; }
-.boss-mini svg { width: 58px; height: 58px; display: block; }
+.boss-row { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 6px; margin: 14px 0 4px; max-width: 600px; }
+.boss-mini { margin: 0; min-width: 0; display: grid; justify-items: center; border-radius: 12px; background: color-mix(in srgb, var(--floor) 16%, var(--panel)); border: 1.5px solid color-mix(in srgb, var(--floor) 40%, var(--line)); padding: 2px 2px 0; }
+.boss-mini svg { width: 100%; max-width: 58px; height: auto; aspect-ratio: 1; display: block; }
+@media (max-width: 520px) { .boss-row { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
 .boss-mini figcaption { font-family: var(--font-display); font-size: 0.72rem; color: var(--ink-2); line-height: 1.4; }
 .newgame h2 { margin-bottom: 0.6em; }
 .ng-grid { display: grid; grid-template-columns: 150px 1fr; gap: 16px; margin-bottom: 14px; }

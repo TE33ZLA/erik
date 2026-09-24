@@ -8,6 +8,18 @@ accepted too.
 This page lists those places, so a small difference between the game and your notes does not
 worry you in the test.
 
+## Week 2: annuities and loans
+
+| Where | Printed | Exact | Why |
+|---|---|---|---|
+| Lecture W2, Example 11 (amortisation table) | Year 5 interest $\$106.12$, opening balance $\$1{,}179.34$ | $\$106.14$ and $\$1{,}179.32$ | The table pushes its rounding into the last rows. |
+
+## Week 3: bonds and shares
+
+| Where | Printed | Exact | Why |
+|---|---|---|---|
+| Lecture W3, Examples 2–5 | $\$1{,}000.10$, $\$926.00$, $\$1{,}081.55$, $\$750.86$ | $\$1{,}000.00$, $\$926.40$, $\$1{,}081.11$, $\$750.76$ | The slides use 3-decimal table factors and say "rounding error". The game uses the exact formula. |
+
 ## Week 4: capital budgeting
 
 | Where | Printed | Exact | Why |
@@ -68,7 +80,16 @@ sample statistics ($n - 1$) for historical data and probability weights for scen
 | Where | Printed | Exact | Why |
 |---|---|---|---|
 | Mock MST Q04 | $\$17{,}290.02$ | $\$17{,}290.18$ | A typo in the solution. |
-| Mock MST Q17 | $P_1 = \$22.50$ | $P_1 = \frac{2 \times 1.06^2}{0.16 - 0.06} = \$22.47$ | The solution rounds $D_2$ to $\$2.25$ first. |
+| Mock MST Q13 | Types the balance as $517{,}196.67$, so the new payment is $\$2{,}331.01$ | Balance $\$517{,}194.79$, new payment $\$2{,}331.00$ | The line above gives $\$517{,}195.67$ (from the rounded payment). One digit was mistyped. |
+| Mock MST Q17 | $P_1 = \$22.50$ | $P_1 = \frac{2 \times 1.06^2}{0.16 - 0.06} = \$22.47$ | The solution rounds $D_2$ to $\$2.25$ first. The game accepts both. |
+| Mock MST Q29 feedback | "800 * 10 + 1000 = $1800" | $8 \times \$100 + \$1{,}000 = \$1{,}800$ | The answer is right. The working has a typo. |
+
+## MST 2026
+
+| Where | Printed | Note |
+|---|---|---|
+| MST Q14 | Balance $\$239{,}080.94$ | This uses the unrounded payment. If you type the rounded $\$1{,}696.97$ into the calculator, you get $\$239{,}080.86$. The game accepts both. |
+| MST Q17 | $P_6 = \$9.87$ | The exact value, $\$9.87496$, sits right on the rounding edge. The game accepts $\$9.87$ and $\$9.88$. |
 
 ## Weeks 10–11 (the Capital Summit)
 
