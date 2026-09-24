@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Corporate Ladder</title>
+<meta name="description" content="A dyslexia-friendly RPG for learning BFC2140 Corporate Finance: climb the tower, beat finance monsters, master every formula.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;700&family=Bungee&family=IBM+Plex+Mono:wght@400;600&family=Lexend:wght@300..700&display=swap">
+<link rel="stylesheet" href="css/katex-inline.css">
+<link rel="stylesheet" href="css/game.css">
+<!-- build:inline-fonts -->
+</head>
+<body>
+<a class="skip" href="#screen">Skip to the game</a>
+<header id="topbar" class="topbar">
+  <button class="brand" data-act="goto-tower" aria-label="Corporate Ladder: back to the tower"><span class="brand-mark" aria-hidden="true">CL</span><span class="brand-name">Corporate Ladder</span></button>
+  <div class="tb-player"></div>
+  <div class="tb-coins"></div>
+  <nav class="tb-tools" aria-label="Tools">
+    <button class="icon-btn" data-act="open-calc" aria-label="Financial calculator" title="Financial calculator">🧮</button>
+    <button class="icon-btn" data-act="open-sheet" aria-label="Formula sheet" title="Formula sheet">📘</button>
+    <button class="icon-btn" data-act="toggle-sound" aria-label="Sound on or off" title="Sound on or off">🔊</button>
+    <button class="icon-btn" data-act="goto" data-s="settings" aria-label="Settings" title="Settings">⚙️</button>
+  </nav>
+</header>
+<main id="screen" class="screen" tabindex="-1"><p class="boot">Loading the tower…</p></main>
+<div id="modal-root"></div>
+<div id="toast-root" class="toasts" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/katex@0.18.9/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.4/dist/confetti.browser.js"></script>
+<!-- build:scripts -->
+<script src="js/lib/fin.js"></script>
+<script src="js/lib/fmt.js"></script>
+<script src="js/lib/render.js"></script>
+<script src="js/lib/qcore.js"></script>
+<script src="js/lib/sfx.js"></script>
+<script src="js/lib/art.js"></script>
+<script src="js/lib/charts.js"></script>
+<script src="js/data/formulas.js"></script>
+<script src="js/data/registry.js"></script>
+<script src="js/data/w1.js"></script>
+<script src="js/data/w2.js"></script>
+<script src="js/data/w3.js"></script>
+<script src="js/data/w4.js"></script>
+<script src="js/data/w5.js"></script>
+<script src="js/data/w7.js"></script>
+<script src="js/data/w8.js"></script>
+<script src="js/data/w9.js"></script>
+<script src="js/data/wx.js"></script>
+<script src="js/engine/core.js"></script>
+<script src="js/engine/questions.js"></script>
+<script src="js/engine/qview.js"></script>
+<script src="js/engine/battle.js"></script>
+<script src="js/engine/minis.js"></script>
+<script src="js/engine/calc.js"></script>
+<script src="js/engine/screens.js"></script>
+<script src="js/engine/meta.js"></script>
+<script src="js/engine/exam.js"></script>
+<script src="js/engine/main.js"></script>
+<!-- /build:scripts -->
+</body>
+</html>

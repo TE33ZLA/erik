@@ -1,0 +1,17 @@
+{
+  "name": "corporate-ladder",
+  "version": "1.0.0",
+  "description": "A dyslexia-friendly RPG for learning BFC2140 Corporate Finance.",
+  "private": true,
+  "scripts": {
+    "test": "node tests/fin.test.js && node tests/validate.js",
+    "build": "node tools/build.js",
+    "serve": "npx --yes http-server -p 8080 -c-1 ."
+  },
+  "devDependencies": {
+    "@fontsource/opendyslexic": "5.3.0",
+    "canvas-confetti": "1.9.4",
+    "katex": "0.18.9"
+  },
+  "license": "MIT"
+}
