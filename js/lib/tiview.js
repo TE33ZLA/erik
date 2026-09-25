@@ -36,21 +36,21 @@
     return tips;
   }
 
-  function solverHTML(st, value, error) {
+  function solverHTML(st, value, error, hide) {
     const f = st.solver;
     const rows = NSPIRE.FIELDS.map((k) => {
       const isFind = k === st.find;
-      let v = isFind ? (error ? '?' : screenNum(value)) : (f[k] === undefined ? '' : k === 'PmtAt' ? f[k] : screenNum(+f[k]));
+      let v = isFind ? (error || hide ? '?' : screenNum(value)) : (f[k] === undefined ? '' : k === 'PmtAt' ? f[k] : screenNum(+f[k]));
       return `<div class="ti-f${isFind ? ' solve' : ''}"><span class="ti-k">${LABEL[k]}:</span><span class="ti-v">${esc(String(v))}</span>${isFind ? '<span class="ti-here" aria-hidden="true">◀ solve this</span>' : ''}</div>`;
     }).join('');
     return `<p class="ti-how">Open the <b>Finance Solver</b>: <kbd>menu</kbd> <kbd>8</kbd> <kbd>1</kbd>. Fill in the boxes (use <kbd>tab</kbd> to move down).</p>
       <div class="ti-screen" role="img" aria-label="${esc(solverSpeech(st, value))}"><div class="ti-title">Finance Solver</div><div class="ti-form">${rows}</div></div>
-      <p class="ti-how">Press <kbd>tab</kbd> until <b>${LABEL[st.find]}</b> is selected, then press <kbd>enter</kbd>.${error ? '' : ` Answer: <b class="ti-res">${esc(LABEL[st.find])} = ${esc(screenNum(value))}</b>`}</p>`;
+      <p class="ti-how">Press <kbd>tab</kbd> until <b>${LABEL[st.find]}</b> is selected, then press <kbd>enter</kbd>.${error || hide ? '' : ` Answer: <b class="ti-res">${esc(LABEL[st.find])} = ${esc(screenNum(value))}</b>`}</p>`;
   }
 
-  function cmdHTML(st, value, error, first) {
+  function cmdHTML(st, value, error, first, hide) {
     return `${first ? '<p class="ti-how">In a <b>Calculator</b> page, type this line and press <kbd>enter</kbd>:</p>' : ''}
-      <div class="ti-screen ti-calcline"><div class="ti-line"><code class="ti-in">${typedHTML(st.cmd)}</code><output class="ti-out">${error ? '<span class="ti-err">Error</span>' : esc(screenNum(value))}</output></div></div>`;
+      <div class="ti-screen ti-calcline"><div class="ti-line"><code class="ti-in">${typedHTML(st.cmd)}</code><output class="ti-out">${error ? '<span class="ti-err">Error</span>' : hide ? '?' : esc(screenNum(value))}</output></div></div>`;
   }
 
   /** HTML for a method (array of steps). opts: {title} */
@@ -64,10 +64,10 @@
       const st = r.step;
       let body = '';
       if (st.say) body = `<p class="ti-say">${RENDER.rich(st.say)}</p>`;
-      else if (st.solver) body = solverHTML(st, r.value, r.error);
-      else if (st.cmd) { body = cmdHTML(st, r.value, r.error, firstCmd); firstCmd = false; const tips = keyTips(st.cmd, seen); if (tips.length) body += `<p class="ti-tip">${tips.join(' ')}</p>`; }
+      else if (st.solver) body = solverHTML(st, r.value, r.error, opts.hideResults);
+      else if (st.cmd) { body = cmdHTML(st, r.value, r.error, firstCmd, opts.hideResults); firstCmd = false; const tips = keyTips(st.cmd, seen); if (tips.length) body += `<p class="ti-tip">${tips.join(' ')}</p>`; }
       if (r.error) body += `<p class="ti-tip bad">${esc(r.error)}</p>`;
-      if (st.note) body += `<p class="ti-note">${RENDER.rich(st.note)}</p>`;
+      if (st.note && !opts.hideResults) body += `<p class="ti-note">${RENDER.rich(st.note)}</p>`;
       return `<li class="ti-step">${body}</li>`;
     }).join('');
     return `<section class="ti" aria-label="TI-Nspire CX CAS steps"><header class="ti-h"><span class="ti-badge">TI-Nspire CX CAS</span>${opts.title ? `<b>${esc(opts.title)}</b>` : ''}</header><ol class="ti-steps">${items}</ol></section>`;

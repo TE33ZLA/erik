@@ -2,10 +2,13 @@
  * (There is no Week 6 in the course material, so Week 7 sits on floor 6.) */
 (function (root) {
   'use strict';
-  const { FIN, L, T, FMT } = root;
+  const { FIN, L, T, FMT, TI } = root;
   const R = String.raw;
   const P = (r) => +(r * 100).toFixed(8); // decimal rate -> percent units for answers
   const K = (x, dp = 4) => String(+(+x).toFixed(dp)); // calculator keystroke number (no commas)
+  const tn = (x) => TI.num(x); // a number as typed on the TI-Nspire (no commas, at most 6 decimals)
+  const plus = (x) => (x < 0 ? `-${tn(-x)}` : `+${tn(x)}`); // "+5" or "-5" inside a typed line
+  const dsc = (r, k) => (k === 1 ? `/${tn(1 + r)}` : `/${tn(1 + r)}^${k}`); // "/1.1" or "/1.1^3"
 
   /* ---------- local helpers ---------- */
   // Lecture model (slides 10–15): a level perpetuity, no tax: NPV = (price − cost) × units / r − initial cost
@@ -385,6 +388,7 @@
           R`\[Q = \frac{500{,}000 \times 0.10}{80 - 60} = \frac{50{,}000}{20} = 2{,}500 \text{ units}\]`,
           R`The base case is 6,000 units, so sales can fall a long way before the NPV turns negative.`,
         ],
+        ti: [TI.line('500000*0.10/(80-60)', { note: R`The yearly margin needed (\(500{,}000 \times 0.10\)) divided by the margin per unit.` })],
         why: R`At 2,500 units the yearly margin of \(\$50{,}000\) is worth exactly \(\frac{50{,}000}{0.10} = \$500{,}000\), the initial cost.` },
       { id: 'w7-q11', topic: 'breakeven', kind: 'mcq', level: 2, section: 'A',
         q: R`How does the **NPV break-even** differ from the **EBIT break-even**?`,
@@ -413,6 +417,7 @@
           R`\[NPV = \frac{(P - v) \times Q}{r} - I\]`,
           R`\[NPV = \frac{(80 - 60) \times 6{,}000}{0.10} - 500{,}000 = 1{,}200{,}000 - 500{,}000 = \$700{,}000\]`,
         ],
+        ti: [TI.line('(80-60)*6000/0.10-500000')],
         why: R`A \(\$120{,}000\) yearly margin forever is worth \(\$1.2\text{m}\). Less the \(\$0.5\text{m}\) cost, the NPV is \(\$0.7\text{m}\).` },
       { id: 'w7-q15', topic: 'sens', kind: 'num', level: 2, section: 'B', src: 'Lecture W7 slide 12',
         q: R`In the lecture project (base NPV $700,000), unit sales fall from 6,000 to 5,500. Everything else stays at base. By what **percentage** does the NPV fall?`,
@@ -427,6 +432,7 @@
           R`\[\%\Delta NPV = \frac{600{,}000 - 700{,}000}{700{,}000} = -14.29\%\]`,
           R`Sales fell 8.3%, but NPV fell 14.29%. The NPV is **more sensitive** than sales, because the $500,000 cost does not change.`,
         ],
+        ti: [TI.line('(80-60)*5500/0.10-500000', { note: 'The new NPV.' }), TI.line('(700000-ans)/700000', { pct: true, note: 'The fall, as a share of the base NPV. Times 100 gives the percentage.' })],
         why: R`\(\frac{100{,}000}{700{,}000} = 14.29\%\). A rise to 6,500 units lifts NPV by the same 14.29%.` },
       { id: 'w7-q16', topic: 'sens', kind: 'mcq', level: 2, section: 'A', src: 'Lecture W7 slide 12',
         q: R`Unit sales fall 8.3%, but the NPV falls 14.29%. Why does the NPV move by a **bigger** percentage?`,
@@ -470,6 +476,7 @@
           R`\[NPV_{worst} = \frac{(75 - 62) \times 5{,}500}{0.12} - 500{,}000\]`,
           R`\[= \frac{71{,}500}{0.12} - 500{,}000 = 595{,}833.33 - 500{,}000 = \$95{,}833.33\]`,
         ],
+        ti: [TI.line('(75-62)*5500/0.12-500000')],
         why: R`Every input moves the wrong way at once. NPV drops from \(\$0.7\text{m}\) to about \(\$0.096\text{m}\), but it is still positive.` },
       { id: 'w7-q21', topic: 'scen', kind: 'num', level: 2, section: 'B', src: 'Lecture W7 slide 15', formula: 'npv',
         q: R`Best case for the lecture project: 6,500 units, price $85, cost $58 per unit and an 8% cost of capital. The initial cost is $500,000, with cash flows forever. What is the **best-case NPV**?`,
@@ -484,6 +491,7 @@
           R`\[NPV_{best} = \frac{(85 - 58) \times 6{,}500}{0.08} - 500{,}000\]`,
           R`\[= \frac{175{,}500}{0.08} - 500{,}000 = 2{,}193{,}750 - 500{,}000 = \$1{,}693{,}750\]`,
         ],
+        ti: [TI.line('(85-58)*6500/0.08-500000')],
         why: R`Every input moves the good way at once, so NPV rises from \(\$0.7\text{m}\) to \(\$1.69\text{m}\).` },
       { id: 'w7-q22', topic: 'scen', kind: 'mcq', level: 2, section: 'A', src: 'Lecture W7 slides 12–15',
         q: R`The lecture’s worst-case NPV (about $96,000) is far below every one-at-a-time sensitivity result. Why?`,
@@ -525,6 +533,7 @@
           R`\[NPV = -500{,}000 + \frac{412{,}500}{1.12} = ${LM(ELEC.npv)}\]`,
           R`NPV < 0, so ELEC should **not** proceed.`,
         ],
+        ti: [TI.line('0.33*150000/0.12', { note: R`The expected payoff at \(t = 1\).` }), TI.line('-500000+ans/1.12', { note: 'Discount it one year, then subtract the research cost.' })],
         why: R`The expected payoff at \(t = 1\) is \(\$412{,}500\). Its PV is below the \(\$500{,}000\) cost, so do not proceed.` },
       { id: 'w7-q29', topic: 'tree', kind: 'mcq', level: 2, section: 'A', src: 'Lecture W7 slide 34',
         q: R`Why must decision trees be solved **backwards**, from the end of the tree to today?`,
@@ -554,6 +563,7 @@
           R`NPV > 0, so Grocer should **proceed**, but only just.`,
         ],
         calc: `5 [N] · 12 [I/YR] · 70000 [PMT] · 0 [FV] · [PV] → −${T.money(GROCER.pv)}, then add −250,000`,
+        ti: [TI.line('sum({0.4,0.6}*{100000,50000})', { note: 'The expected yearly cash flow.' }), TI.cmd('npv', [12, -250000, [70000], [5]], { note: R`\(\{5\}\) means the \(\$70{,}000\) repeats for 5 years.` })],
         why: R`Use the expected cash flow of \(\$70{,}000\) a year, discounted as a 5-year annuity at 12%.` },
       { id: 'w7-q32', topic: 'ev', kind: 'num', level: 3, section: 'B', src: 'Tutorial W7 Q2', formula: 'expected', boss: true,
         q: R`**InnoCam** can spend $250,000 now to develop a webcam over 2 years. The tree shows what can happen. A $20,000 staff training fee was paid last month. A $100,000 loan at 6.5% p.a. will fund part of the cost. The required return is 15% p.a. What is the NPV?`,
@@ -573,6 +583,7 @@
           R`\[NPV = -250{,}000 + \frac{${L.num(INNO.v2)}}{1.15^{2}} = -250{,}000 + ${L.num(INNO.pv0)} = ${LM(INNO.npv)}\]`,
           R`NPV > 0, so the project should **proceed**.`,
         ],
+        ti: [TI.cmd('npv', [15, 0, [360000], [5]], { note: R`Years 3–7 valued at \(t = 2\) (the expected \(\$360{,}000\) a year, for 5 years).` }), TI.line('-250000+(0.3*ans+0.7*50000)/1.15^2', { note: R`The chance node at \(t = 2\), discounted two years, less the cost.` })],
         why: R`Value the success branch at \(t = 2\), weight it with the failure branch, then discount two years. Sunk and financing costs stay out.` },
       { id: 'w7-q33', topic: 'ev', kind: 'mcq', level: 2, section: 'A', src: 'Tutorial W7 Q2',
         q: R`In the InnoCam problem, which items are **left out** of the decision tree cash flows?`,
@@ -594,6 +605,7 @@
           { v: 45, why: R`Divide the joint probability by \(P(H_1)\). Do not multiply.` },
         ],
         steps: [R`\[P(H_1) = 0.60 + 0.15 = 0.75\]`, R`\[P(H_2 \mid H_1) = \frac{P(H_1 \text{ and } H_2)}{P(H_1)} = \frac{0.60}{0.75} = 0.80\]`],
+        ti: [TI.line('0.60/(0.60+0.15)', { pct: true })],
         why: R`\(P(H_2 \mid H_1) = \frac{P(H_1 \text{ and } H_2)}{P(H_1)}\): the joint probability divided by the probability of the first branch.` },
       { id: 'w7-q36', topic: 'prob', kind: 'num', level: 2, section: 'B', src: 'Tutorial W7 Q3',
         q: R`Same balloon market: HH 60%, HL 15%, LL 20%. What is the **joint** probability that demand is low in year 1 **and** high in year 2?`,
@@ -604,6 +616,7 @@
           { v: 0, why: 'The four paths must add to 100%, so this path cannot be zero.' },
         ],
         steps: [R`All four paths add up to 1: \[P(L_1 \text{ and } H_2) = 1 - 0.60 - 0.15 - 0.20 = 0.05\]`],
+        ti: [TI.line('1-0.60-0.15-0.20', { pct: true })],
         why: R`The joint probabilities of all paths sum to 100%, so the missing path is 5%.` },
       { id: 'w7-q37', topic: 'prob', kind: 'num', level: 2, section: 'B', src: 'Tutorial W7 Q3',
         q: R`Same balloon market: HH 60%, HL 15%, LL 20%, so LH is 5%. What is \(P(H_2 \mid L_1)\), the chance of high demand in year 2 after a **low** year 1?`,
@@ -614,6 +627,7 @@
           { v: 25, why: R`That is \(P(L_1)\), not the conditional probability.` },
         ],
         steps: [R`\[P(L_1) = 1 - 0.75 = 0.25\]`, R`\[P(L_2 \mid L_1) = \frac{0.20}{0.25} = 0.80 \quad\Rightarrow\quad P(H_2 \mid L_1) = 1 - 0.80 = 0.20\]`],
+        ti: [TI.line('0.05/(0.05+0.20)', { pct: true, note: R`The LH path divided by \(P(L_1) = 0.05 + 0.20\).` })],
         why: R`After a low year 1, demand stays low 80% of the time and turns high 20% of the time.` },
       { id: 'w7-q38', topic: 'prob', kind: 'mcq', level: 2, section: 'A',
         q: R`How are joint and conditional probabilities linked in a two-stage tree?`,
@@ -641,6 +655,7 @@
           R`\[NPV_3^{up} = -3 + 0.9 \times \frac{1}{0.1}\left(1 - \frac{1}{1.1^{5}}\right) = -3 + 0.9 \times ${L.numT(CHIP.a5, 6)} = \$${L.numT(CHIP.upH, 4)}\text{m}\]`,
           R`\[NPV_3^{no} = 0.52 \times ${L.numT(CHIP.a5, 6)} = \$${L.numT(CHIP.noH, 3)}\text{m}\]`,
         ],
+        ti: [TI.cmd('npv', [10, -3, [0.9], [5]], { note: R`Upgrade: pay \(\$3\text{m}\), then the expected \(\$0.9\text{m}\) a year for 5 years (in $m, at \(t = 3\)).` }), TI.cmd('npv', [10, 0, [0.52], [5]], { note: R`Do not upgrade: the expected \(\$0.52\text{m}\) a year. This is bigger, so do not upgrade.` })],
         wrong: { 1: 'That forgets the $3m upgrade cost.', 2: 'The extra $0.38m a year does not pay back the $3m cost within 5 years.' } },
       { id: 'w7-q43', topic: 'option', kind: 'num', level: 3, section: 'B', src: 'Lecture W7 Example 2', boss: true,
         q: R`Machine B costs $3m. In years 1–3, demand is high (0.7) or low (0.3), and B earns $0.6m or $0.2m a year. The best choice at \(t = 3\) is worth $1.971m after high demand and $1.365m after low demand. \(r = 10\%\). What is \(NPV_B\) at \(t = 0\) (in $m)?`,
@@ -656,6 +671,7 @@
           R`Low branch at \(t = 0\): \[\frac{1.365}{1.1^{3}} + 0.2 \times ${L.numT(CHIP.a3, 6)} = ${L.numT(CHIP.bL / CHIP.d3, 4)} + ${L.numT(0.2 * CHIP.a3, 4)} = ${L.numT(CHIP.loB, 4)}\]`,
           R`\[NPV_B = -3 + 0.7 \times ${L.numT(CHIP.hiB, 4)} + 0.3 \times ${L.numT(CHIP.loB, 4)} = -\$${L.numT(-CHIP.B, 3)}\text{m}\]`,
         ],
+        ti: [TI.line('0.7*0.6+0.3*0.2', { note: 'The expected cash flow in each of years 1–3 ($m).' }), TI.line('npv(10,-3,{0.48,0.48,0.48+0.7*1.971+0.3*1.365})', { note: R`At \(t = 3\), add the expected value of the best choice. npv discounts each year’s expected cash flow.` })],
         why: R`Work backwards: the best \(t = 3\) values, plus years 1–3 cash flows, discounted and weighted by 0.7 and 0.3.` },
       { id: 'w7-q44', topic: 'option', kind: 'num', level: 3, section: 'B', src: 'Lecture W7 Example 2', boss: true,
         q: R`Machine A costs $4m and lasts 8 years. It earns $1m a year when demand is high and $0.5m when it is low. Demand in years 1–3 is high with probability 0.7. After a high period, it stays high in years 4–8 with probability 0.8. After a low period, it stays low with probability 0.6. \(r = 10\%\). What is \(NPV_A\) (in $m)?`,
@@ -672,6 +688,7 @@
           R`\[NPV_A = -4 + 0.7\left(\frac{${L.numT(CHIP.aH, 4)}}{1.1^{3}} + 1 \times ${L.numT(CHIP.a3, 4)}\right) + 0.3\left(\frac{${L.numT(CHIP.aL, 4)}}{1.1^{3}} + 0.5 \times ${L.numT(CHIP.a3, 4)}\right) = \$${L.numT(CHIP.A, 4)}\text{m}\]`,
           R`The lecture shows \(\$0.5065\text{m}\) because it rounds the \(t = 3\) values to 3.412 and 2.654 first.`,
         ],
+        ti: [TI.line('0.7*(0.8*1+0.2*0.5)+0.3*(0.4*1+0.6*0.5)', { note: 'The expected cash flow in each of years 4–8 ($m).' }), TI.cmd('npv', [10, -4, [0.85, 0.84], [3, 5]], { note: R`Years 1–3 expect \(0.7 \times 1 + 0.3 \times 0.5 = 0.85\) a year. The counts \(\{3, 5\}\) repeat each cash flow.` })],
         why: R`\(NPV_A \approx \$0.506\text{m} > NPV_B = -\$0.462\text{m}\), so the lecture buys machine A.` },
       { id: 'w7-q45', topic: 'option', kind: 'mcq', level: 2, section: 'A', src: 'Lecture W7 Example 2',
         q: R`Chip machines: \(NPV_A = \$0.506\text{m}\) and \(NPV_B = -\$0.462\text{m}\), even though B keeps an option to upgrade. Which machine should the firm buy?`,
@@ -692,6 +709,7 @@
           R`After a high year 1: \[\frac{0.8 \times 100{,}000 + 0.2 \times 55{,}000}{1.1} = \frac{91{,}000}{1.1} = ${LM(LARGE.E2H / 1.1)}\]`,
           R`\[NPV = -135{,}000 + \frac{0.75 \times (100{,}000 + ${L.num(LARGE.E2H / 1.1)}) + 0.25 \times (55{,}000 + 60{,}750)}{1.1} = ${LM(LARGE.npv)}\]`,
         ],
+        ti: [TI.line('(0.2*100000+0.8*55000)/1.1', { note: R`Keep after a low year 1. Selling gives \(0.45 \times 135{,}000 = 60{,}750\), which is more, so sell.` }), TI.line('(0.8*100000+0.2*55000)/1.1→h', { note: R`Year 2 after a high year 1, valued at \(t = 1\), stored in h.` }), TI.line('-135000+(0.75*(100000+h)+0.25*(55000+60750))/1.1')],
         why: R`Solve backwards. At the \(t = 1\) decision node, selling (\(\$60{,}750\)) beats keeping (\(\$58{,}182\)).` },
       { id: 'w7-q47', topic: 'option', kind: 'num', level: 3, section: 'B', src: 'Tutorial W7 Q3', boss: true,
         q: R`Now the **small** balloon: cost $90,000, 2-year life, no salvage at the end. Cash flow: $70,000 in a high-demand year, $45,000 in a low one. After a **low** year 1, it can sell the balloon for 45% of cost. Joint probabilities: HH 60%, HL 15%, LL 20%. \(r = 10\%\). What is the NPV?`,
@@ -707,6 +725,7 @@
           R`After a high year 1: \[\frac{0.8 \times 70{,}000 + 0.2 \times 45{,}000}{1.1} = \frac{65{,}000}{1.1} = ${LM(SMALL.E2H / 1.1)}\]`,
           R`\[NPV = -90{,}000 + \frac{0.75 \times (70{,}000 + ${L.num(SMALL.E2H / 1.1)}) + 0.25 \times (45{,}000 + ${L.num(SMALL.keepL)})}{1.1} = ${LM(SMALL.npv)}\]`,
         ],
+        ti: [TI.line('(0.2*70000+0.8*45000)/1.1→k', { note: R`Keep after a low year 1. It beats selling for \(0.45 \times 90{,}000 = 40{,}500\), so keep. Stored in k.` }), TI.line('(0.8*70000+0.2*45000)/1.1→h', { note: R`Year 2 after a high year 1, valued at \(t = 1\), stored in h.` }), TI.line('-90000+(0.75*(70000+h)+0.25*(45000+k))/1.1')],
         why: R`Here keeping beats selling after a low year. The small balloon’s NPV (\(\$18{,}574\)) beats the large one’s (\(\$15{,}894\)).` },
       { id: 'w7-q48', topic: 'option', kind: 'mcq', level: 2, section: 'A', src: 'Tutorial W7 Q3',
         q: R`Balloon NPVs: large $15,894 (sell after a low year 1) and small $18,574 (keep after a low year 1). Which balloon should R. Branson & Assoc. buy?`,
@@ -726,6 +745,7 @@
           R`No upgrade: \(5 \times ${L.numT(UNTER.a7, 6)} = \$${L.numT(UNTER.no2, 2)}\text{m}\). So **upgrade**.`,
           R`\[NPV_0 = -30 + 0.9\left(\frac{5}{1.1} + \frac{5 + ${L.numT(UNTER.up2, 2)}}{1.1^{2}}\right) + 0.1\left(\frac{5}{1.1} + \frac{5 + 80}{1.1^{2}}\right) = \$${L.numT(UNTER.quarter, 2)}\text{m}\]`,
         ],
+        ti: [TI.line('npv(10,0,{30},{7})-70', { note: R`Upgrade, valued at \(t = 2\) ($m). Not upgrading is worth only \(5 \times 4.8684 = 24.34\), so upgrade.` }), TI.line('-30+0.9*(5/1.1+(5+ans)/1.1^2)+0.1*(5/1.1+85/1.1^2)')],
         why: R`Value the upgrade decision at \(t = 2\) first, then weight the approve and ban branches and discount to today.` },
       { id: 'w7-q50', topic: 'option', kind: 'num', level: 3, section: 'B', src: 'Tutorial W7 case study (Unter)', boss: true,
         q: R`Unter’s other plan: install the system in the **entire** fleet for $100m. It saves $30m a year for 9 years. After 2 years the regulator approves it (70%) or bans it (30%). If banned, the fleet is sold for $10m at \(t = 2\). \(r = 10\%\), no tax. What is \(NPV_0\) (in $m)?`,
@@ -741,6 +761,7 @@
           R`Banned: \(\frac{30}{1.1} + \frac{30 + 10}{1.1^{2}} = \$${L.numT(UNTER.eBan, 2)}\text{m}\)`,
           R`\[NPV_0 = -100 + 0.7 \times ${L.numT(UNTER.eApp, 2)} + 0.3 \times ${L.numT(UNTER.eBan, 2)} = \$${L.numT(UNTER.entire, 2)}\text{m}\]`,
         ],
+        ti: [TI.cmd('npv', [10, 0, [30], [9]], { note: R`Approved: \(\$30\text{m}\) a year for 9 years, valued today ($m).` }), TI.line('-100+0.7*ans+0.3*(30/1.1+40/1.1^2)')],
         why: R`\(\$${L.numT(UNTER.entire, 2)}\text{m}\) is positive, but the quarter-fleet plan (\(\$${L.numT(UNTER.quarter, 2)}\text{m}\)) is higher.` },
       { id: 'w7-q51', topic: 'option', kind: 'mcq', level: 2, section: 'A', src: 'Tutorial W7 case study (Unter)',
         q: R`Unter: \(NPV_0\) is $39.04m for the entire fleet and $41.86m for a quarter of the fleet (with the option to upgrade later). What should Unter do?`,
@@ -786,6 +807,7 @@
                 R`\[FCF = ${LM(earn)} + ${L.moneyT(dep)} - ${L.moneyT(capex)} ${nwcTex} = ${LM(fcf)}\]`,
                 R`The interest expense is left out: it is a financing cost.`,
               ],
+              ti: [TI.line(`(${tn(rev)}-${tn(cogs)}-${tn(sga)}-${tn(dep)})*(1-${tn(tc)})+${tn(dep)}${capex ? '-' + tn(capex) : ''}${plus(-dnwc)}`, { note: R`EBIT times \((1 - t_c)\), plus depreciation, less CapEx${dnwc > 0 ? ', less the increase in NWC' : ', plus the decrease in NWC'}. The interest stays out.` })],
               why: R`EBIT, less tax, plus depreciation, less CapEx, less the change in NWC. Interest never enters project FCF.`,
             };
           }
@@ -821,6 +843,7 @@
               R`Each unit adds \(${L.moneyT(price)} - ${L.moneyT(cost)} = ${L.moneyT(margin)}\) to EBIT.`,
               R`\[\text{Units} = \frac{SG\&A + Dep}{\text{Price} - \text{Cost per unit}} = \frac{${L.moneyT(sga)} + ${L.moneyT(dep)}}{${L.moneyT(margin)}} = \frac{${L.moneyT(fixed)}}{${L.moneyT(margin)}} = ${L.numT(be, 2)}\]`,
             ].concat(hasInt ? [R`The interest is left out: EBIT is measured **before** interest.`] : []),
+            ti: [TI.line(`(${tn(sga)}+${tn(dep)})/(${tn(price)}-${tn(cost)})`, { note: R`SG&A plus depreciation, divided by the margin per unit.${hasInt ? ' No interest: EBIT comes before interest.' : ''}` })],
             why: R`Each unit adds \(\text{price} - \text{cost}\) to EBIT. Sell enough units to cover SG&A and depreciation.`,
           };
         } },
@@ -848,6 +871,7 @@
               R`\[\text{Units} = \frac{SG\&A + Dep}{\text{Price} - \text{Cost per unit}} = \frac{${L.moneyT(sga)} + ${LM(dep)}}{${L.moneyT(price)} - ${L.moneyT(cost)}} = ${L.num(be, 2)}\]`,
               R`The tax rate is not needed. At EBIT break-even there is no profit to tax.`,
             ],
+            ti: [TI.line(`(${tn(sga)}+${tn(capex)}/${life})/(${tn(price)}-${tn(cost)})`, { note: R`\(${tn(capex)}/${life}\) is one year of depreciation. The tax rate is not used.` })],
             why: R`Turn the machine cost into yearly depreciation first. Then divide \(SG\&A + Dep\) by the margin per unit.`,
           };
         } },
@@ -878,6 +902,9 @@
               R`\[Q = \frac{${LM(need)}}{${L.moneyT(margin)}} = ${L.num(q, 2)} \text{ units}\]`,
             ],
             calc: perp ? undefined : `${n} [N] · ${K(r * 100)} [I/YR] · −${K(inv)} [PV] · 0 [FV] · [PMT] → ${T.money(need)}; then ÷ ${margin}`,
+            ti: perp
+              ? [TI.line(`${tn(inv)}*${tn(r)}/${margin}`, { note: R`A perpetuity: the yearly margin needed is \(I \times r\). Divide it by the margin per unit.` })]
+              : [TI.cmd('tvmPmt', [n, P(r), -inv, 0, 1, 1], { note: R`The yearly margin that pays back \(${L.moneyT(inv)}\) at ${pct(r)}: at this margin the NPV is zero.` }), TI.line(`ans/${margin}`, { note: 'Divide by the margin per unit.' })],
             why: R`At the NPV break-even, the discounted yearly margin just repays the initial cost.`,
           };
         } },
@@ -912,6 +939,7 @@
                 R`\[NPV = \frac{(${L.numT(p1)} - ${L.numT(v1)}) \times ${L.numT(q1)}}{${L.dec(r1)}} - ${L.moneyT(inv)} = ${LM(((p1 - v1) * q1) / r1)} - ${L.moneyT(inv)} = ${LM(npv1)}\]`,
                 R`The base NPV was \(${LM(base)}\), so this one change moves the NPV by \(${LM(npv1 - base)}\).`,
               ],
+              ti: [TI.line(`(${tn(p1)}-${tn(v1)})*${tn(q1)}/${tn(r1)}-${tn(inv)}`, { note: 'The new input, with every other input at its base value.' })],
               why: R`Sensitivity analysis: change one input, keep the rest at base, and recompute the NPV.`,
             };
           }
@@ -948,6 +976,10 @@
                 R`Base: \[NPV_0 = \frac{(${L.numT(p0)} - ${L.numT(v0)}) \times ${L.numT(q0)}}{${L.dec(r0)}} - ${L.moneyT(inv)} = ${LM(base)}\]`,
                 R`New: \[NPV_1 = \frac{(${L.numT(p1)} - ${L.numT(v1)}) \times ${L.numT(q1)}}{${L.dec(r1)}} - ${L.moneyT(inv)} = ${LM(npv1)}\]`,
                 R`\[\%\Delta NPV = \frac{${LM(npv1)} - ${LM(base)}}{${LM(base)}} = ${L.pct(ch, 2)}\]`,
+              ],
+              ti: [
+                TI.line(`(${tn(p0)}-${tn(v0)})*${tn(q0)}/${tn(r0)}-${tn(inv)}→b`, { note: 'The base-case NPV, stored in b.' }),
+                TI.line(`((${tn(p1)}-${tn(v1)})*${tn(q1)}/${tn(r1)}-${tn(inv)}-b)/b`, { pct: true, note: 'New NPV minus base NPV, divided by the base NPV. Times 100 gives the percentage.' }),
               ],
               why: R`\(\%\Delta NPV = \frac{NPV_{new} - NPV_{base}}{NPV_{base}}\). A fixed initial cost makes the NPV swing more than the input.`,
             };
@@ -1016,6 +1048,7 @@
                 R`\[NPV_{${word}} = \frac{(${L.numT(pS)} - ${L.numT(vS)}) \times ${L.numT(qS)}}{${L.dec(rS)}} - ${L.moneyT(inv)} = ${LM(((pS - vS) * qS) / rS)} - ${L.moneyT(inv)} = ${LM(ans)}\]`,
                 R`Base case for comparison: \(${LM(npvPerp(q0, p0, v0, r0, inv))}\).`,
               ],
+              ti: [TI.line(`(${tn(pS)}-${tn(vS)})*${tn(qS)}/${tn(rS)}-${tn(inv)}`, { note: `Every input at its ${word}-case value.` })],
               why: R`Scenario analysis moves several inputs together, so the NPV moves much more than in any single sensitivity test.`,
             };
           }
@@ -1042,6 +1075,7 @@
                 { v: most * p, why: 'That leaves out the other outcome. Add every outcome times its probability.' },
               ], '$', 2),
               steps: [R`\[E[CF] = ${L.dec(pH)} \times ${L.moneyT(hi)} + ${L.dec(1 - pH)} \times ${L.moneyT(lo)} = ${LM(ev)}\]`],
+              ti: [TI.line(`sum(${TI.list([pH, 1 - pH])}*${TI.list([hi, lo])})`, { note: 'The two lists multiply item by item: each probability times its cash flow. sum adds them.' })],
               why: R`An expected value is a probability-weighted average of **all** the outcomes.`,
             };
           }
@@ -1061,6 +1095,7 @@
               { v: vals[iMax] * probs[iMax], why: 'That uses one outcome only. Add every outcome times its probability.' },
             ], '$', 2),
             steps: [R`\[E[CF] = ${L.dec(probs[0])} \times ${L.moneyT(hi)} + ${L.dec(probs[1])} \times ${L.moneyT(mid)} + ${L.dec(probs[2])} \times ${L.moneyT(lo)} = ${LM(ev)}\]`],
+            ti: [TI.line(`sum(${TI.list(probs)}*${TI.list(vals)})`, { note: 'Probabilities in one list, cash flows in the other, in the same order.' })],
             why: R`Multiply each outcome by its probability, then add them up.`,
           };
         } },
@@ -1085,6 +1120,7 @@
               R`\[PV_0 = \frac{${LM(ev)}}{${L.onePlus(r)}^{${k}}} = ${LM(ans)}\]`,
             ],
             calc: `${k} [N] · ${K(r * 100)} [I/YR] · 0 [PMT] · ${K(ev, 2)} [FV] · [PV] → −${T.money(ans)}`,
+            ti: [TI.line(`sum(${TI.list([p, 1 - p])}*${TI.list([good, bad])})`, { note: R`The expected value at \(t = ${k}\).` }), TI.line(`ans${dsc(r, k)}`, { note: `Discount it ${k} year${k > 1 ? 's' : ''} back to today.` })],
             why: R`Take the expected value at the node, then discount it back to \(t = 0\).`,
           };
         } },
@@ -1115,6 +1151,7 @@
               npv >= 0 ? R`NPV > 0, so **go ahead**.` : R`NPV < 0, so **do not** go ahead.`,
             ],
             calc: `${n} [N] · ${K(r * 100)} [I/YR] · ${K(e, 2)} [PMT] · 0 [FV] · [PV] → −${T.money(pvE)}; NPV = ${T.money(pvE)} − ${T.moneyT(inv)}`,
+            ti: [TI.line(`sum(${TI.list([p, 1 - p])}*${TI.list([hi, lo])})`, { note: 'The expected yearly cash flow.' }), TI.cmd('npv', [P(r), -inv, [e], [n]], { note: R`The count \(\{${n}\}\) repeats the expected cash flow for ${n} years.` })],
             why: R`Replace the chance node by its expected yearly cash flow, discount it as an annuity, then subtract the cost.`,
           };
         } },
@@ -1159,6 +1196,11 @@
               npv >= 0 ? R`NPV > 0, so **proceed**.` : R`NPV < 0, so **do not** proceed.`,
             ],
             calc: `${n} [N] · ${K(r * 100)} [I/YR] · ${K(e, 2)} [PMT] · 0 [FV] · [PV] → −${T.money(pvD)}; then ${D} [N] · 0 [PMT] · ${K(vD, 2)} [FV] · [PV] → −${T.money(v0)}`,
+            ti: [
+              TI.line(`sum(${TI.list([q, 1 - q])}*${TI.list([hi, lo])})`, { note: 'The expected yearly cash flow if it succeeds.' }),
+              TI.cmd('npv', [P(r), 0, [e], [n]], { note: R`Years ${D + 1}–${D + n}, valued at \(t = ${D}\).` }),
+              TI.line(`-${tn(inv)}+(${tn(p)}*ans+${tn(1 - p)}*${tn(S)})${dsc(r, D)}`, { note: R`The chance node at \(t = ${D}\), discounted ${D} years, less the cost. The training fee and the interest stay out.` }),
+            ],
             why: R`Value the success branch at \(t = ${D}\), weight it with the failure branch, then discount ${D} years. Sunk and financing costs stay out.`,
           };
         } },
@@ -1188,6 +1230,7 @@
                 R`Decision node: keep the highest NPV, **${best}** at \(${L.moneyT(hi)}\).`,
                 R`\[PV_0 = \frac{${L.moneyT(hi)}}{${L.onePlus(r)}^{${k}}} = ${LM(ans)}\]`,
               ],
+              ti: [TI.line(`${tn(hi)}${dsc(r, k)}`, { note: `Keep the best option (${best}), then discount it ${k} year${k > 1 ? 's' : ''} back to today.` })],
               why: R`A decision node is worth its best branch. Then discount that value back to today.`,
             };
           }
@@ -1217,6 +1260,7 @@
               R`\[NPV = -${L.moneyT(inv)} + \frac{${LM(e1)}}{${L.onePlus(r)}} = ${LM(npv)}\]`,
               npv >= 0 ? R`NPV > 0, so **proceed**.` : R`NPV < 0, so **do not** proceed.`,
             ],
+            ti: [TI.line(`${tn(p)}*${tn(c)}/${tn(r)}`, { note: R`The expected payoff at \(t = 1\): the chance of success times the perpetuity value.` }), TI.line(`-${tn(inv)}+ans${dsc(r, 1)}`, { note: 'Discount it one year, then subtract the research cost.' })],
             why: R`Value the perpetuity at \(t = 1\), weight it by the chance of success, then discount one year.`,
           };
         } },
@@ -1234,6 +1278,12 @@
             const J = { hh, hl, lh, ll };
             const ans = askH ? hh + hl : lh + ll;
             const row = (a, b, key) => [a, b, key === hide ? 'not given' : pct(J[key])];
+            const inSum = askH ? ['hh', 'hl'] : ['lh', 'll'];
+            const sumNote = `Add the paths that start with a ${askH ? 'high' : 'low'} year 1. Times 100 gives the percentage.`;
+            const ti = inSum.includes(hide)
+              ? [TI.line(`1-${['hh', 'hl', 'lh', 'll'].filter((x) => x !== hide).map((x) => tn(J[x])).join('-')}`, { note: 'The missing path: all four paths add up to 1.' }),
+                TI.line(`ans+${tn(J[inSum.find((x) => x !== hide)])}`, { pct: true, note: sumNote })]
+              : [TI.line(`${tn(J[inSum[0]])}+${tn(J[inSum[1]])}`, { pct: true, note: sumNote })];
             const ms = askH
               ? [{ v: P(hh), why: 'That is the joint probability of high demand in BOTH years.' }, { v: P(hh + lh), why: 'That adds the paths that END high: it is the chance of high demand in year 2.' }, { v: P(1 - ll), why: 'Only paths that START with a high year count.' }]
               : [{ v: P(ll), why: 'That is the joint probability of low demand in BOTH years.' }, { v: P(ll + hl), why: 'That adds the paths that END low: it is the chance of low demand in year 2.' }, { v: P(1 - hh), why: 'Only paths that START with a low year count.' }];
@@ -1246,6 +1296,7 @@
                 R`The four paths add up to 100%, so the missing path is \(1 - ${['hh', 'hl', 'lh', 'll'].filter((x) => x !== hide).map((x) => L.dec(J[x])).join(' - ')} = ${L.dec(J[hide])}\).`,
                 askH ? R`\[P(H_1) = P(HH) + P(HL) = ${L.dec(hh)} + ${L.dec(hl)} = ${L.dec(ans)}\]` : R`\[P(L_1) = P(LH) + P(LL) = ${L.dec(lh)} + ${L.dec(ll)} = ${L.dec(ans)}\]`,
               ],
+              ti,
               why: R`Add the joint probabilities of every path that starts with a ${askH ? 'high' : 'low'} year 1.`,
             };
           }
@@ -1275,6 +1326,7 @@
               { v: P((1 - first) * cond), why: 'That multiplies by the other year-1 branch. Start from the year-1 outcome in the question.' },
             ], '%', 2),
             steps: [R`Multiply along the path: \[P(${ask[0]}_1 \text{ and } ${ask[1]}_2) = P(${ask[0]}_1) \times P(${ask[1]}_2 \mid ${ask[0]}_1) = ${L.dec(first)} \times ${L.dec(cond)} = ${L.dec(ans)}\]`],
+            ti: [TI.line(`${tn(first)}*${tn(cond)}`, { pct: true, note: 'Multiply along the path. Times 100 gives the percentage.' })],
             why: R`A joint probability multiplies the probabilities along its path.`,
           };
         } },
@@ -1304,6 +1356,12 @@
                 R`\[P(${ask[2]}_1) = ${ask[2] === 'H' ? R`${L.dec(hh)} + ${L.dec(hl)}` : R`${L.dec(lh)} + ${L.dec(ll)}`} = ${L.dec(marg)}\]`,
                 R`\[P(${ask[0]}_2 \mid ${ask[2]}_1) = \frac{P(${ask[2]}_1 \text{ and } ${ask[0]}_2)}{P(${ask[2]}_1)} = \frac{${L.dec(joint)}}{${L.dec(marg)}} = ${L.numT(ans, 4)}\]`,
               ],
+              ti: [TI.line({
+                'H|H': `${tn(hh)}/(${tn(hh)}+${tn(hl)})`,
+                'L|H': `${tn(hl)}/(${tn(hh)}+${tn(hl)})`,
+                'L|L': `${tn(ll)}/(1-${tn(hh)}-${tn(hl)})`,
+                'H|L': `(1-${tn(hh)}-${tn(hl)}-${tn(ll)})/(1-${tn(hh)}-${tn(hl)})`,
+              }[ask], { pct: true, note: ask[2] === 'H' ? R`The joint probability divided by \(P(H_1) = P(HH) + P(HL)\).` : R`The joint probability divided by \(P(L_1) = 1 - P(HH) - P(HL)\).${ask[0] === 'H' ? ' The LH path is 1 minus the other three.' : ''}` })],
               why: R`\(P(\text{year 2} \mid \text{year 1}) = \frac{P(\text{both})}{P(\text{year 1})}\): the joint probability divided by the year-1 probability.`,
             };
           }
@@ -1341,6 +1399,11 @@
                 R`Sell: \(${L.dec(s)} \times ${L.moneyT(C)} = ${LM(sell)}\).`,
                 sellWins ? R`Selling is worth more, so **abandon**. The node is worth \(${LM(ans)}\).` : R`Keeping is worth more, so **keep** the asset. The node is worth \(${LM(ans)}\).`,
               ],
+              ti: sellWins
+                ? [TI.line(`(${tn(qH)}*${tn(H)}+${tn(1 - qH)}*${tn(Lo)})${dsc(r, 1)}`, { note: 'Keep: the expected year-2 cash flow, discounted one year.' }),
+                  TI.line(`${tn(s)}*${tn(C)}`, { note: R`Sell now: this is more than keeping, so sell. The node is worth \(${LM(ans)}\).` })]
+                : [TI.line(`${tn(s)}*${tn(C)}`, { note: R`Sell now, at \(t = 1\).` }),
+                  TI.line(`(${tn(qH)}*${tn(H)}+${tn(1 - qH)}*${tn(Lo)})${dsc(r, 1)}`, { note: R`Keep: the expected year-2 cash flow, discounted one year. This is more than selling, so keep.` })],
               why: R`Compare the discounted expected value of keeping with the sale price. A decision node takes the higher one.`,
             };
           }
@@ -1382,6 +1445,11 @@
                 upWins ? R`Upgrading is worth more, so **upgrade**.` : R`Not upgrading is worth more, so **do not upgrade**.`,
               ],
               calc: `5 [N] · ${K(r * 100)} [I/YR] · ${K(Eup, 4)} [PMT] · 0 [FV] · [PV] → −${K(Eup * a, 4)} (upgrade, before the cost); ${K(Eno, 4)} [PMT] · [PV] → −${K(Eno * a, 4)}`,
+              ti: (() => {
+                const upS = TI.cmd('npv', [P(r), -U, [Eup], [5]], { note: upWins ? R`Upgrade: this is the higher NPV at \(t = 3\), so upgrade.` : 'Upgrade: pay the cost, then the expected cash flow for 5 years.' });
+                const noS = TI.cmd('npv', [P(r), 0, [Eno], [5]], { note: upWins ? 'Do not upgrade: the expected cash flow for 5 years.' : R`Do not upgrade: this is the higher NPV at \(t = 3\), so do not upgrade.` });
+                return upWins ? [noS, upS] : [upS, noS];
+              })(),
               why: R`Value each branch at \(t = 3\) with the conditional probabilities, then keep the higher NPV.`,
             };
           }
@@ -1438,6 +1506,15 @@
                 R`High branch today: \(\frac{${L.numT(bH, 4)}}{${L.onePlus(r)}^{3}} + ${K(cfH, 2)} \times ${L.numT(a3, 4)} = ${L.numT(hi, 4)}\). Low branch today: \(\frac{${L.numT(bL, 4)}}{${L.onePlus(r)}^{3}} + ${K(cfL, 2)} \times ${L.numT(a3, 4)} = ${L.numT(lo, 4)}\).`,
                 R`\[NPV = -${K(C, 2)} + ${L.dec(p)} \times ${L.numT(hi, 4)} + ${L.dec(1 - p)} \times ${L.numT(lo, 4)} = ${mL(npv, 3)}\]`,
               ],
+              ti: (() => {
+                const best = (eu, en) => `max(npv(${P(r)},-${tn(U)},{${tn(eu)}},{5}),npv(${P(r)},0,{${tn(en)}},{5}))`;
+                const m = tn(p * cfH + (1 - p) * cfL);
+                return [
+                  TI.line(`${best(eUpH, eNoH)}→hi`, { note: R`The best choice at \(t = 3\) after high demand (the bigger of upgrade and no upgrade), stored in hi.` }),
+                  TI.line(`${best(eUpL, eNoL)}→lo`, { note: R`The best choice at \(t = 3\) after low demand, stored in lo.` }),
+                  TI.line(`npv(${P(r)},-${tn(C)},{${m},${m},${m}+${tn(p)}*hi+${tn(1 - p)}*lo})`, { note: R`Years 1–3 expect \(${m}\) a year ($m). At \(t = 3\), add the expected best choice.` }),
+                ];
+              })(),
               why: R`Solve the two \(t = 3\) upgrade decisions first. Then add the years 1–3 cash flows, discount, and weight the branches.`,
             };
           }

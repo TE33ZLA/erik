@@ -165,7 +165,7 @@
         <div class="rev-body"><div class="qtext">${UI.rich(q.q)}</div>${root.CHARTS.visuals(q, {})}
           <p>Your answer: ${UI.rich(res.yourText || '—')} · Correct: <b>${UI.rich(QS.correctText(q))}</b></p>
           ${res.note && !res.ok ? `<p class="fb-note">🔎 ${UI.rich(res.note)}</p>` : ''}${q.why ? `<div class="fb-why">${UI.rich(q.why)}</div>` : ''}
-          ${q.steps && q.steps.length ? `<ol class="steps">${q.steps.map((st) => `<li>${UI.rich(st)}</li>`).join('')}</ol>` : ''}${QVIEW.calcKeys(q.calc)}</div></details></li>`).join('')}</ol>
+          ${q.steps && q.steps.length ? `<ol class="steps">${q.steps.map((st) => `<li>${UI.rich(st)}</li>`).join('')}</ol>` : ''}${QVIEW.method(q)}</div></details></li>`).join('')}</ol>
     </section>`;
     GAME.current = { name: 'exam-result', params: {} };
     GAME.renderTop();

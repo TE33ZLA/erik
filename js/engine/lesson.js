@@ -136,7 +136,8 @@
       if (q.mode === 'choice') { const b = cardEl.querySelectorAll('.opt')[given]; if (b) { b.disabled = true; b.classList.add('wrong'); } }
       const fb = cardEl.querySelector('.feedback');
       fb.hidden = false;
-      fb.innerHTML = `<h3 class="fb-h bad">Not quite. Have another go.</h3>${res.note ? `<p class="fb-note">🔎 ${UI.rich(res.note)}</p>` : ''}${q.hint ? `<p class="fb-note">📜 ${UI.rich(q.hint)}</p>` : ''}`;
+      const tiHint = q.ti && q.ti.length && (S().settings.calc || 'ti') === 'ti' ? TIVIEW.html(q.ti, { title: 'Try it on your TI-Nspire', hideResults: true }) : '';
+      fb.innerHTML = `<h3 class="fb-h bad">Not quite. Have another go.</h3>${res.note ? `<p class="fb-note">🔎 ${UI.rich(res.note)}</p>` : ''}${q.hint ? `<p class="fb-note">📜 ${UI.rich(q.hint)}</p>` : ''}${tiHint}`;
       const inp = cardEl.querySelector('#ans'); if (inp) { inp.select(); inp.focus(); }
       return;
     }
