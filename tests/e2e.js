@@ -47,6 +47,7 @@ const PAGE = process.env.PAGE || 'index.html';
   const packs = (await page.evaluate(() => PACKS.map(p => ({ id: p.id, nodes: p.nodes.map(n => ({ id: n.id, kind: n.kind })) })))).filter((p) => !ONLY || ONLY.includes(p.id));
   console.log('packs:', packs.map(p => p.id + '(' + p.nodes.length + ')').join(' '));
   const domCheck = async (where) => {
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
     const bad = await page.evaluate(() => {
       const z = document.querySelector('#screen');
       const out = [];

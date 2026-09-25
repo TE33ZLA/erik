@@ -88,7 +88,7 @@
   /* ---------- LaTeX -> words ---------- */
   const GREEK = { alpha: 'alpha', beta: 'beta', gamma: 'gamma', delta: 'delta', epsilon: 'epsilon', lambda: 'lambda', mu: 'mu', pi: 'pi', rho: 'rho', sigma: 'sigma', tau: 'tau', phi: 'phi', omega: 'omega', theta: 'theta', Delta: 'change in', Sigma: 'sum', infty: 'infinity' };
   const WORDS = {
-    times: ' times ', cdot: ' times ', div: ' divided by ', pm: ' plus or minus ', approx: ' is about ', neq: ' is not equal to ',
+    times: ' times ', cdot: ' times ', div: ' divided by ', pm: ' plus or minus ', approx: ' is about ', neq: ' is not equal to ', mid: ' given ',
     ge: ' is at least ', geq: ' is at least ', le: ' is at most ', leq: ' is at most ', to: ' to ', rightarrow: ' gives ', Rightarrow: ' so ',
     implies: ' so ', ldots: ' and so on ', dots: ' and so on ', cdots: ' and so on ', quad: ' ', qquad: ' ', sum: ' the sum of ', prod: ' the product of ',
     text: '', mathrm: '', textbf: '', mathbf: '', operatorname: '', left: '', right: '', big: '', Big: '', bigg: '', Bigg: '', displaystyle: '', underbrace: '', overbrace: '',

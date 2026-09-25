@@ -48,12 +48,37 @@
     },
   });
 
+  /* Very long inline formulas scroll inside their own box instead of widening the page (phones). */
+  let fitT = 0;
+  function fitMath() {
+    fitT = 0;
+    document.querySelectorAll('#screen .katex, #modal-root .katex').forEach((k) => {
+      if (k.closest('.katex-display, .math-scroll')) return;
+      const block = k.parentElement && k.parentElement.closest('p, li, div, td, th, dd, summary, h1, h2, h3, h4, label, button');
+      if (!block) return;
+      const kr = k.getBoundingClientRect(), br = block.getBoundingClientRect();
+      if (kr.width > br.width + 1 || kr.right > br.right + 1) {
+        const w = document.createElement('span');
+        w.className = 'math-scroll';
+        k.parentNode.insertBefore(w, k);
+        w.appendChild(k);
+      }
+    });
+  }
+  function watchMath() {
+    if (!root.MutationObserver) return;
+    const mo = new MutationObserver(() => { if (!fitT) fitT = requestAnimationFrame(fitMath); });
+    mo.observe(document.body, { childList: true, subtree: true });
+    root.addEventListener('resize', () => { if (!fitT) fitT = requestAnimationFrame(fitMath); });
+  }
+
   function start(hot) {
     if (booted) return;
     booted = true;
     GAME.store.load(hot && hot.state ? hot : null);
     GAME.applySettings();
     bindEvents();
+    watchMath();
     const snd = document.querySelector('[data-act="toggle-sound"]');
     if (snd) snd.textContent = GAME.store.state.settings.sound ? '🔊' : '🔇';
     if (!root.PACKS || !root.PACKS.length) { document.getElementById('screen').innerHTML = '<p class="card">The question packs failed to load. Please reload the page.</p>'; return; }

@@ -45,7 +45,7 @@
     const rows = NSPIRE.FIELDS.map((k) => {
       const isFind = k === st.find;
       let v = isFind ? (error || hide ? '?' : screenNum(value)) : (f[k] === undefined ? '' : k === 'PmtAt' ? f[k] : screenNum(+f[k]));
-      return `<div class="ti-f${isFind ? ' solve' : ''}"><span class="ti-k">${LABEL[k]}:</span><span class="ti-v">${esc(String(v))}</span>${isFind ? '<span class="ti-here" aria-hidden="true">◀ solve this</span>' : ''}</div>`;
+      return `<div class="ti-f${isFind ? ' solve' : ''}"><span class="ti-k">${LABEL[k]}:</span><span class="ti-v">${esc(String(v))}</span>${isFind ? '<span class="ti-here" aria-hidden="true">◀<span class="ti-here-t"> solve this</span></span>' : ''}</div>`;
     }).join('');
     return `<p class="ti-how">Open the <b>Finance Solver</b>: <kbd>menu</kbd> <kbd>8</kbd> <kbd>1</kbd>. Fill in the boxes (use <kbd>tab</kbd> to move down).</p>
       <div class="ti-screen" role="img" aria-label="${esc(solverSpeech(st, value))}"><div class="ti-title">Finance Solver</div><div class="ti-form">${rows}</div></div>
