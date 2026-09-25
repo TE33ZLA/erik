@@ -46,7 +46,7 @@
         <p class="eyebrow">BFC2140 Corporate Finance</p>
         <h1 class="logo" aria-label="Corporate Ladder"><span>Corporate</span><span>Ladder</span></h1>
         <p class="tagline">Start as an intern. Beat the finance fiends on every floor. Reach the boardroom as <b>CFO</b>.</p>
-        <ul class="title-points"><li>9 floors, one per week of the unit, from time value of money to risk and return.</li><li>Every calculation comes with a worked solution in LaTeX and HP10bII+ keystrokes.</li><li>Built for dyslexic readers: read-aloud, number highlighting, relaxed timers and font choices.</li></ul>
+        <ul class="title-points"><li>Starts from zero: short lessons teach each idea before you use it in a battle.</li><li>Every calculation comes with a worked solution in LaTeX and the steps on your <b>TI-Nspire CX CAS</b>.</li><li>Built for dyslexic readers: read-aloud, number highlighting, relaxed timers and font choices.</li></ul>
         <div class="boss-row" aria-label="Floor bosses">${root.PACKS.map((p) => { const b = p.nodes.find((n) => n.kind === 'boss'); return b ? `<figure class="boss-mini" style="--floor:${p.color}" title="Floor ${p.floor}: ${esc(b.enemy.name)}"><span aria-hidden="true">${ART.monsterSVG(b.enemy, { boss: true })}</span><figcaption>${p.floor}</figcaption></figure>` : ''; }).join('')}</div>
         <p class="muted small">Nine bosses wait upstairs.</p>
       </div>
@@ -80,7 +80,7 @@
       const pr = floorProgress(p);
       const here = s.last.floor === p.id;
       return `<button class="floor-row${here ? ' here' : ''}${pr.bossDone ? ' cleared' : ''}" data-act="goto-floor" data-floor="${p.id}" style="--floor:${p.color}">
-        <span class="fl-num" aria-hidden="true">${p.floor}</span>
+        <span class="fl-num" aria-hidden="true">${p.floor === 0 ? 'B' : p.floor}</span>
         <span class="fl-info"><b>${esc(p.title)}</b><small>${esc(p.week)} · ${esc(p.topic)}</small></span>
         <span class="fl-prog"><span class="fl-stars" aria-label="${pr.got} of ${pr.max} stars">★ ${pr.got}/${pr.max}</span><span class="pbar" aria-hidden="true"><i style="width:${pr.pct}%"></i></span></span>
         <span class="fl-icon" aria-hidden="true">${pr.bossDone ? '✅' : p.icon}</span>
@@ -103,7 +103,7 @@
             <p class="muted small">${s.stats.answered} answered · ${s.stats.answered ? Math.round((s.stats.correct / s.stats.answered) * 100) : 0}% correct · best streak ${s.stats.bestStreak}</p>
             <p class="pc-money"><span>Wallet <b>$${s.wallet.toLocaleString('en-AU')}</b></span><span>Vault <b>$${s.vault.bal.toLocaleString('en-AU', { maximumFractionDigits: 2 })}</b></span></p></div>
         </div>
-        <button class="btn primary big wide" data-act="play-node" data-node="${cont.node.id}">▶ Continue: ${esc(cont.node.name)} <small>Floor ${cont.pack.floor}</small></button>
+        <button class="btn primary big wide" data-act="play-node" data-node="${cont.node.id}">▶ Continue: ${esc(cont.node.name)} <small>${GAME.floorName(cont.pack)}</small></button>
         <nav class="hub-menu" aria-label="Menu">
           <button data-act="smart-review"><span aria-hidden="true">🌙</span><b>Smart Review</b><small>Practise your weakest topics</small></button>
           <button data-act="goto-exam"><span aria-hidden="true">🎓</span><b>Boardroom exam</b><small>MST-style practice test</small></button>
@@ -126,18 +126,20 @@
     const nxt = nextNode(pack);
     const stops = pack.nodes.map((n, i) => {
       const rec = s.nodes[n.id] || {};
-      const kindLbl = n.kind === 'boss' ? 'Boss' : n.kind === 'mini' ? 'Mini-game' : 'Battle';
+      const kindLbl = n.kind === 'boss' ? 'Boss' : n.kind === 'mini' ? 'Mini-game' : n.kind === 'lesson' ? 'Lesson' : 'Battle';
       const spec = n.kind === 'mini' ? pack.minis[n.mini] : null;
-      const portrait = n.kind === 'mini' ? `<span class="stop-ico" aria-hidden="true">🕹️</span>` : `<span class="stop-mon" aria-hidden="true">${ART.monsterSVG(n.enemy, { boss: n.kind === 'boss' })}</span>`;
-      const topics = n.kind === 'mini' ? `<span class="chip">${esc(spec ? spec.title : 'Arcade')}</span>` : (n.topics === '*' ? '<span class="chip">All topics</span>' : n.topics.map((t) => `<span class="chip">${esc(pack.topics[t] || t)}</span>`).join(''));
+      const lesson = n.kind === 'lesson' ? (pack.lessons || {})[n.lesson] : null;
+      const portrait = n.kind === 'mini' ? `<span class="stop-ico" aria-hidden="true">🕹️</span>` : n.kind === 'lesson' ? `<span class="stop-ico lesson" aria-hidden="true">📖</span>` : `<span class="stop-mon" aria-hidden="true">${ART.monsterSVG(n.enemy, { boss: n.kind === 'boss' })}</span>`;
+      const tlist = n.kind === 'lesson' ? (lesson && lesson.topics) || [] : n.topics;
+      const topics = n.kind === 'mini' ? `<span class="chip">${esc(spec ? spec.title : 'Arcade')}</span>` : (tlist === '*' ? '<span class="chip">All topics</span>' : tlist.map((t) => `<span class="chip">${esc(pack.topics[t] || t)}</span>`).join(''));
       return `<li class="stop kind-${n.kind}${nxt && nxt.id === n.id ? ' next' : ''}${rec.stars ? ' done' : ''}">
         <span class="stop-n" aria-hidden="true">${i + 1}</span>
         ${portrait}
         <div class="stop-body"><span class="stop-kind">${kindLbl}${nxt && nxt.id === n.id ? ' · <b>next up</b>' : ''}</span><h3>${esc(n.name)}</h3>
-          ${n.enemy ? `<p class="stop-foe">vs <b>${esc(n.enemy.name)}</b>, ${esc(n.enemy.title || '')}</p>` : ''}
+          ${n.enemy ? `<p class="stop-foe">vs <b>${esc(n.enemy.name)}</b>, ${esc(n.enemy.title || '')}</p>` : ''}${lesson && lesson.goal ? `<p class="stop-foe">🎯 ${UI.rich(lesson.goal)}</p>` : ''}
           <div class="chips">${topics}</div></div>
         <div class="stop-act"><span class="stars sm" aria-label="${rec.stars || 0} of 3 stars">${starStr(rec.stars || 0)}</span>
-          <button class="btn${nxt && nxt.id === n.id ? ' primary' : ''}" data-act="play-node" data-node="${n.id}">${n.kind === 'boss' ? 'Face the boss' : n.kind === 'mini' ? 'Play' : rec.wins ? 'Fight again' : 'Fight'}</button></div>
+          <button class="btn${nxt && nxt.id === n.id ? ' primary' : ''}" data-act="play-node" data-node="${n.id}">${n.kind === 'boss' ? 'Face the boss' : n.kind === 'mini' ? 'Play' : n.kind === 'lesson' ? (rec.wins ? 'Review' : 'Start lesson') : rec.wins ? 'Fight again' : 'Fight'}</button></div>
       </li>`;
     }).join('');
     const topics = Object.entries(pack.topics).map(([t, label]) => {
@@ -150,7 +152,7 @@
     return `<section class="floor-screen" style="--floor:${pack.color}">
       <header class="floor-head">
         <button class="linkbtn" data-act="goto-tower">← Tower</button>
-        <p class="eyebrow">Floor ${pack.floor} · ${esc(pack.week)}</p>
+        <p class="eyebrow">${GAME.floorName(pack)} · ${esc(pack.week)}</p>
         <h1>${esc(pack.title)}</h1>
         <p class="fh-topic">${esc(pack.topic)}</p>
         <p class="fh-intro">${UI.rich(pack.intro)}</p>
@@ -245,6 +247,7 @@
       UI.closeModal();
       SFX.unlock(); SFX.play('open');
       if (f.node.kind === 'mini') GAME.go('mini', { nodeId: f.node.id });
+      else if (f.node.kind === 'lesson') GAME.go('lesson', { nodeId: f.node.id });
       else GAME.go('battle', { nodeId: f.node.id });
     },
     'open-briefing': (el) => {

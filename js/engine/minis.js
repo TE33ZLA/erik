@@ -86,7 +86,7 @@
     GAME.cleanup = () => { clearTimer(); M = null; };
     const secs = timerSeconds(spec.seconds || 12);
     return `<section class="mini" style="--floor:${pack.color}">
-      <div class="battle-head"><button class="linkbtn" data-act="mini-quit">← Floor ${pack.floor}</button><h1 class="battle-title">${esc(spec.title || node.name)}</h1><span class="battle-kind">Mini-game</span></div>
+      <div class="battle-head"><button class="linkbtn" data-act="mini-quit">← ${GAME.floorName(pack)}</button><h1 class="battle-title">${esc(spec.title || node.name)}</h1><span class="battle-kind">Mini-game</span></div>
       <div class="mini-hud" id="hud"></div>
       <div class="mini-stage" id="stage">
         <article class="qcard mini-intro">

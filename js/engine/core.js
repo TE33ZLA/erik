@@ -24,9 +24,9 @@
       settings: {
         font: 'lexend', size: 1, spacing: 'relaxed', letter: 'normal', hl: true, givens: true,
         theme: 'auto', tint: 'ledger', answer: 'mixed', timers: 'relaxed', motion: 'auto', sound: true,
-        rate: 0.9, autoRead: false, voice: '', ruler: false,
+        rate: 0.9, autoRead: false, voice: '', ruler: false, calc: 'ti',
       },
-      last: { floor: 'w1' },
+      last: { floor: 'w0' },
     };
   }
 
@@ -238,6 +238,7 @@
     keyHandler: null,
     current: { name: null, params: null },
     packById(id) { return root.PACKS.find((p) => p.id === id); },
+    floorName(p) { return !p ? 'Floor ?' : p.floor === 0 ? 'Basement' : 'Floor ' + p.floor; },
     nodeById(id) { for (const p of root.PACKS) { const n = p.nodes.find((x) => x.id === id); if (n) return { pack: p, node: n }; } return null; },
     go(name, params) {
       UI.stopSpeaking();

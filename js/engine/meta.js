@@ -76,7 +76,7 @@
       const q = QS.fromJournal(j);
       if (!q) return '';
       const pack = GAME.packById(j.pack);
-      return `<li class="ledger-row"><div class="lr-top"><span class="chip">Floor ${pack ? pack.floor : '?'} · ${esc(QS.topicLabel(j.pack, j.topic))}</span><span class="muted small">${new Date(j.t).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}</span></div>
+      return `<li class="ledger-row"><div class="lr-top"><span class="chip">${GAME.floorName(pack)} · ${esc(QS.topicLabel(j.pack, j.topic))}</span><span class="muted small">${new Date(j.t).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}</span></div>
         <div class="lr-q">${UI.rich(q.q)}</div>
         <p class="small">You said ${UI.rich(j.your || '—')} · correct: <b>${UI.rich(j.right)}</b></p>
         <div class="fb-actions"><button class="btn tiny primary" data-act="ledger-retry" data-i="${i}">Retry</button><button class="btn tiny" data-act="ledger-remove" data-i="${i}">Remove</button></div></li>`;
@@ -132,7 +132,7 @@
       const a = ts.reduce((x, t) => x + t.a, 0), c = ts.reduce((x, t) => x + t.c, 0);
       return `<tr><th scope="row">${p.floor}. ${esc(p.title)}</th><td>★ ${pr.got}/${pr.max}</td><td>${a ? Math.round((c / a) * 100) + '%' : '—'}</td><td>${a}</td></tr>`;
     }).join('');
-    const topicRow = (t) => `<li><div class="tm-top"><span>${esc(t.label)} <small class="muted">· Floor ${t.pack.floor}</small></span><span class="muted small">${t.c}/${t.a} · ${Math.round(t.m * 100)}%</span></div><div class="tm-row"><span class="pbar${t.m < 0.6 ? ' weak' : ''}"><i style="width:${Math.round(t.m * 100)}%"></i></span><button class="chip-btn" data-act="practice" data-pack="${t.pack.id}" data-topic="${esc(t.topic)}">Practise</button></div></li>`;
+    const topicRow = (t) => `<li><div class="tm-top"><span>${esc(t.label)} <small class="muted">· ${GAME.floorName(t.pack)}</small></span><span class="muted small">${t.c}/${t.a} · ${Math.round(t.m * 100)}%</span></div><div class="tm-row"><span class="pbar${t.m < 0.6 ? ' weak' : ''}"><i style="width:${Math.round(t.m * 100)}%"></i></span><button class="chip-btn" data-act="practice" data-pack="${t.pack.id}" data-topic="${esc(t.topic)}">Practise</button></div></li>`;
     return `<section class="page">
       <header class="page-head"><button class="linkbtn" data-act="goto-tower">← Tower</button><h1>Performance Review</h1><p>Mastery is estimated from your answers. Weakest topics are listed first: those are the best use of your study time.</p></header>
       <div class="tiles">
@@ -144,7 +144,7 @@
       </div>
       <div class="two-col">
         <section class="card"><h2>Weakest topics first</h2>${tried.length ? `<ul class="mastery">${tried.map(topicRow).join('')}</ul>` : '<p class="muted">Answer some questions to see your mastery.</p>'}
-          ${untried.length ? `<details><summary>${untried.length} topics not tried yet</summary><ul class="plain">${untried.map((t) => `<li>${esc(t.label)} <small class="muted">· Floor ${t.pack.floor}</small> <button class="chip-btn" data-act="practice" data-pack="${t.pack.id}" data-topic="${esc(t.topic)}">Try</button></li>`).join('')}</ul></details>` : ''}</section>
+          ${untried.length ? `<details><summary>${untried.length} topics not tried yet</summary><ul class="plain">${untried.map((t) => `<li>${esc(t.label)} <small class="muted">· ${GAME.floorName(t.pack)}</small> <button class="chip-btn" data-act="practice" data-pack="${t.pack.id}" data-topic="${esc(t.topic)}">Try</button></li>`).join('')}</ul></details>` : ''}</section>
         <section class="card"><h2>By floor</h2><div class="viz-scroll"><table class="qtable"><thead><tr><th scope="col">Floor</th><th scope="col">Stars</th><th scope="col">Correct</th><th scope="col">Answered</th></tr></thead><tbody>${floors}</tbody></table></div>
           ${exams.length ? `<h3>Recent Boardroom exams</h3><ul class="plain">${exams.map((x) => `<li>${new Date(x.t).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}: <b>${x.pct}%</b> (${x.marks}/${x.max} marks, ${x.n} questions)</li>`).join('')}</ul>` : ''}</section>
       </div>
@@ -205,6 +205,7 @@
         <div class="set-row"><button class="btn" data-act="test-voice">🔊 Test the voice</button></div>
       </section>
       <section class="card"><h2>Play</h2>
+        <div class="set-row"><span class="set-lbl">My calculator (for worked steps)</span>${seg('calc', [['ti', 'TI-Nspire CX CAS'], ['hp', 'HP10bII+']], st.calc || 'ti')}</div>
         <div class="set-row"><span class="set-lbl">Calculation answers</span>${seg('answer', [['mixed', 'Mixed'], ['mcq', 'Multiple choice'], ['type', 'Type the number']], st.answer)}</div>
         <div class="set-row"><span class="set-lbl">Mini-game timers</span>${seg('timers', [['off', 'Off'], ['relaxed', 'Relaxed (double time)'], ['standard', 'Standard']], st.timers)}</div>
         <div class="set-row"><span class="set-lbl">Motion</span>${seg('motion', [['auto', 'Match device'], ['reduce', 'Reduce'], ['full', 'Full']], st.motion)}</div>
@@ -223,9 +224,11 @@
   function helpHTML() {
     return `<div class="help">
       <h3>The goal</h3><p>Each floor of the tower is one week of BFC2140. Walk the route on each floor, beat the <b>boss</b>, and climb to the Boardroom. Your title rises from Intern to <b>CFO</b> as you earn XP.</p>
+      <h3>New to finance? Start in the Basement</h3><p>The <b>Basement</b> (below Floor 1) teaches the maths you need: percentages, powers, and how to use your <b>TI-Nspire CX CAS</b>. Then follow the route on each floor from the top: every battle comes after a <b>lesson</b> 📖 that teaches it from zero.</p>
+      <h3>Lessons</h3><p>A lesson is a short stack of cards. Press <kbd>Enter</kbd> or <b>Next</b> to move on, and <kbd>←</kbd> to go back. Worked examples show one step at a time. Quick checks give you two tries, then explain the answer. In “your turn” cards you solve a problem one small step at a time.</p>
       <h3>Battles</h3><p>Answer questions to damage the monster. A wrong answer costs a heart (you have 5). Three right answers in a row start a <b>combo</b> (×1.5 damage). Hard questions (●●●) hit harder. After every answer you get the explanation and a full <b>worked solution</b>.</p>
       <h3>Answering</h3><ul><li>Multiple choice: click an option, or press <kbd>A</kbd>–<kbd>D</kbd> / <kbd>1</kbd>–<kbd>4</kbd> (<kbd>T</kbd>/<kbd>F</kbd> for true/false).</li><li>Typed answers: type the number and press <kbd>Enter</kbd>. <code>1,338.23</code>, <code>$1338.23</code> and <code>(47,350)</code> all work. Percentages go in as <code>12.68</code>.</li><li><kbd>Enter</kbd> moves to the next question. <kbd>H</kbd> uses a hint. <kbd>S</kbd> reads the question aloud.</li></ul>
-      <h3>Tools</h3><ul><li>🧮 <b>Calculator</b>: TVM solver, cash flows (NPV/IRR), statistics, and a scientific mode. It uses the HP10bII+ sign convention.</li><li>📘 <b>Formula sheet</b>: the exam formula sheet, searchable.</li><li>📒 <b>Mistake Ledger</b>: retry anything you got wrong. 🌙 <b>Smart Review</b> targets your weakest topics.</li><li>🎓 <b>Boardroom</b>: a timed or untimed MST-style practice exam.</li></ul>
+      <h3>Tools</h3><ul><li>🧮 <b>Calculator</b>: works like a TI-Nspire: a Finance Solver and a calculator line that understands <code>tvmFV(…)</code>, <code>npv(…)</code>, <code>irr(…)</code>, <code>nSolve(…)</code>, lists and statistics. Every worked solution shows the TI-Nspire steps (switch to HP10bII+ in ⚙️ Settings).</li><li>📘 <b>Formula sheet</b>: the exam formula sheet, searchable.</li><li>📒 <b>Mistake Ledger</b>: retry anything you got wrong. 🌙 <b>Smart Review</b> targets your weakest topics.</li><li>🎓 <b>Boardroom</b>: a timed or untimed MST-style practice exam.</li></ul>
       <h3>Reading support</h3><p>In ⚙️ Settings you can switch the font (Lexend, Atkinson Hyperlegible or OpenDyslexic), make text bigger, add spacing, change the paper tint, turn off timers, and have questions read aloud. All maths is typeset in LaTeX.</p>
       <h3>Credits</h3><p class="small">Maths by KaTeX. Confetti by canvas-confetti. Fonts: Lexend, Atkinson Hyperlegible Next, Bungee and IBM Plex Mono (Google Fonts), and OpenDyslexic (via Fontsource). Monsters and sounds are generated in code. Questions are based on the BFC2140 lectures, tutorials and practice tests.</p>
     </div>`;

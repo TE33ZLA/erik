@@ -78,10 +78,21 @@
     if (f) f.querySelectorAll('input, button').forEach((x) => { x.disabled = true; });
   }
 
+  /** Calculator method for the player's calculator: TI-Nspire CX CAS (default) or the course's HP10bII+. */
+  function method(q) {
+    const pref = GAME.store.state.settings.calc || 'ti';
+    if (pref === 'hp') return q.calc ? calcKeys(q.calc) : '';
+    return q.ti && q.ti.length ? root.TIVIEW.html(q.ti) : '';
+  }
+  function methodSpeech(q) {
+    const pref = GAME.store.state.settings.calc || 'ti';
+    if (pref === 'hp') return q.calc ? 'On the H P 10 B: ' + String(q.calc).replace(/[\[\]]/g, ' ') : '';
+    return q.ti && q.ti.length ? root.TIVIEW.speech(q.ti) : '';
+  }
+
   function steps(q) {
     const list = (q.steps || []).map((s) => `<li>${UI.rich(s)}</li>`).join('');
-    if (!list && !q.calc) return '';
-    return `<ol class="steps">${list}</ol>${calcKeys(q.calc)}`;
+    return list ? `<ol class="steps">${list}</ol>` : '';
   }
 
   /** Feedback panel. res: {ok, note, yourText}; extra: {gain, lead, next} */
@@ -94,8 +105,11 @@
     const why = q.why ? `<div class="fb-why">${UI.rich(q.why)}</div>` : '';
     const st = steps(q);
     const stepsBlock = st ? `<details class="fb-steps"${res.ok ? '' : ' open'}><summary>Worked solution</summary>${st}</details>` : '';
+    const m = method(q);
+    const calcLbl = (GAME.store.state.settings.calc || 'ti') === 'hp' ? 'On the HP10bII+' : 'On your TI-Nspire';
+    const methodBlock = m ? `<details class="fb-steps fb-ti"${res.ok ? '' : ' open'}><summary>🧮 ${calcLbl}</summary>${m}</details>` : '';
     const f = q.formula && FORMULAS.byId[q.formula] ? `<button class="chip-btn" data-act="show-formula" data-f="${esc(q.formula)}">📘 ${esc(FORMULAS.byId[q.formula].name)}</button>` : '';
-    return `${head}${extra.gain ? `<p class="fb-gain">${extra.gain}</p>` : ''}${note}${ans}${why}${stepsBlock}
+    return `${head}${extra.gain ? `<p class="fb-gain">${extra.gain}</p>` : ''}${note}${ans}${why}${stepsBlock}${methodBlock}
       <div class="fb-actions">${extra.next === false ? '' : `<button class="btn primary" data-act="${extra.nextAct || 'next'}" id="next-btn">${esc(extra.nextLabel || 'Next')} <span aria-hidden="true">▶</span></button>`}
       <button class="icon-btn" data-act="speak-fb" aria-label="Read the explanation aloud">🔊</button>${f}</div>`;
   }
@@ -112,8 +126,10 @@
     if (res.note) t += UI.say(res.note) + ' ';
     if (q.why) t += UI.say(q.why) + ' ';
     if (q.steps) t += 'Working: ' + q.steps.map((s) => UI.say(s)).join('. ');
+    const m = methodSpeech(q);
+    if (m) t += '. ' + m;
     return t;
   }
 
-  root.QVIEW = { card, answers, feedback, markOptions, formulaCard, pips, calcKeys, speechFor, speechForFeedback, LETTERS, QCORE };
+  root.QVIEW = { card, answers, feedback, markOptions, formulaCard, pips, calcKeys, method, methodSpeech, speechFor, speechForFeedback, LETTERS, QCORE };
 })(typeof window !== 'undefined' ? window : globalThis);

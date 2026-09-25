@@ -424,6 +424,8 @@ fieldset { border: 0; padding: 0; margin: 0 0 10px; }
 .fb-why { margin-bottom: 0.6em; }
 .fb-steps { background: var(--panel); border-radius: 10px; padding: 6px 12px; margin: 0.4em 0 0.6em; border: 1.5px solid var(--line); }
 .fb-steps summary { cursor: pointer; font-weight: 700; padding: 4px 0; }
+.fb-ti .ti { border: 0; background: none; padding: 2px 0 6px; margin-top: 2px; }
+.fb-ti .ti-h { display: none; }
 .steps { margin: 0.4em 0; padding-left: 1.4em; }
 .steps li { margin-bottom: 0.55em; overflow-x: auto; }
 .calc-keys { font-family: var(--font-mono); font-size: 0.85rem; background: var(--panel-2); border-radius: 10px; padding: 6px 10px; overflow-x: auto; white-space: nowrap; }
@@ -561,6 +563,96 @@ fieldset { border: 0; padding: 0; margin: 0 0 10px; }
 .calc-hist li { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px solid #2d3342; padding: 4px 0; color: #aab3c2; }
 .calc-hist b { color: #e9edf3; }
 @media (min-width: 1100px) { html.calc-open .screen { width: auto; max-width: none; margin: 0 390px 0 0; } }
+
+/* ---------------- TI-Nspire drawer additions ---------------- */
+.ti-hist { list-style: none; margin: 0; padding: 8px 10px; background: #f4f6f8; color: #111820; border-radius: 10px; min-height: 5.5em; max-height: 38vh; overflow-y: auto; font-family: var(--font-mono); font-size: 0.9rem; border: 3px solid #0b0d12; }
+.ti-hist li { display: grid; gap: 2px; padding: 4px 0; border-bottom: 1px solid #d5dbe2; }
+.ti-hist li:last-child { border-bottom: 0; }
+.ti-hist .ti-in { color: #111820; overflow-wrap: anywhere; background: none; }
+.ti-hist .ti-out { justify-self: end; font-weight: 700; color: #0b3d91; }
+.ti-hist .ti-err { justify-self: end; color: #b23a2e; font-family: var(--font-body); font-size: 0.82rem; text-align: right; }
+.ti-entry { grid-template-columns: 1fr auto; }
+.ti-keys { display: flex; flex-wrap: wrap; gap: 4px; }
+.ti-keys .btn { font-family: var(--font-mono); font-size: 0.78rem; padding: 0.2em 0.5em; }
+.ti-cmds { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.ti-cmds li { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; border-bottom: 1px solid #2d3342; padding-bottom: 6px; }
+.ti-cmds code { grid-column: 1; color: #f2c14e; overflow-wrap: anywhere; }
+.ti-cmds span { grid-column: 1; font-size: 0.82rem; color: #cfd6e2; }
+.ti-cmds .btn { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+.calc .fs-form { display: grid; gap: 6px; background: #f4f6f8; color: #111820; border-radius: 10px; padding: 10px; border: 3px solid #0b0d12; }
+.calc .fs-form label, .calc .fs-form .lbl { color: #111820; font-family: var(--font-mono); font-size: 0.92rem; }
+.calc .fs-form input { background: #fff; color: #111820; border-color: #b7c0cc; }
+.calc .fs-form input.solved { background: #fff6d6; border-color: #b8860b; color: #111820; font-weight: 700; }
+.calc .fs-form .seg-btn { font-size: 0.8rem; }
+
+/* ---------------- TI-Nspire steps (feedback and lessons) ---------------- */
+:root { --ti-body: #2a2f38; --ti-screen: #f7f9fb; --ti-ink: #10161d; --ti-sel: #d8e6ff; --ti-sel-ink: #0b3d91; --ti-rule: #d9dfe6; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]):not(.gt-light) { --ti-body: #05070a; --ti-screen: #dfe5ec; --ti-ink: #0c1117; --ti-sel: #bcd3f7; --ti-sel-ink: #0b3d91; --ti-rule: #c3ccd6; } }
+:root[data-theme="dark"]:not(.gt-light), :root.gt-dark { --ti-body: #05070a; --ti-screen: #dfe5ec; --ti-ink: #0c1117; --ti-sel: #bcd3f7; --ti-sel-ink: #0b3d91; --ti-rule: #c3ccd6; }
+.ti { border: 1.5px solid var(--line); border-radius: 12px; background: var(--panel-2); padding: 10px 12px; margin-top: 10px; }
+.ti-h { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+.ti-badge { font-family: var(--font-mono); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em; background: var(--ti-body); color: #f2f4f8; border-radius: 6px; padding: 0.15em 0.6em; }
+.ti-steps { margin: 0; padding-left: 1.3em; display: grid; gap: 10px; }
+.ti-step p { margin: 0.2em 0; }
+.ti-how, .ti-tip, .ti-note, .ti-say { font-size: 0.95rem; }
+.ti-tip { color: var(--ink-2); font-size: 0.88rem; }
+.ti-tip.bad { color: var(--bad); }
+.ti-note { color: var(--ink-2); }
+.ti-note::before { content: "👉 "; }
+.ti-res { font-family: var(--font-mono); white-space: nowrap; }
+.ti-screen { background: var(--ti-screen); color: var(--ti-ink); border: 6px solid var(--ti-body); border-radius: 12px; padding: 8px 12px; max-width: 26rem; font-family: var(--font-mono); font-variant-numeric: tabular-nums; overflow-x: auto; }
+.ti-title { font-family: var(--font-body); font-weight: 700; font-size: 0.85rem; border-bottom: 1px solid var(--ti-rule); padding-bottom: 3px; margin-bottom: 4px; }
+.ti-form { display: grid; gap: 2px; }
+.ti-f { display: grid; grid-template-columns: 4.6em 1fr auto; align-items: center; gap: 8px; padding: 1px 6px; border-radius: 6px; }
+.ti-k { color: var(--ti-ink); }
+.ti-v { background: #fff; border: 1px solid var(--ti-rule); border-radius: 4px; padding: 0 6px; min-height: 1.5em; text-align: right; }
+.ti-f.solve { background: var(--ti-sel); }
+.ti-f.solve .ti-v { font-weight: 700; color: var(--ti-sel-ink); border-color: var(--ti-sel-ink); }
+.ti-here { font-family: var(--font-body); font-size: 0.75rem; color: var(--ti-sel-ink); white-space: nowrap; }
+.ti-screen.ti-calcline { padding: 6px 12px; }
+.ti-line { display: grid; gap: 2px; }
+.ti-in { background: none; color: var(--ti-ink); font-size: 1rem; overflow-wrap: anywhere; }
+.ti-out { justify-self: end; font-weight: 700; color: var(--ti-sel-ink); }
+.ti-err { color: var(--bad); }
+
+/* ---------------- lessons ---------------- */
+.stop-ico.lesson { background: color-mix(in srgb, var(--floor, var(--accent)) 16%, var(--panel)); }
+.stop.kind-lesson .stop-kind { color: var(--accent); }
+.lesson { display: grid; gap: 14px; max-width: 46rem; margin: 0 auto; }
+.lesson-head { display: grid; gap: 4px; }
+.lesson-title h1 { margin: 0; text-wrap: balance; }
+.lesson-goal { margin: 4px 0 0; color: var(--ink-2); }
+.lesson-prog { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.lesson-prog i { width: 22px; height: 8px; border-radius: 4px; background: var(--line); }
+.lesson-prog i.done { background: var(--floor, var(--accent)); opacity: 0.55; }
+.lesson-prog i.on { background: var(--floor, var(--accent)); }
+.lesson-prog span { margin-left: 8px; font-size: 0.85rem; color: var(--ink-2); }
+.lcard { background: var(--panel); border: 1.5px solid var(--line); border-left: 6px solid var(--floor, var(--accent)); border-radius: var(--radius); padding: 1.1rem 1.25rem 1.2rem; box-shadow: var(--shadow); display: grid; gap: 0.6rem; font-size: 1.08rem; }
+.lcard > p, .lcard .lq p { margin: 0; max-width: 62ch; }
+.lcard h2 { margin: 0; font-size: 1.35rem; text-wrap: balance; }
+.lkind { margin: 0; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+.lpoints { margin: 0; padding-left: 1.2em; display: grid; gap: 0.35em; }
+.ltip { background: var(--accent-soft); border-radius: 10px; padding: 0.6em 0.85em; }
+.lq { background: var(--panel-2); border-radius: 10px; padding: 0.7em 0.9em; }
+.lsteps { margin: 0; padding-left: 1.4em; display: grid; gap: 0.5em; }
+.lsteps li { padding: 0.3em 0; animation: stepin 0.25s ease; }
+@keyframes stepin { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.lans { background: var(--good-soft); border-radius: 10px; padding: 0.6em 0.85em; margin: 0; font-weight: 600; }
+.lcard .btn { justify-self: start; }
+.lcheck .qcard { box-shadow: none; border-left-width: 1.5px; }
+.gparts { margin: 0; padding-left: 1.4em; display: grid; gap: 0.9em; }
+.gpart .gp-ask { font-weight: 600; margin-bottom: 0.3em; }
+.gpart.done .gp-ask { font-weight: 400; color: var(--ink-2); }
+.gp-res { margin: 0.2em 0; font-size: 1.05rem; }
+.gp-res.bad { color: var(--ink); }
+.gp-why { margin: 0.2em 0 0; color: var(--ink-2); font-size: 0.95rem; }
+.gpart .numform .numrow { max-width: 26rem; }
+.lesson-nav { display: flex; gap: 10px; align-items: center; justify-content: space-between; position: sticky; bottom: env(safe-area-inset-bottom, 0px); background: color-mix(in srgb, var(--paper) 88%, transparent); padding: 10px 0; backdrop-filter: blur(4px); }
+.lesson-nav .btn.primary { margin-left: auto; }
+.lcard.finish { text-align: left; }
+.stars.big { font-size: 2rem; margin: 0; }
+.stars.big span { color: var(--line-2); }
+.stars.big span.on { color: var(--gold-fill); }
 
 /* ---------------- pages ---------------- */
 .page { display: grid; gap: 16px; }

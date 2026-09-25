@@ -63,6 +63,50 @@ const PAGE = process.env.PAGE || 'index.html';
   let played = 0, questions = 0;
   for (const p of packs) {
     for (const n of p.nodes) {
+      if (n.kind === 'lesson') {
+        await page.evaluate((id) => GAME.go('lesson', { nodeId: id }), n.id);
+        await page.waitForTimeout(200);
+        for (let k = 0; k < 120; k++) {
+          await page.waitForTimeout(30);
+          const st = await page.evaluate(() => {
+            const L = LESSON.state; if (!L) return null;
+            if (L.finished || L.i >= L.cards.length) return { done: true };
+            const c = L.cards[L.i]; const s = L.st[L.i] || {};
+            const r = { i: L.i, kind: c.kind };
+            if (c.kind === 'check') { const q = s.q; r.missing = !q; r.cdone = !!s.done; r.mode = q && q.mode; r.idx = q && q.mode === 'choice' ? q.options.findIndex((o) => o.correct) : -1; r.ans = q && q.answer; }
+            if (c.kind === 'guided') { r.gdone = !!s.done; const pt = c.parts[s.part || 0]; r.pchoice = !!(pt && pt.choices); r.pans = pt && pt.answer; }
+            return r;
+          });
+          if (!st || st.done) break;
+          await domCheck(n.id + ' card' + st.i);
+          if (st.kind === 'check' && st.missing) { errors.push(n.id + ' card' + st.i + ' :: check question missing'); await page.evaluate(() => { const L = LESSON.state; L.st[L.i].done = true; }); }
+          else if (st.kind === 'check' && !st.cdone) {
+            if (st.mode === 'choice') { const opts = await page.$$('#lesson-card .opt'); if (st.idx < 0 || !opts[st.idx]) { errors.push(n.id + ' card' + st.i + ' :: no correct option'); break; } await opts[st.idx].click(); }
+            else {
+              await page.fill('#lesson-card #ans', String(st.ans)); await page.click('#lesson-card .numform button[type=submit]'); await page.waitForTimeout(40);
+              const ok = await page.evaluate(() => { const L = LESSON.state; const s = L.st[L.i]; return !!(s.done && s.ok); });
+              if (!ok) errors.push(n.id + ' card' + st.i + ' :: exact answer ' + st.ans + ' was marked wrong');
+            }
+            await page.waitForTimeout(40); await domCheck(n.id + ' card' + st.i + ' fb');
+            questions++;
+            continue;
+          }
+          if (st.kind === 'guided' && !st.gdone) {
+            if (st.pchoice) { const opts = await page.$$('#lesson-card [data-act="lesson-part-pick"]'); await opts[st.pans].click(); }
+            else { await page.fill('#lesson-card #pans', String(st.pans)); await page.click('#lesson-card .numform button[type=submit]'); }
+            const bad = await page.evaluate(() => { const L = LESSON.state; const s = L.st[L.i]; const r = s.res && s.res[s.part]; return r && r.tries && !r.done ? true : false; });
+            if (bad) errors.push(n.id + ' card' + st.i + ' :: guided answer ' + st.pans + ' was marked wrong');
+            continue;
+          }
+          const nb = await page.$('#lesson-next');
+          if (!nb || await nb.isDisabled()) { errors.push(n.id + ' card' + st.i + ' :: Next is disabled'); break; }
+          await nb.click();
+        }
+        const fin = await page.evaluate(() => !!document.querySelector('#lesson-card .finish'));
+        if (!fin) errors.push(n.id + ' :: lesson did not reach its finish card');
+        played++;
+        continue;
+      }
       if (n.kind === 'mini') {
         await page.evaluate((id) => GAME.go('mini', { nodeId: id }), n.id);
         await page.waitForTimeout(150);

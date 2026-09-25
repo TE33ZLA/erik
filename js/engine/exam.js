@@ -8,9 +8,9 @@
   const setup = { floors: null, n: 20, timer: 0 };
 
   GAME.screens.exam = () => {
-    const packs = root.PACKS;
+    const packs = root.PACKS.filter((p) => !p.noExam);
     if (!setup.floors) setup.floors = packs.map((p) => p.id);
-    const floors = packs.map((p) => `<label class="check"><input type="checkbox" data-exam-floor="${p.id}" ${setup.floors.includes(p.id) ? 'checked' : ''}><span><b>Floor ${p.floor}</b> · ${esc(p.week)}: ${esc(p.topic)}</span></label>`).join('');
+    const floors = packs.map((p) => `<label class="check"><input type="checkbox" data-exam-floor="${p.id}" ${setup.floors.includes(p.id) ? 'checked' : ''}><span><b>${GAME.floorName(p)}</b> · ${esc(p.week)}: ${esc(p.topic)}</span></label>`).join('');
     const seg = (key, opts, cur) => `<div class="seg" role="radiogroup">${opts.map(([v, l]) => `<button class="seg-btn${cur === v ? ' on' : ''}" role="radio" aria-checked="${cur === v}" data-act="exam-set" data-k="${key}" data-v="${v}">${l}</button>`).join('')}</div>`;
     return `<section class="page exam-setup">
       <header class="page-head"><button class="linkbtn" data-act="goto-tower">← Tower</button><p class="eyebrow">Penthouse</p><h1>The Boardroom</h1>
@@ -195,7 +195,7 @@
   Object.assign(GAME.actions, {
     'goto-exam': () => GAME.go('exam'),
     'exam-set': (el) => { readFloors(); setup[el.dataset.k] = +el.dataset.v; GAME.refresh(); },
-    'exam-all': () => { setup.floors = root.PACKS.map((p) => p.id); GAME.refresh(); },
+    'exam-all': () => { setup.floors = root.PACKS.filter((p) => !p.noExam).map((p) => p.id); GAME.refresh(); },
     'exam-none': () => { setup.floors = []; GAME.refresh(); },
     'exam-mst': () => { setup.floors = root.PACKS.filter((p) => ['w1', 'w2', 'w3', 'w4'].includes(p.id)).map((p) => p.id); GAME.refresh(); },
     'exam-start': () => {

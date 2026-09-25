@@ -76,7 +76,7 @@
       GAME.cleanup = () => { B = null; };
     };
     return `<section class="battle${B.boss ? ' is-boss' : ''}" style="--floor:${B.color}">
-      <div class="battle-head"><button class="linkbtn" data-act="flee">← ${B.pack ? 'Floor ' + B.pack.floor : 'Tower'}</button><h1 class="battle-title">${esc(B.title)}</h1><span class="battle-kind">${B.boss ? 'Boss fight' : B.p.review ? 'Smart Review' : B.p.practice ? 'Practice' : 'Battle'}</span></div>
+      <div class="battle-head"><button class="linkbtn" data-act="flee">← ${B.pack ? GAME.floorName(B.pack) : 'Tower'}</button><h1 class="battle-title">${esc(B.title)}</h1><span class="battle-kind">${B.boss ? 'Boss fight' : B.p.review ? 'Smart Review' : B.p.practice ? 'Practice' : 'Battle'}</span></div>
       <div class="arena" id="arena"><span class="arena-deco" aria-hidden="true">${B.pack ? B.pack.icon : '🌙'}</span><span class="arena-sky" aria-hidden="true"></span>
         <div class="fighter me"><div class="ava-wrap" id="me">${ART.avatarSVG(s.avatar)}</div><div class="hearts" id="hearts">${heartsHTML()}</div></div>
         <div class="combo" id="combo" aria-live="polite"></div>

@@ -12,11 +12,12 @@ const onlyIdx = args.indexOf('--only');
 const ONLY = onlyIdx >= 0 ? new Set(args[onlyIdx + 1].split(',')) : null; // e.g. --only w2,w3
 const katexPath = (args[0] && !args[0].startsWith('--') ? args[0] : null) || process.env.KATEX_PATH || 'katex';
 globalThis.katex = require(katexPath);
-for (const f of ['js/lib/fin.js', 'js/lib/fmt.js', 'js/lib/render.js', 'js/lib/qcore.js', 'js/data/formulas.js', 'js/data/registry.js']) require(path.join(ROOT, f));
+for (const f of ['js/lib/fin.js', 'js/lib/fmt.js', 'js/lib/render.js', 'js/lib/qcore.js', 'js/lib/nspire.js', 'js/lib/tiview.js', 'js/data/formulas.js', 'js/data/registry.js']) require(path.join(ROOT, f));
 const packFiles = fs.readdirSync(path.join(ROOT, 'js/data')).filter((f) => /^w[\dx]+\.js$/.test(f)).filter((f) => !ONLY || ONLY.has(f.replace('.js', ''))).sort();
 for (const f of packFiles) require(path.join(ROOT, 'js/data', f));
 
-const { PACKS, FORMULAS, RENDER, makeRng, QCORE } = globalThis;
+const { PACKS, FORMULAS, RENDER, makeRng, QCORE, NSPIRE, TIVIEW } = globalThis;
+const REQUIRE_TI = process.env.REQUIRE_TI !== '0'; // every calculation question needs a TI-Nspire method
 const UNITS = new Set(['$', '%', 'yrs', 'days', 'units', 'x', '', '$m']);
 const BODIES = new Set(['blob', 'ghost', 'box', 'coin', 'spiky', 'tall', 'round']);
 const ACCS = new Set(['tophat', 'crown', 'horns', 'monocle', 'glasses', 'shades', 'bowtie', 'tie', 'pirate', 'antenna', 'halo', 'cap', 'bandana', 'mustache', 'wizard', 'hardhat', 'headset', 'leaf']);
@@ -74,6 +75,43 @@ function checkVisuals(where, q) {
   }
 }
 
+/* ---------- TI-Nspire methods ---------- */
+const SOLVER_KEYS = new Set(['N', 'I', 'PV', 'Pmt', 'FV', 'PpY', 'CpY', 'PmtAt']);
+const tiStats = {};
+function checkTI(where, steps, q) {
+  if (!Array.isArray(steps) || !steps.length) { err(where, 'ti must be a non-empty array of steps'); return; }
+  steps.forEach((st, i) => {
+    const w = `${where}.ti[${i}]`;
+    const kinds = ['solver', 'cmd', 'say'].filter((k) => st[k] !== undefined);
+    if (kinds.length !== 1) { err(w, 'each TI step needs exactly one of solver / cmd / say'); return; }
+    if (st.say !== undefined) checkTex(w + '.say', st.say);
+    if (st.note !== undefined) checkTex(w + '.note', st.note);
+    if (st.solver) {
+      Object.keys(st.solver).forEach((k) => { if (!SOLVER_KEYS.has(k)) err(w, `unknown Finance Solver field ${k}`); });
+      if (!['N', 'I', 'PV', 'Pmt', 'FV'].includes(st.find)) err(w, `find must be N, I, PV, Pmt or FV (got ${st.find})`);
+      if (st.solver.PmtAt !== undefined && !['END', 'BEGIN'].includes(st.solver.PmtAt)) err(w, 'PmtAt must be END or BEGIN');
+      if (st.solver[st.find] !== undefined) err(w, `the solved field ${st.find} must be left empty`);
+    }
+    if (st.cmd !== undefined && typeof st.cmd !== 'string') err(w, 'cmd must be a string');
+  });
+  let run;
+  try { run = NSPIRE.run(steps); } catch (e) { err(where, `TI method crashed: ${e.message}`); return; }
+  run.results.forEach((r, i) => { if (r.error) err(`${where}.ti[${i}]`, `TI step fails: ${r.error} («${r.step.cmd || r.step.find || ''}»)`); });
+  try { TIVIEW.html(steps); } catch (e) { err(where, `TI view crashed: ${e.message}`); }
+  if (!q || !Number.isFinite(q.answer) || !run.last) return;
+  const lastStep = run.last.step;
+  let vals = run.last.value && run.last.value.solve ? run.last.value.roots : [run.last.value];
+  vals = vals.filter((v) => typeof v === 'number');
+  if (!vals.length) { err(where, 'the last TI step does not give a number'); return; }
+  const ans = q.answer;
+  const scale = (v) => (lastStep.pct ? v * 100 : q.unit === '$m' && Math.abs(v) > 1e5 && Math.abs(ans) < 1e5 ? v / 1e6 : v);
+  const tol = Math.max(QCORE.tolerance(q), Math.abs(ans) * 2e-4);
+  const ok = vals.some((v) => Math.abs(scale(v) - ans) <= tol);
+  const flipped = !ok && vals.some((v) => Math.abs(-scale(v) - ans) <= tol);
+  if (flipped && !lastStep.note && !steps.some((st) => st.say && /sign|minus|negative|positive/i.test(st.say))) err(where, `the TI result has the opposite sign to the answer (${scale(vals[0])} vs ${ans}); add a note on the last step that explains the sign`);
+  else if (!ok && !flipped) err(where, `the TI method gives ${vals.map((v) => +scale(v).toFixed(6)).join(' or ')}, but the answer is ${+ans.toFixed(6)}`);
+}
+
 function checkQuestion(where, q, pack, isGen) {
   const kind = q.kind || 'num';
   if (!['mcq', 'tf', 'num'].includes(kind)) err(where, `bad kind ${kind}`);
@@ -128,6 +166,65 @@ function checkQuestion(where, q, pack, isGen) {
     if (q.unit === '%' && Math.abs(q.answer) < 1 && Math.abs(q.answer) > 0 && !q.small) warn(where, `% answer ${q.answer} looks like a decimal, not percent units`);
   }
   if (q.formula && !FORMULAS.byId[q.formula]) err(where, `unknown formula id ${q.formula}`);
+  if (q.ti !== undefined) checkTI(where, q.ti, kind === 'num' ? q : null);
+  if (pack) {
+    const t = tiStats[pack.id] || (tiStats[pack.id] = { calc: 0, ti: 0, missing: [] });
+    if (kind === 'num' && !isGen) { t.calc++; if (q.ti) t.ti++; else t.missing.push(where); }
+  }
+}
+
+/* ---------- lessons ---------- */
+const CARD_KINDS = new Set(['learn', 'example', 'ti', 'check', 'guided', 'recap']);
+function checkLesson(where, pack, L) {
+  if (!L) { err(where, 'lesson not found in pack.lessons'); return; }
+  if (!L.title) err(where, 'lesson needs a title');
+  checkTex(where + '.title', L.title);
+  checkTex(where + '.goal', L.goal);
+  (L.topics || []).forEach((t) => { if (!(t in pack.topics)) err(where, `unknown topic ${t}`); });
+  if (!Array.isArray(L.cards) || L.cards.length < 3) { err(where, 'a lesson needs at least 3 cards'); return; }
+  L.cards.forEach((c, i) => {
+    const w = `${where}.card${i}`;
+    if (!CARD_KINDS.has(c.kind)) { err(w, `unknown card kind ${c.kind}`); return; }
+    ['title', 'body', 'tip', 'q', 'answer', 'intro'].forEach((k) => { if (typeof c[k] === 'string') checkTex(`${w}.${k}`, c[k]); });
+    (c.points || []).forEach((p, j) => checkTex(`${w}.points[${j}]`, p));
+    if (c.formula && !FORMULAS.byId[c.formula]) err(w, `unknown formula ${c.formula}`);
+    checkVisuals(w, c);
+    if (c.kind === 'learn' && !c.body && !c.points) err(w, 'learn card needs body or points');
+    if (c.kind === 'recap' && !(c.points && c.points.length)) err(w, 'recap card needs points');
+    if (c.kind === 'example') {
+      if (!c.q) err(w, 'example needs q');
+      if (!Array.isArray(c.steps) || !c.steps.length) err(w, 'example needs steps');
+      (c.steps || []).forEach((st, j) => checkTex(`${w}.steps[${j}]`, st));
+    }
+    if (c.kind === 'ti' && !c.ti) err(w, 'ti card needs ti steps');
+    if (c.kind === 'check') {
+      if (c.ref) { if (!pack.questions.some((x) => x.id === c.ref)) err(w, `check ref ${c.ref} not found`); }
+      else if (c.gen) { if (!pack.generators.some((x) => x.id === c.gen)) err(w, `check gen ${c.gen} not found`); }
+      else if (c.q && typeof c.q === 'object') checkQuestion(w, Object.assign({ level: 1 }, c.q), null, false);
+      else err(w, 'check needs ref, gen or q');
+      if (c.q && typeof c.q === 'object' && c.q.hint) checkTex(w + '.hint', c.q.hint);
+    }
+    let tiTarget = null;
+    if (c.kind === 'guided') {
+      if (!c.q) err(w, 'guided needs q');
+      if (!Array.isArray(c.parts) || !c.parts.length) err(w, 'guided needs parts');
+      (c.parts || []).forEach((p, j) => {
+        const pw = `${w}.parts[${j}]`;
+        checkTex(pw + '.ask', p.ask); checkTex(pw + '.hint', p.hint); checkTex(pw + '.why', p.why);
+        if (!p.ask) err(pw, 'part needs ask');
+        if (p.choices) {
+          p.choices.forEach((ch, k) => checkTex(`${pw}.choices[${k}]`, ch));
+          if (!(Number.isInteger(p.answer) && p.answer >= 0 && p.answer < p.choices.length)) err(pw, 'choice answer index invalid');
+        } else {
+          if (!Number.isFinite(p.answer)) err(pw, `answer not finite: ${p.answer}`);
+          if (!UNITS.has(p.unit === undefined ? '' : p.unit)) err(pw, `bad unit ${p.unit}`);
+        }
+      });
+      const lastP = (c.parts || [])[c.parts.length - 1];
+      if (lastP && !lastP.choices && Number.isFinite(lastP.answer)) tiTarget = { answer: lastP.answer, unit: lastP.unit || '', dp: lastP.dp === undefined ? 2 : lastP.dp, mistakes: [] };
+    }
+    if (c.ti) checkTI(w, c.ti, tiTarget);
+  });
 }
 
 function checkEnemy(where, e) {
@@ -153,8 +250,10 @@ for (const pack of PACKS) {
   (pack.nodes || []).forEach((n) => {
     const w = `${P}.node ${n.id}`;
     if (allIds.has(n.id)) err(w, 'duplicate node id'); allIds.add(n.id);
-    if (!['battle', 'boss', 'mini'].includes(n.kind)) err(w, `bad kind ${n.kind}`);
-    if (n.kind === 'mini') {
+    if (!['battle', 'boss', 'mini', 'lesson'].includes(n.kind)) err(w, `bad kind ${n.kind}`);
+    if (n.kind === 'lesson') {
+      checkLesson(w, pack, pack.lessons && pack.lessons[n.lesson]);
+    } else if (n.kind === 'mini') {
       const m = pack.minis && pack.minis[n.mini];
       if (!m) err(w, `mini ${n.mini} not found in pack.minis`);
       else if (m.game === 'rapid') {
@@ -214,7 +313,14 @@ for (const pack of PACKS) {
     nGen++;
   });
   Object.entries(topicUse).forEach(([t, c]) => { if (c === 0) warn(P, `topic ${t} has no questions`); });
-  summary.push(`${P.padEnd(4)} floor ${pack.floor}  static ${String(nStatic).padStart(3)} (A ${secA}, B ${secB}; L1 ${byLevel[1]} L2 ${byLevel[2]} L3 ${byLevel[3]})  generators ${String(nGen).padStart(2)}  nodes ${pack.nodes.length}`);
+  // lessons: every lesson is used by a node; TI-Nspire coverage of calculation questions
+  const lessonIds = Object.keys(pack.lessons || {});
+  lessonIds.forEach((id) => { if (!pack.nodes.some((n) => n.kind === 'lesson' && n.lesson === id)) warn(P, `lesson ${id} is not on the route`); });
+  let genTI = 0, genNum = 0;
+  (pack.generators || []).forEach((g) => { let q = null; try { q = g.make(makeRng(12345)); } catch (e) { /* reported above */ } if (q && (q.kind || 'num') === 'num') { genNum++; if (q.ti) genTI++; else if (REQUIRE_TI) err(`${P}.${g.id}`, 'calculation generator has no TI-Nspire method (ti)'); } });
+  const t = tiStats[P] || { calc: 0, ti: 0, missing: [] };
+  if (REQUIRE_TI) t.missing.forEach((w) => err(w, 'calculation question has no TI-Nspire method (ti)'));
+  summary.push(`${P.padEnd(4)} floor ${pack.floor}  static ${String(nStatic).padStart(3)} (A ${secA}, B ${secB}; L1 ${byLevel[1]} L2 ${byLevel[2]} L3 ${byLevel[3]})  generators ${String(nGen).padStart(2)}  nodes ${pack.nodes.length}  lessons ${lessonIds.length}  TI ${t.ti + genTI}/${t.calc + genNum}`);
 }
 
 console.log(summary.join('\n'));
