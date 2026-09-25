@@ -258,7 +258,7 @@
             body: R`$1,000 today and $1,000 in three years are not worth the same. So you cannot just add them.\n\nFirst move every amount to the **same date**. Then add. This rule is called **value additivity**.`,
             tip: R`The date is usually today, \(t = 0\). Then you are finding the **present value** (PV) of the stream.` },
           { kind: 'learn', title: 'The present value of a stream',
-            body: R`Discount each cash flow by its **own** number of years, then add:\n\n\[PV = C_0 + \frac{C_1}{1+r} + \frac{C_2}{(1+r)^{2}} + \cdots + \frac{C_n}{(1+r)^{n}}\]\n\n\(C_t\) is the cash flow at time \(t\). \(C_0\) happens today, so it is not discounted.`,
+            body: R`Discount each cash flow by its **own** number of years, then add:\n\n\[\begin{aligned} PV = C_0 &+ \frac{C_1}{1+r} + \frac{C_2}{(1+r)^{2}} \\ &+ \cdots + \frac{C_n}{(1+r)^{n}} \end{aligned}\]\n\n\(C_t\) is the cash flow at time \(t\). \(C_0\) happens today, so it is not discounted.`,
             formula: 'pv-lump' },
           { kind: 'example', title: 'Worked example', q: R`You will receive $1,500 in one year, $2,000 in two years and $2,500 in three years. The interest rate is 10% p.a. What is the stream worth today?`,
             tl: { n: 3, at: { 0: '?', 1: '$1,500', 2: '$2,000', 3: '$2,500' }, unit: 'Year', hi: [0] },
@@ -386,7 +386,7 @@
             tl: { n: 3, at: { 0: '?', 1: '$100', 2: '$100', 3: '$100' }, unit: 'Year', hi: [0] },
             steps: [
               R`\(C = 100\), \(r = 0.10\) and \(n = 3\).`,
-              R`\[PV = \frac{100}{0.10}\left(1 - \frac{1}{1.10^{3}}\right) = 1{,}000 \times (1 - ${L.numT(1 / 1.1 ** 3, 6)})\]`,
+              R`\[\begin{aligned} PV &= \frac{100}{0.10}\left(1 - \frac{1}{1.10^{3}}\right) \\ &= 1{,}000 \times (1 - ${L.numT(1 / 1.1 ** 3, 6)}) \end{aligned}\]`,
               R`\(PV = 1{,}000 \times ${L.numT(1 - 1 / 1.1 ** 3, 6)} = ${L.money(LS.ann3)}\).`,
             ],
             answer: R`The three payments are worth \(${L.money(LS.ann3)}\) today.`,
@@ -406,7 +406,7 @@
             tl: { n: 5, at: { 0: '?', 2: '$500', 3: '$500', 4: '$500', 5: '$500' }, unit: 'Year', hi: [0] },
             steps: [
               R`The first payment is at \(t = 2\), so the formula lands at \(t = 1\).`,
-              R`\[PV_1 = \frac{500}{0.08}\left(1 - \frac{1}{1.08^{4}}\right) = ${L.money(LS.def1)}\]`,
+              R`\[\begin{aligned} PV_1 &= \frac{500}{0.08}\left(1 - \frac{1}{1.08^{4}}\right) \\ &= ${L.money(LS.def1)} \end{aligned}\]`,
               R`Discount it 1 year: \(PV_0 = \frac{${L.num(LS.def1)}}{1.08} = ${L.money(LS.def1 / 1.08)}\).`,
             ],
             answer: R`It is worth \(${L.money(LS.def1 / 1.08)}\) today.`,
@@ -445,7 +445,7 @@
           { kind: 'example', title: 'Worked example', q: R`You rent a flat for a year. Rent of $1,500 is paid at the **start** of each month, the first one today. The rate is 0.5% per month. What is the year of rent worth today?`,
             steps: [
               R`12 payments at \(t = 0, 1, \ldots, 11\): an annuity due with \(C = 1{,}500\), \(r = 0.005\) and \(n = 12\).`,
-              R`The ordinary annuity value: \[\frac{1{,}500}{0.005}\left(1 - \frac{1}{1.005^{12}}\right) = ${L.money(LS.rent)}\]`,
+              R`The ordinary annuity value: \[\begin{aligned} &\frac{1{,}500}{0.005}\left(1 - \frac{1}{1.005^{12}}\right) \\ &= ${L.money(LS.rent)} \end{aligned}\]`,
               R`Times \((1 + r)\): \(${L.num(LS.rent)} \times 1.005 = ${L.money(LS.rentDue)}\).`,
             ],
             answer: R`The rent is worth \(${L.money(LS.rentDue)}\) today.`,
@@ -470,7 +470,7 @@
           { kind: 'example', title: 'Worked example: an equivalent annuity', q: R`Asset B pays $900 at \(t = 2\). The rate is 6% p.a. Find its equivalent 3-year annuity **due**: equal payments at \(t = 0, 1, 2\) with the same PV.`,
             steps: [
               R`The PV: \(\frac{900}{1.06^{2}} = ${L.money(LS.eqPV)}\).`,
-              R`Set it equal to a 3-year annuity due: \[${L.num(LS.eqPV)} = \frac{C}{0.06}\left(1 - \frac{1}{1.06^{3}}\right)(1.06) = C \times ${L.numT(LS.eqF, 6)}\]`,
+              R`Set it equal to a 3-year annuity due: \[\begin{aligned} ${L.num(LS.eqPV)} &= \frac{C}{0.06}\left(1 - \frac{1}{1.06^{3}}\right)(1.06) \\ &= C \times ${L.numT(LS.eqF, 6)} \end{aligned}\]`,
               R`\(C = \frac{${L.num(LS.eqPV)}}{${L.numT(LS.eqF, 6)}} = ${L.money(LS.eqC)}\).`,
             ],
             answer: R`The equivalent annuity is \(${L.money(LS.eqC)}\) a year, paid at \(t = 0, 1, 2\).`,
@@ -519,7 +519,7 @@
           { kind: 'example', title: 'Worked example: a savings goal', q: R`You want $15,000 for a car in 4 years. You deposit an equal amount at the end of each year. The account pays 5% p.a. How big is each deposit?`,
             steps: [
               R`The target is a future value: \(FV = 15{,}000\), \(r = 0.05\) and \(n = 4\).`,
-              R`\[C = \frac{15{,}000 \times 0.05}{1.05^{4} - 1} = \frac{750}{${L.numT(1.05 ** 4 - 1, 6)}} = ${L.money(LS.car15)}\]`,
+              R`\[\begin{aligned} C &= \frac{15{,}000 \times 0.05}{1.05^{4} - 1} \\ &= \frac{750}{${L.numT(1.05 ** 4 - 1, 6)}} = ${L.money(LS.car15)} \end{aligned}\]`,
             ],
             answer: R`Each deposit is \(${L.money(LS.car15)}\).`,
             ti: [TI.solver({ N: 4, I: 5, PV: 0, FV: 15000, PpY: 1, CpY: 1 }, 'Pmt', { note: 'The payment is negative because you pay each deposit in.' })] },
@@ -560,7 +560,7 @@
           { kind: 'example', title: 'Worked example', q: R`A trust will pay $5,000 at the end of this year. The payments then grow at 3% a year, forever. The discount rate is 8%. What is the trust worth today?`,
             steps: [
               R`The first payment is at \(t = 1\): \(C_1 = 5{,}000\). \(r = 0.08\) and \(g = 0.03\).`,
-              R`\[PV = \frac{5{,}000}{0.08 - 0.03} = \frac{5{,}000}{0.05} = \$100{,}000\]`,
+              R`\[\begin{aligned} PV &= \frac{5{,}000}{0.08 - 0.03} \\ &= \frac{5{,}000}{0.05} = \$100{,}000 \end{aligned}\]`,
             ],
             answer: R`The trust is worth \(\$100{,}000\).`,
             ti: [TI.line('5000/(0.08-0.03)', { note: R`Keep the brackets around \(r - g\).` })] },
@@ -576,7 +576,7 @@
             steps: [
               R`\(C = 50{,}000\), \(g = 0.05\), \(r = 0.12\) and \(n = 10\).`,
               R`\(\left(\frac{1.05}{1.12}\right)^{10} = ${L.numT((1.05 / 1.12) ** 10, 8)}\).`,
-              R`\[PV = \frac{50{,}000}{0.12 - 0.05}\left(1 - ${L.numT((1.05 / 1.12) ** 10, 8)}\right) = ${L.money(LS.store)}\]`,
+              R`\[\begin{aligned} PV &= \frac{50{,}000}{0.12 - 0.05}\left(1 - ${L.numT((1.05 / 1.12) ** 10, 8)}\right) \\ &= ${L.money(LS.store)} \end{aligned}\]`,
             ],
             answer: R`The cash flows are worth \(${L.money(LS.store)}\) today.`,
             ti: [TI.line('50000/(0.12-0.05)*(1-(1.05/1.12)^10)', { note: 'There is no growth box in the Finance Solver. Type the formula in one line.' })] },
@@ -614,7 +614,7 @@
           { kind: 'example', title: 'Worked example', q: R`You borrow $10,000 at 7% p.a. and repay it with 4 equal payments, at the end of each year. How big is each payment?`,
             steps: [
               R`\(PV = 10{,}000\), \(r = 0.07\) and \(n = 4\).`,
-              R`\[C = \frac{10{,}000 \times 0.07}{1 - 1.07^{-4}} = \frac{700}{${L.numT(1 - 1.07 ** -4, 6)}} = ${L.money(LS.loan)}\]`,
+              R`\[\begin{aligned} C &= \frac{10{,}000 \times 0.07}{1 - 1.07^{-4}} \\ &= \frac{700}{${L.numT(1 - 1.07 ** -4, 6)}} = ${L.money(LS.loan)} \end{aligned}\]`,
               R`In total you pay \(4 \times ${L.num(LS.loan)} = ${L.money(4 * r2(LS.loan))}\). The extra \(${L.money(4 * r2(LS.loan) - 10000)}\) is interest.`,
             ],
             answer: R`Each payment is \(${L.money(LS.loan)}\).`,
@@ -634,7 +634,7 @@
           { kind: 'example', title: 'Worked example: the balance', q: R`The $300,000 loan over 25 years at 6% p.a. has monthly payments of ${T.money(LS.mort)}. How much do you still owe after 5 years?`,
             steps: [
               R`Payments made: \(5 \times 12 = 60\). Payments left: \(300 - 60 = 240\).`,
-              R`The balance is the PV of those 240 payments, at \(0.5\%\) a month: \[\frac{${L.num(LS.mort)}}{0.005}\left(1 - \frac{1}{1.005^{240}}\right) = ${L.money(LS.mortBal)}\]`,
+              R`The balance is the PV of those 240 payments, at \(0.5\%\) a month: \[\begin{aligned} &\frac{${L.num(LS.mort)}}{0.005}\left(1 - \frac{1}{1.005^{240}}\right) \\ &= ${L.money(LS.mortBal)} \end{aligned}\]`,
               R`After 5 years you have paid \(60 \times ${L.num(LS.mort)} = ${L.money(60 * r2(LS.mort))}\), but the balance fell by only \(${L.money(300000 - LS.mortBal)}\). Most of the early payments went on interest.`,
             ],
             answer: R`You still owe \(${L.money(LS.mortBal)}\).`,

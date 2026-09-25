@@ -295,7 +295,7 @@
             tl: { n: 10, at: { 0: '?', 10: '$1,000' }, unit: 'Year', hi: [0] },
             steps: [
               R`There is one cash flow: $1,000 at year 10.`,
-              R`\[P = \frac{1{,}000}{1.05^{10}} = \frac{1{,}000}{${L.numT(1.05 ** 10, 6)}} = ${L.money(LS.zero10)}\]`,
+              R`\[\begin{aligned} P &= \frac{1{,}000}{1.05^{10}} \\ &= \frac{1{,}000}{${L.numT(1.05 ** 10, 6)}} = ${L.money(LS.zero10)} \end{aligned}\]`,
               R`You pay \(${L.money(LS.zero10)}\) today and get $1,000 later. The difference is your interest.`,
             ],
             answer: R`The bond is worth \(${L.money(LS.zero10)}\).`,
@@ -398,7 +398,7 @@
             ti: [TI.solver({ N: 14, I: 8, Pmt: 45, FV: 1000, PpY: 2, CpY: 2 }, 'PV'), TI.solver({ N: 14, I: 4, Pmt: 45, FV: 1000, PpY: 1, CpY: 1 }, 'PV', { note: 'The same price both ways.' })] },
           { kind: 'check', gen: 'w3-g-semi' },
           { kind: 'learn', title: 'The effective annual yield',
-            body: R`A yield of 10% p.a., compounded semi-annually, is really 5% every half-year. Interest earned in the first half-year earns interest in the second. So the true yearly yield is higher:\n\[EAY = \left(1 + \frac{y}{2}\right)^{2} - 1 = 1.05^{2} - 1 = 10.25\%\]\n\nThis is the **effective annual yield** (EAY): the EAR from Floor 1, for a bond.`,
+            body: R`A yield of 10% p.a., compounded semi-annually, is really 5% every half-year. Interest earned in the first half-year earns interest in the second. So the true yearly yield is higher:\n\[\begin{aligned} EAY &= \left(1 + \frac{y}{2}\right)^{2} - 1 \\ &= 1.05^{2} - 1 = 10.25\% \end{aligned}\]\n\nThis is the **effective annual yield** (EAY): the EAR from Floor 1, for a bond.`,
             formula: 'eay',
             ti: [TI.cmd('eff', [10, 2])] },
           { kind: 'check', gen: 'w3-g-eay' },
@@ -434,7 +434,7 @@
             tip: 'A bond below face value gives you the coupons plus a gain as its price rises to face value. So its YTM is above its coupon rate.' },
           { kind: 'example', title: 'Worked example', q: R`A $1,000 bond pays an 8% coupon once a year and has 5 years to maturity. It costs ${T.money(LS.p5)}. What is its YTM?`,
             steps: [
-              R`Find the \(i\) that solves \[${L.num(LS.p5)} = \frac{80}{i}\left(1 - \frac{1}{(1+i)^{5}}\right) + \frac{1{,}000}{(1+i)^{5}}\]`,
+              R`Find the \(i\) that solves \[\begin{aligned} ${L.num(LS.p5)} = &\frac{80}{i}\left(1 - \frac{1}{(1+i)^{5}}\right) \\ &+ \frac{1{,}000}{(1+i)^{5}} \end{aligned}\]`,
               R`By hand you would use trial and error with interpolation (Floor 2). The TI-Nspire solves it exactly.`,
               R`\(i = ${L.pct(LS.y5, 2)}\). It is above the 8% coupon rate, because the bond sells below face value.`,
             ],
@@ -499,7 +499,7 @@
             steps: [
               R`Two years have passed, so 8 years are left.`,
               R`Use the **new** yield: \(i = 5\%\), \(C = \$60\) and \(n = 8\).`,
-              R`\[P = \frac{60}{0.05}\left(1 - \frac{1}{1.05^{8}}\right) + \frac{1{,}000}{1.05^{8}} = ${L.money(LS.later)}\]`,
+              R`\[\begin{aligned} P &= \frac{60}{0.05}\left(1 - \frac{1}{1.05^{8}}\right) + \frac{1{,}000}{1.05^{8}} \\ &= ${L.money(LS.later)} \end{aligned}\]`,
               R`Rates fell, so the price rose above par: a **premium**.`,
             ],
             answer: R`The bond is now worth \(${L.money(LS.later)}\).`,
@@ -556,7 +556,7 @@
           { kind: 'example', title: 'Worked example', q: R`Brig Company has **just paid** a dividend of $0.20. Dividends grow at 8% a year, forever. Investors require 16%. What is a share worth today?`,
             steps: [
               R`It was just paid, so grow it: \(D_1 = 0.20 \times 1.08 = \$0.216\).`,
-              R`\[P_0 = \frac{0.216}{0.16 - 0.08} = \frac{0.216}{0.08} = ${L.money(0.2 * 1.08 / 0.08)}\]`,
+              R`\[\begin{aligned} P_0 &= \frac{0.216}{0.16 - 0.08} \\ &= \frac{0.216}{0.08} = ${L.money(0.2 * 1.08 / 0.08)} \end{aligned}\]`,
             ],
             answer: R`A share is worth \(${L.money(0.2 * 1.08 / 0.08)}\).`,
             ti: [TI.line('0.20*1.08/(0.16-0.08)', { note: R`\(D_1 = 0.20 \times 1.08\) on top. Keep the brackets around \(r_E - g\).` })] },

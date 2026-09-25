@@ -117,6 +117,12 @@
         R`Cash earns little or no interest. Firms hold it for **day-to-day needs**, a **precautionary balance** and a **compensating balance** (a bank requirement).`,
         R`Spare cash can go into short-term government debt or bank-accepted bills.`,
       ] },
+      { h: 'On your TI-Nspire CX CAS', points: [
+        R`Day counts: \(420/(3257/365)\). Store each one with → (**ctrl var**), e.g. \(\ldots \to i\), then finish with \(i + a - \ldots\).`,
+        R`Trade-credit EAR in one line: \((1 + 2/98)^{(365/(30 - 10))} - 1\). The answer is a decimal: multiply by 100 for a percentage.`,
+        R`Credit-policy NPV: month 0 plus the monthly perpetuity, e.g. \(-5250 + (25000 - 5250)/0.01\).`,
+        R`Firm value with a growing perpetuity: \((20 + 5 - 5 - 1)/(0.12 - 0.04)\), in $m.`,
+      ] },
     ],
 
     topics: {
@@ -131,27 +137,27 @@
     },
 
     nodes: [
-      { id: 'w8-L1', kind: 'lesson', name: 'Cash stuck in stock and unpaid bills', lesson: 'w8-L1' },
-      { id: 'w8-L2', kind: 'lesson', name: 'The operating cycle and the cash cycle', lesson: 'w8-L2' },
-      { id: 'w8-L3', kind: 'lesson', name: 'Inventory and cash: how much to hold?', lesson: 'w8-L3' },
+      { id: 'w8-L1', kind: 'lesson', name: 'Net working capital', lesson: 'w8-L1' },
+      { id: 'w8-L2', kind: 'lesson', name: 'Operating and cash cycles', lesson: 'w8-L2' },
+      { id: 'w8-L3', kind: 'lesson', name: 'Inventory and cash', lesson: 'w8-L3' },
       { id: 'w8-1', kind: 'battle', name: 'The Loading Dock', topics: ['nwc', 'cycle', 'invcash'], n: 6,
         enemy: { name: 'Stockpile Stan', title: 'Hoards inventory, starves cash flow', body: 'box', color: '#a0764a', acc: ['hardhat'], mouth: 'grin', item: '📦',
           lines: { intro: 'More boxes! More stock! Who needs free cash flow?', hit: ['You freed up working capital. My boxes are shrinking!', 'Cash out of the warehouse? Noooo!'],
             taunt: ['An increase in NWC is a cash inflow… right? Ha!', 'Stock up! Carrying costs are free! (They are not.)'], win: 'My stockpile… has been cleared…', lose: 'Your cash is mine, stacked to the ceiling!' } } },
-      { id: 'w8-L4', kind: 'lesson', name: 'Counting the days: the CCC', lesson: 'w8-L4' },
+      { id: 'w8-L4', kind: 'lesson', name: 'The cash conversion cycle', lesson: 'w8-L4' },
       { id: 'w8-2', kind: 'battle', name: 'The Cycle Track', topics: ['ccc', 'cycle'], n: 6,
         enemy: { name: 'Cash Cycle-ops', title: 'One eye on your inventory days', body: 'round', color: '#5b7fbf', acc: ['headset'], eyes: 1, mouth: 'o', item: '🔄',
           lines: { intro: 'I watch every day your cash is tied up. With my ONE big eye.', hit: ['Inventory days on COGS… correct!', 'You subtracted the A/P days. My eye waters.'],
             taunt: ['A/R days on COGS? My eye sees your mistake!', 'You ADDED the payables days! Round and round we go!'], win: 'My cycle… is broken…', lose: 'Round and round your cash goes, and I keep it!' } } },
-      { id: 'w8-L5', kind: 'lesson', name: 'Trade credit: reading 2/10, net 30', lesson: 'w8-L5' },
-      { id: 'w8-L6', kind: 'lesson', name: 'The cost of skipping the discount', lesson: 'w8-L6' },
+      { id: 'w8-L5', kind: 'lesson', name: 'Trade credit terms', lesson: 'w8-L5' },
+      { id: 'w8-L6', kind: 'lesson', name: 'The cost of trade credit', lesson: 'w8-L6' },
       { id: 'w8-m1', kind: 'mini', name: 'Take the Discount?', mini: 'take-discount' },
       { id: 'w8-3', kind: 'battle', name: 'The Credit Counter', topics: ['terms', 'tcost'], n: 6,
         enemy: { name: 'Discount Dracula', title: 'Drains 44.6% a year from late payers', body: 'tall', color: '#7a2e3b', acc: ['bowtie'], mouth: 'fangs', item: '🦇',
           lines: { intro: 'Pay me within ten days… or I drink 44.6% a year from you!', hit: ['You used d over 1 minus d! Garlic!', 'Compounded properly… the sunlight burns!'],
             taunt: ['Only 2%? Just 2%? Mwahaha…', 'You forgot to compound. Delicious.'], win: 'Defeated… by an effective annual rate…', lose: 'Your discount is mine for eternity!' } } },
-      { id: 'w8-L7', kind: 'lesson', name: 'Paying suppliers: on time or stretched?', lesson: 'w8-L7' },
-      { id: 'w8-L8', kind: 'lesson', name: 'Receivables and credit policy', lesson: 'w8-L8' },
+      { id: 'w8-L7', kind: 'lesson', name: 'Managing payables', lesson: 'w8-L7' },
+      { id: 'w8-L8', kind: 'lesson', name: 'Receivables and credit', lesson: 'w8-L8' },
       { id: 'w8-4', kind: 'battle', name: 'Accounts Alley', topics: ['payables', 'receivables', 'invcash'], n: 6,
         enemy: { name: 'The Due-Date Dodger', title: 'Pays late, chases early', body: 'spiky', color: '#6b8e23', acc: ['cap', 'shades'], mouth: 'smirk', item: '🧾',
           lines: { intro: 'Pay suppliers on day 18? Day 60? Who even reads the terms?', hit: ['You paid on the last day. Annoyingly correct.', 'An ageing schedule? You caught my late accounts!'],
@@ -213,14 +219,14 @@
 
     lessons: {
       'w8-L1': {
-        title: 'Cash stuck in stock and unpaid bills',
+        title: 'Net working capital',
         goal: R`Work out net working capital, and explain why tying up less of it raises a firm’s value.`,
         topics: ['nwc'],
         cards: [
           { kind: 'learn', title: 'Where did the cash go?',
             body: R`A bike shop buys 50 bikes from its supplier. They sit in the shop for weeks. Some customers buy on credit and pay later.\n\nThe shop makes a profit, yet its bank account is often low. Its cash is **stuck**: in bikes on the shelf, and in bills that customers have not paid yet.` },
           { kind: 'learn', title: 'Current assets and current liabilities',
-            body: R`**Current assets** turn into cash within a year: **cash** itself, **inventory** (stock) and **accounts receivable** (A/R: money customers owe for credit sales).\n\n**Current liabilities** must be paid within a year: **accounts payable** (A/P: money the firm owes its suppliers) and other short-term bills, such as **accruals** (wages or taxes owed).`,
+            body: R`**Current assets** turn into cash within a year. They are **cash**, **inventory** (stock) and **accounts receivable** (A/R): money customers owe for credit sales.\n\n**Current liabilities** must be paid within a year. The main one is **accounts payable** (A/P): money the firm owes its suppliers. Others are short-term bills, such as **accruals** (wages or taxes owed).`,
             table: { head: ['Current assets', 'Current liabilities'], rows: [['Cash', 'Accounts payable'], ['Inventory', 'Accruals'], ['Accounts receivable', 'Other bills due within a year']] } },
           { kind: 'learn', title: 'Net working capital',
             body: R`\[NWC = \text{Current assets} - \text{Current liabilities}\]\n\n**Net working capital** (NWC) is the short-term money a firm has tied up in running its business. Long-term items stay out: machines and buildings (PP&E), and long-term debt.` },
@@ -269,7 +275,7 @@
         ],
       },
       'w8-L2': {
-        title: 'The operating cycle and the cash cycle',
+        title: 'Operating and cash cycles',
         goal: R`Follow cash around a firm on a timeline, and tell the operating cycle from the cash cycle.`,
         topics: ['cycle'],
         cards: [
@@ -315,7 +321,7 @@
         ],
       },
       'w8-L3': {
-        title: 'Inventory and cash: how much to hold?',
+        title: 'Inventory and cash',
         goal: R`Weigh the costs and benefits of holding inventory and cash, and say where spare cash can go.`,
         topics: ['invcash'],
         cards: [
@@ -327,6 +333,15 @@
             tip: R`Extra stock raises inventory days, and that ties up more cash.` },
           { kind: 'learn', title: 'Just-in-time',
             body: R`**Just-in-time (JIT)** inventory means buying stock exactly when it is needed. The inventory balance stays at zero, or very close to it.\n\nDell works like this. It orders the parts for a computer only after a customer has ordered the computer.` },
+          { kind: 'example', title: 'Worked example: JIT frees cash',
+            q: R`A firm’s COGS is $36.5m a year. It holds 30 days of stock. With just-in-time buying it needs only 5 days of stock. How much cash does that free?`,
+            steps: [
+              R`One day of stock costs one day of COGS: \(\frac{36.5}{365} = \$0.1\text{m}\).`,
+              R`Days of stock cut: \(30 - 5 = 25\).`,
+              R`Cash freed: \(25 \times 0.1 = \$2.5\text{m}\).`,
+            ],
+            answer: R`The stock on the shelves falls by \(\$2.5\text{m}\). That cash is now free to use.`,
+            ti: [TI.line('(30-5)*36.5/365', { note: 'Days cut times one day of COGS ($m).' })] },
           { kind: 'check', ref: 'w8-q55' },
           { kind: 'learn', title: 'Why hold cash at all?',
             body: R`Cash earns no interest, or very little. Yet firms keep some, for three reasons.`,
@@ -345,7 +360,7 @@
         ],
       },
       'w8-L4': {
-        title: 'Counting the days: the cash conversion cycle',
+        title: 'The cash conversion cycle',
         goal: R`Work out inventory days, A/R days and A/P days from the accounts, then the cash conversion cycle.`,
         topics: ['ccc'],
         cards: [
@@ -402,7 +417,7 @@
         ],
       },
       'w8-L5': {
-        title: 'Trade credit: reading 2/10, net 30',
+        title: 'Trade credit terms',
         goal: R`Read trade credit terms, and see why skipping the discount is really a loan.`,
         topics: ['terms'],
         cards: [
@@ -446,7 +461,7 @@
         ],
       },
       'w8-L6': {
-        title: 'The cost of skipping the discount',
+        title: 'The cost of trade credit',
         goal: R`Turn the cost of trade credit into an effective annual rate on the TI-Nspire, and compare it with a bank loan.`,
         topics: ['tcost'],
         cards: [
@@ -498,7 +513,7 @@
         ],
       },
       'w8-L7': {
-        title: 'Paying suppliers: on time, late or stretched?',
+        title: 'Managing payables',
         goal: R`Check when a firm really pays its suppliers, and work out the cost of stretching payables.`,
         topics: ['payables'],
         cards: [
@@ -557,7 +572,7 @@
         ],
       },
       'w8-L8': {
-        title: 'Receivables: when customers owe you',
+        title: 'Receivables and credit',
         goal: R`Keep an eye on receivables, and use NPV to decide whether to change a credit policy.`,
         topics: ['receivables'],
         cards: [
@@ -579,7 +594,7 @@
             ti: [TI.line('4/(37/365)')] },
           { kind: 'check', gen: 'w8-g-ardays' },
           { kind: 'learn', title: 'Judge a credit policy with NPV',
-            body: R`Changing the credit terms changes **when** cash arrives and **how much** you sell. To compare two policies, lay out each one’s monthly cash flows and work out its NPV. Keep the policy with the higher NPV.\n\nIf a policy repeats every month forever, the repeating part is a **monthly perpetuity**, \(\frac{C}{r}\), with \(r\) the monthly rate (Floor 2).` },
+            body: R`Changing the credit terms changes **when** cash arrives and **how much** you sell. To compare two policies, lay out each one’s monthly cash flows and work out its NPV. Keep the policy with the higher NPV.\n\nA cash flow that repeats every month forever is a **monthly perpetuity** (Floor 2). Its value is \(\frac{C}{r}\), with \(r\) the monthly rate.` },
           { kind: 'example', title: 'Worked example: the current policy',
             q: R`A product sells for $100 and costs $60 to make. The firm sells 500 units a month. Half the customers pay cash now and take a 1% discount. The rest pay full price in 30 days. The required return is 1% a month, and the policy runs forever. What is its NPV?`,
             tl: { n: 3, at: { 0: CREDIT.net0, 1: CREDIT.credit + CREDIT.net0, 2: CREDIT.credit + CREDIT.net0, 3: CREDIT.credit + CREDIT.net0 }, labels: { 3: '3, 4, …' }, unit: 'Month' },
@@ -590,7 +605,7 @@
             ],
             answer: R`The current policy is worth \(\$1{,}969{,}750\).`,
             ti: [TI.line('-500*60+250*99', { note: 'Month 0.' }), TI.line('-5250+(250*100-5250)/0.01', { note: 'Month 0, plus the monthly perpetuity.' })] },
-          { kind: 'guided', title: 'Your turn: drop the discount?', q: R`Same firm. If it drops the 1% cash discount, it sells only 480 units a month, and every customer pays full price in 30 days. The current policy is worth $1,969,750.`,
+          { kind: 'guided', title: 'Your turn: drop the discount?', q: R`Same firm. Suppose it drops the 1% cash discount. Then it sells only 480 units a month, and every customer pays full price in 30 days. The current policy is worth $1,969,750.`,
             parts: [
               { ask: R`What is the new policy’s month-0 cash flow?`, answer: CREDIT.net0n, unit: '$', dp: 0, hint: R`Only the production cost is paid now: \(480 \times 60\).`, why: R`\(-480 \times 60 = -\$28{,}800\). No customer pays in month 0.` },
               { ask: R`What is each later month’s cash flow?`, answer: CREDIT.creditN + CREDIT.net0n, unit: '$', dp: 0, hint: R`Last month’s sales arrive (\(480 \times 100\)), and this month’s costs are paid.`, why: R`\(48{,}000 - 28{,}800 = \$19{,}200\).`,

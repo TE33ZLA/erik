@@ -24,7 +24,7 @@
   const DE_SET = [0.25, 0.4, 0.5, 0.6, 0.75, 1.5, 2];
 
   /* ---------- lesson data (every number is computed here) ---------- */
-  const YTM_EX = FIN.bondYieldPeriodic(960, 1000, 60, 5);    // L3 example: 5 years, 6% annual coupon, price $960
+  const YTM_EX = FIN.bondYieldPeriodic(960, 1000, 60, 3);    // L3 example: 3 years, 6% annual coupon, price $960
   const YTM_G = FIN.bondYieldPeriodic(1050, 1000, 80, 10);   // L3 guided: 10 years, 8% annual coupon, price $1,050
   const WG = { n: 50, px: 8, face: 200, pct: 0.95, re: 0.13, rd: 0.07, tc: 0.3 }; // L4 guided: WACC from market data
   WG.E = WG.n * WG.px; WG.D = WG.face * WG.pct; WG.w = FIN.wacc({ E: WG.E, D: WG.D, re: WG.re, rd: WG.rd, tc: WG.tc });
@@ -172,8 +172,8 @@
           { kind: 'learn', title: 'The cost of capital',
             body: R`Investors could put their money somewhere else with the same risk. So they only give it to the firm if they expect at least that return.\n\nThat **required return** is what the money costs the firm. So the **cost of capital** is the return investors require. From Week 9: the riskier the investment, the higher the required return.` },
           { kind: 'learn', title: 'Riskier claims cost more',
-            body: 'Who is paid first decides who bears the most risk.',
-            table: { head: ['Source', 'Paid', 'Risk to the investor', 'Cost to the firm'], rows: [['Debt', 'First', 'Lowest', 'Lowest'], ['Preference shares', 'Second', 'Middle', 'Middle'], ['Equity', 'Last', 'Highest', 'Highest']] } },
+            body: 'Who is paid first decides who bears the most risk. More risk for the investor means a higher cost for the firm.',
+            table: { head: ['Source', 'Risk and cost'], rows: [['Debt (paid first)', 'Lowest'], ['Preference shares', 'Middle'], ['Equity (paid last)', 'Highest']] } },
           { kind: 'check', ref: 'wx-q05' },
           { kind: 'learn', title: 'The plan for this floor',
             body: R`First, find the cost of each source: equity \(r_E\), preference shares \(r_p\) and debt \(r_d\).\n\nThen blend them into one rate, the **weighted average cost of capital** (WACC). It is the discount rate for the firm’s typical project.\n\nFinally, a big question: can a firm become more valuable just by changing its mix of debt and equity?` },
@@ -239,12 +239,12 @@
         cards: [
           { kind: 'learn', title: 'The cost of debt is the yield',
             body: R`Lenders buy the firm’s bonds. The return they require today is the bond’s **yield to maturity** (YTM, from Week 3): the rate that makes the price equal the PV of the coupons and the face value.\n\nSo the pre-tax **cost of debt**, \(r_d\), is the YTM. It is **not** the coupon rate, which was fixed when the bond was first sold.` },
-          { kind: 'example', title: 'Worked example: the YTM on the TI-Nspire', q: R`A firm’s bonds have a face value of $1,000, an annual coupon rate of 6% and 5 years to maturity. They trade at $960.00. What is the pre-tax cost of debt?`,
-            tl: { n: 5, at: { 0: '−$960', 1: '$60', 2: '$60', 3: '$60', 4: '$60', 5: '$60 + $1,000' }, unit: 'Year' },
-            steps: [R`The coupon is \(6\% \times \$1{,}000 = \$60\) a year, for \(N = 5\) years.`, R`You pay \(\$960\) for the bond, so \(PV = -960\). You receive \(Pmt = 60\) each year and \(FV = 1000\) at the end.`,
+          { kind: 'example', title: 'Worked example: the YTM on the TI-Nspire', q: R`A firm’s bonds have a face value of $1,000, an annual coupon rate of 6% and 3 years to maturity. They trade at $960.00. What is the pre-tax cost of debt?`,
+            tl: { cfs: [-960, 60, 60, 1060], unit: 'Year' },
+            steps: [R`The coupon is \(6\% \times \$1{,}000 = \$60\) a year, for \(N = 3\) years. In year 3 you also get the $1,000 face value back.`, R`You pay \(\$960\) for the bond, so \(PV = -960\). You receive \(Pmt = 60\) each year and \(FV = 1000\) at the end.`,
               R`Solve for the rate: \(r_d = ${pc(YTM_EX)}\). The bond sells below its face value, so its YTM is above the 6% coupon rate.`],
             answer: R`The pre-tax cost of debt is \(${pc(YTM_EX)}\).`,
-            ti: [TI.cmd('tvmI', [5, -960, 60, 1000, 1, 1], { note: R`\(\text{tvmI}(N, PV, Pmt, FV, PpY, CpY)\) gives the YTM in %.` })] },
+            ti: [TI.cmd('tvmI', [3, -960, 60, 1000, 1, 1], { note: R`\(\text{tvmI}(N, PV, Pmt, FV, PpY, CpY)\) gives the YTM in %.` })] },
           { kind: 'learn', title: 'Interest saves tax',
             body: R`Interest is **tax deductible**: it is taken off profit before the tax is worked out. With a company tax rate \(T_c\), each $1 of interest saves \(T_c\) dollars of tax.\n\nSo the **after-tax cost of debt** is \(r_d(1 - T_c)\). At 7% with a 30% tax rate: \(7\% \times (1 - 0.30) = 4.9\%\).` },
           { kind: 'guided', title: 'Your turn', q: R`Emu Energy bonds have a face value of $1,000, an annual coupon rate of 8% and 10 years to maturity. They trade at $1,050.00. The tax rate is 30%. Find the after-tax cost of debt.`,
@@ -287,8 +287,8 @@
             body: 'The weights must use **market values**: what investors would pay for each part today.',
             points: [R`Equity: number of shares \(\times\) share price.`, R`Preference shares: number of shares \(\times\) their price.`, R`Bonds: face value \(\times\) the price as a % of face. Bonds with a face value of $200m trading at 95% are worth $190m.`],
             tip: R`**Book values** (from the balance sheet) are old accounting numbers. Do not use them for the weights.` },
-          { kind: 'example', title: 'Worked example', q: R`A firm’s capital is shown below. The company tax rate is 30%. What is its WACC?`,
-            table: { head: ['Source', 'Market value', 'Book value', 'Cost'], rows: [['Equity', '$600m', '$250m', '12%'], ['Preference shares', '$100m', '$100m', '8%'], ['Debt', '$300m', '$320m', '6% (pre-tax)']] },
+          { kind: 'example', title: 'Worked example', q: R`A firm’s capital is shown below. Its balance sheet shows book values of $250m (equity), $100m (preference shares) and $320m (debt). The company tax rate is 30%. What is its WACC?`,
+            table: { head: ['Source', 'Market value', 'Cost'], rows: [['Equity', '$600m', '12%'], ['Preference shares', '$100m', '8%'], ['Debt', '$300m', '6% (pre-tax)']] },
             steps: [R`Use the market values: \(V = 600 + 100 + 300 = \$1{,}000\text{m}\). Ignore the book values.`, R`Weights: \(\frac{E}{V} = 0.6\), \(\frac{P}{V} = 0.1\) and \(\frac{D}{V} = 0.3\).`,
               R`After-tax cost of debt: \(6\% \times (1 - 0.30) = 4.2\%\).`, R`\(r_{WACC} = 0.6(12\%) + 0.1(8\%) + 0.3(4.2\%) = 7.2\% + 0.8\% + 1.26\% = ${pc(Q12)}\).`],
             answer: R`The WACC is \(${pc(Q12)}\).`,
@@ -373,9 +373,9 @@
           { kind: 'learn', title: 'Taxes change the story',
             body: R`In the real world firms pay company tax, and **interest is tax deductible**: it is taken off profit before the tax is worked out.\n\nSo a firm with debt pays less tax than the same firm without debt. More of its cash goes to its investors, and less goes to the government.` },
           { kind: 'learn', title: 'A small example',
-            body: 'Two identical firms each earn $100 before interest and tax. Firm L pays $20 of interest; Firm U has no debt. The tax rate is 30%.',
-            table: { head: ['', 'Firm U (no debt)', 'Firm L (debt)'], rows: [['Earnings before interest and tax', '$100', '$100'], ['Interest', '$0', '$20'], ['Taxable profit', '$100', '$80'], ['Tax at 30%', '$30', '$24'], ['Paid to investors (lenders + shareholders)', '$70', '$76']] },
-            tip: R`Firm L pays $6 less tax, so its investors get $6 more. That $6 is its **interest tax shield**: \(\$20 \times 30\%\).` },
+            body: 'Two identical firms each earn $100 before interest and tax. Firm U has no debt. Firm L pays $20 of interest. The tax rate is 30%.',
+            table: { head: ['', 'Firm U', 'Firm L'], rows: [['Profit before interest and tax', '$100', '$100'], ['Interest', '$0', '$20'], ['Taxable profit', '$100', '$80'], ['Tax at 30%', '$30', '$24'], ['Paid to investors', '$70', '$76']] },
+            tip: R`Firm L’s investors get $20 of interest plus $56 of profit after tax: $76. That is $6 more, because Firm L pays $6 less tax. The $6 is its **interest tax shield**: \(\$20 \times 30\%\).` },
           { kind: 'learn', title: 'The interest tax shield',
             body: R`The **interest tax shield** is the tax saved each year because of the interest:\n\n\[\text{Interest tax shield} = \text{Interest} \times T_c\]`,
             formula: 'its' },
@@ -384,7 +384,7 @@
             answer: R`The firm pays \(\$${nt(FIN.interestTaxShield(8, 0.3), 2)}\text{m}\) less tax each year.`,
             ti: [TI.line('8*0.3', { note: 'In $m.' })] },
           { kind: 'learn', title: 'The value of the shield on permanent debt',
-            body: R`If the debt is **permanent** (it is never repaid), the shield arrives every year, forever: a **perpetuity**. Each year it is \(T_c \times r_D \times D\). It is as risky as the debt, so discount it at \(r_D\):\n\n\[PV(\text{interest tax shield}) = \frac{T_c\,r_D\,D}{r_D} = T_c \times D\]\n\nThe interest rate cancels out.` },
+            body: R`If the debt is **permanent** (it is never repaid), the shield arrives every year, forever: a **perpetuity**. Each year it is \(T_c \times r_D \times D\). It is as risky as the debt, so discount it at \(r_D\):\n\n\[PV = \frac{T_c\,r_D\,D}{r_D} = T_c \times D\]\n\nThe interest rate cancels out.` },
           { kind: 'learn', title: 'MM with taxes: debt adds value',
             body: R`\[V_L = V_U + PV(\text{interest tax shield})\]\n\nFor permanent debt, \(V_L = V_U + T_c D\). The levered firm is worth more than the unlevered one, because the government collects less tax.`,
             formula: 'mm-t-value' },
@@ -427,7 +427,7 @@
             ti: [TI.line('0.10+0.5*(0.10-0.06)*(1-0.3)', PCT(FIN.rELevTax(0.10, 0.06, 0.5, 1, 0.3)))] },
           { kind: 'check', gen: 'wx-g-re-t' },
           { kind: 'learn', title: 'The WACC with taxes',
-            body: R`\[r_{WACC} = r_E\frac{E}{E+D} + r_D\frac{D}{E+D}(1 - T_c)\]\n\nDebt enters **after tax**. As the firm adds debt, the WACC **falls** below \(r_U\). This is the tax shield at work.`,
+            body: R`\[r_{WACC} = r_E\frac{E}{V} + r_D(1 - T_c)\frac{D}{V}\]\n\nHere \(V = E + D\) (the formula sheet writes \(\frac{E}{E+D}\) and \(\frac{D}{E+D}\)). Debt enters **after tax**. As the firm adds debt, the WACC **falls** below \(r_U\). This is the tax shield at work.`,
             formula: 'mm-t-wacc' },
           { kind: 'example', title: 'Worked example', q: R`Equity is worth $400m with \(r_E = 11.4\%\), and debt is worth $200m with \(r_D = 6\%\). The tax rate is 30%. What is the WACC?`,
             steps: [R`Weights: \(\frac{400}{600} = \frac{2}{3}\) and \(\frac{200}{600} = \frac{1}{3}\).`, R`\(r_{WACC} = \frac{2}{3}(11.4\%) + \frac{1}{3}(6\%)(1 - 0.30) = 7.6\% + 1.4\% = 9\%\).`, R`That is below \(r_U = 10\%\), the WACC this firm would have with no taxes.`],

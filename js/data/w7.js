@@ -246,26 +246,26 @@
 
     nodes: [
       { id: 'w7-L1', kind: 'lesson', name: 'Forecasts are guesses', lesson: 'w7-L1' },
-      { id: 'w7-L2', kind: 'lesson', name: 'Break-even: how low can sales go?', lesson: 'w7-L2' },
+      { id: 'w7-L2', kind: 'lesson', name: 'Break-even analysis', lesson: 'w7-L2' },
       { id: 'w7-1', kind: 'battle', name: 'The Forecast Office', topics: ['fcf', 'breakeven'], n: 6,
         enemy: { name: 'Break-Even Steven', title: 'Never wins, never loses', body: 'round', color: '#c9a23a', acc: ['glasses', 'tie'], mouth: 'flat', item: '⚖️',
           lines: { intro: 'Profit? Loss? I prefer exactly zero. Perfectly balanced.', hit: ['You found my break-even point!', 'EBIT above zero? How unbalanced!'],
             taunt: ['Forgot the depreciation, did we?', 'Divide by the price? Try the margin per unit!'], win: 'I have been pushed… below zero…', lose: 'Zero profit, zero progress. Balanced, as all things should be.' } } },
-      { id: 'w7-L3', kind: 'lesson', name: 'Sensitivity: one dial at a time', lesson: 'w7-L3' },
-      { id: 'w7-L4', kind: 'lesson', name: 'Scenarios: worst, base and best', lesson: 'w7-L4' },
+      { id: 'w7-L3', kind: 'lesson', name: 'Sensitivity analysis', lesson: 'w7-L3' },
+      { id: 'w7-L4', kind: 'lesson', name: 'Scenario analysis', lesson: 'w7-L4' },
       { id: 'w7-2', kind: 'battle', name: 'The Sensitivity Chamber', topics: ['sens', 'scen'], n: 6,
         enemy: { name: 'The What-If Wizard', title: 'Twists one dial, then all of them', body: 'tall', color: '#8a6fd1', acc: ['wizard'], mouth: 'smirk', item: '🔮',
           lines: { intro: 'What if sales fall? What if costs rise? What if… everything?', hit: ['One input at a time… you understand sensitivity!', 'A full scenario? My crystal ball cracks!'],
             taunt: ['You changed every dial. That is a scenario, apprentice!', 'Sensitivity, scenario… they look the same to you, hmm?'], win: 'What if… I lose? Oh. I did.', lose: 'In every scenario, I win!' } } },
       { id: 'w7-L5', kind: 'lesson', name: 'Expected values', lesson: 'w7-L5' },
-      { id: 'w7-L6', kind: 'lesson', name: 'Decision trees: right to left', lesson: 'w7-L6' },
+      { id: 'w7-L6', kind: 'lesson', name: 'Decision trees', lesson: 'w7-L6' },
       { id: 'w7-m1', kind: 'mini', name: 'Which Tool?', mini: 'which-tool' },
-      { id: 'w7-L7', kind: 'lesson', name: 'Joint and conditional probabilities', lesson: 'w7-L7' },
+      { id: 'w7-L7', kind: 'lesson', name: 'Conditional probability', lesson: 'w7-L7' },
       { id: 'w7-3', kind: 'battle', name: 'The Branching Hall', topics: ['tree', 'ev', 'prob'], n: 6,
         enemy: { name: 'The Probabili-Tree', title: 'Grows a branch for every maybe', body: 'tall', color: '#4f8a3a', acc: ['leaf'], mouth: 'grin', item: '🍃',
           lines: { intro: 'Square or circle, choice or chance… can you climb me backwards?', hit: ['Solved from the leaves back to the root!', 'A proper expected value. My branches tremble!'],
             taunt: ['You climbed forwards! Trees are solved backwards!', 'That was a joint probability, not a conditional one!'], win: 'Timber…', lose: 'Lost in my branches forever!' } } },
-      { id: 'w7-L8', kind: 'lesson', name: 'Real options: abandon, expand, wait', lesson: 'w7-L8' },
+      { id: 'w7-L8', kind: 'lesson', name: 'Real options', lesson: 'w7-L8' },
       { id: 'w7-4', kind: 'battle', name: 'The Options Exchange', topics: ['option', 'ev', 'prob'], n: 6,
         enemy: { name: 'Captain Abandon', title: 'Sells the ship at the first storm', body: 'blob', color: '#d0643a', acc: ['pirate'], mouth: 'fangs', item: '⚓',
           lines: { intro: 'Arr! Low demand? Sell the balloon! Abandon everything!', hit: ['Ye compared keeping and selling properly. Blast!', 'Ye only use the option when it pays. Clever!'],
@@ -405,7 +405,7 @@
         ],
       },
       'w7-L2': {
-        title: 'Break-even: how low can sales go?',
+        title: 'Break-even analysis',
         goal: R`Find the accounting (EBIT) break-even and the NPV break-even number of units.`,
         topics: ['breakeven'],
         cards: [
@@ -457,14 +457,14 @@
         ],
       },
       'w7-L3': {
-        title: 'Sensitivity analysis: one dial at a time',
+        title: 'Sensitivity analysis',
         goal: R`Change one input, recompute the NPV, and find the input that matters most.`,
         topics: ['sens'],
         cards: [
           { kind: 'learn', title: 'Turn one dial',
             body: R`Think of a sound mixer with a row of dials: unit sales, price, cost per unit and the discount rate.\n\n**Sensitivity analysis** turns **one** dial and leaves every other dial where it was. Then you see how far the NPV moves.` },
           { kind: 'learn', title: 'The lecture project',
-            body: R`A project costs $500,000. It sells 6,000 units a year forever, at $80 each. Each unit costs $60 to make. The cost of capital is 10%. Ignore tax.\n\n\[NPV = \frac{(P - v) \times Q}{r} - I\]\n\n\(P\) is the price, \(v\) the cost per unit, \(Q\) the units a year, \(r\) the cost of capital and \(I\) the initial cost. Base case: \(\frac{20 \times 6{,}000}{0.10} - 500{,}000 = \$700{,}000\).`,
+            body: R`A project costs $500,000. It sells 6,000 units a year forever, at $80 each. Each unit costs $60 to make. The cost of capital is 10%. Ignore tax.\n\n\[NPV = \frac{(P - v) \times Q}{r} - I\]\n\n\(P\) is the price and \(v\) the cost per unit. \(Q\) is the units sold a year, \(r\) the cost of capital and \(I\) the initial cost. Base case: \(\frac{20 \times 6{,}000}{0.10} - 500{,}000 = \$700{,}000\).`,
             table: { head: ['Input', 'Base', 'Lower bound', 'Upper bound'], rows: [['Unit sales', '6,000', '5,500', '6,500'], ['Price per unit', '$80', '$75', '$85'], ['Cost per unit', '$60', '$58', '$62'], ['Cost of capital', '10%', '8%', '12%']] } },
           { kind: 'example', title: 'Worked example: sales fall',
             q: R`In the lecture project, unit sales fall from 6,000 to 5,500. Everything else stays at base. What is the new NPV, and by what percentage does it fall?`,
@@ -512,7 +512,7 @@
         ],
       },
       'w7-L4': {
-        title: 'Scenario analysis: worst, base and best',
+        title: 'Scenario analysis',
         goal: R`Change several inputs together to build worst-case and best-case NPVs, and tell scenarios apart from sensitivity tests.`,
         topics: ['scen'],
         cards: [
@@ -606,7 +606,7 @@
         ],
       },
       'w7-L6': {
-        title: 'Decision trees: read from right to left',
+        title: 'Decision trees',
         goal: R`Draw a decision tree, value its nodes, and solve it backwards to today.`,
         topics: ['tree', 'ev'],
         cards: [
@@ -657,7 +657,7 @@
         ],
       },
       'w7-L7': {
-        title: 'Joint and conditional probabilities',
+        title: 'Conditional probability',
         goal: R`Turn joint path probabilities into the branch probabilities a two-year tree needs.`,
         topics: ['prob'],
         cards: [
@@ -708,7 +708,7 @@
         ],
       },
       'w7-L8': {
-        title: 'Real options: the right to change course',
+        title: 'Real options',
         goal: R`Value an option to abandon, expand or wait inside a decision tree, and explain why an option never lowers the NPV.`,
         topics: ['option'],
         cards: [
@@ -732,7 +732,7 @@
             answer: R`Abandon: selling is worth \(${LM(LARGE.sal - LARGE.keepL)}\) more than keeping.`,
             ti: [TI.line('(0.2*100000+0.8*55000)/1.1', { note: R`Keep, valued at \(t = 1\).` }), TI.line('0.45*135000', { note: 'Sell: this is more, so sell.' })] },
           { kind: 'check', gen: 'w7-g-abandon' },
-          { kind: 'guided', title: 'Your turn: a tour boat', q: R`A tour boat costs $80,000 and lasts 2 years. It earns $60,000 in a high-demand year and $30,000 in a low one. \(P(H_1) = 0.7\) and \(P(H_2 \mid H_1) = 0.8\). After a low year 1, \(P(H_2 \mid L_1) = 0.2\), and the boat can be sold for 45% of its cost. \(r = 10\%\).`,
+          { kind: 'guided', title: 'Your turn: a tour boat', q: R`A tour boat costs $80,000 and lasts 2 years. It earns $60,000 in a high-demand year and $30,000 in a low one. \(P(H_1) = 0.7\) and \(P(H_2 \mid H_1) = 0.8\). After a low year 1, \(P(H_2 \mid L_1) = 0.2\). At that point the boat can also be sold, for 45% of its cost. \(r = 10\%\).`,
             tree: balloonTree(80000, 60000, 30000, 36000, ['70%', '80%', '20%', '30%', '20%', '80%']),
             parts: [
               { ask: R`After a low year 1, what is keeping the boat worth at \(t = 1\)?`, answer: 36000 / 1.1, unit: '$', dp: 2, hint: R`\(\frac{0.2 \times 60{,}000 + 0.8 \times 30{,}000}{1.1}\)`, why: R`\(\frac{36{,}000}{1.1} = ${LM(36000 / 1.1)}\).`,
@@ -753,7 +753,7 @@
             ti: [TI.cmd('npv', [10, -3, [0.9], [5]], { note: R`Upgrade, in $m at \(t = 3\).` }), TI.cmd('npv', [10, 0, [0.52], [5]], { note: 'Do not upgrade: worth more.' })] },
           { kind: 'check', gen: 'w7-g-upgrade' },
           { kind: 'learn', title: 'Wait and see: Unter',
-            body: R`Unter can fit self-driving kits to its **whole** taxi fleet now, for $100m. Or it can fit a **quarter** of the fleet for $30m, wait for the regulator’s review at \(t = 2\), and only then decide whether to spend $70m on the rest.\n\nThe quarter plan is worth \(\$${L.numT(UNTER.quarter, 2)}\text{m}\). The whole fleet is worth \(\$${L.numT(UNTER.entire, 2)}\text{m}\). Waiting for news before spending the $70m wins.`,
+            body: R`Unter can fit self-driving kits to its **whole** taxi fleet now, for $100m. Or it can fit a **quarter** of the fleet for $30m and wait for the regulator’s review at \(t = 2\). Only then does it decide whether to spend $70m on the rest.\n\nThe quarter plan is worth \(\$${L.numT(UNTER.quarter, 2)}\text{m}\). The whole fleet is worth \(\$${L.numT(UNTER.entire, 2)}\text{m}\). Waiting for news before spending the $70m wins.`,
             tree: TREE_UNTER_Q },
           { kind: 'recap', title: 'Remember', points: [
             R`A **real option** is a right, not a duty: to abandon, expand or wait.`,
