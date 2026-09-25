@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Golf Bluetooth Health — Independent Review</title>
+<meta name="description" content="Independent, evidence-led review of whether a 2014 VW Golf Mk7 (Composition Media, MIB1 Standard) can expose vehicle-health data over factory Bluetooth, and whether an iPhone app is feasible.">
+<style>
+  :root{
+    --bg:#f7f7f5; --panel:#ffffff; --ink:#1c1c1a; --muted:#5a5a54;
+    --line:#e2e2dc; --accent:#2f5d50; --accent-soft:#e7f0ec;
+    --warn:#8a5a00; --warn-soft:#fdf1dc; --bad:#8a2f2f; --bad-soft:#fae7e7;
+    --good:#2f5d50; --code:#f0f0ec;
+  }
+  :root:not([data-theme="light"]) {}
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#16181a; --panel:#1f2224; --ink:#eceae4; --muted:#a9a89f;
+      --line:#33373a; --accent:#8fd0bc; --accent-soft:#20302b;
+      --warn:#e8bf74; --warn-soft:#332b18; --bad:#eda1a1; --bad-soft:#33211f;
+      --good:#8fd0bc; --code:#24282b;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#16181a; --panel:#1f2224; --ink:#eceae4; --muted:#a9a89f;
+    --line:#33373a; --accent:#8fd0bc; --accent-soft:#20302b;
+    --warn:#e8bf74; --warn-soft:#332b18; --bad:#eda1a1; --bad-soft:#33211f;
+    --good:#8fd0bc; --code:#24282b;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.65; font-size:17px;
+  }
+  .wrap{max-width:820px; margin:0 auto; padding:32px 16px 96px}
+  header.doc{border-bottom:2px solid var(--line); padding-bottom:20px; margin-bottom:28px}
+  h1{font-size:1.7rem; line-height:1.25; margin:0 0 6px}
+  .sub{color:var(--muted); font-size:1rem; margin:0}
+  .meta{color:var(--muted); font-size:.85rem; margin-top:12px}
+  h2{font-size:1.28rem; margin:38px 0 10px; padding-top:10px; border-top:1px solid var(--line)}
+  h3{font-size:1.06rem; margin:22px 0 6px}
+  p{margin:10px 0}
+  a{color:var(--accent); text-decoration:underline; text-underline-offset:2px; overflow-wrap:anywhere}
+  ul,ol{margin:10px 0 10px 0; padding-left:22px}
+  li{margin:6px 0}
+  code{background:var(--code); padding:1px 5px; border-radius:4px; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:.86em; overflow-wrap:anywhere}
+  pre{background:var(--code); padding:12px 14px; border-radius:8px; overflow:auto; font-size:.85em; line-height:1.5}
+  .lede{background:var(--panel); border:1px solid var(--line); border-left:5px solid var(--accent); border-radius:10px; padding:18px 20px; margin:8px 0 8px}
+  .lede ol{margin:0; padding-left:20px}
+  .lede li{margin:9px 0}
+  .tag{display:inline-block; font-size:.72rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; padding:2px 8px; border-radius:20px; vertical-align:middle}
+  .t-demo{background:var(--accent-soft); color:var(--accent)}
+  .t-hyp{background:var(--warn-soft); color:var(--warn)}
+  .t-no{background:var(--bad-soft); color:var(--bad)}
+  .callout{border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin:16px 0}
+  .callout.warn{background:var(--warn-soft); border-color:#e6cf9b}
+  .callout.bad{background:var(--bad-soft); border-color:#e6bdbd}
+  .callout.info{background:var(--accent-soft); border-color:#bcd7cd}
+  .callout h3{margin-top:0}
+  table{border-collapse:collapse; width:100%; margin:14px 0; font-size:.92rem}
+  th,td{border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top}
+  th{background:var(--accent-soft); color:var(--ink); font-weight:700}
+  .verdict{font-weight:700}
+  .v-no{color:var(--bad)} .v-maybe{color:var(--warn)} .v-yes{color:var(--good)}
+  .src li{margin:8px 0}
+  footer{margin-top:40px; padding-top:16px; border-top:1px solid var(--line); color:var(--muted); font-size:.82rem}
+  .pill{font-size:.75rem; color:var(--muted); border:1px solid var(--line); border-radius:20px; padding:2px 10px; display:inline-block; margin:2px 4px 2px 0}
+  .kbd{font-family:ui-monospace,monospace; font-size:.82em; background:var(--code); border:1px solid var(--line); border-radius:4px; padding:0 5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="doc">
+  <h1>Can this Golf report its own health over factory Bluetooth?</h1>
+  <p class="sub">An independent, evidence-led second review — 2014 VW Golf Mk7 (AU), Composition Media, MIB1 Standard, radio part 5G0&nbsp;035&nbsp;819&nbsp;A.</p>
+  <p class="meta">
+    Prepared 2026-09-25 · Second, independent investigator · Offline research + code/evidence review only.
+    <span class="pill">No live Bluetooth opened by this reviewer</span>
+    <span class="pill">Shareable-clean: no device address or private identifiers</span>
+  </p>
+</header>
+
+<!-- FIVE-LINE PLAIN-ENGLISH SUMMARY -->
+<div class="lede">
+  <ol>
+    <li><span class="tag t-demo">Demonstrated</span> On this exact car, a Windows PC can pair and open the factory Bluetooth <em>generic Serial Port</em> (SPP, RFCOMM channel 5) with authentication and encryption — but across three owner-authorised captures the car sent <strong>zero application bytes</strong>, and <strong>no vehicle-health value has ever been retrieved.</strong></li>
+    <li><span class="tag t-demo">Demonstrated (research)</span> The one publicly documented VW protocol for reading live vehicle data — <strong>EXLAP</strong> — runs on <strong>MIB2 HIGH over TCP/USB with per-user credentials</strong>. It is <strong>not</strong> a Bluetooth-SPP protocol and is <strong>not</strong> documented on MIB1 Composition Media, so it does not explain this endpoint.</li>
+    <li><span class="tag t-hyp">Hypothesised only</span> Which application "owns" the generic SPP here is <strong>unknown</strong>. The discovery record is the <em>standard, generic</em> serial-port service with no identifying fields, and "zero bytes" is equally consistent with a client-speaks-first app <em>or</em> an advertised-but-unused endpoint.</li>
+    <li><span class="tag t-no">iPhone reality</span> A third-party iPhone app <strong>cannot open this Classic-Bluetooth SPP at all.</strong> iOS only exposes Classic-Bluetooth data links through Apple's MFi / External-Accessory program, so the Windows result <strong>does not transfer to iPhone</strong>.</li>
+    <li><span class="tag t-no">Working solution?</span> <strong>No.</strong> There is currently no established, owner-authorised, factory-Bluetooth route to vehicle-health data on this exact unit. The missing piece is a <em>primary source documenting a bound, documented read interface on this part</em> — not another silent listen.</li>
+  </ol>
+</div>
+
+<p><strong>Bottom line up front:</strong> connectivity has been proven; a <em>health-data channel</em> has not. The evidence to date is best read as "we can knock on a generic serial door and it stays silent," which is the <em>normal</em> behaviour of an idle serial acceptor and tells us almost nothing on its own. The strongest honestly defensible position is that this endpoint is undocumented, so we must identify what it is <em>before</em> sending anything — and we do not yet have that evidence.</p>
+
+<h2>1 · What I could and could not do (honesty first)</h2>
+<ul>
+  <li>I ran in a Linux cloud container. <strong>I could not read the local Windows files</strong> (<code>C:\Users\erike\…</code>, the HTML report, <code>private-sdp.json</code>, the capture JSON, or <code>audit_saved_sdp.py</code>). They are not reachable from here. I have <strong>not</strong> read or executed them.</li>
+  <li>Everything about the captures, SDP records and audit is used <strong>provisionally, as your transcription</strong>. Where a conclusion depends on a file I could not open, I say so.</li>
+  <li>I opened <strong>no Bluetooth connection</strong> and ran no receiver. All of my work is offline research plus review of public code and specifications. If another agent is sharing the laptop, nothing here competes with it.</li>
+  <li>My independent contribution is <strong>fresh primary-source research</strong> on the SPP owner, EXLAP, the named repositories, and the iPhone platform limits — used to challenge, not confirm, prior conclusions.</li>
+</ul>
+
+<h2>2 · The equipment, stated precisely</h2>
+<ul>
+  <li><strong>Head unit:</strong> VW <em>Composition Media</em>, <strong>MIB1 Standard</strong>, radio part <strong>5G0&nbsp;035&nbsp;819&nbsp;A</strong>. This part number is externally confirmed as "VW Composition Media Main Unit, MIB1, Bluetooth" — consistent with your infotainment screen. Owner-read software <code>0421</code>, hardware <code>40</code>/<code>040</code>.</li>
+  <li><strong>Not independently verified:</strong> exact build year (believed 2014) and the full firmware train. Treat firmware-specific claims as provisional.</li>
+  <li><strong>MIB1 Standard ≠ MIB2 / MIB2 HIGH / RNS 510.</strong> This distinction is the hinge of the whole investigation: almost every VW "read live data" project online targets MIB2 HIGH or the older RNS 510. Compatibility does <strong>not</strong> generalise downward to MIB1 Standard.</li>
+  <li><strong>No Wi-Fi/WLAN menu observed.</strong> That is suggestive but not proof of absent hardware. Factory Wi-Fi and VW online services ("We Connect" and similar) are a <em>separate</em> track from Bluetooth and are labelled separately throughout this report.</li>
+</ul>
+
+<h2>3 · What the live evidence actually shows — and what it does not</h2>
+<p>Three completed, owner-authorised, parked, 30-second captures (ignition/engine states: off, on-engine-off, engine-running) all produced the <strong>same result: connection established, authentication + encryption required, zero bytes received, no error.</strong> Raw SDP was identical across captures.</p>
+
+<div class="callout warn">
+  <h3>The central reinterpretation: "zero bytes" is close to uninformative</h3>
+  <p>A Bluetooth <em>Serial Port Profile</em> endpoint is a raw, bidirectional pipe (RFCOMM emulating a serial cable). SPP itself carries <strong>no application framing and no "server announces itself" rule.</strong> In Bluetooth's own model the acceptor simply <em>waits</em> for the initiator. So a server that accepts the socket and then says nothing is the <strong>default, expected state</strong> of a serial acceptor whose application layer is <em>client-speaks-first</em> — or of an endpoint that is advertised by the Bluetooth stack but not wired to any data producer at all.</p>
+  <p><strong>Therefore "30 seconds of silence" does not indicate a fault, does not indicate a health-data source, and does not identify a protocol.</strong> It rules out exactly one thing: a <em>server-speaks-first</em> banner protocol. (That single fact turns out to matter — see EXLAP below.)</p>
+</div>
+
+<p>What is genuinely established from the evidence: (a) the pairing, security and RFCOMM plumbing work; (b) the advertised services are stable; (c) no health field, fault code, or diagnostic response has ever been returned. Engine states are <em>your reports</em>, not decoded telemetry. None of this is a vehicle-health value.</p>
+
+<h3>The SDP record identifies no application</h3>
+<p>The Serial Port record you transcribed carries service class <code>0x1101</code>, an RFCOMM channel, the Public Browse Group, and the name "Serial Port" — and <strong>no ServiceID, no provider, no description, no documentation URL.</strong> This is important: <code>0x1101</code> is literally the <em>standard, generic</em> Serial Port service UUID assigned by the Bluetooth SIG. Its presence is generic by definition; it names no owning application. <code>ServiceRecordState 4</code> is SDP bookkeeping, not vehicle data. <strong>From the discovery record alone, the owning application is genuinely unidentifiable.</strong></p>
+
+<h2>4 · EXLAP, checked carefully — and excluded for <em>this</em> endpoint</h2>
+<p>EXLAP (Electronic/Extended eXchange of Live Automotive data Protocol; also seen as "SAI-Server") is the real VW-group protocol for reading live vehicle data. I verified its shape against the best public documentation, the <code>ijord/EXLAP-mib2-atlas</code> guide and the <code>edub0/EXLAP</code> client. Four independent properties each rule it out as the owner of this Bluetooth SPP:</p>
+<table>
+  <tr><th>Property of documented EXLAP</th><th>What our endpoint shows</th><th>Fit</th></tr>
+  <tr><td><strong>Transport is TCP</strong> — "TCP connect <code>127.0.0.1:25010</code> … or the head unit's IP:25010 over its Wi-Fi/USB link." Also seen tunnelled over USB via an Android-Auto helper. Never documented over Bluetooth RFCOMM.</td><td>Bluetooth Classic RFCOMM / SPP, channel 5.</td><td class="verdict v-no">Wrong transport</td></tr>
+  <tr><td><strong>Platform is MIB2 HIGH</strong> (and MIB2.5). The atlas title is literally "EXLAP on VW Group MIB2 HIGH." No source mentions MIB1 or Composition Media.</td><td>MIB1 Standard, Composition Media.</td><td class="verdict v-no">Wrong platform</td></tr>
+  <tr><td><strong>Server speaks first:</strong> after transport setup the server sends <code>&lt;Status&gt;&lt;Init/&gt;&lt;/Status&gt;</code>, then the client sends <code>&lt;Req&gt;&lt;Protocol version="1" …/&gt;&lt;/Req&gt;</code>. This matches the "server-first Init" you noted from the 1.3b spec.</td><td>Zero bytes from the server in 30 s, three times.</td><td class="verdict v-no">Behaviour inconsistent</td></tr>
+  <tr><td><strong>Credentials required:</strong> a per-user <em>SHA-256 digest challenge/response</em> (<code>&lt;Authenticate phase="challenge"/&gt;</code> → server nonce → client digest).</td><td>Owner holds no such credentials; extracting them is out of scope by your rules.</td><td class="verdict v-no">Out of scope even if present</td></tr>
+</table>
+<div class="callout info">
+  <p><strong>The decisive line:</strong> documented EXLAP is <em>server-first</em>. A server-first endpoint would have sent an <code>&lt;Init&gt;</code> the instant the encrypted RFCOMM channel opened. Ours sent nothing, three times. So the silence is <strong>positively inconsistent</strong> with an EXLAP server on this channel — before we even reach the facts that EXLAP is TCP, MIB2-only, and credentialed. <strong>EXLAP is not the answer here.</strong></p>
+</div>
+<p>Note the reconciliation you asked for: the atlas shows the client immediately following the server's <code>&lt;Init&gt;</code> with a <code>&lt;Protocol&gt;</code> request, which can read like "client-first." It is not — the ordering is <em>server Init, then client Protocol</em>. Either way, the server emits the first bytes, which we never saw.</p>
+
+<h2>5 · The named leads — actual scope</h2>
+<table>
+  <tr><th>Source</th><th>What it actually is</th><th>Relevance to this car</th></tr>
+  <tr>
+    <td><code>ijord/EXLAP-mib2-atlas</code></td>
+    <td>Documentation atlas of EXLAP on <strong>MIB2 HIGH</strong>: TCP <code>:25010</code>, SHA-256 digest auth, ~177 read-only URLs.</td>
+    <td class="verdict v-no">MIB2 HIGH, TCP, credentialed — not this transport, not this platform.</td>
+  </tr>
+  <tr>
+    <td><code>edub0/EXLAP</code></td>
+    <td>Python EXLAP client; TCP/USB; tested against <strong>Porsche</strong>; needs a <code>creds.py</code>. References a 2017 EXLAP doc.</td>
+    <td class="verdict v-no">Confirms EXLAP shape; Porsche/creds; nothing Bluetooth or MIB1.</td>
+  </tr>
+  <tr>
+    <td><code>jilleb/mqb-pm</code></td>
+    <td>Archived <strong>Android-Auto</strong> performance monitor for <strong>MIB2/MIB2.5 HIGH</strong>; reads EXLAP <strong>over USB</strong> via a helper APK; requires Android-Auto developer mode; specific firmware only.</td>
+    <td class="verdict v-no">Android + USB + MIB2 + dev-mode. No iPhone, no Bluetooth, no MIB1.</td>
+  </tr>
+  <tr>
+    <td><code>pikpok/vw-bluetooth</code> <em>(new lead)</em></td>
+    <td>A research/link collection about <strong>replacing the factory Bluetooth <em>media</em> module</strong> (Nokia HT-2 <code>3C8-035-730</code> / Novero HT-4) on <strong>RNS 510</strong> with a Raspberry&nbsp;Pi for <strong>phone/music/Android-Auto</strong>.</td>
+    <td class="verdict v-no">Media/phone retrofit on RNS 510, and it <em>adds hardware</em> (a Pi). Not a health-data implementation, and out of your "installed hardware only" scope.</td>
+  </tr>
+</table>
+<p class="meta">On point (5) specifically: <code>pikpok/vw-bluetooth</code> is <strong>not</strong> a Golf health-data implementation. Its goal, in the author's words, is to replace the original module with a Raspberry Pi for streaming and an Android-Auto screen. It concerns the <em>phone/media</em> Bluetooth module, references older RNS&nbsp;510 work, and provides no diagnostics, no engine data, no EXLAP, and no SyncML.</p>
+
+<h2>6 · So who <em>does</em> own the generic SPP? Hypotheses, not a verdict</h2>
+<p>A generic SPP label settles nothing. Here is each hypothesis with the evidence for and against, kept open per your instruction:</p>
+<table>
+  <tr><th>Hypothesis</th><th>For</th><th>Against / test needed</th></tr>
+  <tr>
+    <td><strong>Phone / media / accessory link</strong> (e.g. an iAP/CarPlay-adjacent or media-control pipe)</td>
+    <td>HFP is on ch.1, OBEX push ch.3, SyncML ch.7 — a media/accessory helper could plausibly use a spare SPP.</td>
+    <td>Apple's iAP2-over-Bluetooth uses its <em>own</em> UUIDs (<code>…deca-fade…cafe/caff</code>), <strong>not</strong> generic <code>0x1101</code>; and iAP2 exposes media/CarPlay handoff, <strong>not</strong> health. If it were an accessory link it would still be client-driven and media-scoped.</td>
+  </tr>
+  <tr>
+    <td><strong>Synchronisation</strong> (contacts/settings)</td>
+    <td>A dedicated <strong>SyncMLServer</strong> already exists on ch.7 (a known sync service).</td>
+    <td>Sync already has its own endpoint; the generic SPP is unlikely to duplicate it, and SyncML is not health data anyway.</td>
+  </tr>
+  <tr>
+    <td><strong>Service / debug / dealer</strong> port</td>
+    <td>Embedded stacks sometimes expose a serial service/debug channel.</td>
+    <td>VW factory diagnostics run through the <strong>OBD-II / gateway</strong> path (ODIS/VCDS over the diagnostic bus), <em>not</em> the head unit's Bluetooth. No public source documents a Bluetooth-SPP dealer/debug channel on this part. Probing it blindly is exactly what your rules exclude.</td>
+  </tr>
+  <tr>
+    <td><strong>Vehicle telemetry</strong> (the hoped-for outcome)</td>
+    <td>The endpoint exists and stays open.</td>
+    <td><strong>No primary source</strong> ties telemetry to a Bluetooth SPP on MIB1. The one documented VW telemetry read-out (EXLAP) is TCP/MIB2/credentialed and server-first — excluded above. Silence is consistent with "no producer bound."</td>
+  </tr>
+  <tr>
+    <td><strong>Advertised-but-unbound stock SPP</strong> (the sober default)</td>
+    <td>Perfectly explains: accepts a socket, requires the stack's standard security, then emits nothing regardless of engine state; identical SDP every time; generic <code>0x1101</code> with no ServiceID.</td>
+    <td>Hard to disprove without observing a factory feature that actually drives the channel. This is the hypothesis the current evidence fits <em>best</em>.</td>
+  </tr>
+</table>
+
+<div class="callout info">
+  <h3>Could the server legitimately be waiting for the client, a mode, or extra owner authorisation? (point 3)</h3>
+  <p>Yes, in principle — a client-speaks-first application, a specific infotainment mode, or an ordinary owner authorisation step could all produce initial silence. <strong>But we cannot name the exact first message, mode, or permission</strong>, because no documentation ties a bound protocol to this endpoint on this part. Proposing bytes now would be blind command guessing, which your constraints (and good sense) exclude. The correct next move is to <em>identify</em> the owner, not to guess at it. A request being called "read-only" in EXLAP or any other protocol does <strong>not</strong> make it read-only, or even meaningful, on this unknown service.</p>
+</div>
+
+<h2>7 · The data-scope ceiling (telemetry ≠ maintenance ≠ fault codes ≠ full diagnostics)</h2>
+<p>Even in the most optimistic world where some read interface existed on the head unit, it would be bounded by <em>what the head unit itself knows</em>. A Composition Media head unit sits on the infotainment/comfort side of the car's network. Stored powertrain <strong>fault codes (DTCs)</strong> and full diagnostics live on the powertrain bus <strong>behind the gateway</strong> and are read through the <strong>OBD-II</strong> path — which needs a plug-in adapter you have explicitly excluded. For reference, even the richest documented VW read-out (EXLAP on MIB2) exposes <em>telemetry/status</em> (speed, some dynamics, tyre, climate, nav) — not the engine ECU's stored DTCs.</p>
+<div class="callout warn">
+  <p><strong>Consequence:</strong> "engine fault codes / full diagnostics over factory Bluetooth" is not achievable on this architecture regardless of the SPP mystery. The realistic ceiling for any head-unit Bluetooth route is <em>infotainment-visible telemetry/status</em> — and even that is undocumented here. Anything not returned stays <strong>unknown</strong> — never "healthy" and never "zero."</p>
+</div>
+
+<h2>8 · iPhone feasibility — assessed separately, and it is the hard wall</h2>
+<p>Windows RFCOMM success does <strong>not</strong> transfer to iPhone. The three iOS-relevant paths:</p>
+<table>
+  <tr><th>iPhone path</th><th>Applies here?</th><th>Why</th></tr>
+  <tr>
+    <td><strong>Bluetooth <em>Classic</em> SPP / RFCOMM</strong> (what Windows used)</td>
+    <td class="verdict v-no">No — platform-blocked</td>
+    <td>Apple does not expose generic Classic-Bluetooth SPP/RFCOMM to third-party apps at all. Per Apple's own QA1657, a third-party app is only notified of an accessory if it is <strong>MFi-compliant</strong> and communicates through the <strong>External Accessory</strong> framework. There is no public API to open a car's <code>0x1101</code> serial port from an app.</td>
+  </tr>
+  <tr>
+    <td><strong>MFi / External Accessory (iAP2)</strong></td>
+    <td class="verdict v-no">No, for health</td>
+    <td>iAP2 over Bluetooth is RFCOMM-based but requires the accessory to be MFi-certified <em>and</em> the app to declare a matching protocol string. VW uses iAP2 for media/CarPlay handoff, not for a health API, and no such health protocol string is published to third parties. An individual cannot obtain one.</td>
+  </tr>
+  <tr>
+    <td><strong>BLE GATT (Core Bluetooth)</strong></td>
+    <td class="verdict v-maybe">Untested, but unlikely</td>
+    <td>This is the <em>only</em> Bluetooth an ordinary iPhone app can freely use. But a 2014-era MIB1 Composition Media almost certainly exposes no BLE health service — the audited SDP found no ATT and no unclassified 128-bit UUID. An empty BLE scan cannot prove absence, yet there is no positive evidence for a BLE health GATT here, and no primary source suggesting one exists on this part.</td>
+  </tr>
+</table>
+<p><strong>iPhone conclusion:</strong> a native third-party iPhone app reading this endpoint is <strong>not feasible</strong> via Classic Bluetooth (iOS forbids it) and has no evidence for a BLE route. The iPhone question is not "port the Windows code" — it is "does an iOS-permitted channel (BLE GATT, or an MFi protocol VW would have to grant) even exist on this unit?", and today the answer is no evidence that it does.</p>
+
+<h2>9 · Explicit disagreements — and the evidence that would settle each</h2>
+<p>I do not have the parallel investigation's document. Below are the claims most likely to arise from the shared framing; I state my position and the <em>exact</em> evidence that would resolve the disagreement. Agreement between two AIs is <strong>not</strong> evidence and settles nothing here.</p>
+<table>
+  <tr><th>Claim to challenge</th><th>My position</th><th>Evidence that would settle it</th></tr>
+  <tr>
+    <td>"Zero bytes in 30 s is a meaningful null result about the channel."</td>
+    <td class="verdict v-no">Disagree</td>
+    <td>It is the default state of an idle serial acceptor. To make it meaningful, capture a <strong>factory feature actually driving this channel</strong> (see §10). If none ever does, that supports "unbound," not "health source."</td>
+  </tr>
+  <tr>
+    <td>"The generic SPP is (probably) a vehicle-health / telemetry channel."</td>
+    <td class="verdict v-no">Disagree</td>
+    <td>A primary source (VW/supplier doc, official client, or a reproducible trace on <em>MIB1 Composition Media</em>) that binds a named read protocol to this SPP. None found.</td>
+  </tr>
+  <tr>
+    <td>"The endpoint is read-only / safe, so a read request is fine."</td>
+    <td class="verdict v-no">Disagree</td>
+    <td>"Read-only" is a property of a <em>specific documented protocol</em>, not of an unknown SPP pipe (which is bidirectional). Establish the protocol first; only then does "read-only" have meaning.</td>
+  </tr>
+  <tr>
+    <td>"Windows SPP success means an iPhone app can do the same."</td>
+    <td class="verdict v-no">Disagree</td>
+    <td>Apple QA1657 and the External-Accessory/MFi model. To overturn, show either a working BLE health GATT on this unit or a VW-granted MFi protocol string.</td>
+  </tr>
+  <tr>
+    <td>"EXLAP explains the silence (server-first Init not yet triggered)."</td>
+    <td class="verdict v-no">Disagree</td>
+    <td>EXLAP is server-first over <em>TCP</em> on MIB2; a server-first endpoint would have emitted <code>&lt;Init&gt;</code>. To overturn, produce a documented EXLAP-over-Bluetooth-SPP variant on MIB1 — none exists in the sources checked.</td>
+  </tr>
+  <tr>
+    <td>"Connectivity + agreement between reviewers ⇒ there is a solution."</td>
+    <td class="verdict v-no">Disagree</td>
+    <td>A banner or an open pipe is protocol evidence, not a health value. A solution requires a retrieved, decoded health field — which does not yet exist.</td>
+  </tr>
+</table>
+
+<h2>10 · Strongest idea, weakest assumption, one next experiment</h2>
+
+<h3>Strongest specific implementation idea</h3>
+<p>Stop treating the mystery SPP as a probable data source and instead <strong>identify it by observing the car's own intended behaviour</strong> — then, only if a bound protocol is revealed, look up that protocol's <em>documented</em> read request. Concretely: run a Bluetooth <strong>HCI/RFCOMM trace on the owner's own paired device</strong> (the existing Windows PC or the owner's phone — no added car hardware, no dongle) while methodically exercising every factory infotainment feature the manual lists (phone, message access, media, any "apps"/"data"/"online" item). Watch whether the head unit <em>ever</em> initiates or expects traffic on channel 5, and with what framing. This uses only installed hardware, sends <strong>no guessed vehicle commands</strong>, and either reveals the owner (then a documented request becomes possible) or shows the channel is never used by the car itself.</p>
+
+<h3>Weakest assumption</h3>
+<p>That the generic SPP is a <strong>bound application endpoint at all.</strong> The evidence fits "advertised-but-unbound stock SPP" at least as well as any active-service hypothesis. If that is true, no amount of client-side effort will ever produce data, because nothing on the car is listening or speaking there. The whole optimistic path rests on this one unproven assumption.</p>
+
+<h3>One next experiment (single, bounded, coordinated — not another silent listen)</h3>
+<div class="callout info">
+  <p><strong>Experiment:</strong> With the car parked and the owner present, and <strong>coordinated with the other agent so only one Bluetooth session is active</strong>, capture a full HCI/RFCOMM log on the owner's paired device across ~2–3 minutes while stepping through the documented infotainment features one by one. Do <em>not</em> send any application bytes to channel 5; only observe what the car does.</p>
+  <ul>
+    <li><strong>SUCCESS:</strong> a factory feature produces identifiable, framed traffic on channel 5 (or the head unit initiates on it). → We have the owning protocol; next step is to find <em>its</em> documented read request and prerequisites.</li>
+    <li><strong>FAILURE:</strong> no factory feature ever touches channel 5 and the manual documents none. → The SPP is an advertised-but-unbound stock endpoint; there is no factory-Bluetooth health route on this unit. Stop pursuing this channel.</li>
+    <li><strong>INCONCLUSIVE:</strong> a feature touches the channel but the app-layer bytes are opaque/encrypted. → We need that feature's client documentation before anything further; record exactly which feature and byte pattern for a targeted primary-source search.</li>
+  </ul>
+</div>
+
+<h3>If no route is established — the exact missing evidence</h3>
+<p>Rather than declaring undocumented access "impossible," the precise gaps are: (1) a <strong>primary source</strong> (VW/supplier documentation, an official client, or a reproducible trace on a <em>MIB1 Composition Media</em> unit) that binds a named, owner-authorised read protocol to this Bluetooth SPP; and (2) for iPhone, positive evidence of an <strong>iOS-permitted</strong> channel on this unit — a working BLE health GATT service, or a VW-granted MFi/External-Accessory protocol string. Absent (1), there is nothing legitimate to send; absent (2), an iPhone app cannot reach it even if (1) appears. Separately, the OEM online track (factory Wi-Fi + VW "We Connect"–style services) is a different investigation and, where offered, is manufacturer-account-based, not a local Bluetooth read.</p>
+
+<h2>11 · Primary sources</h2>
+<ul class="src">
+  <li><a href="https://developer.apple.com/library/archive/qa/qa1657/_index.html">Apple — Technical Q&amp;A QA1657: Using External Accessory framework with Bluetooth devices</a> (third-party apps only see MFi-compliant accessories).</li>
+  <li><a href="https://developer.apple.com/forums/thread/91997">Apple Developer Forums — Programmatically connecting to Bluetooth</a> (no generic Classic-BT SPP access for apps).</li>
+  <li><a href="https://github.com/ijord/EXLAP-mib2-atlas">ijord/EXLAP-mib2-atlas</a> — EXLAP on VW Group <strong>MIB2 HIGH</strong>; TCP <code>:25010</code>; server-first <code>&lt;Status&gt;&lt;Init/&gt;&lt;/Status&gt;</code>; SHA-256 digest auth.</li>
+  <li><a href="https://github.com/edub0/EXLAP">edub0/EXLAP</a> — Python EXLAP client (TCP/USB; Porsche-tested; requires credentials).</li>
+  <li><a href="https://docs.rs/exlap/latest/exlap/">exlap (Rust crate) docs</a> — "ExLAP is XML on a TCP socket"; handshake before "Ready"; per-user SHA-256 digest.</li>
+  <li><a href="https://github.com/jilleb/mqb-pm">jilleb/mqb-pm</a> — Android-Auto performance monitor, <strong>MIB2/2.5 HIGH</strong>, EXLAP over USB via helper APK, dev-mode required.</li>
+  <li><a href="https://github.com/pikpok/vw-bluetooth">pikpok/vw-bluetooth</a> — replacing the factory BT <em>media</em> module (Nokia HT-2 / Novero HT-4) on <strong>RNS 510</strong> with a Raspberry Pi (media/phone/Android-Auto).</li>
+  <li><a href="https://www.bluetooth.com/specifications/specs/serial-port-profile-1-1/">Bluetooth SIG — Serial Port Profile</a> and <a href="https://en.wikipedia.org/wiki/List_of_Bluetooth_protocols">List of Bluetooth protocols</a> (SPP over RFCOMM; standard service UUID <code>0x1101</code>; acceptor waits for initiator).</li>
+  <li><a href="https://wiomoc.de/misc/posts/mfi_iap.html">Exploring Apple's MFi protocol iAP2</a> and <a href="https://www.realmcu.com/en/Technologies/Bluetooth-Profiles/iAP2">iAP2 overview</a> (iAP2 is RFCOMM-based, uses its own <code>deca-fade…</code> UUIDs, MFi-gated).</li>
+  <li><a href="https://picclick.co.uk/VW-Composition-Media-Main-Unit-MIB1-Bluetooth-5G0035819A-182582416425.html">Part reference — VW Composition Media Main Unit, MIB1, Bluetooth, 5G0035819A</a> (confirms the part identity; a marketplace listing, cited only for part-number identity).</li>
+</ul>
+
+<footer>
+  <p>Independent second review. Offline research and public-source/code review only; no Bluetooth connection was opened by this reviewer, and the local Windows capture files were not accessible from this environment and were treated as transcribed observations. No device address, pairing identifier, or private payload is included. Marketplace links are cited only to confirm the part number. This document reflects public documentation as of 2026-09-25 and the firmware/build limits noted in §2.</p>
+</footer>
+
+</div>
+</body>
+</html>
