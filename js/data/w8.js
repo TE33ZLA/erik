@@ -281,7 +281,7 @@
         cards: [
           { kind: 'learn', title: 'Follow one bike',
             body: R`Day 0: the shop buys a bike on credit. Day 30: it pays the supplier. Day 50: it sells the bike on credit. Day 75: the customer pays.\n\nThe shop’s own cash left on day 30 and came back on day 75.`,
-            tl: { n: 3, at: { 0: 'Buy bike', 1: 'Pay supplier', 2: 'Sell bike', 3: 'Customer pays' }, labels: { 0: '0', 1: '30', 2: '50', 3: '75' }, unit: 'Day', hi: [1, 3] } },
+            tl: { n: 3, at: { 0: 'Buy bike', 1: 'Pay bill', 2: 'Sell it', 3: 'Cash in' }, labels: { 0: '0', 1: '30', 2: '50', 3: '75' }, unit: 'Day', hi: [1, 3] } },
           { kind: 'learn', title: 'Three stretches of time',
             points: [R`**Inventory days**: how long stock sits before it is sold. Bike: day 0 to day 50, so 50 days.`, R`**A/R days** (receivable days): how long customers take to pay. Bike: day 50 to day 75, so 25 days.`, R`**A/P days** (payable days): how long the firm takes to pay its suppliers. Bike: day 0 to day 30, so 30 days.`] },
           { kind: 'learn', title: 'The operating cycle',
@@ -367,8 +367,8 @@
           { kind: 'learn', title: 'From balances to days',
             body: R`The accounts do not say “stock sits for 50 days”. They give **balances** (how much stock, receivables and payables the firm holds) and **yearly totals** (sales and COGS).\n\nTo turn a balance into days, divide it by **one day’s worth** of the yearly total. A shop that sells $365,000 a year sells $1,000 a day. If customers owe it $30,000, that is 30 days of sales.` },
           { kind: 'learn', title: 'Sales or COGS?',
-            body: R`**COGS** (cost of goods sold) is what the goods cost the firm. **Sales** is what customers pay for them.\n\nInventory and payables are recorded **at cost**, so they use COGS. Receivables come from **sales**, so they use sales.`,
-            table: { head: ['Day count', 'Balance', 'Divide by'], rows: [['Inventory days', 'Inventory', R`\(COGS \div 365\)`], ['A/R days', 'Accounts receivable', R`\(Sales \div 365\)`], ['A/P days', 'Accounts payable', R`\(COGS \div 365\)`]] } },
+            body: R`**COGS** (cost of goods sold) is what the goods cost the firm. **Sales** is what customers pay for them.\n\nInventory and payables are recorded **at cost**, so they use COGS. Receivables come from **sales**, so they use sales. One day’s worth is the yearly total divided by 365.`,
+            table: { head: ['Day count', 'Divide the balance by'], rows: [['Inventory days', R`Daily COGS: \(\frac{COGS}{365}\)`], ['A/R days', R`Daily sales: \(\frac{Sales}{365}\)`], ['A/P days', R`Daily COGS: \(\frac{COGS}{365}\)`]] } },
           { kind: 'learn', title: 'The cash conversion cycle',
             body: R`Add the first two day counts and subtract the third:\n\n\[CCC = \text{Inventory days} + \text{A/R days} - \text{A/P days}\]\n\nThe answer is the number of days the firm’s own cash is tied up.`,
             formula: 'ccc' },
@@ -597,7 +597,7 @@
             body: R`Changing the credit terms changes **when** cash arrives and **how much** you sell. To compare two policies, lay out each one’s monthly cash flows and work out its NPV. Keep the policy with the higher NPV.\n\nA cash flow that repeats every month forever is a **monthly perpetuity** (Floor 2). Its value is \(\frac{C}{r}\), with \(r\) the monthly rate.` },
           { kind: 'example', title: 'Worked example: the current policy',
             q: R`A product sells for $100 and costs $60 to make. The firm sells 500 units a month. Half the customers pay cash now and take a 1% discount. The rest pay full price in 30 days. The required return is 1% a month, and the policy runs forever. What is its NPV?`,
-            tl: { n: 3, at: { 0: CREDIT.net0, 1: CREDIT.credit + CREDIT.net0, 2: CREDIT.credit + CREDIT.net0, 3: CREDIT.credit + CREDIT.net0 }, labels: { 3: '3, 4, …' }, unit: 'Month' },
+            tl: { n: 3, at: { 0: CREDIT.net0, 1: CREDIT.credit + CREDIT.net0, 2: CREDIT.credit + CREDIT.net0, 3: CREDIT.credit + CREDIT.net0 }, labels: { 0: 'Month 0', 3: '3, 4, …' } },
             steps: [
               R`Month 0: make 500 units, \(-500 \times 60 = -\$30{,}000\). Cash sales: \(250 \times 99 = \$24{,}750\). Net: \(-\$5{,}250\).`,
               R`Each later month: last month’s credit sales arrive, \(250 \times 100 = \$25{,}000\), and the month’s \(-\$5{,}250\) repeats. Net: \(\$19{,}750\).`,

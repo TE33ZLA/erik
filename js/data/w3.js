@@ -107,7 +107,7 @@
       { h: 'Semi-annual coupons and the EAY', points: [
         R`Work in half-years: **halve** the coupon, **halve** the yield, **double** \(n\).`,
         R`Effective annual yield: \(EAY = \left(1 + \frac{y}{2}\right)^{2} - 1\). A 10% semi-annual YTM gives \(1.05^{2} - 1 = 10.25\%\).`,
-        R`Given a yield **per half-year**, \(i\)? It is already halved. Compound it: \(EAY = (1 + i)^{2} - 1\). Do not halve it again.`,
+        R`A yield **per half-year**, \(i\), is already halved. Compound it: \(EAY = (1 + i)^{2} - 1\). Do not halve it again.`,
       ] },
       { h: 'Yields and interest-rate risk', points: [
         R`**YTM:** the average return if you buy now, hold to maturity and every payment is made. Your expected return can differ from it.`,

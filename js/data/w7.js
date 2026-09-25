@@ -15,6 +15,7 @@
   const npvPerp = (q, p, v, r, inv) => ((p - v) * q) / r - inv;
   const pv = (x, r, t) => x / Math.pow(1 + r, t);
   const pct = (p) => T.pctT(p); // 0.35 -> "35%"
+  const mS = (x) => `$${T.numT(x / 1e6, 2)}m`; // plain-text $m amount, e.g. "$0.6m"
   const mL = (x, dp = 2) => R`${x < 0 ? '-' : ''}\$${L.numT(Math.abs(x), dp)}\text{m}`; // LaTeX $m amount, sign first
   // money for working lines: whole dollars without ".00", otherwise cents
   const whole = (x) => Math.abs(x - Math.round(x)) < 0.005;
@@ -478,15 +479,15 @@
             ti: [TI.line('(80-60)*5500/0.10-500000'), TI.line('(ans-700000)/700000', { pct: true, note: 'Negative: the NPV fell.' })] },
           { kind: 'learn', title: 'Why the NPV moves more',
             body: R`The inflows fell by $100,000, which is 8.3% of their $1.2m value. But the $500,000 cost does not change.\n\nSo the NPV is a smaller base, only $700,000. The same $100,000 is a bigger share of it: 14.29%.`,
-            table: { head: ['', 'Base', 'Sales 5,500', 'Change'], rows: [['PV of inflows', '$1,200,000', '$1,100,000', '−8.3%'], ['Initial cost', '$500,000', '$500,000', '0%'], ['NPV', '$700,000', '$600,000', '−14.29%']] } },
+            table: { head: ['', 'PV of inflows', 'NPV'], rows: [['Base', '$1.2m', '$0.7m'], ['5,500 units', '$1.1m', '$0.6m'], ['Change', '−8.3%', '−14.29%']] } },
           { kind: 'check', gen: 'w7-g-sens' },
           { kind: 'learn', title: 'Which input matters most?',
             body: R`Test each input from its lower to its upper bound, one at a time. The input with the **widest NPV range** (the biggest **swing**) is the one the NPV is most sensitive to. Forecast that one most carefully.`,
             table: { head: ['Input tested', 'NPV range', 'Swing'], rows: [
-              ['Unit sales', `${T.moneyT(npvPerp(5500, 80, 60, 0.1, 5e5))} to ${T.moneyT(npvPerp(6500, 80, 60, 0.1, 5e5))}`, T.moneyT(npvPerp(6500, 80, 60, 0.1, 5e5) - npvPerp(5500, 80, 60, 0.1, 5e5))],
-              ['Price per unit', `${T.moneyT(npvPerp(6000, 75, 60, 0.1, 5e5))} to ${T.moneyT(npvPerp(6000, 85, 60, 0.1, 5e5))}`, T.moneyT(npvPerp(6000, 85, 60, 0.1, 5e5) - npvPerp(6000, 75, 60, 0.1, 5e5))],
-              ['Cost per unit', `${T.moneyT(npvPerp(6000, 80, 62, 0.1, 5e5))} to ${T.moneyT(npvPerp(6000, 80, 58, 0.1, 5e5))}`, T.moneyT(npvPerp(6000, 80, 58, 0.1, 5e5) - npvPerp(6000, 80, 62, 0.1, 5e5))],
-              ['Cost of capital', `${T.moneyT(npvPerp(6000, 80, 60, 0.12, 5e5))} to ${T.moneyT(npvPerp(6000, 80, 60, 0.08, 5e5))}`, T.moneyT(npvPerp(6000, 80, 60, 0.08, 5e5) - npvPerp(6000, 80, 60, 0.12, 5e5))],
+              ['Unit sales', `${mS(npvPerp(5500, 80, 60, 0.1, 5e5))} to ${mS(npvPerp(6500, 80, 60, 0.1, 5e5))}`, mS(npvPerp(6500, 80, 60, 0.1, 5e5) - npvPerp(5500, 80, 60, 0.1, 5e5))],
+              ['Price per unit', `${mS(npvPerp(6000, 75, 60, 0.1, 5e5))} to ${mS(npvPerp(6000, 85, 60, 0.1, 5e5))}`, mS(npvPerp(6000, 85, 60, 0.1, 5e5) - npvPerp(6000, 75, 60, 0.1, 5e5))],
+              ['Cost per unit', `${mS(npvPerp(6000, 80, 62, 0.1, 5e5))} to ${mS(npvPerp(6000, 80, 58, 0.1, 5e5))}`, mS(npvPerp(6000, 80, 58, 0.1, 5e5) - npvPerp(6000, 80, 62, 0.1, 5e5))],
+              ['Cost of capital', `${mS(npvPerp(6000, 80, 60, 0.12, 5e5))} to ${mS(npvPerp(6000, 80, 60, 0.08, 5e5))}`, mS(npvPerp(6000, 80, 60, 0.08, 5e5) - npvPerp(6000, 80, 60, 0.12, 5e5))],
             ] },
             tip: R`Here the price wins. A $5 change in price moves the NPV by $300,000 either way.` },
           { kind: 'check', gen: 'w7-g-sens-most' },
@@ -543,7 +544,7 @@
             ti: [TI.line('(85-58)*6500/0.08-500000')] },
           { kind: 'learn', title: 'Scenario or sensitivity?',
             body: R`The two tools are easy to mix up. Exams love a statement that swaps them.`,
-            table: { head: ['', 'Sensitivity analysis', 'Scenario analysis'], rows: [['What changes', 'One input', 'Several inputs together'], ['The other inputs', 'Stay at base', 'Move with the story'], ['It answers', 'Which input matters most?', 'How bad, or how good, could it get?']] } },
+            points: [R`**Sensitivity analysis**: **one** input changes. The others stay at base. It asks: which input matters most?`, R`**Scenario analysis**: **several** inputs change together, as one story. It asks: how bad, or how good, could it get?`] },
           { kind: 'check', ref: 'w7-q19' },
           { kind: 'check', gen: 'w7-g-scen' },
           { kind: 'learn', title: 'Reading the results',
@@ -673,8 +674,8 @@
           { kind: 'learn', title: 'Conditional probability',
             body: R`The year-2 branches of a tree need the chance of year 2 **given** what happened in year 1. That is a **conditional probability**. \(P(H_2 \mid H_1)\) means “high in year 2, given high in year 1”.\n\nTo reach the end of a path, both branches must happen. So you multiply along the path:\n\n\[P(H_1 \text{ and } H_2) = P(H_1) \times P(H_2 \mid H_1)\]` },
           { kind: 'learn', title: 'Divide to get the branch',
-            body: R`Turn it around: divide the joint probability by the year-1 probability.\n\n\[P(H_2 \mid H_1) = \frac{P(HH)}{P(H_1)} = \frac{0.60}{0.75} = 0.80\]\n\nSo after a high year, demand stays high 80% of the time.`,
-            table: { head: ['Path', 'Joint', 'Year-1 probability', 'Branch (conditional)'], rows: [['HH', '0.60', '0.75', '0.80'], ['HL', '0.15', '0.75', '0.20'], ['LH', '0.05', '0.25', '0.20'], ['LL', '0.20', '0.25', '0.80']] } },
+            body: R`Turn it around: divide the joint probability by the year-1 probability.\n\n\[P(H_2 \mid H_1) = \frac{P(HH)}{P(H_1)}\]\n\nBalloons: \(\frac{0.60}{0.75} = 0.80\). So after a high year, demand stays high 80% of the time. The table does the same for every path.`,
+            table: { head: ['Path', 'Joint ÷ year 1', 'Branch'], rows: [['HH', R`\(0.60 \div 0.75\)`, '0.80'], ['HL', R`\(0.15 \div 0.75\)`, '0.20'], ['LH', R`\(0.05 \div 0.25\)`, '0.20'], ['LL', R`\(0.20 \div 0.25\)`, '0.80']] } },
           { kind: 'example', title: 'Worked example: after a low year',
             q: R`Same balloon market. What is \(P(H_2 \mid L_1)\), the chance of high demand in year 2 after a low year 1?`,
             steps: [

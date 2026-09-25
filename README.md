@@ -30,7 +30,7 @@ Progress saves in your browser automatically. Use **Settings → Copy save code*
 | 9 · The Capital Summit | Weeks 10–11 (preview) | WACC and capital structure, built from the formula sheet |
 | Penthouse · The Boardroom | All | MST-style practice exams (Section A 0.5 marks, Section B 2 marks) |
 
-Every floor has **lessons** 📖, battles, mini-games, a boss and a one-page revision sheet.
+Every floor has **lessons** 📖 (70 in total), battles, mini-games, a boss and a one-page revision sheet.
 Lessons assume no prior knowledge: one small idea per card, worked examples revealed one step
 at a time, the same example on the TI-Nspire, quick checks, and "your turn" problems split
 into small steps. Each battle comes right after the lessons it needs.

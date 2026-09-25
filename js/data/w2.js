@@ -574,9 +574,9 @@
             formula: 'pv-grow-annuity' },
           { kind: 'example', title: 'Worked example', q: R`A new store will earn $50,000 next year. Its cash flows then grow at 5% a year, for 10 years in total. The discount rate is 12%. What are they worth today?`,
             steps: [
-              R`\(C = 50{,}000\), \(g = 0.05\), \(r = 0.12\) and \(n = 10\).`,
+              R`\(C = 50{,}000\), \(g = 0.05\), \(r = 0.12\) and \(n = 10\). So \(r - g = 0.07\).`,
               R`\(\left(\frac{1.05}{1.12}\right)^{10} = ${L.numT((1.05 / 1.12) ** 10, 8)}\).`,
-              R`\[\begin{aligned} PV &= \frac{50{,}000}{0.12 - 0.05}\left(1 - ${L.numT((1.05 / 1.12) ** 10, 8)}\right) \\ &= ${L.money(LS.store)} \end{aligned}\]`,
+              R`\[\begin{aligned} PV &= \frac{50{,}000}{0.07}\left(1 - ${L.numT((1.05 / 1.12) ** 10, 8)}\right) \\ &= ${L.money(LS.store)} \end{aligned}\]`,
             ],
             answer: R`The cash flows are worth \(${L.money(LS.store)}\) today.`,
             ti: [TI.line('50000/(0.12-0.05)*(1-(1.05/1.12)^10)', { note: 'There is no growth box in the Finance Solver. Type the formula in one line.' })] },
