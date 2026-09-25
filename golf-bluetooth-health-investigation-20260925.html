@@ -80,6 +80,7 @@
     Prepared 2026-09-25 · Second, independent investigator · Offline research + code/evidence review only.
     <span class="pill">No live Bluetooth opened by this reviewer</span>
     <span class="pill">Shareable-clean: no device address or private identifiers</span>
+    <span class="pill">Revision 2</span>
   </p>
 </header>
 
@@ -88,7 +89,7 @@
   <ol>
     <li><span class="tag t-demo">Demonstrated</span> On this exact car, a Windows PC can pair and open the factory Bluetooth <em>generic Serial Port</em> (SPP, RFCOMM channel 5) with authentication and encryption — but across three owner-authorised captures the car sent <strong>zero application bytes</strong>, and <strong>no vehicle-health value has ever been retrieved.</strong></li>
     <li><span class="tag t-demo">Demonstrated (research)</span> The one publicly documented VW protocol for reading live vehicle data — <strong>EXLAP</strong> — runs on <strong>MIB2 HIGH over TCP/USB with per-user credentials</strong>. It is <strong>not</strong> a Bluetooth-SPP protocol and is <strong>not</strong> documented on MIB1 Composition Media, so it does not explain this endpoint.</li>
-    <li><span class="tag t-hyp">Hypothesised only</span> Which application "owns" the generic SPP here is <strong>unknown</strong>. The discovery record is the <em>standard, generic</em> serial-port service with no identifying fields, and "zero bytes" is equally consistent with a client-speaks-first app <em>or</em> an advertised-but-unused endpoint.</li>
+    <li><span class="tag t-hyp">Hypothesised only</span> Which application "owns" the generic SPP here is <strong>unknown</strong>. The discovery record is the <em>standard, generic</em> serial-port service with no identifying fields; VW's own documented profile list for this unit (HFP, MAP, PBAP, A2DP, AVRCP) <strong>does not include SPP at all</strong>; and "zero bytes" is equally consistent with a client-speaks-first app <em>or</em> an advertised-but-unused endpoint.</li>
     <li><span class="tag t-no">iPhone reality</span> A third-party iPhone app <strong>cannot open this Classic-Bluetooth SPP at all.</strong> iOS only exposes Classic-Bluetooth data links through Apple's MFi / External-Accessory program, so the Windows result <strong>does not transfer to iPhone</strong>.</li>
     <li><span class="tag t-no">Working solution?</span> <strong>No.</strong> There is currently no established, owner-authorised, factory-Bluetooth route to vehicle-health data on this exact unit. The missing piece is a <em>primary source documenting a bound, documented read interface on this part</em> — not another silent listen.</li>
   </ol>
@@ -107,7 +108,9 @@
 <h2>2 · The equipment, stated precisely</h2>
 <ul>
   <li><strong>Head unit:</strong> VW <em>Composition Media</em>, <strong>MIB1 Standard</strong>, radio part <strong>5G0&nbsp;035&nbsp;819&nbsp;A</strong>. This part number is externally confirmed as "VW Composition Media Main Unit, MIB1, Bluetooth" — consistent with your infotainment screen. Owner-read software <code>0421</code>, hardware <code>40</code>/<code>040</code>.</li>
-  <li><strong>Not independently verified:</strong> exact build year (believed 2014) and the full firmware train. Treat firmware-specific claims as provisional.</li>
+  <li><strong>Supplier (corrected in this revision):</strong> MIB1 Standard is the <strong>Panasonic</strong>-built "Volkswagen MIB Standard" (firmware-train prefix <code>MSTD</code>; Panasonic states production from August 2012). It is <em>not</em> Technisat (that is MIB2 Standard, prefix <code>MST2</code>) and <em>not</em> Harman (MIB1/MIB2 High). Any argument that leans on Technisat- or MIB2-specific behaviour is therefore doubly inapplicable here.</li>
+  <li><strong>Firmware train — now partly verified:</strong> software <code>0421</code> is the "MU" version of train <strong><code>MSTD_EU_VW_P3163</code></strong>, production-type MIB1 Standard firmware shared across VW Composition/Discover Media, Skoda Bolero/Amundsen and Seat Navi. Later official trains exist: <code>P3350</code>, <code>P4470</code> (MU <code>0450</code>) and <code>P5301</code> (MU <code>0486</code>). Still unverified: the region mapping (an "EU"-named train on an Australian-delivered car) and the build year.</li>
+  <li><strong>Still not independently verified:</strong> exact build year (believed 2014) and the EU-vs-AU train/region mapping. The MU-number match above is the verified part; treat anything finer than that as provisional.</li>
   <li><strong>MIB1 Standard ≠ MIB2 / MIB2 HIGH / RNS 510.</strong> This distinction is the hinge of the whole investigation: almost every VW "read live data" project online targets MIB2 HIGH or the older RNS 510. Compatibility does <strong>not</strong> generalise downward to MIB1 Standard.</li>
   <li><strong>No Wi-Fi/WLAN menu observed.</strong> That is suggestive but not proof of absent hardware. Factory Wi-Fi and VW online services ("We Connect" and similar) are a <em>separate</em> track from Bluetooth and are labelled separately throughout this report.</li>
 </ul>
@@ -125,6 +128,11 @@
 
 <h3>The SDP record identifies no application</h3>
 <p>The Serial Port record you transcribed carries service class <code>0x1101</code>, an RFCOMM channel, the Public Browse Group, and the name "Serial Port" — and <strong>no ServiceID, no provider, no description, no documentation URL.</strong> This is important: <code>0x1101</code> is literally the <em>standard, generic</em> Serial Port service UUID assigned by the Bluetooth SIG. Its presence is generic by definition; it names no owning application. <code>ServiceRecordState 4</code> is SDP bookkeeping, not vehicle data. <strong>From the discovery record alone, the owning application is genuinely unidentifiable.</strong></p>
+<div class="callout info">
+  <h3>New in this revision: the SPP is the only advertised service with no documented job</h3>
+  <p>VW's published profile list for Composition Media is <strong>HFP, MAP, PBAP, A2DP and AVRCP</strong> — <strong>SPP is not listed.</strong> Map that against what the car actually advertises: HFP (hands-free, ch.&nbsp;1), A2DP sink, AVRCP, OBEX Object Push (ch.&nbsp;3, receiving vCards), SyncML (ch.&nbsp;7, sync) — each corresponds to a documented, user-facing function. (PBAP and MAP do not appear in the car's SDP because there the <em>car is the client</em> and the phone is the server; that absence is expected, not a discrepancy.) The generic Serial Port on ch.&nbsp;5 is the <strong>only advertised service that maps to nothing VW documents.</strong></p>
+  <p>Its record name, "Serial Port", is the Bluetooth-SIG <em>default</em> name a stack assigns when no application names the record. A bound application normally names its record — Apple's accessory link, for example, shows up as a named record ("Wireless iAP v2") and uses Apple-specific UUIDs, not generic <code>0x1101</code>. This is moderate evidence, not proof, that nothing owner-facing is bound to this endpoint.</p>
+</div>
 
 <h2>4 · EXLAP, checked carefully — and excluded for <em>this</em> endpoint</h2>
 <p>EXLAP (Electronic/Extended eXchange of Live Automotive data Protocol; also seen as "SAI-Server") is the real VW-group protocol for reading live vehicle data. I verified its shape against the best public documentation, the <code>ijord/EXLAP-mib2-atlas</code> guide and the <code>edub0/EXLAP</code> client. Four independent properties each rule it out as the owner of this Bluetooth SPP:</p>
@@ -264,12 +272,18 @@
     <td class="verdict v-no">Disagree</td>
     <td>A banner or an open pipe is protocol evidence, not a health value. A solution requires a retrieved, decoded health field — which does not yet exist.</td>
   </tr>
+  <tr>
+    <td>"MIB1 Standard is a Technisat unit, so Technisat / MIB2-Standard behaviour applies." <em>(an assumption I made myself in the first draft)</em></td>
+    <td class="verdict v-no">Corrected</td>
+    <td>Panasonic's own product page and the <code>MSTD</code> train catalogue identify MIB1 Standard as <strong>Panasonic</strong> hardware; Technisat is MIB2 Standard (<code>MST2</code>). Any argument that leans on Technisat or MIB2 behaviour needs a Panasonic-MIB1 source instead.</td>
+  </tr>
 </table>
 
 <h2>10 · Strongest idea, weakest assumption, one next experiment</h2>
 
 <h3>Strongest specific implementation idea</h3>
 <p>Stop treating the mystery SPP as a probable data source and instead <strong>identify it by observing the car's own intended behaviour</strong> — then, only if a bound protocol is revealed, look up that protocol's <em>documented</em> read request. Concretely: run a Bluetooth <strong>HCI/RFCOMM trace on the owner's own paired device</strong> (the existing Windows PC or the owner's phone — no added car hardware, no dongle) while methodically exercising every factory infotainment feature the manual lists (phone, message access, media, any "apps"/"data"/"online" item). Watch whether the head unit <em>ever</em> initiates or expects traffic on channel 5, and with what framing. This uses only installed hardware, sends <strong>no guessed vehicle commands</strong>, and either reveals the owner (then a documented request becomes possible) or shows the channel is never used by the car itself.</p>
+<p><strong>Cheaper first step (new):</strong> before any live session, open the two blocked sources listed at the end of §11 — the Bluetooth SIG qualified listing (which profiles Panasonic actually qualified for this unit) and the vagcode.info module entry for this exact part. If SPP is not among the qualified profiles, the "advertised-but-unbound" reading is close to settled without touching the car at all.</p>
 
 <h3>Weakest assumption</h3>
 <p>That the generic SPP is a <strong>bound application endpoint at all.</strong> The evidence fits "advertised-but-unbound stock SPP" at least as well as any active-service hypothesis. If that is true, no amount of client-side effort will ever produce data, because nothing on the car is listening or speaking there. The whole optimistic path rests on this one unproven assumption.</p>
@@ -299,10 +313,25 @@
   <li><a href="https://www.bluetooth.com/specifications/specs/serial-port-profile-1-1/">Bluetooth SIG — Serial Port Profile</a> and <a href="https://en.wikipedia.org/wiki/List_of_Bluetooth_protocols">List of Bluetooth protocols</a> (SPP over RFCOMM; standard service UUID <code>0x1101</code>; acceptor waits for initiator).</li>
   <li><a href="https://wiomoc.de/misc/posts/mfi_iap.html">Exploring Apple's MFi protocol iAP2</a> and <a href="https://www.realmcu.com/en/Technologies/Bluetooth-Profiles/iAP2">iAP2 overview</a> (iAP2 is RFCOMM-based, uses its own <code>deca-fade…</code> UUIDs, MFi-gated).</li>
   <li><a href="https://picclick.co.uk/VW-Composition-Media-Main-Unit-MIB1-Bluetooth-5G0035819A-182582416425.html">Part reference — VW Composition Media Main Unit, MIB1, Bluetooth, 5G0035819A</a> (confirms the part identity; a marketplace listing, cited only for part-number identity).</li>
+  <li><a href="https://eu.automotive.panasonic.com/solutions/infotainment/multimedia/volkswagen-mib-standard">Panasonic Automotive Systems Europe — "Volkswagen MIB Standard"</a> (the supplier's own page: the MIB Standard unit was designed and manufactured by Panasonic; production from August 2012).</li>
+  <li><a href="https://mib-helper.com/index.php?train=MSTD_EU_VW_P3163">mib-helper — MSTD_EU_VW_P3163 (MU 0421)</a>, <a href="https://mib-helper.com/index.php?train=MSTD_EU_VW_P4470">P4470 (MU 0450)</a>, <a href="https://mib-helper.com/index.php?train=MSTD_EU_VW_P5301">P5301 (MU 0486)</a> and the <a href="https://mib-helper.com/show.php?all=firmwares">full train index</a> — MIB1 Standard, Panasonic hardware, VW Composition/Discover Media.</li>
+  <li><a href="https://www.latestsatnav.co.uk/latest-vw-mib1-standard-composition--discover-media-firmware-update-p5301-1244-p.asp">latestsatnav — MIB1 Standard P5301 (MU 0486)</a> (vendor page: MSTD_EU_VW, Panasonic hardware; explicitly not for MIB1 High/MHIG, MIB2, Discover Pro or Composition Colour).</li>
+  <li><a href="https://www.golf7gti.com/topic.php?t=95">Golf 7 GTI Community — Composition Media / Discover Media</a> and <a href="https://www.golf7freunde.de/index.php/Thread/546-Bedienungsanleitung-Composition-Media-Discover-Media/">golf7freunde — Bedienungsanleitung thread</a> (owner-community transcriptions of the VW manual's supported-profile list: HFP, MAP, PBAP, A2DP, AVRCP; secondary sources — verify against your printed manual).</li>
+  <li><a href="https://github.com/whatwg/serial/blob/main/EXPLAINER_BLUETOOTH.md">WHATWG Serial — Bluetooth explainer</a> (SPP via the standard <code>0x1101</code> service; SDP record <em>names</em> are what distinguish services sharing a UUID).</li>
+</ul>
+
+<h3>Sources I could not open from this environment — please check them directly</h3>
+<p>This container's network proxy blocked direct reads of the following. Where I cite them, the facts come from search-indexed excerpts and are flagged as such. They are cheap to open on the laptop and would firm up the report:</p>
+<ul>
+  <li><a href="https://mib-helper.com/index.php?train=MSTD_EU_VW_P3163">mib-helper P3163 page</a> — confirm "MU 0421" and read the change-log across P3163 → P5301 for any Bluetooth-related notes.</li>
+  <li><a href="https://eu.automotive.panasonic.com/solutions/infotainment/multimedia/volkswagen-mib-standard">Panasonic MIB Standard page</a> — confirm the feature list and whether any Bluetooth profile or data interface is named.</li>
+  <li><a href="https://vagcode.info/components/6e80b361361cff8bdd25db3199b43c40.html">vagcode.info — 5G0 035 819 A module information</a> — exact-part coding/adaptation data; look for a "Bluetooth" or "telephone" sub-system entry and the listed software versions.</li>
+  <li><a href="https://launchstudio.bluetooth.com/Listings/Search">Bluetooth SIG Launch Studio</a> — search "Panasonic" / "Volkswagen" for this unit's qualified listing: it records <em>exactly which profiles were qualified</em>. If SPP is absent from that list, the endpoint is very likely incidental rather than a deliberate interface.</li>
+  <li>VW technical bulletins on MIB software hosted by NHTSA (e.g. <a href="https://static.nhtsa.gov/odi/tsbs/2021/MC-10200462-0001.pdf">MC-10200462-0001</a>, <a href="https://static.nhtsa.gov/odi/tsbs/2020/MC-10181426-0001.pdf">MC-10181426-0001</a>) — VW-issued version strings and update procedures (US-market documents; check applicability to an AU car).</li>
 </ul>
 
 <footer>
-  <p>Independent second review. Offline research and public-source/code review only; no Bluetooth connection was opened by this reviewer, and the local Windows capture files were not accessible from this environment and were treated as transcribed observations. No device address, pairing identifier, or private payload is included. Marketplace links are cited only to confirm the part number. This document reflects public documentation as of 2026-09-25 and the firmware/build limits noted in §2.</p>
+  <p>Independent second review, revision 2 (adds the supplier correction, firmware-train verification, the profile-list finding and the list of sources to check directly). Offline research and public-source/code review only; no Bluetooth connection was opened by this reviewer, and the local Windows capture files were not accessible from this environment and were treated as transcribed observations. No device address, pairing identifier, or private payload is included. Marketplace links are cited only to confirm the part number. This document reflects public documentation as of 2026-09-25 and the firmware/build limits noted in §2.</p>
 </footer>
 
 </div>
