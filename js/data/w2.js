@@ -25,6 +25,12 @@
     : { r: R`\tfrac{${L.dec(apr)}}{${m}}`, one: R`1 + \tfrac{${L.dec(apr)}}{${m}}` });
   const pvaTex = (c, x, n) => R`\frac{${ml(c)}}{${x.r}}\left(1 - \frac{1}{(${x.one})^{${n}}}\right)`;
   const fvaTex = (c, x, n) => R`\frac{${ml(c)}}{${x.r}}\left((${x.one})^{${n}} - 1\right)`;
+  /** Decimals to show so that the shown parts add up exactly to the shown total (readers add them up). */
+  const dpSum = (parts, dp = 2) => {
+    const total = FIN.round(parts.reduce((a, b) => a + b, 0), dp);
+    for (let d = dp; d < dp + 4; d++) if (FIN.round(parts.reduce((a, x) => a + FIN.round(x, d), 0), dp) === total) return d;
+    return dp + 4;
+  };
   /** timeline for a level stream: `count` payments labelled `lab`, the first at t = a */
   function tlLevel(a, count, lab, unit, extra, hi, tail) {
     const b = a + count - 1;
@@ -46,7 +52,6 @@
   const MST14 = { pay: FIN.pmt(250000, 0.006, 360), bal: FIN.loanBalance(250000, 0.006, 360, 48) };
   const MOCK13 = { pay: FIN.pmt(550000, 0.035 / 12, 360), bal: FIN.loanBalance(550000, 0.035 / 12, 360, 36) };
   MOCK13.newPay = FIN.pmt(MOCK13.bal, 0.03 / 12, 324);
-  MOCK13.balTI = FIN.pvAnnuity(r2(MOCK13.pay), 0.035 / 12, 324); // the balance the Finance Solver shows from the payment rounded to cents
   const T5 = { costs: [21000, 21000, 42000, 42000, 21000, 21000] };
   T5.pv15 = FIN.pvStream(T5.costs, 0.15);
   T5.pmt = FIN.pmtForFV(T5.pv15, 0.15, 15);
@@ -57,6 +62,39 @@
   const MST12 = { inflow: FIN.pvAnnuity(30000, 0.06, 8), cost: 80000 + 40000 / 1.06 };
   MST12.npv = MST12.inflow - MST12.cost;
   const EX12 = FIN.interpolate(0.13, 1.72, 0.14, -6.69);
+
+  /* ---------- numbers used in the lessons (all computed) ---------- */
+  const LS = {
+    ex2: [1500 / 1.1, 2000 / 1.1 ** 2, 2500 / 1.1 ** 3],           // Lecture W2 Example 2
+    car: FIN.pvStream([2000, 3000, 1500], 0.05),                     // L1 TI card
+    gym: [4000, 2500 / 1.06, 2000 / 1.06 ** 2],                      // L1 guided
+    fv1: [1000 * 1.1 ** 3, 1500 * 1.1 ** 2, 2000 * 1.1, 2500],       // Lecture W2 Example 1
+    ex4b: 500 / 0.08 / 1.08,                                         // Lecture W2 Example 4(b)
+    perpG: 1200 / 0.06 / 1.06 ** 3,                                   // L2 guided
+    ann3: FIN.pvAnnuity(100, 0.1, 3),                                 // Lecture W2 Example 5
+    ann500: FIN.pvAnnuity(500, 0.06, 10),
+    def1: FIN.pvAnnuity(500, 0.08, 4),                                // L3 deferred example (value at t = 1)
+    defG: FIN.pvAnnuity(3000, 0.07, 5),                               // L3 guided (value at t = 2)
+    rent: FIN.pvAnnuity(1500, 0.005, 12), rentDue: FIN.pvAnnuityDue(1500, 0.005, 12),
+    dueG: FIN.pvAnnuityDue(800, 0.01, 10),
+    eqPV: 900 / 1.06 ** 2, eqF: FIN.pvifa(0.06, 3) * 1.06,
+    sav: [2000 * 1.05 ** 3, 2000 * 1.05 ** 2, 2000 * 1.05, 2000], savFV: FIN.fvAnnuity(2000, 0.05, 4),
+    mia: FIN.fvAnnuity(3000, 0.06, 10),
+    car15: FIN.pmtForFV(15000, 0.05, 4), mon: FIN.pmtForFV(20000, 0.005, 60),
+    store: FIN.pvGrowAnnuity(50000, 0.12, 0.05, 10),
+    rentG: FIN.pvGrowAnnuity(24000, 0.08, 0.03, 5),
+    loan: FIN.pmt(10000, 0.07, 4),                                    // L7 annual loan
+    mort: FIN.pmt(300000, 0.005, 300),                                // L7 monthly loan
+    g7pay: FIN.pmt(250000, 0.004, 240), g7bal: FIN.loanBalance(250000, 0.004, 240, 36),
+    pv8: [0.08, 0.10, 0.11, 0.12].map((r) => FIN.pvAnnuity(2000, r, 6)),
+    n8: FIN.tvm.solveN(0.005, -5000, -200, 20000), n8g: FIN.tvm.solveN(0.0075, 12000, -400, 0),
+  };
+  LS.eqC = LS.eqPV / LS.eqF;
+  LS.mortBal = FIN.pvAnnuity(r2(LS.mort), 0.005, 240); // from the payment as shown, rounded to cents
+  LS.sched = (() => { const p = r2(LS.loan); let b = 10000; return [1, 2, 3, 4].map((t) => { const i = r2(b * 0.07), pr = r2(p - i), e = r2(b - pr), row = [t, b, p, i, pr, e]; b = e; return row; }); })();
+  LS.a1 = r2(r2(LS.pv8[1]) - 8600); LS.a2 = r2(r2(LS.pv8[2]) - 8600);
+  LS.ip = FIN.interpolate(0.10, LS.a1, 0.11, LS.a2);
+  LS.exact8 = FIN.tvm.solveI(6, -8600, 2000, 0);
 
   /** Drop distractors that sit too close to the answer: they make unfair options and over-strict typed answers. */
   function tidy(q) {
@@ -138,19 +176,27 @@
     },
 
     nodes: [
+      { id: 'w2-L1', kind: 'lesson', name: 'Cash flows at different times', lesson: 'w2-L1' },
+      { id: 'w2-L2', kind: 'lesson', name: 'Perpetuities: payments forever', lesson: 'w2-L2' },
+      { id: 'w2-L3', kind: 'lesson', name: 'Annuities: payments for a fixed time', lesson: 'w2-L3' },
       { id: 'w2-1', kind: 'battle', name: 'Token Booth', topics: ['mixed', 'perp', 'deferred'], n: 6,
         enemy: { name: 'Perpetual Pest', title: 'Pays forever, bugs you forever', body: 'ghost', color: '#9fb4ff', acc: ['halo'], mouth: 'o', item: '♾️',
           lines: { intro: 'Boo! I pay C every year… FOREVER! Can you value me?', hit: ['C over r?! You found my weak spot!', 'One period before the first payment. Correct, curse you!'],
             taunt: ['Forever is a long time to be wrong!', 'Did you forget the payment made today?'], win: 'Even forever… has an end…', lose: 'I will haunt you forever. That is C over r of pain!' } } },
+      { id: 'w2-L4', kind: 'lesson', name: 'Annuities due: payments at the start', lesson: 'w2-L4' },
+      { id: 'w2-L5', kind: 'lesson', name: 'Saving up: future value of an annuity', lesson: 'w2-L5' },
+      { id: 'w2-L6', kind: 'lesson', name: 'Growing cash flows', lesson: 'w2-L6' },
       { id: 'w2-2', kind: 'battle', name: 'Prize Counter', topics: ['annuity', 'due', 'growth'], n: 6,
         enemy: { name: 'The Annuity Dude', title: 'Always turns up one period early', body: 'round', color: '#f2a93b', acc: ['shades'], mouth: 'grin', item: '🎟️',
           lines: { intro: 'Dude! Payments at the START of each period. Or was it the end?', hit: ['Whoa, you caught the times (1 + r)!', 'Totally due-bious of you to get that right.'],
             taunt: ['Beginning or end, dude? Timing is everything!', 'You counted the payments wrong, bro.'], win: 'Bummer… I was due for a loss.', lose: 'Righteous! Another ordinary mistake!' } } },
       { id: 'w2-m1', kind: 'mini', name: 'Timeline Tapper', mini: 'timeline' },
+      { id: 'w2-L7', kind: 'lesson', name: 'Loans and amortisation', lesson: 'w2-L7' },
       { id: 'w2-3', kind: 'battle', name: 'Claw Machine Alley', topics: ['loan', 'save'], n: 6,
         enemy: { name: 'The Amorti-Shark', title: 'Takes interest first, principal later', body: 'spiky', color: '#4a90a4', acc: ['bandana'], mouth: 'fangs', item: '🦈',
           lines: { intro: 'Sign the loan, little fish. My interest bites first!', hit: ['You worked out the balance? Nobody reads the schedule!', 'Grr, you know the interest part shrinks.'],
             taunt: ['Subtracting payments? Chomp! You forgot the interest.', 'Monthly loan, annual rate? Delicious.'], win: 'Fully… amortised… balance zero…', lose: 'Your debt is mine forever! Chomp!' } } },
+      { id: 'w2-L8', kind: 'lesson', name: 'Finding the rate and the time', lesson: 'w2-L8' },
       { id: 'w2-4', kind: 'battle', name: 'Glitch Garage', topics: ['rate', 'deferred', 'growth'], n: 6,
         enemy: { name: 'Trial-and-Error Terror', title: 'Hides the rate between two guesses', body: 'box', color: '#d9534f', acc: ['glasses'], mouth: 'smirk', item: '🎯',
           lines: { intro: 'Guess my rate! Too high? Too low? Mwahaha!', hit: ['Interpolated?! My lambda is exposed!', 'You trapped me between two rates!'],
@@ -199,6 +245,476 @@
       },
     },
 
+    lessons: {
+      'w2-L1': {
+        title: 'Cash flows at different times',
+        goal: R`Value several cash flows that arrive at different times, by hand and with npv on the TI-Nspire.`,
+        topics: ['mixed'],
+        cards: [
+          { kind: 'learn', title: 'More than one cash flow',
+            body: R`In Floor 1 you moved **one** amount through time. Real deals have **several** amounts at different times.\n\nBuying a used car: $2,000 today, $3,000 at the end of year 1 and $1,500 at the end of year 2. Unequal amounts like these form a **mixed stream**.`,
+            tl: { cfs: [2000, 3000, 1500], unit: 'Year' } },
+          { kind: 'learn', title: 'Add only at the same date',
+            body: R`$1,000 today and $1,000 in three years are not worth the same. So you cannot just add them.\n\nFirst move every amount to the **same date**. Then add. This rule is called **value additivity**.`,
+            tip: R`The date is usually today, \(t = 0\). Then you are finding the **present value** (PV) of the stream.` },
+          { kind: 'learn', title: 'The present value of a stream',
+            body: R`Discount each cash flow by its **own** number of years, then add:\n\n\[PV = C_0 + \frac{C_1}{1+r} + \frac{C_2}{(1+r)^{2}} + \cdots + \frac{C_n}{(1+r)^{n}}\]\n\n\(C_t\) is the cash flow at time \(t\). \(C_0\) happens today, so it is not discounted.`,
+            formula: 'pv-lump' },
+          { kind: 'example', title: 'Worked example', q: R`You will receive $1,500 in one year, $2,000 in two years and $2,500 in three years. The interest rate is 10% p.a. What is the stream worth today?`,
+            tl: { n: 3, at: { 0: '?', 1: '$1,500', 2: '$2,000', 3: '$2,500' }, unit: 'Year', hi: [0] },
+            steps: [
+              R`Discount each amount by its own number of years: \[\begin{aligned} \frac{1{,}500}{1.10} &= ${L.money(LS.ex2[0])} \\ \frac{2{,}000}{1.10^{2}} &= ${L.money(LS.ex2[1])} \\ \frac{2{,}500}{1.10^{3}} &= ${L.money(LS.ex2[2])} \end{aligned}\]`,
+              R`Add them: \(${LS.ex2.map((x) => L.num(x)).join(' + ')} = ${L.money(LS.ex2[0] + LS.ex2[1] + LS.ex2[2])}\).`,
+            ],
+            answer: R`The stream is worth \(${L.money(LS.ex2[0] + LS.ex2[1] + LS.ex2[2])}\) today.`,
+            ti: [TI.cmd('npv', [10, 0, [1500, 2000, 2500]], { note: R`Nothing happens today, so \(CF_0 = 0\).` })] },
+          { kind: 'ti', title: 'npv does it in one line',
+            body: R`The TI-Nspire has a function for streams: \(\text{npv}(\text{rate}, CF_0, \{CF_1, CF_2, \ldots\})\).\n\nThe rate is a percentage: type 5 for 5%. \(CF_0\) is the cash flow **today**. The list in curly brackets holds the cash flows at \(t = 1, 2, 3, \ldots\), in order.\n\nHere is the used car at 5%.`,
+            ti: [TI.cmd('npv', [5, 2000, [3000, 1500]], { note: R`\(CF_0 = 2000\) is paid today. The PV of all three payments is \(${L.money(LS.car)}\).` })],
+            tip: R`**npv** stands for net present value. You will use it a lot in Floor 4.` },
+          { kind: 'check', ref: 'w2-q03' },
+          { kind: 'learn', title: 'The value at the end instead',
+            body: R`Sometimes you want the value at the **end** of a stream. Then **compound** each cash flow forward for the years it has left.\n\nYou deposit $1,000 now and $1,500, $2,000 and $2,500 at the end of years 1, 2 and 3, at 10%. The deposit made at \(t = 1\) grows for \(3 - 1 = 2\) years.`,
+            table: { head: ['Deposit', 'Years of growth', R`Value at \(t = 3\)`], rows: [
+              [R`$1,000 at \(t = 0\)`, '3', T.money(LS.fv1[0])], [R`$1,500 at \(t = 1\)`, '2', T.money(LS.fv1[1])],
+              [R`$2,000 at \(t = 2\)`, '1', T.money(LS.fv1[2])], [R`$2,500 at \(t = 3\)`, '0', T.money(LS.fv1[3])],
+              ['Total', '', T.money(LS.fv1.reduce((a, b) => a + b, 0))]] },
+            ti: [TI.cmd('npv', [10, 1000, [1500, 2000, 2500]], { note: 'First the value today.' }), TI.line('ans*1.1^3', { note: R`Then grow it 3 years, to \(t = 3\).` })] },
+          { kind: 'check', ref: 'w2-q04' },
+          { kind: 'guided', title: 'Your turn', q: R`A gym franchise costs $4,000 today, $2,500 at the end of year 1 and $2,000 at the end of year 2. The interest rate is 6% p.a. What is the present value of the three payments?`,
+            tl: { cfs: [4000, 2500, 2000], unit: 'Year' },
+            parts: [
+              { ask: R`What is \(CF_0\), the cash flow today?`, answer: 4000, unit: '$', dp: 2, hint: R`It is paid at \(t = 0\).`, why: R`\(CF_0 = 4{,}000\). It is already in today’s dollars.` },
+              { ask: R`What is the $2,500 at \(t = 1\) worth today?`, answer: LS.gym[1], unit: '$', dp: 2, hint: R`Divide by \(1.06\) once.`, why: R`\(\frac{2{,}500}{1.06} = ${L.money(LS.gym[1])}\).` },
+              { ask: R`What is the $2,000 at \(t = 2\) worth today?`, answer: LS.gym[2], unit: '$', dp: 2, hint: R`Divide by \(1.06^{2}\).`, why: R`\(\frac{2{,}000}{1.06^{2}} = ${L.money(LS.gym[2])}\).` },
+              { ask: 'Add them. What is the PV of the payments?', answer: LS.gym[0] + LS.gym[1] + LS.gym[2], unit: '$', dp: 2, hint: 'Add the three values from the steps above.', why: R`\(${LS.gym.map((x) => L.num(x)).join(' + ')} = ${L.money(LS.gym[0] + LS.gym[1] + LS.gym[2])}\).` },
+            ],
+            answer: R`The payments are worth \(${L.money(LS.gym[0] + LS.gym[1] + LS.gym[2])}\) today.`,
+            ti: [TI.cmd('npv', [6, 4000, [2500, 2000]])] },
+          { kind: 'check', gen: 'w2-g-pvmix' },
+          { kind: 'recap', title: 'Remember', points: [
+            R`**Value additivity:** move every cash flow to the same date, then add.`,
+            R`Present value: discount each cash flow by its own number of years. \(C_0\) (today) is not discounted.`,
+            R`Future value: compound each cash flow for the years it has left.`,
+            R`TI-Nspire: \(\text{npv}(r, CF_0, \{CF_1, CF_2, \ldots\})\). Type \(CF_0 = 0\) if nothing happens today.`,
+            R`Exam trap: adding dollars from different dates, or discounting a payment made today.`,
+          ] },
+        ],
+      },
+
+      'w2-L2': {
+        title: 'Perpetuities: payments forever',
+        goal: R`Value equal payments that never stop, and place the value on the right date.`,
+        topics: ['perp', 'deferred'],
+        cards: [
+          { kind: 'learn', title: 'A payment that never ends',
+            body: R`A charity fund pays a $1,000 scholarship every year, **forever**. Equal payments at regular times that never stop form a **perpetuity**.\n\nReal examples: British government **consol** bonds, and preference shares (Floor 3).`,
+            tl: { n: 4, at: { 1: '$1,000', 2: '$1,000', 3: '$1,000', 4: '$1,000 …' }, unit: 'Year' } },
+          { kind: 'learn', title: 'Far-away payments are worth almost nothing',
+            body: R`Forever sounds like it should be worth an infinite amount. It is not. A payment far in the future is worth very little today.\n\nHere is what $1,000 is worth today at 5%, depending on when it arrives.`,
+            table: { head: ['Arrives in year', 'Worth today at 5%'], rows: [1, 10, 50, 100].map((t) => [String(t), T.money(1000 / 1.05 ** t)]) },
+            tip: 'The present values shrink towards zero. So the total stops growing: it adds up to a finite amount.' },
+          { kind: 'learn', title: 'The formula: C over r',
+            body: R`\[PV = \frac{C}{r}\]\n\n\(C\) is the payment each period and \(r\) is the rate per period.\n\nWhy? Put \(\frac{C}{r}\) in the bank at rate \(r\). It earns exactly \(C\) of interest each year. You can pay out \(C\) forever and the money never runs out.`,
+            formula: 'pv-perp',
+            tip: R`$1,000 a year at 5%: \(\frac{1{,}000}{0.05} = \$20{,}000\). Check: \(20{,}000 \times 0.05 = 1{,}000\). The interest pays the scholarship.` },
+          { kind: 'learn', title: 'The value lands one period before the first payment',
+            body: R`This is a key rule of the course: \(\frac{C}{r}\) gives the value **one period before the first payment**.\n\nFirst payment at \(t = 1\)? Then \(\frac{C}{r}\) is the value at \(t = 0\), today.`,
+            tl: { n: 4, at: { 0: 'C/r', 1: 'C', 2: 'C', 3: 'C', 4: 'C …' }, unit: 'Year', hi: [0] } },
+          { kind: 'example', title: 'Worked example: a payment was just made', q: R`A government security pays $3 a year, forever. A payment of $3 **has just been made**. The interest rate is 10% p.a. What is the security worth today?`,
+            steps: [
+              R`The payment just made is gone. The next one is at \(t = 1\).`,
+              R`So \(\frac{C}{r}\) lands at \(t = 0\), today.`,
+              R`\[PV = \frac{3}{0.10} = \$30\]`,
+            ],
+            answer: R`The security is worth \(\$30\).`,
+            ti: [TI.line('3/0.10')] },
+          { kind: 'learn', title: 'A payment due today? Add it',
+            body: R`Now say the next $3 is paid **tomorrow** (so, today). The buyer gets it, and it needs no discounting. The payments after it are a normal perpetuity.\n\n\[PV = C + \frac{C}{r} = 3 + \frac{3}{0.10} = \$33\]`,
+            tip: R`“Just paid”: do not add it. “Paid today” or “tomorrow”: add it.`,
+            ti: [TI.line('3+3/0.10')] },
+          { kind: 'check', gen: 'w2-g-perp' },
+          { kind: 'learn', title: 'When the first payment comes later',
+            body: R`Say the first payment is at \(t = 3\). The rule still holds: \(\frac{C}{r}\) lands one period earlier, at \(t = 2\).\n\nThen discount that value 2 more years to today:\n\[PV_0 = \frac{C/r}{(1+r)^{2}}\]`,
+            tl: { n: 5, at: { 0: '?', 2: 'C/r', 3: 'C', 4: 'C', 5: 'C …' }, unit: 'Year', hi: [2] } },
+          { kind: 'example', title: 'Worked example: first payment in two years', q: R`At 8% p.a., what is $500 a year, forever, worth today? The **first** payment is **two years** from today.`,
+            tl: { n: 4, at: { 0: '?', 2: '$500', 3: '$500', 4: '$500 …' }, unit: 'Year', hi: [0] },
+            steps: [
+              R`The first payment is at \(t = 2\), so \(\frac{C}{r}\) lands at \(t = 1\).`,
+              R`\[PV_1 = \frac{500}{0.08} = \$6{,}250\]`,
+              R`Discount it 1 year to today: \[PV_0 = \frac{6{,}250}{1.08} = ${L.money(LS.ex4b)}\]`,
+            ],
+            answer: R`It is worth \(${L.money(LS.ex4b)}\) today.`,
+            ti: [TI.line('500/0.08', { note: R`The value at \(t = 1\).` }), TI.line('ans/1.08', { note: 'Discount it 1 year to today.' })] },
+          { kind: 'guided', title: 'Your turn', q: R`A fund will pay $1,200 a year, forever. The **first** payment is **four years** from today. The rate is 6% p.a. What is the fund worth today?`,
+            tl: { n: 6, at: { 0: '?', 4: '$1,200', 5: '$1,200', 6: '$1,200 …' }, unit: 'Year', hi: [0] },
+            parts: [
+              { ask: R`At which time does \(\frac{C}{r}\) land?`, choices: [R`\(t = 3\)`, R`\(t = 4\)`, R`\(t = 0\)`], answer: 0, hint: 'One period before the first payment.', why: R`The first payment is at \(t = 4\), so the value lands at \(t = 3\).` },
+              { ask: R`What is \(\frac{C}{r}\)?`, answer: 1200 / 0.06, unit: '$', dp: 2, hint: R`\(1{,}200 \div 0.06\)`, why: R`\(\frac{1{,}200}{0.06} = \$20{,}000\).` },
+              { ask: 'How many years must you discount it to reach today?', choices: ['2 years', '3 years', '4 years'], answer: 1, hint: R`From \(t = 3\) back to \(t = 0\).`, why: R`From \(t = 3\) back to \(t = 0\) is 3 years.` },
+              { ask: 'What is the fund worth today?', answer: LS.perpG, unit: '$', dp: 2, hint: R`Divide \(20{,}000\) by \(1.06^{3}\).`, why: R`\(\frac{20{,}000}{1.06^{3}} = ${L.money(LS.perpG)}\).` },
+            ],
+            answer: R`The fund is worth \(${L.money(LS.perpG)}\) today.`,
+            ti: [TI.line('1200/0.06', { note: R`The value at \(t = 3\).` }), TI.line('ans/1.06^3', { note: 'Discount it 3 years.' })] },
+          { kind: 'learn', title: 'Interest-only loans are perpetuities',
+            body: R`Turn the formula around: \(C = PV \times r\).\n\nIn an **interest-only** loan you only ever pay the interest. The loan itself is never repaid. For the lender that is a perpetuity, and each payment is one period of interest.\n\nBorrow $240,000 at 6% p.a., compounded monthly: each month you pay \(240{,}000 \times \frac{0.06}{12} = \$1{,}200\).`,
+            ti: [TI.line('240000*0.06/12')] },
+          { kind: 'recap', title: 'Remember', points: [
+            R`Perpetuity: \(PV = \frac{C}{r}\).`,
+            R`The value lands **one period before the first payment**.`,
+            R`First payment at \(t = k\)? \(\frac{C}{r}\) sits at \(t = k - 1\), so divide it by \((1+r)^{k-1}\).`,
+            R`“Just paid”: leave it out. “Paid today”: add \(C\).`,
+            R`Exam trap: discounting one year too many. Step back one period from the first payment, then discount the rest of the way.`,
+          ], formula: 'pv-perp' },
+        ],
+      },
+
+      'w2-L3': {
+        title: 'Annuities: payments for a fixed time',
+        goal: R`Value a fixed number of equal payments, with the formula and with the Pmt box of the Finance Solver.`,
+        topics: ['annuity', 'deferred'],
+        cards: [
+          { kind: 'learn', title: 'Equal payments that stop',
+            body: R`Car loans, rent and pensions pay the **same amount** at **regular times** for a **fixed** number of periods. That is an **annuity**.\n\nAn **ordinary annuity** pays at the **end** of each period. If a question does not say when, assume the end.`,
+            tl: { n: 3, at: { 1: '$100', 2: '$100', 3: '$100' }, unit: 'Year' },
+            tip: 'An annuity stops after a fixed number of payments. A perpetuity never stops.' },
+          { kind: 'learn', title: 'The formula',
+            body: R`\[PV = \frac{C}{r}\left(1 - \frac{1}{(1+r)^{n}}\right)\]\n\n\(C\) is the payment, \(r\) the rate per period and \(n\) the number of payments. Like a perpetuity, the value lands **one period before the first payment**.`,
+            formula: 'pv-annuity',
+            tip: R`Where it comes from: a perpetuity that starts at \(t = 1\), minus a perpetuity that starts after the last payment: \(\frac{C}{r} - \frac{C/r}{(1+r)^{n}}\).` },
+          { kind: 'example', title: 'Worked example', q: R`What is a 3-year ordinary annuity of $100 a year worth today, at 10% p.a.?`,
+            tl: { n: 3, at: { 0: '?', 1: '$100', 2: '$100', 3: '$100' }, unit: 'Year', hi: [0] },
+            steps: [
+              R`\(C = 100\), \(r = 0.10\) and \(n = 3\).`,
+              R`\[PV = \frac{100}{0.10}\left(1 - \frac{1}{1.10^{3}}\right) = 1{,}000 \times (1 - ${L.numT(1 / 1.1 ** 3, 6)})\]`,
+              R`\(PV = 1{,}000 \times ${L.numT(1 - 1 / 1.1 ** 3, 6)} = ${L.money(LS.ann3)}\).`,
+            ],
+            answer: R`The three payments are worth \(${L.money(LS.ann3)}\) today.`,
+            ti: [TI.solver({ N: 3, I: 10, Pmt: 100, FV: 0, PpY: 1, CpY: 1 }, 'PV', { note: 'The minus sign means it is what you would pay today to get the payments.' })] },
+          { kind: 'ti', title: 'The Pmt box',
+            body: R`In the Finance Solver, a payment that repeats every period goes in **Pmt**. \(N\) is the number of payments. Leave \(PmtAt\) on END for an ordinary annuity.\n\nYou **receive** the payments, so \(Pmt\) is positive. The PV then comes out **negative**: it is what you would pay today to get them.\n\nHere: $500 a year for 10 years at 6%.`,
+            ti: [TI.solver({ N: 10, I: 6, Pmt: 500, FV: 0, PpY: 1, CpY: 1 }, 'PV', { note: R`Ignore the minus sign: the payments are worth \(${L.money(LS.ann500)}\) today.` })] },
+          { kind: 'check', gen: 'w2-g-pva' },
+          { kind: 'learn', title: 'Count the payments',
+            body: R`\(n\) is the number of **payments**, not the date of the last one.\n\nPayments at \(t = 2, 3, 4, 5, 6\) are \(6 - 2 + 1 = 5\) payments. Count both ends.`,
+            tl: { n: 6, at: { 2: 'C', 3: 'C', 4: 'C', 5: 'C', 6: 'C' }, unit: 'Year', hi: [2, 6] } },
+          { kind: 'check', ref: 'w2-q21' },
+          { kind: 'learn', title: 'When the first payment comes later',
+            body: R`A **deferred annuity** starts later. The formula still lands one period before the first payment.\n\nFirst payment at \(t = 2\)? The formula gives the value at \(t = 1\). Discount it one more year to get today’s value.`,
+            tl: { n: 5, at: { 0: '?', 1: 'PV here', 2: 'C', 3: 'C', 4: 'C', 5: 'C' }, unit: 'Year', hi: [1] } },
+          { kind: 'example', title: 'Worked example: a deferred annuity', q: R`An annuity pays $500 a year for 4 years. The **first** payment is **two years** from today. The rate is 8% p.a. What is it worth today?`,
+            tl: { n: 5, at: { 0: '?', 2: '$500', 3: '$500', 4: '$500', 5: '$500' }, unit: 'Year', hi: [0] },
+            steps: [
+              R`The first payment is at \(t = 2\), so the formula lands at \(t = 1\).`,
+              R`\[PV_1 = \frac{500}{0.08}\left(1 - \frac{1}{1.08^{4}}\right) = ${L.money(LS.def1)}\]`,
+              R`Discount it 1 year: \(PV_0 = \frac{${L.num(LS.def1)}}{1.08} = ${L.money(LS.def1 / 1.08)}\).`,
+            ],
+            answer: R`It is worth \(${L.money(LS.def1 / 1.08)}\) today.`,
+            ti: [TI.cmd('npv', [8, 0, [0, 500], [1, 4]], { note: R`npv can repeat cash flows. The second list gives the **counts**: $0 once (\(t = 1\)), then $500 four times (\(t = 2\) to \(5\)).` })] },
+          { kind: 'guided', title: 'Your turn', q: R`A buyer offers five yearly payments of $3,000 for your old car. The **first** payment is **three years** from today. You can invest at 7% p.a. What is the offer worth today?`,
+            tl: { n: 7, at: { 0: '?', 3: '$3,000', 4: '$3,000', 5: '$3,000', 6: '$3,000', 7: '$3,000' }, unit: 'Year', hi: [0] },
+            parts: [
+              { ask: 'At which time does the annuity formula land?', choices: [R`\(t = 2\)`, R`\(t = 3\)`, R`\(t = 0\)`], answer: 0, hint: 'One period before the first payment.', why: R`The first payment is at \(t = 3\), so the formula lands at \(t = 2\).` },
+              { ask: R`What is the annuity worth at \(t = 2\)?`, answer: LS.defG, unit: '$', dp: 2, hint: R`Finance Solver: \(N = 5\), \(I(\%) = 7\), \(Pmt = 3000\), \(FV = 0\). Solve \(PV\) and ignore the minus sign.`, why: R`\(\frac{3{,}000}{0.07}\left(1 - \frac{1}{1.07^{5}}\right) = ${L.money(LS.defG)}\).` },
+              { ask: 'What is the offer worth today?', answer: LS.defG / 1.07 ** 2, unit: '$', dp: 2, hint: R`Discount it 2 years: divide by \(1.07^{2}\).`, why: R`\(\frac{${L.num(LS.defG)}}{1.07^{2}} = ${L.money(LS.defG / 1.07 ** 2)}\).` },
+            ],
+            answer: R`The offer is worth \(${L.money(LS.defG / 1.07 ** 2)}\) today.`,
+            ti: [TI.cmd('npv', [7, 0, [0, 3000], [2, 5]], { note: 'Two years of $0, then five payments of $3,000.' })] },
+          { kind: 'check', ref: 'w2-q14' },
+          { kind: 'recap', title: 'Remember', points: [
+            R`Ordinary annuity: \(PV = \frac{C}{r}\left(1 - \frac{1}{(1+r)^{n}}\right)\). Payments at the **end** of each period.`,
+            R`The value lands **one period before the first payment**.`,
+            R`TI-Nspire: the payment goes in \(Pmt\), the number of payments in \(N\). The PV comes out negative.`,
+            R`Deferred: \(\text{npv}(r, 0, \{0, C\}, \{k - 1, n\})\) when the first of \(n\) payments is at \(t = k\).`,
+            R`Exam trap: miscounting. \(n\) counts the payments: from \(t = a\) to \(t = b\) is \(b - a + 1\).`,
+          ], formula: 'pv-annuity' },
+        ],
+      },
+
+      'w2-L4': {
+        title: 'Annuities due: payments at the start',
+        goal: R`Value payments made at the start of each period, and turn a lump sum into an equivalent annuity.`,
+        topics: ['due'],
+        cards: [
+          { kind: 'learn', title: 'Paying in advance',
+            body: R`Rent is paid at the **start** of each month, not the end. Equal payments at the start of each period form an **annuity due** (also called an annuity in advance).\n\nThe first payment is **today**, at \(t = 0\).`,
+            table: { head: ['Three yearly payments', 'Payment dates'], rows: [['Ordinary annuity', R`\(t = 1, 2, 3\) (ends of years)`], ['Annuity due', R`\(t = 0, 1, 2\) (starts of years)`]] } },
+          { kind: 'learn', title: R`Worth \((1 + r)\) times as much`,
+            body: R`Each payment of an annuity due arrives one period **earlier**. So it is discounted one period **less**.\n\nThat makes the whole annuity worth \((1+r)\) times as much:\n\[PV_{due} = \frac{C}{r}\left(1 - \frac{1}{(1+r)^{n}}\right)(1+r)\]`,
+            formula: 'pv-annuity-due' },
+          { kind: 'example', title: 'Worked example', q: R`You rent a flat for a year. Rent of $1,500 is paid at the **start** of each month, the first one today. The rate is 0.5% per month. What is the year of rent worth today?`,
+            steps: [
+              R`12 payments at \(t = 0, 1, \ldots, 11\): an annuity due with \(C = 1{,}500\), \(r = 0.005\) and \(n = 12\).`,
+              R`The ordinary annuity value: \[\frac{1{,}500}{0.005}\left(1 - \frac{1}{1.005^{12}}\right) = ${L.money(LS.rent)}\]`,
+              R`Times \((1 + r)\): \(${L.num(LS.rent)} \times 1.005 = ${L.money(LS.rentDue)}\).`,
+            ],
+            answer: R`The rent is worth \(${L.money(LS.rentDue)}\) today.`,
+            ti: [TI.solver({ N: 12, I: 6, Pmt: 1500, FV: 0, PpY: 12, CpY: 12, PmtAt: 'BEGIN' }, 'PV', { note: R`\(PmtAt\) = BEGIN. 0.5% a month is \(I(\%) = 6\) with \(PpY = CpY = 12\). Ignore the minus sign.` })] },
+          { kind: 'ti', title: 'PmtAt = BEGIN',
+            body: R`In the Finance Solver, set **PmtAt** to **BEGIN**. That tells the calculator the payments come at the **start** of each period.\n\nIn a \(\text{tvm}\) line, add a **1** as the last value, like the line below.\n\nSet it back to END for the next ordinary annuity.`,
+            ti: [TI.cmd('tvmPV', [12, 6, 1500, 0, 12, 12, 1], { note: 'The last 1 means BEGIN. Same answer as the Finance Solver.' })] },
+          { kind: 'check', ref: 'w2-q27' },
+          { kind: 'guided', title: 'Your turn: count the payments', q: R`A relative promises you $800 a month, **starting today**. The **final** payment is **9 months** from today. The rate is 1% per month. What are the payments worth today?`,
+            tl: tlLevel(0, 10, '$800', 'Month', {}, [0, 9]),
+            parts: [
+              { ask: 'How many payments are there?', choices: ['9', '10', '11'], answer: 1, hint: R`Count \(t = 0\) to \(t = 9\). Both ends count.`, why: R`\(9 - 0 + 1 = 10\) payments.` },
+              { ask: R`Which \(PmtAt\) setting do you need?`, choices: ['BEGIN', 'END'], answer: 0, hint: 'The first payment is today.', why: 'Payments at the start of each month: BEGIN.' },
+              { ask: R`What goes in \(I(\%)\), with \(PpY = CpY = 12\)?`, answer: 12, unit: '', dp: 2, hint: R`\(I(\%)\) is a yearly rate: 1% a month \(\times\) 12.`, why: R`\(I(\%) = 12\).` },
+              { ask: 'Solve PV. What are the payments worth today?', answer: LS.dueG, unit: '$', dp: 2, hint: 'Ignore the minus sign.', why: R`\(PV = ${L.money(LS.dueG)}\).` },
+            ],
+            answer: R`The payments are worth \(${L.money(LS.dueG)}\) today.`,
+            ti: [TI.solver({ N: 10, I: 12, Pmt: 800, FV: 0, PpY: 12, CpY: 12, PmtAt: 'BEGIN' }, 'PV', { note: 'Ignore the minus sign: it is what you would pay today for the payments.' })] },
+          { kind: 'check', ref: 'w2-q28' },
+          { kind: 'learn', title: 'Equivalent annuities',
+            body: R`Two assets can pay in different shapes. One pays a lump sum; the other pays every year. To compare them, turn each into **level payments** with the same PV. That level payment is the **equivalent annuity**.\n\nStep 1: find the PV. Step 2: find the annuity payment that has that PV.` },
+          { kind: 'example', title: 'Worked example: an equivalent annuity', q: R`Asset B pays $900 at \(t = 2\). The rate is 6% p.a. Find its equivalent 3-year annuity **due**: equal payments at \(t = 0, 1, 2\) with the same PV.`,
+            steps: [
+              R`The PV: \(\frac{900}{1.06^{2}} = ${L.money(LS.eqPV)}\).`,
+              R`Set it equal to a 3-year annuity due: \[${L.num(LS.eqPV)} = \frac{C}{0.06}\left(1 - \frac{1}{1.06^{3}}\right)(1.06) = C \times ${L.numT(LS.eqF, 6)}\]`,
+              R`\(C = \frac{${L.num(LS.eqPV)}}{${L.numT(LS.eqF, 6)}} = ${L.money(LS.eqC)}\).`,
+            ],
+            answer: R`The equivalent annuity is \(${L.money(LS.eqC)}\) a year, paid at \(t = 0, 1, 2\).`,
+            ti: [TI.line('900/1.06^2', { note: 'Step 1: the PV.' }), TI.cmd('tvmPmt', [3, 6, '-ans', 0, 1, 1, 1], { note: R`Step 2: \(PV = -\text{ans}\), and the last 1 means BEGIN.` })] },
+          { kind: 'check', gen: 'w2-g-equiv' },
+          { kind: 'recap', title: 'Remember', points: [
+            R`Annuity due: payments at the **start** of each period. The first one is today.`,
+            R`\(PV_{due} = PV_{ordinary} \times (1+r)\).`,
+            R`TI-Nspire: \(PmtAt\) = BEGIN, or a 1 at the end of a \(\text{tvm}\) line. Switch back to END afterwards.`,
+            R`Equivalent annuity: find the PV, then the level payment with that PV.`,
+            R`Exam trap: “starting today, final payment in 6 months” is **7** payments, not 6.`,
+          ], formula: 'pv-annuity-due' },
+        ],
+      },
+
+      'w2-L5': {
+        title: 'Saving up: the future value of an annuity',
+        goal: R`Work out what regular savings grow to, and how much to save each period to reach a goal.`,
+        topics: ['annuity', 'save'],
+        cards: [
+          { kind: 'learn', title: 'Regular savings grow',
+            body: R`You put $2,000 into a savings account at the end of every year, for 4 years. Each deposit earns interest from the day it goes in.\n\nThe **future value of an annuity** is the total in the account just after the **last** deposit.`,
+            tl: { n: 4, at: { 1: '$2,000', 2: '$2,000', 3: '$2,000', 4: '$2,000' }, unit: 'Year', hi: [4] } },
+          { kind: 'learn', title: 'See it grow',
+            body: R`At 5% a year, each deposit grows until year 4. The first grows for 3 years. The last does not grow at all. Add the values at year 4: value additivity again.`,
+            table: { head: ['Deposit made at', 'Years of growth', R`Value at \(t = 4\)`], rows: [
+              [R`\(t = 1\)`, '3', T.money(LS.sav[0])], [R`\(t = 2\)`, '2', T.money(LS.sav[1])], [R`\(t = 3\)`, '1', T.money(LS.sav[2])], [R`\(t = 4\)`, '0', T.money(LS.sav[3])],
+              ['Total', '', T.money(LS.savFV)]] } },
+          { kind: 'learn', title: 'The formula',
+            body: R`\[FV = \frac{C}{r}\left((1+r)^{n} - 1\right)\]\n\nThe value lands **on the date of the last payment**. For the savings above: \(\frac{2{,}000}{0.05}\left(1.05^{4} - 1\right) = ${L.money(LS.savFV)}\).`,
+            formula: 'fv-annuity' },
+          { kind: 'example', title: 'Worked example', q: R`Mia saves $3,000 at the end of every year for 10 years. Her fund earns 6% p.a. How much is in the fund just after the last deposit?`,
+            steps: [
+              R`\(C = 3{,}000\), \(r = 0.06\) and \(n = 10\).`,
+              R`\(1.06^{10} = ${L.numT(1.06 ** 10, 6)}\), so \(\frac{${L.numT(1.06 ** 10, 6)} - 1}{0.06} = ${L.numT(FIN.fvifa(0.06, 10), 6)}\).`,
+              R`\(FV = 3{,}000 \times ${L.numT(FIN.fvifa(0.06, 10), 6)} = ${L.money(LS.mia)}\).`,
+            ],
+            answer: R`Mia will have \(${L.money(LS.mia)}\).`,
+            ti: [TI.solver({ N: 10, I: 6, PV: 0, Pmt: -3000, PpY: 1, CpY: 1 }, 'FV', { note: R`Mia pays each deposit in, so \(Pmt = -3000\). \(PV = 0\): the fund starts empty.` })] },
+          { kind: 'check', gen: 'w2-g-fva' },
+          { kind: 'learn', title: 'Deposits at the start of each year',
+            body: R`If each deposit is made at the **start** of the year, it earns one extra year of interest. Multiply by \((1+r)\):\n\[FV_{due} = \frac{C}{r}\left((1+r)^{n} - 1\right)(1+r)\]\n\nThis value lands **one period after** the last deposit. On the TI-Nspire, set \(PmtAt\) = BEGIN.`,
+            formula: 'fv-annuity-due' },
+          { kind: 'learn', title: 'Saving for a goal',
+            body: R`Often you know the **target** and want the deposit. Put the target in **FV**, set \(PV = 0\), and solve **Pmt**.\n\nBy hand, rearrange the formula:\n\[C = \frac{FV \times r}{(1+r)^{n} - 1}\]` },
+          { kind: 'example', title: 'Worked example: a savings goal', q: R`You want $15,000 for a car in 4 years. You deposit an equal amount at the end of each year. The account pays 5% p.a. How big is each deposit?`,
+            steps: [
+              R`The target is a future value: \(FV = 15{,}000\), \(r = 0.05\) and \(n = 4\).`,
+              R`\[C = \frac{15{,}000 \times 0.05}{1.05^{4} - 1} = \frac{750}{${L.numT(1.05 ** 4 - 1, 6)}} = ${L.money(LS.car15)}\]`,
+            ],
+            answer: R`Each deposit is \(${L.money(LS.car15)}\).`,
+            ti: [TI.solver({ N: 4, I: 5, PV: 0, FV: 15000, PpY: 1, CpY: 1 }, 'Pmt', { note: 'The payment is negative because you pay each deposit in.' })] },
+          { kind: 'guided', title: 'Your turn: monthly saving', q: R`You want $20,000 in 5 years. You save an equal amount at the end of each month. The account pays 6% p.a., compounded monthly. How much must you save each month?`,
+            parts: [
+              { ask: R`What goes in \(N\)?`, answer: 60, unit: '', dp: 0, hint: '5 years of monthly deposits.', why: R`\(N = 5 \times 12 = 60\).` },
+              { ask: R`What goes in \(I(\%)\), with \(PpY = CpY = 12\)?`, answer: 6, unit: '', dp: 2, hint: 'The yearly rate, as a percentage.', why: R`\(I(\%) = 6\). The solver works out the monthly rate itself.` },
+              { ask: R`What goes in \(FV\)?`, answer: 20000, unit: '', dp: 0, hint: 'The target.', why: R`\(FV = 20000\): the amount you want to end with.` },
+              { ask: R`Solve \(Pmt\). How much must you save each month?`, answer: LS.mon, unit: '$', dp: 2, hint: 'Ignore the minus sign.', why: R`\(${L.money(LS.mon)}\) a month.` },
+            ],
+            answer: R`Save \(${L.money(LS.mon)}\) a month.`,
+            ti: [TI.solver({ N: 60, I: 6, PV: 0, FV: 20000, PpY: 12, CpY: 12 }, 'Pmt', { note: 'The payment is negative because you pay each deposit in.' })] },
+          { kind: 'check', ref: 'w2-q48' },
+          { kind: 'learn', title: 'Two-stage goals',
+            body: R`Some goals have a **spending** stage, like 4 years of university fees.\n\nStage 1: value all the spending at the date the saving stops. Stage 2: find the deposit that grows to exactly that amount by then.`,
+            tl: { n: 18, at: { 1: 'C', 2: 'C', 14: 'C', 15: 'C + fee', 16: 'fee', 17: 'fee', 18: 'fee' }, unit: 'Year', hi: [15] } },
+          { kind: 'recap', title: 'Remember', points: [
+            R`FV of an annuity: \(\frac{C}{r}\left((1+r)^{n} - 1\right)\). It lands **on** the date of the last payment.`,
+            R`Deposits at the start (annuity due): multiply by \((1+r)\), or set \(PmtAt\) = BEGIN.`,
+            R`Saving for a target: put it in \(FV\), set \(PV = 0\), and solve \(Pmt\).`,
+            R`Exam trap: a future target is **not** a loan. The PV formula gives the wrong deposit.`,
+          ], formula: 'fv-annuity' },
+        ],
+      },
+
+      'w2-L6': {
+        title: 'Growing cash flows',
+        goal: R`Value payments that grow at a steady rate: forever (a growing perpetuity) or for a fixed time (a growing annuity).`,
+        topics: ['growth'],
+        cards: [
+          { kind: 'learn', title: 'Payments that grow',
+            body: R`Rents and dividends often rise every year. If a payment grows by the same percentage \(g\) each period, it has **constant growth**.\n\nHere is $3 growing at 2% a year.`,
+            table: { head: ['Year', 'Payment'], rows: [1, 2, 3, 4].map((t) => [String(t), T.money(3 * 1.02 ** (t - 1))]) } },
+          { kind: 'learn', title: 'Growing perpetuity',
+            body: R`Growing payments that last **forever**:\n\[PV = \frac{C_1}{r - g}\]\n\n\(C_1\) is the **next** payment, at \(t = 1\). The value lands one period before \(C_1\). It only works when \(r > g\).`,
+            formula: 'pv-grow-perp',
+            tip: R`If \(g \ge r\), the payments grow as fast as they are discounted, and the value would be infinite.` },
+          { kind: 'example', title: 'Worked example', q: R`A trust will pay $5,000 at the end of this year. The payments then grow at 3% a year, forever. The discount rate is 8%. What is the trust worth today?`,
+            steps: [
+              R`The first payment is at \(t = 1\): \(C_1 = 5{,}000\). \(r = 0.08\) and \(g = 0.03\).`,
+              R`\[PV = \frac{5{,}000}{0.08 - 0.03} = \frac{5{,}000}{0.05} = \$100{,}000\]`,
+            ],
+            answer: R`The trust is worth \(\$100{,}000\).`,
+            ti: [TI.line('5000/(0.08-0.03)', { note: R`Keep the brackets around \(r - g\).` })] },
+          { kind: 'learn', title: 'Just paid? Grow it first',
+            body: R`If you are told the payment that was **just made**, \(C_0\), it is not part of the value. Grow it one period to get the next payment:\n\[C_1 = C_0(1+g)\]\n\n$2,000 just paid, growing at 4%, discounted at 9%: \(\frac{2{,}000 \times 1.04}{0.09 - 0.04} = ${L.money(2000 * 1.04 / (0.09 - 0.04))}\).`,
+            ti: [TI.line('2000*1.04/(0.09-0.04)')] },
+          { kind: 'check', gen: 'w2-g-gperp' },
+          { kind: 'check', ref: 'w2-q34' },
+          { kind: 'learn', title: 'Growing annuity',
+            body: R`Growing payments that **stop** after \(n\) payments:\n\[PV = \frac{C}{r - g}\left(1 - \left(\frac{1+g}{1+r}\right)^{n}\right)\]\n\n\(C\) is the first payment, at \(t = 1\). With \(g = 0\) it is the ordinary annuity formula.`,
+            formula: 'pv-grow-annuity' },
+          { kind: 'example', title: 'Worked example', q: R`A new store will earn $50,000 next year. Its cash flows then grow at 5% a year, for 10 years in total. The discount rate is 12%. What are they worth today?`,
+            steps: [
+              R`\(C = 50{,}000\), \(g = 0.05\), \(r = 0.12\) and \(n = 10\).`,
+              R`\(\left(\frac{1.05}{1.12}\right)^{10} = ${L.numT((1.05 / 1.12) ** 10, 8)}\).`,
+              R`\[PV = \frac{50{,}000}{0.12 - 0.05}\left(1 - ${L.numT((1.05 / 1.12) ** 10, 8)}\right) = ${L.money(LS.store)}\]`,
+            ],
+            answer: R`The cash flows are worth \(${L.money(LS.store)}\) today.`,
+            ti: [TI.line('50000/(0.12-0.05)*(1-(1.05/1.12)^10)', { note: 'There is no growth box in the Finance Solver. Type the formula in one line.' })] },
+          { kind: 'ti', title: 'Working backwards with nSolve',
+            body: R`What discount rate makes the store worth exactly $350,000? You cannot rearrange the formula for \(r\), but nSolve can find it.\n\nType the formula with the letter \(r\), set it equal to 350000, and tell nSolve to find \(r\).`,
+            ti: [TI.line('nSolve(50000/(r-0.05)*(1-(1.05/(1+r))^10)=350000,r)', { pct: true, note: 'The answer is a decimal. Multiply by 100 for a percentage.' })] },
+          { kind: 'guided', title: 'Your turn', q: R`You will receive rent of $24,000 next year. The rent then grows at 3% a year, for 5 years in total. The discount rate is 8%. What is the rent worth today?`,
+            parts: [
+              { ask: R`What is \(r - g\), as a decimal?`, answer: 0.05, unit: '', dp: 3, hint: R`\(0.08 - 0.03\)`, why: R`\(0.08 - 0.03 = 0.05\).` },
+              { ask: R`What is \(\left(\frac{1.03}{1.08}\right)^{5}\)? (4 decimal places)`, answer: (1.03 / 1.08) ** 5, unit: '', dp: 4, hint: 'Divide first, then raise to the power 5.', why: R`\(\left(\frac{1.03}{1.08}\right)^{5} = ${L.num((1.03 / 1.08) ** 5, 4)}\).` },
+              { ask: 'What is the rent worth today?', answer: LS.rentG, unit: '$', dp: 2, hint: R`\(\frac{24{,}000}{0.05} \times (1 - \text{your last answer})\)`, why: R`\(\frac{24{,}000}{0.05}\left(1 - \left(\frac{1.03}{1.08}\right)^{5}\right) = ${L.money(LS.rentG)}\).` },
+            ],
+            answer: R`The rent is worth \(${L.money(LS.rentG)}\) today.`,
+            ti: [TI.line('24000/(0.08-0.03)*(1-(1.03/1.08)^5)')] },
+          { kind: 'recap', title: 'Remember', points: [
+            R`Growing perpetuity: \(PV = \frac{C_1}{r - g}\), and it needs \(r > g\).`,
+            R`Growing annuity: \(PV = \frac{C}{r - g}\left(1 - \left(\frac{1+g}{1+r}\right)^{n}\right)\).`,
+            R`Both use the **next** payment and land one period before it.`,
+            R`TI-Nspire: type the formula in one line, with brackets around \(r - g\).`,
+            R`Exam trap: using the payment just made. Grow it first: \(C_1 = C_0(1+g)\).`,
+          ] },
+        ],
+      },
+
+      'w2-L7': {
+        title: 'Loans and amortisation',
+        goal: R`Work out a loan payment, read an amortisation schedule, and find what you still owe.`,
+        topics: ['loan'],
+        cards: [
+          { kind: 'learn', title: 'Paying off a loan',
+            body: R`Most loans are repaid with **equal payments**. Each payment covers the interest **and** repays part of the loan. This is an **amortised loan**.\n\nThe bank lends you the PV of your payments. So a loan is an ordinary annuity seen from the other side: you know the PV and want the payment \(C\).` },
+          { kind: 'learn', title: 'The payment',
+            body: R`Set the loan equal to the PV of the payments, and solve for \(C\):\n\[C = \frac{PV \times r}{1 - (1+r)^{-n}}\]\n\nMonthly loans: \(r = \frac{APR}{12}\) and \(n = 12 \times\) the number of years.`,
+            formula: 'pv-annuity' },
+          { kind: 'example', title: 'Worked example', q: R`You borrow $10,000 at 7% p.a. and repay it with 4 equal payments, at the end of each year. How big is each payment?`,
+            steps: [
+              R`\(PV = 10{,}000\), \(r = 0.07\) and \(n = 4\).`,
+              R`\[C = \frac{10{,}000 \times 0.07}{1 - 1.07^{-4}} = \frac{700}{${L.numT(1 - 1.07 ** -4, 6)}} = ${L.money(LS.loan)}\]`,
+              R`In total you pay \(4 \times ${L.num(LS.loan)} = ${L.money(4 * r2(LS.loan))}\). The extra \(${L.money(4 * r2(LS.loan) - 10000)}\) is interest.`,
+            ],
+            answer: R`Each payment is \(${L.money(LS.loan)}\).`,
+            ti: [TI.solver({ N: 4, I: 7, PV: 10000, FV: 0, PpY: 1, CpY: 1 }, 'Pmt', { note: R`You receive the loan, so \(PV\) is positive. The payment comes out negative because you pay it.` })] },
+          { kind: 'ti', title: 'A monthly loan',
+            body: R`For a monthly loan, set \(N\) to the number of months, keep \(I(\%)\) as the yearly rate, and set \(PpY = CpY = 12\).\n\nHere: $300,000 over 25 years at 6% p.a.`,
+            ti: [TI.solver({ N: 300, I: 6, PV: 300000, FV: 0, PpY: 12, CpY: 12 }, 'Pmt', { note: R`\(N = 25 \times 12 = 300\). The monthly payment is \(${L.money(LS.mort)}\).` })] },
+          { kind: 'check', gen: 'w2-g-loan' },
+          { kind: 'learn', title: 'Where each payment goes',
+            body: R`Each payment first pays the **interest** on what you owe. The rest repays the **principal** (the loan itself).\n\nInterest \(=\) opening balance \(\times r\). Principal \(=\) payment \(-\) interest. Closing balance \(=\) opening \(-\) principal. The table is called an **amortisation schedule**.`,
+            table: { head: ['Year', 'Opening', 'Payment', 'Interest', 'Principal', 'Closing'], rows: LS.sched.map(([t, b, p, i, pr, e]) => [String(t), T.money(b), T.money(p), T.money(i), T.money(pr), T.money(e)]) },
+            tip: 'The interest part falls every year and the principal part rises. The payment stays the same.' },
+          { kind: 'check', ref: 'w2-q38' },
+          { kind: 'learn', title: 'What do you still owe?',
+            body: R`Your **outstanding balance** is the **PV of the payments still to come**, at the loan rate.\n\nDo not just subtract the payments from the loan. Early payments are mostly interest, so the balance falls slowly at first.`,
+            formula: 'loan-balance' },
+          { kind: 'example', title: 'Worked example: the balance', q: R`The $300,000 loan over 25 years at 6% p.a. has monthly payments of ${T.money(LS.mort)}. How much do you still owe after 5 years?`,
+            steps: [
+              R`Payments made: \(5 \times 12 = 60\). Payments left: \(300 - 60 = 240\).`,
+              R`The balance is the PV of those 240 payments, at \(0.5\%\) a month: \[\frac{${L.num(LS.mort)}}{0.005}\left(1 - \frac{1}{1.005^{240}}\right) = ${L.money(LS.mortBal)}\]`,
+              R`After 5 years you have paid \(60 \times ${L.num(LS.mort)} = ${L.money(60 * r2(LS.mort))}\), but the balance fell by only \(${L.money(300000 - LS.mortBal)}\). Most of the early payments went on interest.`,
+            ],
+            answer: R`You still owe \(${L.money(LS.mortBal)}\).`,
+            ti: [TI.solver({ N: 240, I: 6, Pmt: -r2(LS.mort), FV: 0, PpY: 12, CpY: 12 }, 'PV', { note: R`\(N\) = the 240 payments left. \(PV\) is the balance you still owe.` })] },
+          { kind: 'guided', title: 'Your turn', q: R`You borrow $250,000 over 20 years at 4.8% p.a., with monthly payments at the end of each month. How much do you still owe after 3 years?`,
+            parts: [
+              { ask: 'What is the monthly payment?', answer: LS.g7pay, unit: '$', dp: 2, hint: R`Finance Solver: \(N = 240\), \(I(\%) = 4.8\), \(PV = 250000\), \(FV = 0\), \(PpY = CpY = 12\). Solve \(Pmt\).`, why: R`\(${L.money(LS.g7pay)}\) a month.` },
+              { ask: 'How many payments are left after 3 years?', answer: 204, unit: '', dp: 0, hint: R`\(240 - 3 \times 12\)`, why: R`\(240 - 36 = 204\).` },
+              { ask: 'What do you still owe?', answer: LS.g7bal, unit: '$', dp: 2, hint: R`Change \(N\) to 204 and solve \(PV\).`, why: R`The PV of the 204 payments left: \(${L.money(LS.g7bal)}\).` },
+            ],
+            answer: R`You still owe \(${L.money(LS.g7bal)}\).`,
+            ti: [
+              TI.solver({ N: 240, I: 4.8, PV: 250000, FV: 0, PpY: 12, CpY: 12 }, 'Pmt', { note: 'Step 1: the monthly payment.' }),
+              TI.solver({ N: 204, I: 4.8, Pmt: -LS.g7pay, FV: 0, PpY: 12, CpY: 12 }, 'PV', { note: R`Step 2: change \(N\) to 204 and solve \(PV\).` }),
+            ] },
+          { kind: 'learn', title: 'When the rate changes',
+            body: R`On a variable-rate loan, the bank re-prices what you **still owe** when the rate changes. Then there are two choices:`,
+            points: [R`Pay a **new payment**: solve \(Pmt\) from the balance, the new rate and the months left.`, R`Keep the **old payment**: solve \(N\). A higher rate means more months to pay.`],
+            tip: 'Either way, start from the balance: the PV of the payments still to come at the old rate.' },
+          { kind: 'recap', title: 'Remember', points: [
+            R`Loan payment: solve \(PV = \frac{C}{r}\left(1 - \frac{1}{(1+r)^{n}}\right)\) for \(C\). Monthly: \(r = \frac{APR}{12}\), \(n = 12 \times\) years.`,
+            R`Interest \(=\) opening balance \(\times r\). The interest part falls; the principal part rises.`,
+            R`Balance \(=\) PV of the payments still to come. On the TI: change \(N\) to the payments left and solve \(PV\).`,
+            R`Exam trap: subtracting the payments from the loan. That ignores the interest inside each payment.`,
+          ], formula: 'loan-balance' },
+        ],
+      },
+
+      'w2-L8': {
+        title: 'Finding the rate and the time',
+        goal: R`Find an unknown rate by trial and error and interpolation, then get it exactly on the TI-Nspire.`,
+        topics: ['rate'],
+        cards: [
+          { kind: 'learn', title: 'Working backwards',
+            body: R`Sometimes you know the payments and the price, but not the **rate**. A 6-year annuity pays $2,000 a year and costs $8,600. What rate of return does it give?\n\nThe annuity formula cannot be rearranged to give \(r\). By hand, you use **trial and error**: guess a rate, work out the PV, and adjust.` },
+          { kind: 'learn', title: 'PV and r move in opposite directions',
+            body: R`A higher rate means more discounting, so a **smaller** PV.\n\nPV too high at your guess? Try a **higher** rate. PV too low? Try a **lower** rate.`,
+            table: { head: ['Rate', 'PV of $2,000 a year for 6 years'], rows: [0.08, 0.10, 0.11, 0.12].map((r, k) => [T.pctT(r), T.money(LS.pv8[k])]) } },
+          { kind: 'check', ref: 'w2-q52' },
+          { kind: 'learn', title: 'Trap the rate between two guesses',
+            body: R`At 10% the PV is ${T.money(LS.pv8[1])}: above the $8,600 price. At 11% it is ${T.money(LS.pv8[2])}: below. So the rate is between 10% and 11%.\n\n**Interpolation** draws a straight line between the two guesses to estimate where the price sits.` },
+          { kind: 'learn', title: 'The interpolation formula',
+            body: R`Let \(A = PV - \text{price}\). At \(r_1\) you need \(A_1 > 0\), and at \(r_2\) you need \(A_2 < 0\).\n\[\lambda = \frac{A_1}{A_1 - A_2} \qquad r = r_1 + \lambda\,(r_2 - r_1)\]\n\n\(\lambda\) (lambda) is how far along the way from \(r_1\) to \(r_2\) the answer sits.`,
+            formula: 'interp' },
+          { kind: 'example', title: 'Worked example', q: R`The 6-year annuity of $2,000 a year costs $8,600. At 10% its PV is ${T.money(LS.pv8[1])}. At 11% it is ${T.money(LS.pv8[2])}. Estimate the rate of return.`,
+            steps: [
+              R`\(A_1 = ${L.num(LS.pv8[1])} - 8{,}600 = ${L.num(LS.a1)}\) at \(r_1 = 10\%\).`,
+              R`\(A_2 = ${L.num(LS.pv8[2])} - 8{,}600 = ${L.num(LS.a2)}\) at \(r_2 = 11\%\).`,
+              R`\(\lambda = \frac{${L.num(LS.a1)}}{${L.num(LS.a1)} + ${L.num(-LS.a2)}} = ${L.num(LS.ip.lambda, 4)}\).`,
+              R`\(r = 10\% + ${L.num(LS.ip.lambda, 4)} \times (11\% - 10\%) = ${L.pct(LS.ip.r, 2)}\).`,
+            ],
+            answer: R`The rate of return is about \(${L.pct(LS.ip.r, 2)}\).`,
+            ti: [TI.line(`${tn(LS.a1)}/(${tn(LS.a1)}+${tn(-LS.a2)})`, { note: R`This is \(\lambda\).` }), TI.line('10+ans*(11-10)', { note: 'The estimate, in %.' })] },
+          { kind: 'ti', title: 'The exact rate on the TI-Nspire',
+            body: R`The Finance Solver finds the rate exactly. Put the price in \(PV\) as a **negative** number (you pay it), the payment in \(Pmt\), and solve \(I(\%)\).\n\nnSolve works too: type the annuity formula with \(r\), and set it equal to the price.`,
+            ti: [TI.solver({ N: 6, PV: -8600, Pmt: 2000, FV: 0, PpY: 1, CpY: 1 }, 'I', { note: R`Interpolation gave \(${L.pct(LS.ip.r, 2)}\): very close.` }), TI.line('nSolve(2000/r*(1-1/(1+r)^6)=8600,r)', { pct: true, note: 'The same rate, as a decimal.' })] },
+          { kind: 'check', gen: 'w2-g-interp' },
+          { kind: 'learn', title: 'Finding the number of periods',
+            body: R`The same idea works for time. Fill in \(I(\%)\), \(PV\), \(Pmt\) and \(FV\), then solve **N**.\n\nYou deposit $5,000 now and $200 at the end of each month, at 6% p.a. compounded monthly. How many months until you have $20,000?`,
+            ti: [TI.solver({ I: 6, PV: -5000, Pmt: -200, FV: 20000, PpY: 12, CpY: 12 }, 'N', { note: R`Both amounts you pay in are negative; the target is positive. About \(${L.num(LS.n8)}\) months.` })] },
+          { kind: 'guided', title: 'Your turn', q: R`You borrow $12,000 at 9% p.a., compounded monthly. You repay $400 at the end of each month. How many monthly payments will it take?`,
+            parts: [
+              { ask: R`What goes in \(PV\)?`, answer: 12000, unit: '', dp: 0, hint: 'You receive the loan.', why: R`\(PV = 12000\): positive, because you receive it.` },
+              { ask: R`What goes in \(Pmt\)?`, answer: -400, unit: '', dp: 0, hint: 'You pay it.', why: R`\(Pmt = -400\): negative, because you pay it.` },
+              { ask: R`What goes in \(I(\%)\), with \(PpY = CpY = 12\)?`, answer: 9, unit: '', dp: 2, hint: 'The yearly rate, as a percentage.', why: R`\(I(\%) = 9\).` },
+              { ask: R`Solve \(N\). How many monthly payments?`, answer: LS.n8g, unit: '', dp: 2, hint: R`Keep \(FV = 0\): the loan is fully repaid at the end.`, why: R`\(N = ${L.num(LS.n8g)}\): ${Math.floor(LS.n8g)} full payments and a smaller last one.` },
+            ],
+            answer: R`It takes about \(${L.num(LS.n8g)}\) monthly payments.`,
+            ti: [TI.solver({ I: 9, PV: 12000, Pmt: -400, FV: 0, PpY: 12, CpY: 12 }, 'N')] },
+          { kind: 'recap', title: 'Remember', points: [
+            R`PV and \(r\) move in **opposite** directions.`,
+            R`Interpolation: \(\lambda = \frac{A_1}{A_1 - A_2}\) and \(r = r_1 + \lambda(r_2 - r_1)\), with \(A_1 > 0\) and \(A_2 < 0\).`,
+            R`Interpolation is only an **estimate**. The closer the two guesses, the better.`,
+            R`TI-Nspire: solve \(I(\%)\) or \(N\) in the Finance Solver for the exact answer.`,
+            R`Exam trap: \(\lambda\) is measured from \(r_1\), the rate where \(A\) is positive.`,
+          ], formula: 'interp' },
+        ],
+      },
+    },
+
     questions: [
       /* ----- mixed streams ----- */
       { id: 'w2-q01', topic: 'mixed', kind: 'mcq', level: 1, section: 'A', formula: 'pv-lump',
@@ -231,7 +747,7 @@
         ],
         steps: [
           R`\[PV = 7{,}000 + \frac{5{,}000}{1.04} + \frac{4{,}000}{1.04^{2}} + \frac{3{,}000}{1.04^{3}}\]`,
-          R`\[PV = 7{,}000 + ${L.num(5000 / 1.04)} + ${L.num(4000 / 1.04 ** 2)} + ${L.num(3000 / 1.04 ** 3)} = ${L.money(MOCK03.pv)}\]`,
+          R`\[PV = 7{,}000 + ${[5000 / 1.04, 4000 / 1.04 ** 2, 3000 / 1.04 ** 3].map((x, k, a) => L.num(x, dpSum([7000].concat(a)))).join(' + ')} = ${L.money(MOCK03.pv)}\]`,
         ],
         calc: `7000 [CFj] · 5000 [CFj] · 4000 [CFj] · 3000 [CFj] · 4 [I/YR] · [NPV] → ${T.money(MOCK03.pv)}`,
         ti: [TI.cmd('npv', [4, 7000, [5000, 4000, 3000]], { note: R`\(CF_0 = 7000\) is paid today, so it is not discounted.` })],
@@ -552,7 +1068,7 @@
         calc: `360 [N] · 0.6 [I/YR] · −250000 [PV] · 0 [FV] · [PMT] → ${T.money(MST14.pay)} · then 312 [N] · [PV] → −${T.money(MST14.bal)}`,
         ti: [
           TI.solver({ N: 360, I: 7.2, PV: 250000, FV: 0, PpY: 12, CpY: 12 }, 'Pmt', { note: R`The monthly payment. It is negative because you pay it.` }),
-          TI.solver({ N: 312, I: 7.2, Pmt: -r2(MST14.pay), FV: 0, PpY: 12, CpY: 12 }, 'PV', { note: R`Change \(N\) to the \(360 - 48 = 312\) payments left and solve \(PV\): that is what you still owe.` }),
+          TI.solver({ N: 312, I: 7.2, Pmt: -MST14.pay, FV: 0, PpY: 12, CpY: 12 }, 'PV', { note: R`Change \(N\) to the \(360 - 48 = 312\) payments left and solve \(PV\): that is what you still owe.` }),
         ],
         why: 'What you owe is the present value of the payments you still have to make.' },
       { id: 'w2-q45', topic: 'loan', kind: 'num', level: 2, section: 'B', src: 'Tutorial W2 Q1(c)', formula: 'pv-annuity',
@@ -606,8 +1122,8 @@
         calc: `360 [N] · 3.5 ÷ 12 = [I/YR] · −550000 [PV] · 0 [FV] · [PMT] → ${T.money(MOCK13.pay)} · 324 [N] · [PV] → −${T.money(MOCK13.bal)} · 3 ÷ 12 = [I/YR] · [PMT] → ${T.money(MOCK13.newPay)}`,
         ti: [
           TI.solver({ N: 360, I: 3.5, PV: 550000, FV: 0, PpY: 12, CpY: 12 }, 'Pmt', { note: 'Step 1: the original monthly payment.' }),
-          TI.solver({ N: 324, I: 3.5, Pmt: -r2(MOCK13.pay), FV: 0, PpY: 12, CpY: 12 }, 'PV', { note: R`Step 2: the balance after 3 years, with \(360 - 36 = 324\) payments left.` }),
-          TI.solver({ N: 324, I: 3, PV: r2(MOCK13.balTI), FV: 0, PpY: 12, CpY: 12 }, 'Pmt', { note: R`Step 3: the new payment at 3%. It is negative because Sarah pays it: \(${L.money(MOCK13.newPay)}\) a month.` }),
+          TI.solver({ N: 324, I: 3.5, Pmt: -MOCK13.pay, FV: 0, PpY: 12, CpY: 12 }, 'PV', { note: R`Step 2: the balance after 3 years, with \(360 - 36 = 324\) payments left.` }),
+          TI.solver({ N: 324, I: 3, PV: MOCK13.bal, FV: 0, PpY: 12, CpY: 12 }, 'Pmt', { note: R`Step 3: the new payment at 3%. It is negative because Sarah pays it: \(${L.money(MOCK13.newPay)}\) a month.` }),
         ],
         why: R`Payment, then balance, then the new payment. (The mock solution shows $2,331.01 because the balance was typed as $517,196.67.)` },
 
@@ -834,7 +1350,7 @@
         calc: `21000 [CFj] · 21000 [CFj] · 42000 [CFj] · 2 [Nj] · 21000 [CFj] · 2 [Nj] · 15 [I/YR] · [NPV] → ${T.money(T5.pv15)} · then 15 [N] · 0 [PV] · ${kn(T5.pv15)} [FV] · [PMT] → −${T.money(T5.pmt)}`,
         ti: [
           TI.cmd('npv', [15, 21000, [21000, 42000, 21000], [1, 2, 2]], { note: R`Stage 1. Treat year 15 as “time 0”: the first fee is \(CF_0\). The result is the value of all the fees at year 15.` }),
-          TI.solver({ N: 15, I: 15, PV: 0, FV: r2(T5.pv15), PpY: 1, CpY: 1 }, 'Pmt', { note: 'Stage 2. The 15 deposits must grow to that amount. The payment is negative because you pay each deposit in.' }),
+          TI.solver({ N: 15, I: 15, PV: 0, FV: T5.pv15, PpY: 1, CpY: 1 }, 'Pmt', { note: 'Stage 2. The 15 deposits must grow to that amount. The payment is negative because you pay each deposit in.' }),
         ],
         why: 'Two stages: value the spending at the date saving stops, then find the deposit that builds that amount.' },
       { id: 'w2-q58', topic: 'annuity', kind: 'num', level: 3, section: 'B', src: 'MST 2026 Q12', formula: 'pv-annuity', boss: true,
@@ -898,8 +1414,8 @@
             ],
             steps: [
               R`**Value additivity:** move every deposit to \(t = ${n}\), then add. A deposit made at \(t\) grows for \(${n} - t\) years.`,
-              R`\[\begin{aligned} ${cfs.map((c, t) => R`${ml(c)} \times (${L.onePlus(r)})^{${n - t}} &= ${L.money(parts[t])}`).join(R` \\ `)} \end{aligned}\]`,
-              R`\[FV_{${n}} = ${parts.map((x) => L.num(x)).join(' + ')} = ${L.money(fv)}\]`,
+              R`\[\begin{aligned} ${cfs.map((c, t) => R`${ml(c)} \times (${L.onePlus(r)})^{${n - t}} &= ${L.money(parts[t], dpSum(parts))}`).join(R` \\ `)} \end{aligned}\]`,
+              R`\[FV_{${n}} = ${parts.map((x) => L.num(x, dpSum(parts))).join(' + ')} = ${L.money(fv)}\]`,
             ],
             calc: `${cfs.join(' [CFj] · ')} [CFj] · ${pk(r)} [I/YR] · [NPV] → ${T.money(pv)} · then ${n} [N] · −${kn(pv)} [PV] · 0 [PMT] · [FV] → ${T.money(fv)}`,
             ti: [
@@ -928,7 +1444,8 @@
           ];
           if (today) mistakes.push({ v: pv - cfs[0], why: 'You left out the payment made today. It counts at full value.' });
           else mistakes.push({ v: FIN.fvStream(cfs, r), why: `That is the value at year ${n}, not today.` });
-          const lines = cfs.map((c, t) => (!c ? null : t === 0 ? R`C_0 &= ${L.money(c)}` : R`\frac{${ml(c)}}{(${L.onePlus(r)})^{${t}}} &= ${L.money(parts[t])}`)).filter(Boolean);
+          const dS = dpSum(parts);
+          const lines = cfs.map((c, t) => (!c ? null : t === 0 ? R`C_0 &= ${L.money(c)}` : R`\frac{${ml(c)}}{(${L.onePlus(r)})^{${t}}} &= ${L.money(parts[t], dS)}`)).filter(Boolean);
           return {
             q,
             givens: cfs.map((c, t) => [`C_{${t}}`, ml(c)]).concat([['r', L.pctT(r)]]),
@@ -938,7 +1455,7 @@
             steps: [
               R`**Value additivity:** discount each cash flow to \(t = 0\), then add: \[PV = \sum_{t} \frac{C_t}{(1+r)^{t}}\]`,
               R`\[\begin{aligned} ${lines.join(R` \\ `)} \end{aligned}\]`,
-              R`\[PV = ${parts.filter((x) => x).map((x) => L.num(x)).join(' + ')} = ${L.money(pv)}\]`,
+              R`\[PV = ${parts.filter((x) => x).map((x) => L.num(x, dS)).join(' + ')} = ${L.money(pv)}\]`,
             ],
             calc: `${cfs.join(' [CFj] · ')} [CFj] · ${pk(r)} [I/YR] · [NPV] → ${T.money(pv)}`,
             ti: [TI.cmd('npv', [P(r), cfs[0], cfs.slice(1)], { note: today ? R`\(CF_0\) is today’s payment: it is not discounted.` : R`Nothing happens today, so \(CF_0 = 0\).` })],
@@ -1423,7 +1940,7 @@
             calc: `${N} [N] · ${pk(apr)} ÷ 12 = [I/YR] · −${kn(pv)} [PV] · 0 [FV] · [PMT] → ${T.money(pay)} · then ${left} [N] · [PV] → −${T.money(bal)}`,
             ti: [
               TI.solver({ N, I: P(apr), PV: pv, FV: 0, PpY: 12, CpY: 12 }, 'Pmt', { note: 'Step 1: the monthly payment (negative because you pay it).' }),
-              TI.solver({ N: left, I: P(apr), Pmt: -r2(pay), FV: 0, PpY: 12, CpY: 12 }, 'PV', { note: R`Step 2: change \(N\) to the ${left} payments left and solve \(PV\). That is what you still owe.` }),
+              TI.solver({ N: left, I: P(apr), Pmt: -pay, FV: 0, PpY: 12, CpY: 12 }, 'PV', { note: R`Step 2: change \(N\) to the ${left} payments left and solve \(PV\). That is what you still owe.` }),
             ],
             why: 'The balance is the present value of the payments still to come.',
           };
@@ -1443,10 +1960,9 @@
           ];
           const givens = [['PV', ml(pv)], ['APR_{old}', L.pctT(apr)], ['APR_{new}', L.pctT(apr2)], ['n', String(N)], [R`\text{years paid}`, String(k)]];
           const n2 = FIN.tvm.solveN(i2, -bal, pay, 0);
-          const balTI = r2(FIN.pvAnnuity(r2(pay), i, left)); // what the Finance Solver shows, from the payment rounded to cents
           const tiBase = [
             TI.solver({ N, I: P(apr), PV: pv, FV: 0, PpY: 12, CpY: 12 }, 'Pmt', { note: 'Step 1: the original monthly payment.' }),
-            TI.solver({ N: left, I: P(apr), Pmt: -r2(pay), FV: 0, PpY: 12, CpY: 12 }, 'PV', { note: R`Step 2: the balance, with \(N = ${left}\) payments left.` }),
+            TI.solver({ N: left, I: P(apr), Pmt: -pay, FV: 0, PpY: 12, CpY: 12 }, 'PV', { note: R`Step 2: the balance, with \(N = ${left}\) payments left.` }),
           ];
           if (bp > 0 && rng.chance(0.4) && Number.isFinite(n2) && n2 > left && n2 < 900) {
             return {
@@ -1461,7 +1977,7 @@
                 R`Keep \(PMT = ${L.money(pay)}\) and solve for \(n\) at the new rate: \[${L.num(bal)} = \frac{${L.num(pay)}}{\frac{${L.dec(apr2)}}{12}}\left(1 - \frac{1}{\left(1 + \frac{${L.dec(apr2)}}{12}\right)^{n}}\right) \;\Rightarrow\; n = ${L.num(n2)}\]`,
               ]),
               calc: `${N} [N] · ${pk(apr)} ÷ 12 = [I/YR] · −${kn(pv)} [PV] · 0 [FV] · [PMT] · ${left} [N] · [PV] → −${T.money(bal)} · ${pk(apr2)} ÷ 12 = [I/YR] · [N] → ${T.num(n2)}`,
-              ti: tiBase.concat([TI.solver({ I: P(apr2), PV: balTI, Pmt: -r2(pay), FV: 0, PpY: 12, CpY: 12 }, 'N', { note: R`Step 3: the new rate, the same payment, solve \(N\).` })]),
+              ti: tiBase.concat([TI.solver({ I: P(apr2), PV: bal, Pmt: -pay, FV: 0, PpY: 12, CpY: 12 }, 'N', { note: R`Step 3: the new rate, the same payment, solve \(N\).` })]),
               why: 'Same payment, higher rate: less of each payment repays principal, so the loan runs longer.',
             };
           }
@@ -1478,7 +1994,7 @@
               R`New payment on the balance, over the ${left} months left: \[PMT_{new} = \frac{${L.num(bal)} \times \frac{${L.dec(apr2)}}{12}}{1 - \left(1 + \frac{${L.dec(apr2)}}{12}\right)^{-${left}}} = ${L.money(newPay)}\]`,
             ]),
             calc: `${N} [N] · ${pk(apr)} ÷ 12 = [I/YR] · −${kn(pv)} [PV] · 0 [FV] · [PMT] · ${left} [N] · [PV] → −${T.money(bal)} · ${pk(apr2)} ÷ 12 = [I/YR] · [PMT] → ${T.money(newPay)}`,
-            ti: tiBase.concat([TI.solver({ N: left, I: P(apr2), PV: balTI, FV: 0, PpY: 12, CpY: 12 }, 'Pmt', { note: R`Step 3: the new rate on the balance, over the ${left} months left. The payment is negative because you pay it.` })]),
+            ti: tiBase.concat([TI.solver({ N: left, I: P(apr2), PV: bal, FV: 0, PpY: 12, CpY: 12 }, 'Pmt', { note: R`Step 3: the new rate on the balance, over the ${left} months left. The payment is negative because you pay it.` })]),
             why: 'Payment, then balance, then re-price the balance at the new rate over the months left.',
           };
         } },
@@ -1591,7 +2107,7 @@
             calc: `${college ? 'BEG mode · ' : ''}${m} [N] · ${pk(r)} [I/YR] · ${kn(x)} [PMT] · 0 [FV] · [PV] → −${T.money(pvT)}${college ? ' · back to END mode' : ''} · then ${T0} [N] · 0 [PV] · ${kn(pvT)} [FV] · [PMT] → −${T.money(pmt)}`,
             ti: [
               TI.solver({ N: m, I: P(r), Pmt: -x, FV: 0, PpY: 1, CpY: 1, PmtAt: college ? 'BEGIN' : 'END' }, 'PV', { note: college ? R`Stage 1: BEGIN, because the first fee is paid at year ${T0} itself. This is the amount you need at year ${T0}.` : R`Stage 1: END, because the first withdrawal is one year after year ${T0}. This is the amount you need at year ${T0}.` }),
-              TI.solver({ N: T0, I: P(r), PV: 0, FV: r2(pvT), PpY: 1, CpY: 1, PmtAt: 'END' }, 'Pmt', { note: R`Stage 2: back to END. ${T0} deposits must grow to that amount. The payment is negative because you pay each deposit in.` }),
+              TI.solver({ N: T0, I: P(r), PV: 0, FV: pvT, PpY: 1, CpY: 1, PmtAt: 'END' }, 'Pmt', { note: R`Stage 2: back to END. ${T0} deposits must grow to that amount. The payment is negative because you pay each deposit in.` }),
             ],
             why: 'Two stages: value the spending at the date saving stops, then find the deposit that builds that amount.',
           };
@@ -1710,7 +2226,7 @@
               steps: [
                 R`\[PV_{\text{inflows}} = ${pvaTex(c, rt(r), n)} = ${L.money(inflow)}\]`,
                 R`\[PV_{\text{costs}} = ${ml(i0)} + \frac{${ml(i1)}}{${L.onePlus(r)}} = ${L.money(cost)}\]`,
-                R`\[NPV = ${L.num(inflow)} - ${L.num(cost)} = ${L.money(npv)}\]`,
+                R`\[NPV = ${L.num(inflow, dpSum([inflow, -cost]))} - ${L.num(cost, dpSum([inflow, -cost]))} = ${L.money(npv)}\]`,
               ],
               calc: `−${kn(i0)} [CFj] · ${kn(c - i1)} [CFj] · ${kn(c)} [CFj] · ${n - 1} [Nj] · ${pk(r)} [I/YR] · [NPV] → ${T.money(npv)}`,
               ti: [TI.cmd('npv', [P(r), -i0, [c - i1, c], [1, n - 1]], { note: `Year 1 nets ${mt(c)} − ${mt(i1)} = ${mt(c - i1)}. Years 2 to ${n} are ${n - 1} inflows of ${mt(c)}.` })],
@@ -1742,7 +2258,7 @@
               R`Year 1: \[\frac{${ml(x)}}{${L.onePlus(r)}} = ${L.money(a)}\]`,
               R`Years 2–${k}, an annuity of ${k - 1} payments whose value lands at year 1: \[${pvaTex(y, rt(r), k - 1)} = ${L.money(bAt1)} \;\Rightarrow\; \frac{${L.num(bAt1)}}{${L.onePlus(r)}} = ${L.money(b)}\]`,
               R`Year ${k + 1} onwards, a perpetuity whose value lands at year ${k}: \[\frac{${ml(z)}}{${L.dec(r)}} = ${L.money(cAtK)} \;\Rightarrow\; \frac{${L.num(cAtK)}}{(${L.onePlus(r)})^{${k}}} = ${L.money(c)}\]`,
-              R`\[\text{Value} = ${L.num(a)} + ${L.num(b)} + ${L.num(c)} = ${L.money(v)}\]`,
+              R`\[\text{Value} = ${[a, b, c].map((x) => L.num(x, dpSum([a, b, c]))).join(' + ')} = ${L.money(v)}\]`,
             ],
             ti: [
               TI.line(`${tn(z)}/${tn(r)}`, { note: `The perpetuity’s value at year ${k}, one year before its first payment.` }),
