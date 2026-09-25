@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meeting Transcriber</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;600&display=swap">
+<style>
+  :root {
+    --bg: #eef2f4;
+    --panel: #fbfcfc;
+    --ink: #1f2a30;
+    --muted: #5b6b74;
+    --line: #d5dee3;
+    --accent: #1d6f8c;
+    --accent-ink: #ffffff;
+    --rec: #c0392b;
+    --interim: #7c8b93;
+    --mark: #fff3c4;
+    --text-size: 22px;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151b1f;
+      --panel: #1d252a;
+      --ink: #e6ecef;
+      --muted: #9aabb4;
+      --line: #2e3a41;
+      --accent: #5fb3d1;
+      --accent-ink: #0d1a20;
+      --rec: #ef6b5b;
+      --interim: #8394a0;
+      --mark: #3a3620;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Lexend", "Verdana", "Segoe UI", system-ui, sans-serif;
+    font-weight: 300;
+    line-height: 1.7;
+    letter-spacing: 0.01em;
+    padding: 20px 16px;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; height: 100%; }
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; justify-content: space-between; }
+  h1 { font-size: 1.4rem; font-weight: 600; margin: 0; }
+  .status { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 1rem; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--line); }
+  .live .dot { background: var(--rec); animation: pulse 1.4s infinite; }
+  .live { color: var(--rec); font-weight: 400; }
+  @keyframes pulse { 50% { opacity: 0.35; } }
+  @media (prefers-reduced-motion: reduce) { .live .dot { animation: none; } }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  button, select {
+    font: inherit; font-size: 1rem; font-weight: 400;
+    border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+    border-radius: 8px; padding: 10px 16px; cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  #toggle { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; min-width: 170px; }
+  #toggle.on { background: var(--rec); border-color: var(--rec); color: #fff; }
+  label { color: var(--muted); font-size: 0.95rem; display: flex; align-items: center; gap: 8px; }
+  input[type=range] { accent-color: var(--accent); }
+
+  .notice { background: var(--mark); border-radius: 8px; padding: 10px 14px; font-size: 1rem; }
+
+  #transcript {
+    flex: 1; min-height: 300px; overflow-y: auto;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    padding: 20px; font-size: var(--text-size); max-width: 100%;
+  }
+  .entry { display: grid; grid-template-columns: 5.2em 1fr; gap: 14px; padding-block: 6px; }
+  .time { color: var(--muted); font-size: 0.6em; padding-top: 0.45em; font-variant-numeric: tabular-nums; }
+  .entry.marker .say { background: var(--mark); border-radius: 6px; padding: 2px 10px; font-weight: 600; }
+  #interim { color: var(--interim); font-style: italic; }
+  .empty { color: var(--muted); font-size: 0.8em; }
+  .empty ol { padding-left: 1.2em; }
+  footer { color: var(--muted); font-size: 0.85rem; }
+  @media (max-width: 520px) {
+    .entry { grid-template-columns: 1fr; gap: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Meeting Transcriber</h1>
+    <div class="status" id="status"><span class="dot"></span><span id="statusText">Stopped</span></div>
+  </header>
+
+  <div class="notice" id="unsupported" hidden>
+    This browser has no live speech recognition. Open this file in <b>Google Chrome</b> or <b>Microsoft Edge</b>.
+  </div>
+
+  <div class="controls">
+    <button id="toggle" type="button">Start</button>
+    <select id="lang" aria-label="Spoken language">
+      <option value="en-US">English (US)</option>
+      <option value="en-GB">English (UK)</option>
+      <option value="sv-SE">Svenska</option>
+      <option value="de-DE">Deutsch</option>
+      <option value="fr-FR">Français</option>
+      <option value="es-ES">Español</option>
+      <option value="nb-NO">Norsk</option>
+      <option value="da-DK">Dansk</option>
+      <option value="fi-FI">Suomi</option>
+    </select>
+    <button id="mark" type="button" title="Insert a highlighted marker">Mark moment</button>
+    <button id="copy" type="button">Copy</button>
+    <button id="download" type="button">Save .txt</button>
+    <button id="clear" type="button">Clear</button>
+    <label for="size">Text size <input id="size" type="range" min="16" max="40" value="22"></label>
+  </div>
+
+  <div class="notice" id="confirmClear" hidden>
+    Delete the whole transcript?
+    <button id="clearYes" type="button">Yes, delete</button>
+    <button id="clearNo" type="button">Keep it</button>
+  </div>
+  <div class="notice" id="msg" hidden></div>
+
+  <div id="transcript" aria-live="polite">
+    <div id="lines"></div>
+    <div id="interim"></div>
+    <div class="empty" id="empty">
+      <ol>
+        <li>Press <b>Start</b> and allow the microphone.</li>
+        <li>In Zoom, play the meeting through your <b>speakers</b> (not headphones) so the mic hears everyone.</li>
+        <li>Text appears here with timestamps. It is saved in this browser as you go.</li>
+        <li>Press <b>Save .txt</b> at the end.</li>
+      </ol>
+    </div>
+  </div>
+
+  <footer>Uses the browser's built-in speech recognition. In Chrome, audio is sent to Google to turn it into text.</footer>
+</div>
+
+<script>
+(function () {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const $ = (id) => document.getElementById(id);
+  const linesEl = $('lines'), interimEl = $('interim'), emptyEl = $('empty');
+  const toggleBtn = $('toggle'), statusEl = $('status'), statusText = $('statusText');
+  const box = $('transcript');
+  const KEY = 'meeting-transcriber-v1';
+
+  let entries = [];      // {t: ISO string, text, marker?}
+  let running = false;   // what the user wants
+  let rec = null;
+  let wakeLock = null;
+
+  function load() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(KEY) || '{}');
+      entries = Array.isArray(saved.entries) ? saved.entries : [];
+      if (saved.lang) $('lang').value = saved.lang;
+      if (saved.size) { $('size').value = saved.size; setSize(saved.size); }
+    } catch (e) { entries = []; }
+  }
+  function save() {
+    try {
+      localStorage.setItem(KEY, JSON.stringify({ entries, lang: $('lang').value, size: $('size').value }));
+    } catch (e) {}
+  }
+  function fmt(iso) {
+    return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+  function nearBottom() { return box.scrollHeight - box.scrollTop - box.clientHeight < 80; }
+  function scrollDown(force) { if (force) box.scrollTop = box.scrollHeight; }
+
+  function renderEntry(e) {
+    const row = document.createElement('div');
+    row.className = 'entry' + (e.marker ? ' marker' : '');
+    const t = document.createElement('div'); t.className = 'time'; t.textContent = fmt(e.t);
+    const s = document.createElement('div'); s.className = 'say'; s.textContent = e.text;
+    row.append(t, s);
+    linesEl.append(row);
+  }
+  function renderAll() {
+    linesEl.textContent = '';
+    entries.forEach(renderEntry);
+    emptyEl.hidden = entries.length > 0 || running;
+  }
+  function add(text, marker) {
+    const stick = nearBottom();
+    const e = { t: new Date().toISOString(), text, marker: !!marker };
+    entries.push(e);
+    renderEntry(e);
+    emptyEl.hidden = true;
+    save();
+    scrollDown(stick);
+  }
+  function flash(text) {
+    const m = $('msg'); m.textContent = text; m.hidden = false;
+    clearTimeout(flash._t); flash._t = setTimeout(() => { m.hidden = true; }, 4000);
+  }
+  function setSize(v) { document.documentElement.style.setProperty('--text-size', v + 'px'); }
+  function setStatus(live, text) {
+    statusEl.classList.toggle('live', live);
+    statusText.textContent = text;
+    toggleBtn.textContent = running ? 'Stop' : 'Start';
+    toggleBtn.classList.toggle('on', running);
+  }
+  function asText() {
+    return entries.map(e => '[' + fmt(e.t) + '] ' + (e.marker ? '*** ' + e.text + ' ***' : e.text)).join('\n');
+  }
+
+  async function keepAwake() {
+    try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
+  }
+
+  function makeRecognizer() {
+    const r = new SR();
+    r.continuous = true;
+    r.interimResults = true;
+    r.lang = $('lang').value;
+    r.onstart = () => setStatus(true, 'Listening…');
+    r.onresult = (ev) => {
+      let interim = '';
+      for (let i = ev.resultIndex; i < ev.results.length; i++) {
+        const res = ev.results[i];
+        const txt = res[0].transcript.trim();
+        if (!txt) continue;
+        if (res.isFinal) add(txt.charAt(0).toUpperCase() + txt.slice(1));
+        else interim += txt + ' ';
+      }
+      const stick = nearBottom();
+      interimEl.textContent = interim;
+      scrollDown(stick);
+    };
+    r.onerror = (ev) => {
+      if (ev.error === 'no-speech' || ev.error === 'aborted') return;
+      if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') {
+        running = false;
+        setStatus(false, 'Microphone blocked');
+        flash('The microphone is blocked. Click the camera/mic icon in the address bar, allow it, then press Start.');
+        return;
+      }
+      if (ev.error === 'network') flash('Network problem. Reconnecting…');
+      else flash('Speech error: ' + ev.error + '. Reconnecting…');
+    };
+    r.onend = () => {
+      interimEl.textContent = '';
+      if (running) {
+        // Chrome ends sessions after silence or ~60s; restart right away.
+        setTimeout(() => { if (running) { try { rec = makeRecognizer(); rec.start(); } catch (e) {} } }, 250);
+      } else {
+        setStatus(false, 'Stopped');
+      }
+    };
+    return r;
+  }
+
+  function start() {
+    running = true;
+    emptyEl.hidden = true;
+    rec = makeRecognizer();
+    try { rec.start(); } catch (e) {}
+    setStatus(true, 'Starting…');
+    keepAwake();
+  }
+  function stop() {
+    running = false;
+    try { rec && rec.stop(); } catch (e) {}
+    try { wakeLock && wakeLock.release(); } catch (e) {}
+    setStatus(false, 'Stopped');
+  }
+
+  toggleBtn.onclick = () => (running ? stop() : start());
+  $('lang').onchange = () => { save(); if (running) { try { rec.stop(); } catch (e) {} } };
+  $('size').oninput = (e) => { setSize(e.target.value); save(); };
+  $('mark').onclick = () => add('Marked moment', true);
+  $('copy').onclick = async () => {
+    try { await navigator.clipboard.writeText(asText()); flash('Copied to clipboard.'); }
+    catch (e) {
+      const range = document.createRange(); range.selectNodeContents(linesEl);
+      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(range);
+      flash('Text selected. Press Ctrl+C (Cmd+C on Mac) to copy.');
+    }
+  };
+  $('download').onclick = () => {
+    const blob = new Blob([asText() + '\n'], { type: 'text/plain' });
+    const a = document.createElement('a');
+    const d = new Date();
+    a.href = URL.createObjectURL(blob);
+    a.download = 'transcript-' + d.toISOString().slice(0, 16).replace(/[:T]/g, '-') + '.txt';
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  };
+  $('clear').onclick = () => { $('confirmClear').hidden = false; };
+  $('clearNo').onclick = () => { $('confirmClear').hidden = true; };
+  $('clearYes').onclick = () => {
+    entries = []; save(); renderAll(); $('confirmClear').hidden = true; flash('Transcript deleted.');
+  };
+  document.addEventListener('visibilitychange', () => { if (running && document.visibilityState === 'visible') keepAwake(); });
+  window.addEventListener('beforeunload', (e) => { if (running) { e.preventDefault(); e.returnValue = ''; } });
+
+  load();
+  renderAll();
+  box.scrollTop = box.scrollHeight;
+  if (!SR) {
+    $('unsupported').hidden = false;
+    toggleBtn.disabled = true;
+  }
+})();
+</script>
+</body>
+</html>
