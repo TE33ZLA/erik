@@ -704,6 +704,7 @@
           R`\[n = \frac{\ln 1.25}{\ln 1.005} = ${L.num(FIN.tvm.solveN(0.005, -20000, -100, 30000))} \text{ months} \approx ${L.num(FIN.tvm.solveN(0.005, -20000, -100, 30000) / 12)} \text{ years}\]`,
         ],
         calc: `0.5 [I/YR] · −20000 [PV] · −100 [PMT] · 30000 [FV] · [N] → ${T.num(FIN.tvm.solveN(0.005, -20000, -100, 30000))}`,
+        ti: [TI.solver({ I: 6, PV: -20000, Pmt: -100, FV: 30000, PpY: 12, CpY: 12 }, 'N', { note: R`0.5% a month is \(I(\%) = 6\) with \(PpY = CpY = 12\). Both the $20,000 and the $100 deposits are paid in, so both are negative.` })],
         why: 'Both the lump sum and the deposits grow. Solve for the number of periods.' },
 
       /* ----- more course examples and concept checks ----- */
@@ -716,6 +717,7 @@
           { v: 3 / 0.12, why: 'Subtract g from r. Do not add it.' },
         ],
         steps: [R`\[PV = \frac{C_1}{r - g} = \frac{3}{0.10 - 0.02} = ${L.money(FIN.pvGrowPerp(3, 0.10, 0.02))}\]`],
+        ti: [TI.line('3/(0.10-0.02)')],
         why: R`Growing perpetuity: the next payment divided by \((r - g)\).` },
       { id: 'w2-q61', topic: 'loan', kind: 'num', level: 1, section: 'B', src: 'Lecture W2 Example 11', formula: 'pv-annuity',
         q: R`You borrow $5,000 at 9% p.a. and repay it with five equal annual payments, the first one in a year. How big is each payment?`,
@@ -731,6 +733,7 @@
           R`Total paid: \(5 \times 1{,}285.46 = \$6{,}427.30\), so the interest is $1,427.30.`,
         ],
         calc: `5 [N] · 9 [I/YR] · −5000 [PV] · 0 [FV] · [PMT] → ${T.money(FIN.pmt(5000, 0.09, 5))}`,
+        ti: [TI.solver({ N: 5, I: 9, PV: 5000, FV: 0, PpY: 1, CpY: 1 }, 'Pmt', { note: R`\(PV = 5000\) is positive: you receive the loan. The payment is negative because you pay it.` })],
         why: 'Set the loan equal to the PV of an ordinary annuity and solve for C.' },
       { id: 'w2-q62', topic: 'loan', kind: 'num', level: 1, section: 'B', src: 'Tutorial W2 Q1(a)', formula: 'pv-annuity',
         q: R`You borrow $400,000 to buy a house. The loan is over 30 years at 7% p.a., with payments at the end of each month. What is the monthly payment?`,
@@ -745,6 +748,7 @@
           R`\[PMT = \frac{400{,}000 \times \frac{0.07}{12}}{1 - \left(1 + \frac{0.07}{12}\right)^{-360}} = ${L.money(T1.pay)}\]`,
         ],
         calc: `360 [N] · 7 ÷ 12 = [I/YR] · −400000 [PV] · 0 [FV] · [PMT] → ${T.money(T1.pay)}`,
+        ti: [TI.solver({ N: 360, I: 7, PV: 400000, FV: 0, PpY: 12, CpY: 12 }, 'Pmt', { note: R`\(N = 30 \times 12 = 360\), \(I(\%) = 7\) (the yearly rate) and \(PpY = CpY = 12\). The payment is negative because you pay it.` })],
         why: 'Monthly loan: monthly rate, number of months, then the annuity formula solved for C.' },
       { id: 'w2-q63', topic: 'loan', kind: 'num', level: 2, section: 'B', src: 'Tutorial W2 Q1(b)', formula: 'loan-balance',
         q: R`Same mortgage: $400,000 over 30 years at 7% p.a., with monthly payments of $2,661.21. You sell the house after 5 years. How much do you still owe the bank?`,
@@ -760,6 +764,7 @@
           R`Check: the loan grows to \(400{,}000\left(1 + \frac{0.07}{12}\right)^{60} = ${L.money(400000 * Math.pow(1 + 0.07 / 12, 60))}\). The 60 payments grow to \(${L.money(FIN.fvAnnuity(T1.pay, 0.07 / 12, 60))}\). The difference is the balance.`,
         ],
         calc: `300 [N] · 7 ÷ 12 = [I/YR] · 2661.21 [PMT] · 0 [FV] · [PV] → −${T.money(T1.bal)}`,
+        ti: [TI.solver({ N: 300, I: 7, Pmt: -2661.21, FV: 0, PpY: 12, CpY: 12 }, 'PV', { note: R`\(N = 360 - 60 = 300\) payments left. Their PV is what you still owe.` })],
         why: 'What you still owe is the PV of the payments you have not made yet.' },
       { id: 'w2-q64', topic: 'save', kind: 'num', level: 1, section: 'B', src: 'Tutorial W2 Q2(a)', formula: 'fv-annuity',
         q: R`It is 1 July 2016. You need $10,000 on 1 July 2021. You will make equal annual deposits, the first on 1 July 2017 and the last on 1 July 2021. The bank pays 8% p.a., compounded annually. How big is each deposit?`,
@@ -775,6 +780,7 @@
           R`\[C = \frac{FV \times r}{(1+r)^{n} - 1} = \frac{10{,}000 \times 0.08}{1.08^{5} - 1} = ${L.money(FIN.pmtForFV(10000, 0.08, 5))}\]`,
         ],
         calc: `5 [N] · 8 [I/YR] · 0 [PV] · 10000 [FV] · [PMT] → −${T.money(FIN.pmtForFV(10000, 0.08, 5))}`,
+        ti: [TI.solver({ N: 5, I: 8, PV: 0, FV: 10000, PpY: 1, CpY: 1 }, 'Pmt', { note: 'The payment is negative because you pay each deposit in.' })],
         why: 'A future target: solve the FV of an annuity for the deposit.' },
       { id: 'w2-q65', topic: 'save', kind: 'num', level: 1, section: 'B', src: 'Lecture W2 Excel PMT example', formula: 'fv-annuity',
         q: R`You want to save $50,000 in 18 years, saving a constant amount at the end of each month. Your savings earn 6% p.a., compounded monthly. How much must you save each month?`,
@@ -789,6 +795,7 @@
           R`\[C = \frac{50{,}000 \times 0.005}{1.005^{216} - 1} = ${L.money(FIN.pmtForFV(50000, 0.005, 216))}\]`,
         ],
         calc: `216 [N] · 0.5 [I/YR] · 0 [PV] · 50000 [FV] · [PMT] → −${T.money(FIN.pmtForFV(50000, 0.005, 216))}`,
+        ti: [TI.solver({ N: 216, I: 6, PV: 0, FV: 50000, PpY: 12, CpY: 12 }, 'Pmt', { note: R`\(N = 18 \times 12 = 216\) and \(PpY = CpY = 12\). The payment is negative because you pay each deposit in.` })],
         why: 'Monthly saving: monthly rate, number of months, FV of an annuity.' },
       { id: 'w2-q66', topic: 'due', kind: 'mcq', level: 2, section: 'A', formula: 'pv-annuity-due',
         q: R`An annuity due makes \(n\) payments of \(C\), the first one today. Which of these has the same present value?`,
@@ -825,6 +832,10 @@
           R`\[C = \frac{${L.num(T5.pv15)} \times 0.15}{1.15^{15} - 1} = ${L.money(T5.pmt)}\]`,
         ],
         calc: `21000 [CFj] · 21000 [CFj] · 42000 [CFj] · 2 [Nj] · 21000 [CFj] · 2 [Nj] · 15 [I/YR] · [NPV] → ${T.money(T5.pv15)} · then 15 [N] · 0 [PV] · ${kn(T5.pv15)} [FV] · [PMT] → −${T.money(T5.pmt)}`,
+        ti: [
+          TI.cmd('npv', [15, 21000, [21000, 42000, 21000], [1, 2, 2]], { note: R`Stage 1. Treat year 15 as “time 0”: the first fee is \(CF_0\). The result is the value of all the fees at year 15.` }),
+          TI.solver({ N: 15, I: 15, PV: 0, FV: r2(T5.pv15), PpY: 1, CpY: 1 }, 'Pmt', { note: 'Stage 2. The 15 deposits must grow to that amount. The payment is negative because you pay each deposit in.' }),
+        ],
         why: 'Two stages: value the spending at the date saving stops, then find the deposit that builds that amount.' },
       { id: 'w2-q58', topic: 'annuity', kind: 'num', level: 3, section: 'B', src: 'MST 2026 Q12', formula: 'pv-annuity', boss: true,
         q: R`A project costs $80,000 today plus another $40,000 in one year. It earns $30,000 at the end of each year for 8 years. The discount rate is 6%. What is the project’s NPV?`,
@@ -840,6 +851,7 @@
           R`\[NPV = ${L.num(MST12.inflow, 3)} - ${L.num(MST12.cost, 3)} = ${L.money(MST12.npv)}\]`,
         ],
         calc: `−80000 [CFj] · −10000 [CFj] · 30000 [CFj] · 7 [Nj] · 6 [I/YR] · [NPV] → ${T.money(MST12.npv)} (year 1 nets −40,000 + 30,000)`,
+        ti: [TI.cmd('npv', [6, -80000, [-10000, 30000], [1, 7]], { note: R`Year 1 nets \(-40{,}000 + 30{,}000 = -10{,}000\). Years 2 to 8 are seven inflows of $30,000.` })],
         why: 'Bring every cash flow to today: the annuity of inflows, the cost today, and the cost in one year.' },
       { id: 'w2-q59', topic: 'deferred', kind: 'num', level: 3, section: 'B', src: 'Tutorial W2 Q4', formula: 'pv-perp', boss: true,
         q: R`A small company is expected to produce $20,000 in year 1, then $30,000 a year in years 2 to 5, then $50,000 a year **forever** from year 6. The discount rate is 12%. What is the most you should pay for the company today?`,
@@ -855,6 +867,10 @@
           R`Years 2–5, an annuity whose value lands at year 1: \[\frac{30{,}000}{0.12}\left(1 - \frac{1}{1.12^{4}}\right) = ${L.money(T4.bAt1)} \;\Rightarrow\; \frac{${L.num(T4.bAt1)}}{1.12} = ${L.money(T4.b)}\]`,
           R`Year 6 onwards, a perpetuity whose value lands at year 5: \[\frac{50{,}000}{0.12} = ${L.money(T4.cAt5)} \;\Rightarrow\; \frac{${L.num(T4.cAt5)}}{1.12^{5}} = ${L.money(T4.c)}\]`,
           R`\[\text{Value} = ${L.num(T4.a)} + ${L.num(T4.b)} + ${L.num(T4.c)} = ${L.money(T4.v)}\]`,
+        ],
+        ti: [
+          TI.line('50000/0.12', { note: 'The perpetuity’s value at year 5, one year before its first payment.' }),
+          TI.line('npv(12,0,{20000,30000,30000+ans},{1,3,1})', { note: 'Year 5 holds its own $30,000 plus the perpetuity’s value.' }),
         ],
         why: 'Split the stream into a lump sum, an annuity and a perpetuity. Value each one, move it to today, then add.' },
     ],
@@ -886,6 +902,10 @@
               R`\[FV_{${n}} = ${parts.map((x) => L.num(x)).join(' + ')} = ${L.money(fv)}\]`,
             ],
             calc: `${cfs.join(' [CFj] · ')} [CFj] · ${pk(r)} [I/YR] · [NPV] → ${T.money(pv)} · then ${n} [N] · −${kn(pv)} [PV] · 0 [PMT] · [FV] → ${T.money(fv)}`,
+            ti: [
+              TI.cmd('npv', [P(r), cfs[0], cfs.slice(1)], { note: R`First the value of all the deposits today (\(t = 0\)).` }),
+              TI.line(`ans*${tn(1 + r)}^${n}`, { note: R`Then grow it ${yrsW(n)} to \(t = ${n}\).` }),
+            ],
             why: 'Compound each deposit for the years it spends in the account, then add them up.',
           };
         } },
@@ -904,7 +924,7 @@
             : R`An investment will pay you:\n${items}\nThe interest rate is ${T.pctT(r)} p.a. What is the investment worth today?`;
           const mistakes = [
             { v: sum, why: 'That adds cash flows from different dates, which ignores the time value of money.' },
-            { v: FIN.pvStream([0].concat(cfs), r), why: R`That discounts every cash flow one period too many. The [CFj] list starts at \(t = 0\).` },
+            { v: FIN.pvStream([0].concat(cfs), r), why: R`That discounts every cash flow one period too many. The first cash flow in the list is \(CF_0\), at \(t = 0\).` },
           ];
           if (today) mistakes.push({ v: pv - cfs[0], why: 'You left out the payment made today. It counts at full value.' });
           else mistakes.push({ v: FIN.fvStream(cfs, r), why: `That is the value at year ${n}, not today.` });
@@ -921,6 +941,7 @@
               R`\[PV = ${parts.filter((x) => x).map((x) => L.num(x)).join(' + ')} = ${L.money(pv)}\]`,
             ],
             calc: `${cfs.join(' [CFj] · ')} [CFj] · ${pk(r)} [I/YR] · [NPV] → ${T.money(pv)}`,
+            ti: [TI.cmd('npv', [P(r), cfs[0], cfs.slice(1)], { note: today ? R`\(CF_0\) is today’s payment: it is not discounted.` : R`Nothing happens today, so \(CF_0 = 0\).` })],
             why: today ? 'The payment today is not discounted. Discount the rest and add.' : 'Discount each cash flow by its own number of years, then add.',
           };
         } },
@@ -952,6 +973,7 @@
                 R`\[PV = \frac{C}{r} = \frac{${ml(c)}}{${L.dec(r)}} = ${L.money(base)}\]`,
               ],
               calc: `${kn(c)} ÷ ${L.dec(r)} = ${T.money(base)}`,
+              ti: [TI.line(`${tn(c)}/${tn(r)}`)],
               why: R`A level perpetuity: \(PV = \frac{C}{r}\), valued one period before the next payment.`,
             };
           }
@@ -969,6 +991,7 @@
               R`\[PV = C + \frac{C}{r} = ${ml(c)} + \frac{${ml(c)}}{${L.dec(r)}} = ${ml(c)} + ${L.money(base)} = ${L.money(base + c)}\]`,
             ],
             calc: `${kn(c)} ÷ ${L.dec(r)} + ${kn(c)} = ${T.money(base + c)}`,
+            ti: [TI.line(`${tn(c)}+${tn(c)}/${tn(r)}`, { note: 'Today’s payment plus the perpetuity of the later payments.' })],
             why: R`When the first payment is today, add it to \(\frac{C}{r}\).`,
           };
         } },
@@ -990,6 +1013,7 @@
               R`\[C = ${ml(pv)} \times \frac{${L.dec(apr)}}{12} = ${L.money(c)}\]`,
             ],
             calc: `${kn(pv)} × ${L.dec(apr)} ÷ 12 = ${T.money(c)}`,
+            ti: [TI.line(`${tn(pv)}*${tn(apr)}/12`)],
             why: 'Interest-only forever: each payment is exactly one period of interest.',
           };
         } },
@@ -1016,6 +1040,10 @@
               R`Discount ${yrsW(k - 1)} to today: \[PV_0 = \frac{${L.num(v1)}}{(${L.onePlus(r)})^{${k - 1}}} = ${L.money(pv)}\]`,
             ],
             calc: `${kn(c)} ÷ ${L.dec(r)} = ${T.money(v1)} · then ${k - 1} [N] · ${pk(r)} [I/YR] · 0 [PMT] · ${kn(v1)} [FV] · [PV] → −${T.money(pv)}`,
+            ti: [
+              TI.line(`${tn(c)}/${tn(r)}`, { note: R`The value at \(t = ${k - 1}\), one year before the first payment.` }),
+              TI.line(`ans/${tn(1 + r)}^${k - 1}`, { note: `Discount it ${yrsW(k - 1)} to today.` }),
+            ],
             why: R`Step back one period from the first payment (to \(t = ${k - 1}\)), then discount to today.`,
           };
         } },
@@ -1041,6 +1069,7 @@
               R`Discount ${yrsW(k - 1)} to today: \[PV_0 = \frac{${L.num(vk)}}{(${L.onePlus(r)})^{${k - 1}}} = ${L.money(pv)}\]`,
             ],
             calc: `0 [CFj] · 0 [CFj] · ${k - 1} [Nj] · ${kn(c)} [CFj] · ${n} [Nj] · ${pk(r)} [I/YR] · [NPV] → ${T.money(pv)}`,
+            ti: [TI.cmd('npv', [P(r), 0, [0, c], [k - 1, n]], { note: `The counts list says: ${yrsW(k - 1)} of $0, then ${n} payments of ${mt(c)}.` })],
             why: 'Deferred annuity: the formula lands one period before the first payment, so discount from there.',
           };
         } },
@@ -1071,6 +1100,7 @@
               R`\[PV = ${pvaTex(c, rt(r), n)} = ${ml(c)} \times ${L.numT(a, 6)} = ${L.money(pv)}\]`,
             ],
             calc: `${n} [N] · ${pk(r)} [I/YR] · ${kn(c)} [PMT] · 0 [FV] · [PV] → −${T.money(pv)}`,
+            ti: [TI.solver({ N: n, I: P(r), Pmt: c, FV: 0, PpY: 1, CpY: 1 }, 'PV', { note: R`You receive the payments, so \(Pmt\) is positive and the PV comes out negative: it is what you would pay today. The value is \(${L.money(pv)}\).` })],
             why: 'Equal payments at the end of each year for a fixed time: an ordinary annuity.',
           };
         } },
@@ -1094,6 +1124,7 @@
               R`\[FV = ${fvaTex(c, rt(r), n)} = ${ml(c)} \times ${L.numT(f, 6)} = ${L.money(fv)}\]`,
             ],
             calc: `${n} [N] · ${pk(r)} [I/YR] · 0 [PV] · −${kn(c)} [PMT] · [FV] → ${T.money(fv)}`,
+            ti: [TI.solver({ N: n, I: P(r), PV: 0, Pmt: -c, PpY: 1, CpY: 1 }, 'FV', { note: R`Each deposit is paid in, so \(Pmt\) is negative. \(PmtAt\) stays END.` })],
             why: 'The FV of an ordinary annuity lands on the date of the last deposit.',
           };
         } },
@@ -1121,6 +1152,7 @@
                 R`\[PV_{due} = ${pvaTex(c, rt(i), n)}(${L.onePlus(i)}) = ${L.num(ord)} \times ${L.onePlus(i)} = ${L.money(pv)}\]`,
               ],
               calc: `BEG mode · ${n} [N] · ${pk(i)} [I/YR] · ${kn(c)} [PMT] · 0 [FV] · [PV] → −${T.money(pv)} · then back to END mode`,
+              ti: [TI.solver({ N: n, I: P(i * 12), Pmt: c, FV: 0, PpY: 12, CpY: 12, PmtAt: 'BEGIN' }, 'PV', { note: R`\(PmtAt\) = BEGIN: the first payment is today. ${T.pctT(i)} a month is \(I(\%) = ${L.numT(P(i * 12))}\) with \(PpY = CpY = 12\). Ignore the minus sign: the payments are worth \(${L.money(pv)}\).` })],
               why: R`The first payment is today, so this is an annuity due: the ordinary annuity value times \((1+r)\).`,
             };
           }
@@ -1143,6 +1175,7 @@
                 R`Check: today’s payment plus an ordinary annuity of \(${n - 1}\) payments gives \(${ml(c)} + ${L.money(FIN.pvAnnuity(c, r, n - 1))} = ${L.money(pv)}\).`,
               ],
               calc: `BEG mode · ${n} [N] · ${pk(r)} [I/YR] · ${kn(c)} [PMT] · 0 [FV] · [PV] → −${T.money(pv)} · then back to END mode`,
+              ti: [TI.solver({ N: n, I: P(r), Pmt: -c, FV: 0, PpY: 1, CpY: 1, PmtAt: 'BEGIN' }, 'PV', { note: R`\(PmtAt\) = BEGIN because each payment is at the start of a year. The company pays, so \(Pmt\) is negative.` })],
               why: 'Payments at the start of each period: an annuity due.',
             };
           }
@@ -1165,6 +1198,7 @@
               R`\[FV_{due} = ${fvaTex(c, rt(r), n)}(${L.onePlus(r)}) = ${L.num(ord)} \times ${L.onePlus(r)} = ${L.money(fv)}\]`,
             ],
             calc: `BEG mode · ${n} [N] · ${pk(r)} [I/YR] · 0 [PV] · −${kn(c)} [PMT] · [FV] → ${T.money(fv)} · then back to END mode`,
+            ti: [TI.solver({ N: n, I: P(r), PV: 0, Pmt: -c, PpY: 1, CpY: 1, PmtAt: 'BEGIN' }, 'FV', { note: R`\(PmtAt\) = BEGIN: each deposit is made at the start of a year, so it earns one more year of interest.` })],
             why: 'Deposits at the start of each year: an annuity due, valued one period after the last deposit.',
           };
         } },
@@ -1198,6 +1232,10 @@
                 ? R`Step 2, the annuity due factor: \[\frac{1}{${L.dec(r)}}\left(1 - \frac{1}{(${L.onePlus(r)})^{${n}}}\right)(${L.onePlus(r)}) = ${L.numT(fac, 6)}\]`
                 : R`Step 2, the annuity factor: \[\frac{1}{${L.dec(r)}}\left(1 - \frac{1}{(${L.onePlus(r)})^{${n}}}\right) = ${L.numT(fac, 6)}\]`,
               R`Step 3: \[C = \frac{${L.num(pv)}}{${L.numT(fac, 6)}} = ${L.money(c)}\]`,
+            ],
+            ti: [
+              TI.line(`${tn(lump)}/${tn(1 + r)}^${k}`, { note: 'The PV of the lump sum.' }),
+              TI.cmd('tvmPmt', due ? [n, P(r), '-ans', 0, 1, 1, 1] : [n, P(r), '-ans', 0, 1, 1], { note: due ? R`\(PV = -\text{ans}\), and the last 1 means BEGIN (an annuity due).` : R`\(PV = -\text{ans}\). Payments at the end of each year (END).` }),
             ],
             why: 'Same present value, spread into level payments: that is the equivalent annuity.',
           };
@@ -1235,6 +1273,9 @@
                 R`\[PV = \frac{C_1}{r - g} = \frac{${ml4(c1)}}{${L.dec(r)} - ${L.dec(g)}} = ${L.money(pv)}\]`,
               ]),
             calc: `${+c1.toFixed(4)} ÷ (${L.dec(r)} − ${L.dec(g)}) = ${T.money(pv)}`,
+            ti: [justPaid
+              ? TI.line(`${tn(c)}*${tn(1 + g)}/(${tn(r)}-${tn(g)})`, { note: R`\(C_0 \times (1+g)\) on top: the next payment.` })
+              : TI.line(`${tn(c)}/(${tn(r)}-${tn(g)})`)],
             why: R`Growing perpetuity: the next payment divided by \((r - g)\).`,
           };
         } },
@@ -1257,6 +1298,7 @@
               R`\[PV = \frac{${ml(c)}}{${L.dec(r)} - ${L.dec(g)}}\left(1 - \left(\frac{${L.onePlus(g)}}{${L.onePlus(r)}}\right)^{${n}}\right) = ${L.money(c / (r - g))} \times (1 - ${L.numT(ratio, 8)})\]`,
               R`\[PV = ${L.money(pv)}\]`,
             ],
+            ti: [TI.line(`${tn(c)}/(${tn(r)}-${tn(g)})*(1-(${tn(1 + g)}/${tn(1 + r)})^${n})`, { note: 'Type the growing annuity formula in one line. Watch the brackets.' })],
             why: 'Growing cash flows that stop after n years: a growing annuity.',
           };
         } },
@@ -1281,6 +1323,7 @@
                 R`\[C = \frac{${ml(pv)}}{${L.numT(a, 6)}} = ${L.money(pay)}\]`,
               ],
               calc: `${n} [N] · ${pk(r)} [I/YR] · −${kn(pv)} [PV] · 0 [FV] · [PMT] → ${T.money(pay)}`,
+              ti: [TI.solver({ N: n, I: P(r), PV: pv, FV: 0, PpY: 1, CpY: 1 }, 'Pmt', { note: R`\(PV\) is positive: you receive the loan. The payment is negative because you pay it.` })],
               why: 'Set the loan equal to the PV of an ordinary annuity and solve for C.',
             };
           }
@@ -1303,6 +1346,7 @@
               R`\[PMT = \frac{PV \times i}{1 - (1+i)^{-n}} = \frac{${ml(pv)} \times \frac{${L.dec(apr)}}{12}}{1 - \left(1 + \frac{${L.dec(apr)}}{12}\right)^{-${N}}} = ${L.money(pay)}\]`,
             ],
             calc: `${N} [N] · ${pk(apr)} ÷ 12 = [I/YR] · −${kn(pv)} [PV] · 0 [FV] · [PMT] → ${T.money(pay)}`,
+            ti: [TI.solver({ N, I: P(apr), PV: pv, FV: 0, PpY: 12, CpY: 12 }, 'Pmt', { note: R`\(N = ${yrs} \times 12 = ${N}\), \(I(\%)\) is the yearly rate and \(PpY = CpY = 12\). The payment is negative because you pay it.` })],
             why: 'Monthly loan: monthly rate, number of months, then the annuity formula solved for C.',
           };
         } },
@@ -1349,6 +1393,11 @@
             mistakes,
             steps: [R`Each year: interest \(=\) opening balance \(\times ${L.dec(r)}\). Principal \(=\) payment \(-\) interest. Closing \(=\) opening \(-\) principal.`]
               .concat(rows.slice(1).map((x) => R`\[\begin{aligned} \text{Interest}_{${x.t}} &= ${L.num(x.open)} \times ${L.dec(r)} = ${L.num(x.int)} \\ \text{Principal}_{${x.t}} &= ${L.num(pay)} - ${L.num(x.int)} = ${L.num(x.prin)} \\ \text{Closing}_{${x.t}} &= ${L.num(x.open)} - ${L.num(x.prin)} = ${L.num(x.end)} \end{aligned}\]`)),
+            ti: ask === 'end'
+              ? [TI.cmd('tvmPV', [n - k, P(r), -pay, 0, 1, 1], { note: R`Shortcut: the balance at the end of year ${k} is the PV of the ${n - k} payments still to come. (It can differ from the table by a cent, because the table rounds each row.)` })]
+              : [TI.cmd('tvmPV', [n - k + 1, P(r), -pay, 0, 1, 1], { note: R`Shortcut: the opening balance of year ${k} is the PV of the ${n - k + 1} payments still to come. (It can differ from the table by a cent, because the table rounds each row.)` }),
+                TI.line(`ans*${tn(r)}`, { note: R`Interest \(=\) opening balance \(\times\) rate.` })]
+                .concat(ask === 'prin' ? [TI.line(`${tn(pay)}-ans`, { note: R`Principal \(=\) payment \(-\) interest.` })] : []),
             why: 'Interest is always charged on the balance at the start of the year. As the balance falls, interest falls and principal rises.',
           };
         } },
@@ -1372,6 +1421,10 @@
               R`Balance = PV of the remaining payments: \[${pvaTex(r2(pay), rt(apr, 12), left)} = ${L.money(bal)}\]`,
             ],
             calc: `${N} [N] · ${pk(apr)} ÷ 12 = [I/YR] · −${kn(pv)} [PV] · 0 [FV] · [PMT] → ${T.money(pay)} · then ${left} [N] · [PV] → −${T.money(bal)}`,
+            ti: [
+              TI.solver({ N, I: P(apr), PV: pv, FV: 0, PpY: 12, CpY: 12 }, 'Pmt', { note: 'Step 1: the monthly payment (negative because you pay it).' }),
+              TI.solver({ N: left, I: P(apr), Pmt: -r2(pay), FV: 0, PpY: 12, CpY: 12 }, 'PV', { note: R`Step 2: change \(N\) to the ${left} payments left and solve \(PV\). That is what you still owe.` }),
+            ],
             why: 'The balance is the present value of the payments still to come.',
           };
         } },
@@ -1390,6 +1443,11 @@
           ];
           const givens = [['PV', ml(pv)], ['APR_{old}', L.pctT(apr)], ['APR_{new}', L.pctT(apr2)], ['n', String(N)], [R`\text{years paid}`, String(k)]];
           const n2 = FIN.tvm.solveN(i2, -bal, pay, 0);
+          const balTI = r2(FIN.pvAnnuity(r2(pay), i, left)); // what the Finance Solver shows, from the payment rounded to cents
+          const tiBase = [
+            TI.solver({ N, I: P(apr), PV: pv, FV: 0, PpY: 12, CpY: 12 }, 'Pmt', { note: 'Step 1: the original monthly payment.' }),
+            TI.solver({ N: left, I: P(apr), Pmt: -r2(pay), FV: 0, PpY: 12, CpY: 12 }, 'PV', { note: R`Step 2: the balance, with \(N = ${left}\) payments left.` }),
+          ];
           if (bp > 0 && rng.chance(0.4) && Number.isFinite(n2) && n2 > left && n2 < 900) {
             return {
               q: R`You borrow ${mt(pv)} over ${yrs} years at ${T.pctT(apr)} p.a., with monthly payments. After ${k} years the rate ${move}. You keep paying the **old** monthly amount. How many more monthly payments must you make? (Answer in months.)`,
@@ -1403,6 +1461,7 @@
                 R`Keep \(PMT = ${L.money(pay)}\) and solve for \(n\) at the new rate: \[${L.num(bal)} = \frac{${L.num(pay)}}{\frac{${L.dec(apr2)}}{12}}\left(1 - \frac{1}{\left(1 + \frac{${L.dec(apr2)}}{12}\right)^{n}}\right) \;\Rightarrow\; n = ${L.num(n2)}\]`,
               ]),
               calc: `${N} [N] · ${pk(apr)} ÷ 12 = [I/YR] · −${kn(pv)} [PV] · 0 [FV] · [PMT] · ${left} [N] · [PV] → −${T.money(bal)} · ${pk(apr2)} ÷ 12 = [I/YR] · [N] → ${T.num(n2)}`,
+              ti: tiBase.concat([TI.solver({ I: P(apr2), PV: balTI, Pmt: -r2(pay), FV: 0, PpY: 12, CpY: 12 }, 'N', { note: R`Step 3: the new rate, the same payment, solve \(N\).` })]),
               why: 'Same payment, higher rate: less of each payment repays principal, so the loan runs longer.',
             };
           }
@@ -1419,6 +1478,7 @@
               R`New payment on the balance, over the ${left} months left: \[PMT_{new} = \frac{${L.num(bal)} \times \frac{${L.dec(apr2)}}{12}}{1 - \left(1 + \frac{${L.dec(apr2)}}{12}\right)^{-${left}}} = ${L.money(newPay)}\]`,
             ]),
             calc: `${N} [N] · ${pk(apr)} ÷ 12 = [I/YR] · −${kn(pv)} [PV] · 0 [FV] · [PMT] · ${left} [N] · [PV] → −${T.money(bal)} · ${pk(apr2)} ÷ 12 = [I/YR] · [PMT] → ${T.money(newPay)}`,
+            ti: tiBase.concat([TI.solver({ N: left, I: P(apr2), PV: balTI, FV: 0, PpY: 12, CpY: 12 }, 'Pmt', { note: R`Step 3: the new rate on the balance, over the ${left} months left. The payment is negative because you pay it.` })]),
             why: 'Payment, then balance, then re-price the balance at the new rate over the months left.',
           };
         } },
@@ -1446,6 +1506,7 @@
                 R`\[C = \frac{${ml(fv)}}{${L.numT(f, 6)}} = ${L.money(c)}\]`,
               ],
               calc: `${n} [N] · ${pk(r)} [I/YR] · 0 [PV] · ${kn(fv)} [FV] · [PMT] → −${T.money(c)}`,
+              ti: [TI.solver({ N: n, I: P(r), PV: 0, FV: fv, PpY: 1, CpY: 1 }, 'Pmt', { note: 'The target goes in FV. The payment is negative because you pay each deposit in.' })],
               why: 'Future target: solve the FV of an annuity for the deposit.',
             };
           }
@@ -1466,6 +1527,7 @@
               R`\[C = \frac{FV \times i}{(1+i)^{n} - 1} = \frac{${ml(fv)} \times \frac{${L.dec(apr)}}{12}}{\left(1 + \frac{${L.dec(apr)}}{12}\right)^{${N}} - 1} = ${L.money(c)}\]`,
             ],
             calc: `${N} [N] · ${pk(apr)} ÷ 12 = [I/YR] · 0 [PV] · ${kn(fv)} [FV] · [PMT] → −${T.money(c)}`,
+            ti: [TI.solver({ N, I: P(apr), PV: 0, FV: fv, PpY: 12, CpY: 12 }, 'Pmt', { note: R`\(N = ${yrs} \times 12 = ${N}\) and \(PpY = CpY = 12\). The payment is negative because you pay each deposit in.` })],
             why: 'Future target with monthly deposits: monthly rate, number of months, FV of an annuity.',
           };
         } },
@@ -1492,6 +1554,7 @@
               R`\[FV = \frac{C}{i}\left((1+i)^{n} - 1\right) = ${fvaTex(d, rt(apr, 12), n)} = ${L.money(fv)}\]`,
             ],
             calc: `${n} [N] · ${pk(apr)} ÷ 12 = [I/YR] · 0 [PV] · −${kn(d)} [PMT] · [FV] → ${T.money(fv)}`,
+            ti: [TI.solver({ N: n, I: P(apr), PV: 0, Pmt: -d, PpY: 12, CpY: 12 }, 'FV', { note: R`\(N = (${b} - ${a}) \times 12 = ${n}\) deposits, \(PpY = CpY = 12\).` })],
             why: 'Count only the months when deposits are made, and use the monthly rate.',
           };
         } },
@@ -1526,6 +1589,10 @@
               R`Stage 2, ${T0} deposits must grow to that amount: \[C = \frac{${L.num(pvT)} \times ${L.dec(r)}}{(${L.onePlus(r)})^{${T0}} - 1} = ${L.money(pmt)}\]`,
             ],
             calc: `${college ? 'BEG mode · ' : ''}${m} [N] · ${pk(r)} [I/YR] · ${kn(x)} [PMT] · 0 [FV] · [PV] → −${T.money(pvT)}${college ? ' · back to END mode' : ''} · then ${T0} [N] · 0 [PV] · ${kn(pvT)} [FV] · [PMT] → −${T.money(pmt)}`,
+            ti: [
+              TI.solver({ N: m, I: P(r), Pmt: -x, FV: 0, PpY: 1, CpY: 1, PmtAt: college ? 'BEGIN' : 'END' }, 'PV', { note: college ? R`Stage 1: BEGIN, because the first fee is paid at year ${T0} itself. This is the amount you need at year ${T0}.` : R`Stage 1: END, because the first withdrawal is one year after year ${T0}. This is the amount you need at year ${T0}.` }),
+              TI.solver({ N: T0, I: P(r), PV: 0, FV: r2(pvT), PpY: 1, CpY: 1, PmtAt: 'END' }, 'Pmt', { note: R`Stage 2: back to END. ${T0} deposits must grow to that amount. The payment is negative because you pay each deposit in.` }),
+            ],
             why: 'Two stages: value the spending at the date saving stops, then find the deposit that builds that amount.',
           };
         } },
@@ -1562,6 +1629,11 @@
                 R`A calculator gives \(${L.pct(exact, 4)}\), so the estimate is very close.`,
               ],
               calc: `${n} [N] · −${kn(price)} [PV] · ${kn(c)} [PMT] · 0 [FV] · [I/YR] → ${T.num(exact * 100, 4)}`,
+              ti: [
+                TI.line(`${tn(a1)}/(${tn(a1)}+${tn(-a2)})`, { note: R`This is \(\lambda = \frac{A_1}{A_1 - A_2}\).` }),
+                TI.line(`${p1}+ans*(${p2}-${p1})`, { note: 'The interpolated rate, in %.' }),
+                TI.say(R`Check: the Finance Solver (\(N = ${n}\), \(PV = -${tn(price)}\), \(Pmt = ${tn(c)}\), \(FV = 0\), solve \(I(\%)\)) gives the exact rate, \(${L.pct(exact, 4)}\).`),
+              ],
               why: 'Interpolation: see how far the target sits between the two trial PVs, and move that far between the rates.',
             };
           }
@@ -1589,7 +1661,8 @@
                 R`\[n = \frac{-\ln(${L.numT(1 - (pv * i) / pay, 6)})}{\ln(1 + i)} = ${L.num(n)} \text{ months}\]`,
               ],
               calc: `${pk(apr)} ÷ 12 = [I/YR] · ${kn(pv)} [PV] · −${kn(pay)} [PMT] · 0 [FV] · [N] → ${T.num(n)}`,
-              why: 'Solve the annuity formula for n with logs, or press [N] on the calculator.',
+              ti: [TI.solver({ I: P(apr), PV: pv, Pmt: -pay, FV: 0, PpY: 12, CpY: 12 }, 'N', { note: R`The loan you receive is positive; the payments you make are negative. \(N\) comes out in months.` })],
+              why: 'Solve the annuity formula for n with logs, or solve N in the Finance Solver.',
             };
           }
           const pv0 = rng.step(1000, 30000, 1000), d = rng.step(50, 1000, 50), i = rng.step(0.002, 0.008, 0.0005);
@@ -1612,6 +1685,7 @@
               R`\[n = \frac{\ln(${L.numT(x, 6)})}{\ln(${L.onePlus(i)})} = ${L.num(n)} \text{ months}\]`,
             ],
             calc: `${pk(i)} [I/YR] · −${kn(pv0)} [PV] · −${kn(d)} [PMT] · ${kn(target)} [FV] · [N] → ${T.num(n)}`,
+            ti: [TI.solver({ I: P(i * 12), PV: -pv0, Pmt: -d, FV: target, PpY: 12, CpY: 12 }, 'N', { note: R`${T.pctT(i)} a month is \(I(\%) = ${L.numT(P(i * 12))}\) with \(PpY = CpY = 12\). Money paid in is negative; the target is positive.` })],
             why: 'Both the lump sum and the deposits grow. Solve for the number of periods.',
           };
         } },
@@ -1639,6 +1713,7 @@
                 R`\[NPV = ${L.num(inflow)} - ${L.num(cost)} = ${L.money(npv)}\]`,
               ],
               calc: `−${kn(i0)} [CFj] · ${kn(c - i1)} [CFj] · ${kn(c)} [CFj] · ${n - 1} [Nj] · ${pk(r)} [I/YR] · [NPV] → ${T.money(npv)}`,
+              ti: [TI.cmd('npv', [P(r), -i0, [c - i1, c], [1, n - 1]], { note: `Year 1 nets ${mt(c)} − ${mt(i1)} = ${mt(c - i1)}. Years 2 to ${n} are ${n - 1} inflows of ${mt(c)}.` })],
               why: 'Bring every cash flow to today: the annuity of inflows, the cost today and the cost in one year.',
             };
           }
@@ -1668,6 +1743,10 @@
               R`Years 2–${k}, an annuity of ${k - 1} payments whose value lands at year 1: \[${pvaTex(y, rt(r), k - 1)} = ${L.money(bAt1)} \;\Rightarrow\; \frac{${L.num(bAt1)}}{${L.onePlus(r)}} = ${L.money(b)}\]`,
               R`Year ${k + 1} onwards, a perpetuity whose value lands at year ${k}: \[\frac{${ml(z)}}{${L.dec(r)}} = ${L.money(cAtK)} \;\Rightarrow\; \frac{${L.num(cAtK)}}{(${L.onePlus(r)})^{${k}}} = ${L.money(c)}\]`,
               R`\[\text{Value} = ${L.num(a)} + ${L.num(b)} + ${L.num(c)} = ${L.money(v)}\]`,
+            ],
+            ti: [
+              TI.line(`${tn(z)}/${tn(r)}`, { note: `The perpetuity’s value at year ${k}, one year before its first payment.` }),
+              TI.line(`npv(${tn(P(r))},0,{${tn(x)},${tn(y)},${tn(y)}+ans},{1,${k - 2},1})`, { note: `Year ${k} holds its own ${mt(y)} plus the perpetuity’s value.` }),
             ],
             why: 'Split the stream into a lump sum, an annuity and a perpetuity. Move each value to today, then add.',
           };

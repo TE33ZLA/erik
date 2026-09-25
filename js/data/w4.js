@@ -1,11 +1,12 @@
 /* Floor 4 — Week 4: Capital budgeting I — techniques for evaluation (decision rules). */
 (function (root) {
   'use strict';
-  const { FIN, L, T, FMT } = root;
+  const { FIN, L, T, FMT, TI } = root;
   const R = String.raw;
   /** money for workings: whole dollars without cents, otherwise 2 decimals */
   const M = (x) => (Math.abs(x - Math.round(x)) < 0.005 ? L.money(Math.round(x), 0) : L.money(x));
   const P = (r) => +(r * 100).toFixed(8); // decimal rate -> percent units for answers
+  const r2 = (x) => +x.toFixed(2); // a number as you would type it from a previous answer
   /** drop distractors that are not finite or would display the same as the answer or each other */
   function clean(ms, ans, unit, dp) {
     const seen = new Set([FMT.answerText(ans, unit, dp)]);
@@ -44,6 +45,21 @@
   }
   const npvKeys = (cfs, r) => `${cfKeys(cfs)} · ${rateKey(r)} [I/YR] · [NPV] → ${T.money(FIN.npv(r, cfs))}`;
   const irrKeys = (cfs, irr) => `${cfKeys(cfs)} · [IRR/YR] → ${T.num(irr * 100)}`;
+  /** TI-Nspire npv( ) / irr( ) arguments: CF0, the list, and a count list when a cash flow repeats 3+ times in a row */
+  function cfArgs(cfs) {
+    const vals = [], cnt = [];
+    for (let i = 1; i < cfs.length;) {
+      let j = i;
+      while (j + 1 < cfs.length && Math.abs(cfs[j + 1] - cfs[i]) < 1e-9) j++;
+      vals.push(cfs[i]); cnt.push(j - i + 1);
+      i = j + 1;
+    }
+    return cnt.some((c) => c >= 3) ? [cfs[0], vals, cnt] : [cfs[0], cfs.slice(1)];
+  }
+  const tiNpv = (r, cfs, extra) => TI.cmd('npv', [P(r)].concat(cfArgs(cfs)), extra);
+  const tiIrr = (cfs, extra) => TI.cmd('irr', cfArgs(cfs), extra);
+  /** EAA / EAC: the annuity payment over n years with the same NPV */
+  const tiEaa = (npv, r, n, extra) => TI.cmd('tvmPmt', [n, P(r), -r2(npv), 0, 1, 1], extra);
   /** "−$100.00 + $9.09 − $3.00" */
   function signedSum(vals) {
     return vals.map((v, k) => (k === 0 ? M(v) : (v < 0 ? '- ' + M(-v) : '+ ' + M(v)))).join(' ');
@@ -126,6 +142,28 @@
   const FOUR = [-252, 1431, -3035, 2850, -1000];
   const BARCODE = [-1450000, 640000, 715250, 823330, 907125];
 
+  /* ---------- lesson examples (fresh numbers, so the battles stay a real test) ---------- */
+  const CAFE = [-10000, 4000, 4000, 4000];
+  const PB_G = [-50000, 12000, 18000, 25000, 20000];
+  const NPV_CNT = [-500000].concat(Array(5).fill(140000));
+  const IRR_G = [-20000, 8000, 8000, 8000];
+  const IRR_CNT = [-80000, 25000, 25000, 25000, 25000];
+  const XA = [-1000, 900, 300], XB = [-1000, 400, 850];
+  const CROSS_LS = FIN.crossover(EX_L, EX_S);
+  const MINE = [-10e6, 25e6, -15e6];
+  const RAT = [['A', 300000, 134000], ['B', 100000, 47000], ['C', 200000, 92000], ['D', 100000, 42000]]
+    .map(([nm, out, a]) => { const pv = FIN.pvAnnuity(a, 0.1, 3); return { nm, out, a, pv, npv: pv - out, pi: (pv - out) / out }; });
+  const [RA, RB, RC] = RAT;
+  const RANK = RAT.slice().sort((x, y) => y.pi - x.pi).map((p) => p.nm);
+  const SHORT = [-50000, 30000, 30000], LONG = [-50000, 16500, 16500, 16500, 16500];
+  const NPV_SH = FIN.npv(0.1, SHORT), NPV_LG = FIN.npv(0.1, LONG);
+  const EAA_SH = FIN.eac(NPV_SH, 0.1, 2), EAA_LG = FIN.eac(NPV_LG, 0.1, 4);
+  const CHAIN_SH = FIN.npv(0.1, [-50000, 30000, -20000, 30000, 30000]);
+  const NPV_P = -6000 - FIN.pvAnnuity(500, 0.08, 6), NPV_Q = -2000 - FIN.pvAnnuity(1200, 0.08, 3);
+  const EAC_P = FIN.eac(NPV_P, 0.08, 6), EAC_Q = FIN.eac(NPV_Q, 0.08, 3);
+  const RET1 = (6000 + 5500) / 1.1, RET2 = 6000 / 1.1 + 4000 / 1.21;
+  const pctLabel = (r) => `${+(r * 100).toFixed(2)}%`;
+
   root.registerPack({
     id: 'w4', floor: 4, week: 'Week 4',
     title: 'The Project Colosseum',
@@ -178,6 +216,14 @@
         R`**Equivalent annual annuity**: \(EAA = \frac{NPV \times k}{1 - \frac{1}{(1+k)^{n}}}\). Pick the higher EAA, or the lower equivalent annual cost.`,
         R`**When to retire an asset**: find the PV of each possible retirement date and pick the highest.`,
       ] },
+      { h: 'On your TI-Nspire CX CAS', points: [
+        R`Payback: \(\text{cumulativeSum}(\{CF_0, CF_1, \ldots\})\) gives the running total. Find the first positive number.`,
+        R`NPV: \(\text{npv}(k, CF_0, \{CF_1, CF_2, \ldots\})\), with \(k\) as a percentage. \(CF_0\) goes before the list.`,
+        R`Repeated cash flows: add a count list. \(\text{npv}(9, -500000, \{140000\}, \{5\})\) means \(\$140{,}000\) five times.`,
+        R`IRR: \(\text{irr}(CF_0, \{CF_1, \ldots\})\). No rate goes in, and the answer is a percentage.`,
+        R`Crossover rate: the IRR of the differences, e.g. \(\text{irr}(0, \{10, 60, 80\} - \{70, 50, 20\})\).`,
+        R`EAA or EAC: \(\text{tvmPmt}(n, k, -NPV, 0, 1, 1)\).`,
+      ] },
     ],
 
     topics: {
@@ -192,20 +238,28 @@
     },
 
     nodes: [
+      { id: 'w4-L1', kind: 'lesson', name: 'What is a project?', lesson: 'w4-L1' },
+      { id: 'w4-L2', kind: 'lesson', name: 'Payback: how fast is the money back?', lesson: 'w4-L2' },
       { id: 'w4-1', kind: 'battle', name: 'The Arena Gates', topics: ['basics', 'payback'], n: 6,
         enemy: { name: 'Captain Payback', title: 'Ignores every coin after the cut-off', body: 'round', color: '#d9a441', acc: ['pirate'], mouth: 'grin', item: '🪙',
           lines: { intro: 'Arr! I only count the gold until I get me money back!', hit: ['Blimey! You spotted the time value I ignored!', 'Arr, you counted the cash after the cut-off!'],
             taunt: ['A big cash flow in year 4? Never heard of it!', 'Quick money is the only money, matey!'], win: 'Sunk… like a sunk cost…', lose: 'Arr! Paid back in two years flat!' } } },
+      { id: 'w4-L3', kind: 'lesson', name: 'Net present value (NPV)', lesson: 'w4-L3' },
+      { id: 'w4-L4', kind: 'lesson', name: 'Internal rate of return (IRR)', lesson: 'w4-L4' },
       { id: 'w4-2', kind: 'battle', name: 'Hall of Present Value', topics: ['npv', 'irr'], n: 6,
         enemy: { name: 'The NPVampire', title: 'Drains the wealth from bad projects', body: 'ghost', color: '#8e3b5b', acc: ['bowtie'], mouth: 'fangs', eyes: 2, item: '🦇',
           lines: { intro: 'I feast on projects with a negative NPV!', hit: ['Argh! A positive NPV, my only weakness!', 'You discounted every cash flow… I weaken!'],
             taunt: ['Forgot the outlay at t = 0? Delicious.', 'Mmm, undiscounted cash flows. So juicy.'], win: 'Value… created… I dissolve…', lose: 'Your wealth is mine!' } } },
       { id: 'w4-m1', kind: 'mini', name: 'Accept or Reject?', mini: 'accept-reject' },
+      { id: 'w4-L5', kind: 'lesson', name: 'NPV profiles and the crossover rate', lesson: 'w4-L5' },
+      { id: 'w4-L6', kind: 'lesson', name: 'When IRR goes wrong', lesson: 'w4-L6' },
       { id: 'w4-3', kind: 'battle', name: 'The Crossover Colonnade', topics: ['profile', 'pitfalls'], n: 6,
         enemy: { name: 'The IRR Hydra', title: 'Grows an extra IRR with every sign change', body: 'spiky', color: '#3f9c6d', acc: ['horns'], mouth: 'fangs', eyes: 3, item: '🐍',
           lines: { intro: 'Every sign change grows me another IRR! Which one is real? Hisss!', hit: ['You trusted NPV over IRR! One head down!', 'The crossover rate! Nooo!'],
             taunt: ['The bigger IRR always wins… right? Hisss!', 'Pick an IRR, any IRR!'], win: 'NPV… always… wins…', lose: 'IRRs everywhere! Hisss!' } } },
       { id: 'w4-m2', kind: 'mini', name: 'Sign Spotter', mini: 'sign-spotter' },
+      { id: 'w4-L7', kind: 'lesson', name: 'Capital rationing and the PI', lesson: 'w4-L7' },
+      { id: 'w4-L8', kind: 'lesson', name: 'Projects with different lives', lesson: 'w4-L8' },
       { id: 'w4-4', kind: 'battle', name: 'The Rationing Ring', topics: ['pi', 'lives'], n: 6,
         enemy: { name: 'The Rationator', title: 'Gladiator of the hard budget', body: 'box', color: '#b5523b', acc: ['horns', 'mustache'], mouth: 'flat', item: '🛡️',
           lines: { intro: 'One million denarii and not a coin more! Choose your projects wisely!', hit: ['You ranked by PI! The crowd roars!', 'An equivalent annual annuity? Well fought!'],
@@ -291,6 +345,354 @@
       },
     },
 
+    lessons: {
+      'w4-L1': {
+        title: 'What is a project?',
+        goal: R`Explain what a capital budgeting project is, why its cash flows are discounted, and how projects are classified.`,
+        topics: ['basics'],
+        cards: [
+          { kind: 'learn', title: 'Spend now, get cash later',
+            body: R`A **project** means spending money today to get cash back later.\n\nA café buys a $10,000 coffee machine. It brings in $4,000 of extra cash a year for 3 years.\n\nChoosing which long-term projects to invest in is called **capital budgeting**.`,
+            tl: { cfs: CAFE, unit: 'Year' },
+            tip: R`Money out is negative and money in is positive, just like in the Finance Solver.` },
+          { kind: 'learn', title: 'Why not just add it up?',
+            body: R`The café gets back $12,000 in total. That looks like $2,000 more than it spent.\n\nBut the $4,000 amounts arrive later, and a dollar later is worth less than a dollar today (Floor 1). So we move every cash flow back to today before we compare. That is **discounting**.`,
+            table: { head: ['Year', 'Cash flow', 'Value today at 10%'], rows: CAFE.map((c, t) => [t, cell(c), T.money(disc(c, 0.1, t))]).concat([['**Total**', cell(sum(CAFE)), T.money(FIN.npv(0.1, CAFE))]]) },
+            tip: R`At 10%, the three $4,000 amounts are worth only ${T.money(FIN.pvAnnuity(4000, 0.1, 3))} today. That is less than the $10,000 cost.` },
+          { kind: 'learn', title: 'The discount rate k',
+            body: R`A project’s cash flows are discounted at its **cost of capital**, written \(k\).\n\n\(k\) is the return investors could earn elsewhere, on an investment with the same risk. So it is the **minimum return** the project must earn. It is also called the **required rate of return**.`,
+            tip: R`Riskier projects need a higher \(k\). A higher \(k\) makes later cash flows worth less today.` },
+          { kind: 'learn', title: 'The five steps',
+            body: R`Every capital budgeting problem follows the same steps:`,
+            points: [R`1. **Estimate** the project’s cash flows.`, R`2. **Assess** how risky those cash flows are.`, R`3. **Choose** the discount rate \(k\).`, R`4. **Find** the NPV and/or the IRR (the next lessons).`, R`5. **Decide**: accept the project if it adds value.`] },
+          { kind: 'learn', title: 'Independent or mutually exclusive?',
+            body: R`**Independent** projects do not affect each other. The café can buy a new coffee machine **and** build a website. Judge each one on its own.\n\n**Mutually exclusive** projects compete: taking one rules out the other. The café has room for one machine, so it must choose machine A **or** machine B.` },
+          { kind: 'check', ref: 'w4-q02' },
+          { kind: 'learn', title: 'Count the sign changes',
+            body: R`Write the sign of each year’s cash flow: \(-\) for money out, \(+\) for money in.\n\n**Conventional** cash flows change sign **once**, like \(- \; + \; + \; +\).\n\n**Non-conventional** cash flows change sign **two or more times**. A mine is a classic case: it costs money today, earns cash for years, then needs a big clean-up at the end.`,
+            table: { head: ['Signs in years 0 to 4', 'Sign changes', 'Type'], rows: [['− + + + +', '1', 'Conventional'], ['− − + + +', '1', 'Conventional'], ['− + + + −', '2', 'Non-conventional'], ['− + − + −', '4', 'Non-conventional']] } },
+          { kind: 'check', ref: 'w4-q04' },
+          { kind: 'check', gen: 'w4-g-signs' },
+          { kind: 'recap', title: 'Remember', points: [
+            R`**Capital budgeting** is choosing which long-term projects to invest in.`,
+            R`Cash that arrives later is worth less, so discount every cash flow at the cost of capital \(k\).`,
+            R`**Independent**: judge each project alone. **Mutually exclusive**: pick one.`,
+            R`Count the sign changes: one is **conventional**, two or more is **non-conventional**.`,
+            R`Exam trap: starting with an inflow does not make a project non-conventional. \(+ \; + \; + \; - \; - \; -\) changes sign once, so it is conventional.`] },
+        ],
+      },
+      'w4-L2': {
+        title: 'Payback: how fast is the money back?',
+        goal: R`Work out a payback period with a running total on the TI-Nspire, and explain what payback ignores.`,
+        topics: ['payback'],
+        cards: [
+          { kind: 'learn', title: 'How long until you are paid back?',
+            body: R`You lend a friend $100. They pay you back $30 a year. After 3 years you have $90 back. Early in year 4 you have all $100.\n\nThe **payback period** is the time a project needs to earn back its initial cost.\n\nThe rule: accept a project if its payback is **shorter than a cut-off**, such as 3 years. Management chooses the cut-off.` },
+          { kind: 'learn', title: 'Keep a running total',
+            body: R`Here is **Project L**. It costs $100 today. Add its cash flows one year at a time. This **running total** (the **cumulative** cash flow) shows how much is still to recover.\n\nThe total is still negative after year 2. It turns positive during year 3.`,
+            table: { head: ['Year', 'Cash flow', 'Running total'], rows: EX_L.map((c, t) => [t, cell(c), cell(sum(EX_L.slice(0, t + 1)))]) } },
+          { kind: 'learn', title: 'Count part of the last year', formula: 'payback',
+            body: R`Payback is the full years before recovery, plus the **fraction** of the recovery year that is needed:\n\n\[\text{Payback} = \text{years before recovery} + \frac{\text{unrecovered cost}}{\text{cash flow in the recovery year}}\]\n\nFor Project L: \(2 + \frac{30}{80} = 2.375\) years.`,
+            tip: R`The fraction assumes the cash arrives evenly during the year.` },
+          { kind: 'example', title: 'Worked example: Project S', q: R`Project S costs $100 today. It returns $70, $50 and $20 in years 1, 2 and 3. What is its payback period?`,
+            tl: { cfs: EX_S, unit: 'Year' },
+            steps: [R`Running total: \(-100\), then \(-100 + 70 = -30\), then \(-30 + 50 = +20\).`, R`It turns positive in year 2. So 1 full year passes first, with \(\$30\) still to recover.`, R`Year 2 brings \(\$50\). The fraction needed is \(\frac{30}{50} = 0.6\).`, R`\[\text{Payback} = 1 + \frac{30}{50} = 1.6 \text{ years}\]`],
+            answer: R`Project S pays back in \(1.6\) years, faster than Project L (\(2.375\) years).`,
+            ti: [TI.cmd('cumulativeSum', [EX_S], { note: R`The first positive total is in year 2. Just before it, \(-30\) is left to recover.` }), TI.line('1+30/50')] },
+          { kind: 'ti', title: 'cumulativeSum does the running total',
+            body: R`Type the cash flows as a list inside \(\text{cumulativeSum}( )\). The calculator shows the running total for every year, starting with year 0.\n\nFind the first positive number. The number just before it is what is still to recover.`,
+            ti: [TI.cmd('cumulativeSum', [EX_L], { note: R`The total turns positive in year 3. After year 2, \(-30\) is left.` }), TI.line('2+30/80')] },
+          { kind: 'guided', title: 'Your turn', q: R`A project costs $50,000. It returns $12,000, $18,000, $25,000 and $20,000 in years 1 to 4. Find its payback period.`,
+            table: cfTable([PB_G], ['Cash flow']),
+            parts: [
+              { ask: R`What is the running total at the end of year 2?`, answer: sum(PB_G.slice(0, 3)), unit: '$', dp: 0, hint: 'Start at −50,000 and add the first two cash flows.', why: R`\(-50{,}000 + 12{,}000 + 18{,}000 = -20{,}000\).` },
+              { ask: R`In which year does the running total turn positive?`, answer: 3, unit: '', dp: 0, hint: 'Add the year 3 cash flow to the total.', why: R`\(-20{,}000 + 25{,}000 = +5{,}000\), so it turns positive in year 3.` },
+              { ask: R`What is the payback period?`, answer: FIN.payback(PB_G), unit: 'yrs', dp: 2, hint: 'Two full years, plus the unrecovered cost divided by the year 3 cash flow.', why: R`\(2 + \frac{20{,}000}{25{,}000} = 2.8\) years.`, mistakes: [{ v: 2 + 20000 / 18000, why: 'Divide by the year 3 cash flow ($25,000), not the year 2 one.' }] },
+            ],
+            answer: R`The project pays back in \(2.8\) years.`,
+            ti: [TI.cmd('cumulativeSum', [PB_G]), TI.line('2+20000/25000')] },
+          { kind: 'learn', title: 'Equal cash flows: a shortcut',
+            body: R`When every yearly cash flow is the same, just divide:\n\n\[\text{Payback} = \frac{\text{Initial cost}}{\text{Yearly cash flow}}\]\n\nA $15,000 project that returns $7,000 a year pays back in \(\frac{15{,}000}{7{,}000} = 2.14\) years.`,
+            tip: R`This shortcut only works when the cash flows are equal. Otherwise, use the running total.` },
+          { kind: 'check', gen: 'w4-g-payback-level' },
+          { kind: 'learn', title: 'What payback ignores',
+            body: R`Payback is simple, and a short payback hints at lower **risk** and better **liquidity** (the cash is back sooner). But it has three big flaws:`,
+            points: [R`It ignores the **time value of money**: a dollar in year 3 counts the same as a dollar today.`, R`It ignores **cash after the payback**: if Project L also paid $100 million in year 4, its payback would still be 2.375 years.`, R`The **cut-off is arbitrary**: nothing says why 2 or 3 years is right.`],
+            tip: R`Payback never uses the cost of capital \(k\). If a payback question gives you \(k\), you do not need it.` },
+          { kind: 'check', ref: 'w4-q08' },
+          { kind: 'recap', title: 'Remember', formula: 'payback', points: [
+            R`**Payback** \(=\) years before recovery \(+ \frac{\text{unrecovered cost}}{\text{cash flow in the recovery year}}\).`,
+            R`Accept if the payback is shorter than the cut-off.`,
+            R`On the TI-Nspire: \(\text{cumulativeSum}(\{CF_0, CF_1, \ldots\})\), then find the first positive total.`,
+            R`Payback ignores the time value of money and every cash flow after the payback.`,
+            R`Exam trap: divide by the cash flow of the **recovery** year, not the year before it. Count only the part of that year you need.`] },
+        ],
+      },
+      'w4-L3': {
+        title: 'Net present value (NPV)',
+        goal: R`Find a project’s NPV by hand and with npv( ) on the TI-Nspire, and use the NPV rule.`,
+        topics: ['npv'],
+        cards: [
+          { kind: 'learn', title: 'Value today minus cost today',
+            body: R`The **net present value** (NPV) is the value today of all a project’s cash flows, including its cost:\n\n\[NPV = PV(\text{cash in}) - PV(\text{cash out})\]\n\nIt is the **wealth the project adds** for shareholders, in today’s dollars. That is exactly the goal of the firm (Floor 1).` },
+          { kind: 'learn', title: 'The formula', formula: 'npv',
+            body: R`Discount each cash flow back to \(t = 0\), then add them all up:\n\n\[NPV = NCF_0 + \frac{NCF_1}{1+k} + \frac{NCF_2}{(1+k)^{2}} + \cdots + \frac{NCF_n}{(1+k)^{n}}\]\n\n\(NCF_t\) is the **net cash flow** in year \(t\). \(NCF_0\) is usually the cost, so it is negative. It is not discounted, because it is already today.` },
+          { kind: 'learn', title: 'The NPV rule',
+            body: R`The NPV gives a clear rule:`,
+            points: [R`\(NPV > 0\): the project earns more than \(k\). **Accept**: it adds wealth.`, R`\(NPV < 0\): it earns less than \(k\). **Reject**: it destroys wealth.`, R`\(NPV = 0\): it earns exactly \(k\).`, R`**Mutually exclusive** projects: choose the one with the **highest** NPV.`] },
+          { kind: 'example', title: 'Worked example: Project L', q: R`Project L costs $100 today and returns $10, $60 and $80 in years 1 to 3. The cost of capital is 10%. What is its NPV?`,
+            tl: { cfs: EX_L, unit: 'Year' },
+            steps: [R`Year 1: \(\frac{10}{1.1} = ${L.num(10 / 1.1, 4)}\).`, R`Year 2: \(\frac{60}{1.1^{2}} = ${L.num(60 / 1.21, 4)}\).`, R`Year 3: \(\frac{80}{1.1^{3}} = ${L.num(80 / 1.331, 4)}\).`, R`\[NPV = -100 + ${L.num(10 / 1.1, 4)} + ${L.num(60 / 1.21, 4)} + ${L.num(80 / 1.331, 4)} = ${M(FIN.npv(0.1, EX_L))}\]`],
+            answer: R`\(NPV = ${M(FIN.npv(0.1, EX_L))} > 0\), so accept Project L.`,
+            ti: [TI.cmd('npv', [10, -100, [10, 60, 80]])] },
+          { kind: 'ti', title: 'npv on the TI-Nspire',
+            body: R`Type \(\text{npv}(\text{rate}, CF_0, \{CF_1, CF_2, \ldots\})\).\n\nThe rate is a **percentage**: type 10, not 0.1. \(CF_0\) goes **before** the list, because it is not discounted.`,
+            ti: [TI.cmd('npv', [10, -100, [10, 60, 80]])],
+            tip: R`If you put \(CF_0\) inside the list, every cash flow is discounted one year too many.` },
+          { kind: 'check', ref: 'w4-q19' },
+          { kind: 'learn', title: 'Repeated cash flows: add a count list',
+            body: R`When a cash flow repeats, add a second list that says **how many times** each one happens.\n\nA project costs $500,000 and returns $140,000 a year for 5 years. The cost of capital is 9%. Type the $140,000 once, with a count of 5.`,
+            ti: [tiNpv(0.09, NPV_CNT, { note: R`\(NPV = ${M(FIN.npv(0.09, NPV_CNT))}\): the five inflows are worth more than the cost.` })] },
+          { kind: 'guided', title: 'Your turn: the café machine', q: R`Back to the café. The machine costs $10,000 and brings in $4,000 a year for 3 years. This time the cost of capital is 6%. Find the NPV.`,
+            tl: { cfs: CAFE, unit: 'Year' },
+            parts: [
+              { ask: R`What is \(NCF_0\), the cash flow today?`, answer: -10000, unit: '$', dp: 0, hint: 'The machine is paid for today. Money out is negative.', why: R`\(NCF_0 = -\$10{,}000\).` },
+              { ask: R`What is the year 1 cash flow worth today?`, answer: 4000 / 1.06, unit: '$', dp: 2, hint: R`Divide \(\$4{,}000\) by \(1.06\) once.`, why: R`\(\frac{4{,}000}{1.06} = ${M(4000 / 1.06)}\).`, mistakes: [{ v: 4000 / 1.1, why: 'Use 6% this time, not 10%.' }] },
+              { ask: R`What is the NPV?`, answer: FIN.npv(0.06, CAFE), unit: '$', dp: 2, hint: R`\(\text{npv}(6, -10000, \{4000, 4000, 4000\})\)`, why: R`\(NPV = ${M(FIN.npv(0.06, CAFE))}\).`, mistakes: [{ v: FIN.pvAnnuity(4000, 0.06, 3), why: 'That is only the PV of the inflows. Subtract the $10,000 cost.' }] },
+            ],
+            answer: R`At 6% the NPV is \(${M(FIN.npv(0.06, CAFE))} > 0\): accept. At 10% it was \(${M(FIN.npv(0.1, CAFE))}\). The discount rate matters!`,
+            ti: [TI.cmd('npv', [6, -10000, CAFE.slice(1)])] },
+          { kind: 'learn', title: 'Cash flows that last forever', formula: 'pv-grow-perp',
+            body: R`Some projects pay forever. Value the inflows with the perpetuity formula from Floor 2. It gives their value at \(t = 0\), one year before the first cash flow:\n\n\[PV = \frac{C_1}{k - g}\]\n\nUse \(g = 0\) for a level perpetuity. Then subtract the cost. A business costs $250,000 and adds $36,000 a year forever, from next year. At 12%: \(NPV = -250{,}000 + \frac{36{,}000}{0.12} = \$50{,}000\).`,
+            ti: [TI.line('-250000+36000/0.12')],
+            tip: R`If the cash flows shrink, \(g\) is negative. Falling by 40% a year at \(k = 10\%\) gives \(k - g = 0.10 + 0.40 = 0.50\).` },
+          { kind: 'check', gen: 'w4-g-npv' },
+          { kind: 'recap', title: 'Remember', formula: 'npv', points: [
+            R`\(NPV\) \(=\) every cash flow discounted at \(k\) and added up, including \(NCF_0\).`,
+            R`Accept if \(NPV > 0\). For mutually exclusive projects, pick the highest NPV.`,
+            R`TI-Nspire: \(\text{npv}(k, CF_0, \{CF_1, \ldots\})\). For repeats add a count list: \(\{140000\}, \{5\}\).`,
+            R`Perpetuities: \(PV = \frac{C_1}{k - g}\), then subtract the cost.`,
+            R`Exam trap: the PV of the inflows is not the NPV. Subtract the cost, and keep \(CF_0\) out of the list.`] },
+        ],
+      },
+      'w4-L4': {
+        title: 'Internal rate of return (IRR)',
+        goal: R`Find a project’s IRR with irr( ) on the TI-Nspire, explain what it means, and use the IRR rule.`,
+        topics: ['irr'],
+        cards: [
+          { kind: 'learn', title: 'The project’s own interest rate',
+            body: R`You lend a friend $100 and get $110 back a year later. You earned 10%.\n\nA project that costs $100 today and pays $110 next year also earns 10%. That rate is its **internal rate of return** (IRR).\n\nThe IRR is the discount rate that makes the NPV **exactly zero**.` },
+          { kind: 'learn', title: 'The IRR rule', formula: 'irr',
+            body: R`The IRR solves this equation:\n\n\[0 = NCF_0 + \frac{NCF_1}{1+IRR} + \frac{NCF_2}{(1+IRR)^{2}} + \cdots + \frac{NCF_n}{(1+IRR)^{n}}\]\n\nThe rule: **accept** if \(IRR > k\). The project earns more than the cost of capital, so there is return left over for shareholders. **Reject** if \(IRR < k\).` },
+          { kind: 'learn', title: 'Watch the NPV fall to zero',
+            body: R`As the discount rate rises, Project L’s NPV falls. It hits zero between 15% and 20%. That rate is the IRR: \(${L.pct(FIN.irr(EX_L))}\).`,
+            table: { head: ['Discount rate', 'NPV of Project L'], rows: [0, 0.05, 0.1, 0.15, FIN.irr(EX_L), 0.2].map((r) => [pctLabel(r), T.money(FIN.npv(r, EX_L))]) } },
+          { kind: 'example', title: 'Worked example: Project L’s IRR', q: R`Project L costs $100 and returns $10, $60 and $80 in years 1 to 3. The cost of capital is 10%. What is its IRR? Should it be accepted?`,
+            steps: [R`Set the NPV to zero: \[0 = -100 + \frac{10}{1+IRR} + \frac{60}{(1+IRR)^{2}} + \frac{80}{(1+IRR)^{3}}\]`, R`There is no neat formula. Try some rates: at 15% the NPV is \(${M(FIN.npv(0.15, EX_L))}\), and at 20% it is \(${M(FIN.npv(0.2, EX_L))}\). So the IRR is in between.`, R`The calculator finds it exactly: \(IRR = ${L.pct(FIN.irr(EX_L))}\).`, R`\(${L.pct(FIN.irr(EX_L))} > k = 10\%\), so accept.`],
+            answer: R`\(IRR_L = ${L.pct(FIN.irr(EX_L))}\). It beats the 10% cost of capital: accept.`,
+            ti: [TI.cmd('irr', [-100, [10, 60, 80]])] },
+          { kind: 'ti', title: 'irr on the TI-Nspire',
+            body: R`Type \(\text{irr}(CF_0, \{CF_1, CF_2, \ldots\})\). It is like \(\text{npv}\), but with **no rate**: the calculator finds the rate. The answer is a percentage.\n\nRepeated cash flows take a count list too. A project that costs $80,000 and returns $25,000 a year for 4 years:`,
+            ti: [TI.cmd('irr', [-100, [10, 60, 80]]), tiIrr(IRR_CNT)] },
+          { kind: 'check', ref: 'w4-q33' },
+          { kind: 'learn', title: 'Equal cash flows: the Finance Solver works too',
+            body: R`When the yearly cash flows are equal, the project is an annuity. Its IRR is the annuity’s interest rate.\n\nIn the Finance Solver put \(N\) = the years, \(PV = -\)cost, \(Pmt\) = the yearly cash flow and \(FV = 0\). Then solve \(I(\%)\). Here is a $50,000 project that returns $15,000 a year for 5 years.`,
+            ti: [TI.solver({ N: 5, PV: -50000, Pmt: 15000, FV: 0, PpY: 1, CpY: 1 }, 'I', { note: R`\(IRR = ${L.pct(FIN.irr([-50000].concat(Array(5).fill(15000))))}\).` })] },
+          { kind: 'guided', title: 'Your turn', q: R`A project costs $20,000 and returns $8,000 a year for 3 years. The cost of capital is 9%.`,
+            tl: { cfs: IRR_G, unit: 'Year' },
+            parts: [
+              { ask: R`What is the NPV at 9%?`, answer: FIN.npv(0.09, IRR_G), unit: '$', dp: 2, hint: R`\(\text{npv}(9, -20000, \{8000, 8000, 8000\})\)`, why: R`\(NPV = ${M(FIN.npv(0.09, IRR_G))}\).` },
+              { ask: R`The NPV at 9% is positive. Is the IRR above or below 9%?`, choices: ['Above 9%', 'Below 9%', 'Exactly 9%'], answer: 0, hint: 'The NPV falls as the rate rises. It reaches zero at the IRR.', why: R`The rate must rise above 9% to bring the NPV down to zero.` },
+              { ask: R`What is the IRR?`, answer: P(FIN.irr(IRR_G)), unit: '%', dp: 2, hint: R`\(\text{irr}(-20000, \{8000, 8000, 8000\})\)`, why: R`\(IRR = ${L.pct(FIN.irr(IRR_G))}\), just above 9%.`, mistakes: [{ v: 9, why: 'That is the cost of capital, not the IRR.' }] },
+            ],
+            answer: R`\(NPV > 0\) and \(IRR > k\): both rules say accept.`,
+            ti: [TI.cmd('npv', [9, -20000, IRR_G.slice(1)]), TI.cmd('irr', [-20000, IRR_G.slice(1)])] },
+          { kind: 'learn', title: 'Why NPV is the safer rule',
+            body: R`IRR is popular because it is one number that is easy to compare with \(k\). But:`,
+            points: [R`**NPV** assumes the cash flows are reinvested at the cost of capital \(k\).`, R`**IRR** assumes they are reinvested at the IRR itself. That is less realistic.`, R`For one **independent**, conventional project, the two rules agree.`, R`When they disagree, **follow NPV**: it measures the wealth added in dollars.`] },
+          { kind: 'check', ref: 'w4-q32' },
+          { kind: 'recap', title: 'Remember', formula: 'irr', points: [
+            R`The **IRR** is the rate that makes \(NPV = 0\): the project’s own return.`,
+            R`Accept if \(IRR > k\).`,
+            R`TI-Nspire: \(\text{irr}(CF_0, \{CF_1, \ldots\})\), with no rate. Equal cash flows: the Finance Solver, solve \(I(\%)\).`,
+            R`NPV assumes reinvestment at \(k\), IRR at the IRR. NPV is the safer rule.`,
+            R`Exam trap: the IRR is not the cost of capital. Compare the two, and never swap them.`] },
+        ],
+      },
+      'w4-L5': {
+        title: 'NPV profiles and the crossover rate',
+        goal: R`Read an NPV profile, find where two profiles cross, and know when NPV and IRR disagree.`,
+        topics: ['profile'],
+        cards: [
+          { kind: 'learn', title: 'A picture of NPV',
+            body: R`An **NPV profile** is a graph of a project’s NPV (up the side) against the discount rate (along the bottom).\n\nAs the rate rises, later cash flows are worth less, so the NPV falls. Hover over or tap the curve to read values.`,
+            chart: { type: 'npv', projects: [{ name: 'Project L', cfs: EX_L }], rMax: 0.25, showIRR: true } },
+          { kind: 'learn', title: 'Two points you can find fast',
+            body: R`To sketch a profile, find two points and join them with a smooth curve:`,
+            points: [R`**y-intercept**: the NPV at 0%. Nothing is discounted, so it is the **sum of the cash flows**. For L: \(-100 + 10 + 60 + 80 = \$50\).`, R`**x-intercept**: where \(NPV = 0\). That is the **IRR**. For L: \(${L.pct(FIN.irr(EX_L))}\).`],
+            ti: [TI.cmd('npv', [0, -100, [10, 60, 80]], { note: 'A 0% rate: the plain sum of the cash flows.' }), TI.cmd('irr', [-100, [10, 60, 80]])],
+            tip: R`The x-axis shows discount rates. The IRR is just the one rate where the curve cuts the axis.` },
+          { kind: 'check', gen: 'w4-g-profile0' },
+          { kind: 'learn', title: 'Steep or flat?',
+            body: R`Project S returns its cash early: $70, $50, $20. Project L returns its cash late: $10, $60, $80.\n\nLate cash flows are divided by bigger powers of \((1 + k)\), so they react more to the rate. That makes L’s profile **steeper**.`,
+            chart: { type: 'npv', projects: [{ name: 'Project L', cfs: EX_L }, { name: 'Project S', cfs: EX_S }], rMax: 0.25, showIRR: true } },
+          { kind: 'learn', title: 'The crossover rate', formula: 'crossover',
+            body: R`The two profiles cross where the NPVs are **equal**. That discount rate is the **crossover rate**.\n\nTo find it, subtract one project’s cash flows from the other’s, year by year. The crossover rate is the **IRR of the differences**.`,
+            table: { head: ['Year', 'Project L', 'Project S', 'L − S'], rows: EX_L.map((c, t) => [t, cell(c), cell(EX_S[t]), cell(c - EX_S[t])]) } },
+          { kind: 'example', title: 'Worked example: L against S', q: R`Projects L and S are mutually exclusive. Find their crossover rate. When does each one win?`,
+            steps: [R`Differences \(L - S\): \(0, \; -60, \; +10, \; +60\).`, R`The IRR of the differences is \(${L.pct(CROSS_LS)}\). At that rate both NPVs are \(${M(FIN.npv(CROSS_LS, EX_L))}\).`, R`Below \(${L.pct(CROSS_LS)}\), L has the higher NPV. Above it, S does.`, R`S always has the higher IRR: \(${L.pct(FIN.irr(EX_S))}\) against \(${L.pct(FIN.irr(EX_L))}\).`],
+            answer: R`Crossover rate \(= ${L.pct(CROSS_LS)}\).`,
+            ti: [TI.cmd('irr', [0, [-60, 10, 60]])] },
+          { kind: 'ti', title: 'Let the calculator subtract',
+            body: R`Lists subtract item by item. So you can type both projects and let the calculator find the differences.\n\n\(CF_0\) is \(-100 - (-100) = 0\).`,
+            ti: [TI.line('irr(0,{10,60,80}-{70,50,20})')] },
+          { kind: 'learn', title: 'When NPV and IRR disagree',
+            body: R`For mutually exclusive projects, compare the cost of capital \(k\) with the crossover rate:`,
+            points: [R`\(k\) **below** the crossover: the higher-NPV project has the **lower** IRR. The rules **conflict**. Follow NPV.`, R`\(k\) **above** the crossover: both rules pick the same project.`],
+            table: { head: ['Rate k', 'NPV of L', 'NPV of S', 'NPV picks'], rows: [0, 0.05, 0.1, 0.15].map((r) => [pctLabel(r), T.money(FIN.npv(r, EX_L)), T.money(FIN.npv(r, EX_S)), FIN.npv(r, EX_L) > FIN.npv(r, EX_S) ? 'L' : 'S']) },
+            tip: R`The IRR rule always picks S, at every \(k\).` },
+          { kind: 'guided', title: 'Your turn', q: R`Projects A and B are mutually exclusive. Find their crossover rate.`,
+            table: cfTable([XA, XB], ['Project A', 'Project B']),
+            parts: [
+              { ask: R`What is the year 1 difference, \(B - A\)?`, answer: XB[1] - XA[1], unit: '$', dp: 0, hint: R`\(400 - 900\)`, why: R`\(400 - 900 = -500\).` },
+              { ask: R`What is the year 2 difference, \(B - A\)?`, answer: XB[2] - XA[2], unit: '$', dp: 0, hint: R`\(850 - 300\)`, why: R`\(850 - 300 = 550\).` },
+              { ask: R`What is the crossover rate?`, answer: P(FIN.crossover(XB, XA)), unit: '%', dp: 2, hint: R`\(\text{irr}(0, \{-500, 550\})\)`, why: R`\(\frac{550}{1.1^{2}} = \frac{500}{1.1}\), so the crossover is exactly 10%.`, mistakes: [{ v: P(FIN.irr(XA) - FIN.irr(XB)), why: 'The crossover is not the gap between the IRRs. Find the IRR of the differences.' }] },
+            ],
+            answer: R`Below 10%, B has the higher NPV, even though A has the higher IRR (\(${L.pct(FIN.irr(XA))}\) against \(${L.pct(FIN.irr(XB))}\)). Above 10%, A wins on both.`,
+            ti: [TI.cmd('irr', [0, [XB[1] - XA[1], XB[2] - XA[2]]])] },
+          { kind: 'check', gen: 'w4-g-crossover' },
+          { kind: 'recap', title: 'Remember', formula: 'crossover', points: [
+            R`An **NPV profile** plots NPV against the discount rate.`,
+            R`y-intercept \(=\) sum of the cash flows. x-intercept \(=\) the IRR.`,
+            R`Later cash flows make a **steeper** profile.`,
+            R`**Crossover rate** \(=\) the IRR of the differences: \(\text{irr}(0, \{\ldots\} - \{\ldots\})\).`,
+            R`Below the crossover, NPV and IRR conflict. Follow NPV.`,
+            R`Exam trap: the crossover rate is not the gap between the two IRRs.`] },
+        ],
+      },
+      'w4-L6': {
+        title: 'When IRR goes wrong',
+        goal: R`Spot the IRR traps and use NPV to make the right call.`,
+        topics: ['pitfalls'],
+        cards: [
+          { kind: 'learn', title: 'Four traps',
+            body: R`The IRR is easy to like, but it can mislead. Watch for four traps. In every one, **NPV gives the right answer**.`,
+            points: [R`Mutually exclusive projects of different **scale** or **timing**.`, R`Cash flows that change sign more than once: **several IRRs**.`, R`**Borrowing**-type cash flows: cash in first, cash out later.`, R`Projects with **no IRR** at all.`] },
+          { kind: 'learn', title: 'Trap 1: scale and timing',
+            body: R`Would you rather earn 50% on $10, or 20% on $1,000? The first makes $5. The second makes $200.\n\nIRR compares percentages. NPV compares dollars of wealth. For **mutually exclusive** projects, a smaller or faster project can have the higher IRR but the lower NPV. Choose the **higher NPV**.`,
+            tip: R`High discount rates favour small and fast projects: money that comes back sooner can be reinvested sooner.` },
+          { kind: 'check', ref: 'w4-q28' },
+          { kind: 'learn', title: 'Trap 2: several IRRs',
+            body: R`Each change of sign can create another IRR. A mine costs $10m today, earns $25m next year, then needs $15m of clean-up in year 2.\n\nIts NPV is zero at **0%** and again at **50%**. Neither number tells you whether to invest.`,
+            chart: { type: 'npv', projects: [{ name: 'Mine', cfs: MINE }], rMax: 0.7 },
+            tip: R`A calculator reports only one IRR, with no warning that there are others. Use the NPV at \(k\) instead.` },
+          { kind: 'check', ref: 'w4-q47' },
+          { kind: 'example', title: 'Worked example: lending or borrowing?', q: R`Project Borrow gives you $1,000 today. You must pay back $1,500 in one year. Its IRR is 50%. The cost of capital is 10%. Should you accept it?`,
+            tl: { cfs: [1000, -1500], unit: 'Year' },
+            steps: [R`The signs are \(+\) then \(-\): cash comes in first and goes out later. That is **borrowing**.`, R`When you borrow, the IRR is the interest rate **you pay**: 50%. That is expensive when money costs only 10%.`, R`\[NPV = 1{,}000 - \frac{1{,}500}{1.1} = ${M(FIN.npv(0.1, [1000, -1500]))}\]`, R`\(NPV < 0\), so reject. Project Lend (\(-\$1{,}000\), then \(+\$1{,}500\)) has the same 50% IRR, but \(NPV = ${M(FIN.npv(0.1, [-1000, 1500]))}\).`],
+            answer: R`Reject Borrow: \(NPV = ${M(FIN.npv(0.1, [1000, -1500]))}\). A high IRR is bad news when you are borrowing.`,
+            ti: [TI.cmd('npv', [10, 1000, [-1500]])] },
+          { kind: 'check', gen: 'w4-g-lendborrow' },
+          { kind: 'learn', title: 'Trap 4: no IRR at all',
+            body: R`Some cash flows never give \(NPV = 0\). This project has \(+\$1{,}000\), \(-\$3{,}000\) and \(+\$2{,}500\) in years 0 to 2. Its NPV is positive at every rate, so there is **no IRR**.\n\nThe NPV still works. At 10% it is \(${M(FIN.npv(0.1, [1000, -3000, 2500]))}\), so accept.`,
+            ti: [TI.cmd('npv', [10, 1000, [-3000, 2500]])] },
+          { kind: 'check', ref: 'w4-q50' },
+          { kind: 'recap', title: 'Remember', points: [
+            R`When NPV and IRR disagree, **follow NPV**.`,
+            R`Mutually exclusive: a smaller or faster project can win on IRR but lose on NPV.`,
+            R`Several sign changes can mean several IRRs. Use the NPV at the cost of capital.`,
+            R`Borrowing (\(+\) then \(-\)): the IRR is the rate you pay, so a high IRR is bad.`,
+            R`Exam trap: two projects with the same IRR are not equally good. Check the NPV.`] },
+        ],
+      },
+      'w4-L7': {
+        title: 'Capital rationing and the PI',
+        goal: R`Rank projects by the profitability index when money is limited.`,
+        topics: ['pi'],
+        cards: [
+          { kind: 'learn', title: 'Not enough money for every good project',
+            body: R`**Capital rationing** is a limit on the money a firm can invest.\n\n**Soft** rationing: managers set a budget. They can relax it at any time.\n\n**Hard** rationing: the firm cannot raise more money, for example because the bank says no. It may have to pass up projects with a positive NPV.` },
+          { kind: 'check', ref: 'w4-q54' },
+          { kind: 'learn', title: 'Value per dollar: the PI', formula: 'pi',
+            body: R`With a limited budget, you want the most NPV for each dollar you invest. The **profitability index** (PI) measures that:\n\n\[PI = \frac{NPV}{\text{Initial investment}}\]\n\nAccept a project if \(PI > 0\). That is the same as \(NPV > 0\).`,
+            tip: R`Some textbooks use \(\frac{PV}{\text{cost}}\) with a cut-off of 1. BFC2140 uses \(\frac{NPV}{\text{investment}}\) with a cut-off of 0.` },
+          { kind: 'example', title: 'Worked example: Project B', q: R`Project B costs $100,000 and brings in $47,000 a year for 3 years. The discount rate is 10%. What is its PI?`,
+            steps: [R`PV of the inflows: \[${annuityPV(RB.a, 0.1, 3)} = ${M(RB.pv)}\]`, R`\[NPV = ${M(RB.pv)} - \$100{,}000 = ${M(RB.npv)}\]`, R`\[PI = \frac{${M(RB.npv)}}{\$100{,}000} = ${L.num(RB.pi, 3)}\]`],
+            answer: R`\(PI = ${L.num(RB.pi, 3)}\): each dollar invested creates about 17 cents of NPV.`,
+            ti: [tiNpv(0.1, [-RB.out, RB.a, RB.a, RB.a]), TI.line(`ans/${RB.out}`)] },
+          { kind: 'guided', title: 'Your turn: Project C', q: R`Project C costs $200,000 and brings in $92,000 a year for 3 years. The discount rate is 10%. Find its PI.`,
+            parts: [
+              { ask: R`What is the NPV?`, answer: RC.npv, unit: '$', dp: 2, hint: R`\(\text{npv}(10, -200000, \{92000\}, \{3\})\)`, why: R`\(NPV = ${M(RC.npv)}\).` },
+              { ask: R`What do you divide the NPV by?`, choices: ['The initial investment, $200,000', R`The PV of the inflows, \(${M(RC.pv)}\)`, 'The yearly inflow, $92,000'], answer: 0, hint: 'BFC2140 divides by the money used up today.', why: R`\(PI = \frac{NPV}{\text{initial investment}}\).` },
+              { ask: R`What is the PI? (3 decimal places)`, answer: RC.pi, unit: '', dp: 3, hint: R`\(${M(RC.npv)} \div 200{,}000\)`, why: R`\(PI = ${L.num(RC.pi, 3)}\).`, mistakes: [{ v: RC.pv / RC.out, why: 'That is PV ÷ cost, the textbook version. Divide the NPV instead.' }] },
+            ],
+            answer: R`\(PI_C = ${L.num(RC.pi, 3)}\). C creates less NPV per dollar than B (\(${L.num(RB.pi, 3)}\)), but more NPV in total.`,
+            ti: [tiNpv(0.1, [-RC.out, RC.a, RC.a, RC.a]), TI.line(`ans/${RC.out}`)] },
+          { kind: 'learn', title: 'Rank by PI, fund from the top',
+            body: R`The firm can spend only **$300,000** today. Rank the projects by PI. Fund them from the top until the money runs out.`,
+            table: { head: ['Project', 'Outlay', 'NPV', 'PI', 'Rank'], rows: RAT.map((p) => [p.nm, cell(p.out), T.money(p.npv), T.num(p.pi, 3), String(RANK.indexOf(p.nm) + 1)]) },
+            points: [R`**By PI**: B and C. Together they cost exactly $300,000 and create \(${M(RB.npv + RC.npv)}\) of NPV.`, R`**Biggest NPV first**: A alone uses all $300,000 and creates only \(${M(RA.npv)}\).`] },
+          { kind: 'check', gen: 'w4-g-pi' },
+          { kind: 'learn', title: 'Weaknesses of the PI',
+            body: R`The PI is a ratio, so it has limits:`,
+            points: [R`It **hides size**: a $1,000 project and a $1 million project can have the same PI.`, R`It handles **one** limit, such as money today. With several limits at once, such as money and staff, ranking by PI can fail.`, R`Without rationing, just use **NPV**.`] },
+          { kind: 'check', ref: 'w4-q55' },
+          { kind: 'recap', title: 'Remember', formula: 'pi', points: [
+            R`**Hard** rationing: the firm cannot raise the money. **Soft** rationing: the managers’ own limit.`,
+            R`\(PI = \frac{NPV}{\text{Initial investment}}\). Accept if \(PI > 0\).`,
+            R`With a budget limit: rank by PI and fund from the top.`,
+            R`TI-Nspire: \(\text{npv}( )\), then divide \(\text{ans}\) by the investment.`,
+            R`Exam trap: divide the **NPV**, not the PV of the inflows (that gives \(1 + PI\)). And do not rank by NPV when the budget is tight.`] },
+        ],
+      },
+      'w4-L8': {
+        title: 'Projects with different lives',
+        goal: R`Compare mutually exclusive projects with different lives, using a replacement chain or the equivalent annual annuity.`,
+        topics: ['lives'],
+        cards: [
+          { kind: 'learn', title: 'A 2-year machine against a 4-year machine',
+            body: R`Two machines do the same job. Whichever you choose will be **replaced** when it wears out, again and again. The cost of capital is 10%.\n\nShort lasts 2 years. Long lasts 4 years. Long has the higher NPV. But after 2 years Short can be bought again and earn a second NPV. So comparing one NPV of each is unfair.`,
+            table: { head: ['Year', 'Short', 'Long'], rows: LONG.map((c, t) => [t, t < SHORT.length ? cell(SHORT[t]) : '', cell(c)]).concat([['NPV at 10%', T.money(NPV_SH), T.money(NPV_LG)]]) } },
+          { kind: 'learn', title: 'Method 1: the replacement chain',
+            body: R`Repeat the shorter project until both end at the same time. Here Short runs twice: years 0 to 2, then years 2 to 4.\n\nIn year 2 the first machine pays $30,000 and the second one costs $50,000. So the net cash flow in year 2 is −$20,000.`,
+            tl: { cfs: [-50000, 30000, -20000, 30000, 30000], unit: 'Year', hi: [2] } },
+          { kind: 'example', title: 'Worked example: the chain NPV', q: R`Find the NPV of running Short twice, over 4 years. Compare it with Long’s NPV of ${T.money(NPV_LG)}.`,
+            steps: [R`One cycle of Short: \(NPV = ${M(NPV_SH)}\).`, R`The second cycle starts at \(t = 2\), so discount its NPV by two years: \(\frac{${M(NPV_SH)}}{1.1^{2}} = ${M(NPV_SH / 1.21)}\).`, R`\[NPV_{chain} = ${M(NPV_SH)} + ${M(NPV_SH / 1.21)} = ${M(CHAIN_SH)}\]`, R`\(${M(CHAIN_SH)} > ${M(NPV_LG)}\), so Short wins.`],
+            answer: R`Over the same 4 years, Short is worth \(${M(CHAIN_SH)}\) and Long \(${M(NPV_LG)}\). Choose Short.`,
+            ti: [TI.cmd('npv', [10, -50000, [30000, -20000, 30000, 30000]])] },
+          { kind: 'learn', title: 'Method 2: the equivalent annual annuity', formula: 'eav',
+            body: R`The **equivalent annual annuity** (EAA) turns an NPV into an equal amount per year, over the project’s life:\n\n\[EAA = \frac{NPV \times k}{1 - \frac{1}{(1+k)^{n}}}\]\n\nIt is the yearly annuity with the same NPV. Now projects that repeat can be compared **per year**. Pick the higher EAA.` },
+          { kind: 'ti', title: 'EAA with tvmPmt',
+            body: R`\(\text{tvmPmt}\) finds an annuity payment. Put the NPV in \(PV\) **with a minus sign**, and \(FV = 0\):\n\n\(\text{tvmPmt}(n, k, -NPV, 0, 1, 1)\)\n\nFor Short: 2 years, 10%, \(NPV = ${M(NPV_SH)}\).`,
+            ti: [tiEaa(NPV_SH, 0.1, 2, { note: R`\(EAA_{Short} = ${M(EAA_SH)}\) a year.` })] },
+          { kind: 'guided', title: 'Your turn: Long’s EAA', q: R`Long lasts 4 years and has \(NPV = ${M(NPV_LG)}\) at 10%. Find its EAA with tvmPmt.`,
+            parts: [
+              { ask: R`What goes in \(N\)?`, answer: 4, unit: '', dp: 0, hint: 'The life of the project, in years.', why: R`\(N = 4\).` },
+              { ask: R`What goes in \(PV\)?`, answer: -r2(NPV_LG), unit: '', dp: 2, hint: 'The NPV, with a minus sign.', why: R`\(PV = ${L.num(-NPV_LG)}\).` },
+              { ask: R`What is the EAA?`, answer: EAA_LG, unit: '$', dp: 2, hint: R`\(\text{tvmPmt}(4, 10, ${TI.num(-r2(NPV_LG))}, 0, 1, 1)\)`, why: R`\(EAA_{Long} = ${M(EAA_LG)}\) a year.`, mistakes: [{ v: NPV_LG / 4, why: 'Dividing the NPV by 4 ignores the time value of money.' }] },
+            ],
+            answer: R`Short creates \(${M(EAA_SH)}\) a year and Long only \(${M(EAA_LG)}\). Choose Short: the chain method agrees.`,
+            ti: [tiEaa(NPV_LG, 0.1, 4)] },
+          { kind: 'check', gen: 'w4-g-eaa' },
+          { kind: 'learn', title: 'Costs only: the equivalent annual cost',
+            body: R`Sometimes there are only costs, such as two machines that do the same job. Then every NPV is negative, and so is every EAA. It is called the **equivalent annual cost** (EAC). Pick the **lower** cost per year.\n\nMachine P costs $6,000 plus $500 a year for 6 years. Machine Q costs $2,000 plus $1,200 a year for 3 years. The rate is 8%.`,
+            table: { head: ['', 'Machine P', 'Machine Q'], rows: [['Life', '6 years', '3 years'], ['NPV of the costs', T.money(NPV_P), T.money(NPV_Q)], ['EAC per year', T.money(EAC_P), T.money(EAC_Q)]] },
+            ti: [TI.cmd('npv', [8, -6000, [-500], [6]]), tiEaa(NPV_P, 0.08, 6, { note: 'The EAC comes out negative: it is a cost every year.' })],
+            tip: R`Q’s NPV looks better, but P is cheaper per year: \(${M(-EAC_P)}\) against \(${M(-EAC_Q)}\). Choose P.` },
+          { kind: 'learn', title: 'When to retire an old machine',
+            body: R`A related question: when should an old machine be retired? Work out the value today of each choice, and pick the **highest**.\n\nAn old machine can be sold now for $10,000. Or keep it 1 more year: it earns $6,000 and then sells for $5,500. Or keep it 2 years: it earns $6,000, then $4,000, and is then worth $0. The rate is 10%.`,
+            points: [R`Retire now: \(\$10{,}000\).`, R`Retire in 1 year: \(\frac{6{,}000 + 5{,}500}{1.1} = ${M(RET1)}\).`, R`Retire in 2 years: \(\frac{6{,}000}{1.1} + \frac{4{,}000}{1.1^{2}} = ${M(RET2)}\).`],
+            tip: R`The highest value is ${T.money(RET1)}: keep the machine 1 more year, then retire it.` },
+          { kind: 'recap', title: 'Remember', formula: 'eav', points: [
+            R`Do not compare the NPVs of repeatable projects with **different lives**.`,
+            R`**Replacement chain**: repeat until both end together. Each cycle’s NPV is discounted from the year it starts.`,
+            R`**EAA** \(= \frac{NPV \times k}{1 - (1+k)^{-n}}\), or \(\text{tvmPmt}(n, k, -NPV, 0, 1, 1)\). Pick the higher EAA, or the lower EAC.`,
+            R`Retirement: pick the date with the highest value today.`,
+            R`Exam trap: dividing the NPV by the number of years ignores the time value of money.`] },
+        ],
+      },
+    },
+
     questions: [
       /* ----- capital budgeting basics ----- */
       { id: 'w4-q01', topic: 'basics', kind: 'mcq', level: 1, section: 'A',
@@ -339,6 +741,7 @@
           { v: 2.5, why: 'That divides $30 by the year 2 cash flow. Use the recovery year’s cash flow ($80).' },
         ],
         steps: [cumBlock(EX_L, 3), R`After 2 years, \(\$30\) is still unrecovered. Year 3 brings \(\$80\).`, R`\[\text{Payback} = 2 + \frac{\$30}{\$80} = 2.375 \text{ years}\]`],
+        ti: [TI.cmd('cumulativeSum', [EX_L], { note: R`The total first turns positive in year 3. After year 2, \(-30\) is left to recover.` }), TI.line('2+30/80')],
         why: R`Two full years, plus \(\frac{30}{80}\) of year 3: 2.375 years. (Project S pays back in 1.6 years.)` },
       { id: 'w4-q11', topic: 'payback', kind: 'mcq', level: 2, section: 'A', src: 'Lecture W4',
         q: R`Project L pays back in 2.375 years. Suppose it also paid **$100 million in year 4**. What would happen to its payback period?`,
@@ -355,6 +758,7 @@
           R`B: running total \(-18{,}000 \to -6{,}000 \to -4{,}000 \to -2{,}000 \to 0\). It is recovered at the end of year 4.`,
           R`The 9.5% is not needed: payback ignores the time value of money.`,
         ],
+        ti: [TI.line('15000/7000', { note: 'A has equal cash flows: cost ÷ yearly cash flow.' }), TI.cmd('cumulativeSum', [[-18000, 12000, 2000, 2000, 2000, 2000]], { note: 'B’s running total only reaches 0 at the end of year 4.' })],
         why: R`A pays back in 2.14 years and B in 4 years. Both are above the 2-year cut-off, so he takes neither.` },
       { id: 'w4-q13', topic: 'payback', kind: 'num', level: 2, section: 'B', src: 'Mock MST Q06', formula: 'payback',
         q: R`Barcode Biz spends $1,450,000 on new machinery. It expects cash flows of $640,000, $715,250, $823,330 and $907,125 over the next four years. What is the **payback period**?`,
@@ -370,6 +774,7 @@
           R`After year 2: \(810{,}000 - 715{,}250 = \$94{,}750\) is still to recover.`,
           R`\[\text{Payback} = 2 + \frac{\$94{,}750}{\$823{,}330} = ${L.num(FIN.payback(BARCODE), 4)} \approx 2.12 \text{ years}\]`,
         ],
+        ti: [TI.cmd('cumulativeSum', [BARCODE], { note: R`The total first turns positive in year 3. After year 2, \(-94{,}750\) is left to recover.` }), TI.line('2+94750/823330')],
         why: R`Two full years, plus \(\frac{94{,}750}{823{,}330}\) of year 3. (The official solution has a typo, 712,250 instead of 715,250, but still rounds to 2.12.)` },
 
       /* ----- NPV ----- */
@@ -400,6 +805,7 @@
         ],
         steps: npvSteps(EX_L, 0.1),
         calc: npvKeys(EX_L, 0.1),
+        ti: [tiNpv(0.1, EX_L)],
         why: R`Discount the three inflows to today and subtract the $100 outlay. \(NPV > 0\), so L adds value.` },
       { id: 'w4-q19', topic: 'npv', kind: 'num', level: 1, section: 'B', src: 'Lecture W4 Example 1', formula: 'npv',
         q: R`The cost of capital is 10%. What is the **NPV** of Project S?`,
@@ -412,6 +818,7 @@
         ],
         steps: npvSteps(EX_S, 0.1),
         calc: npvKeys(EX_S, 0.1),
+        ti: [tiNpv(0.1, EX_S)],
         why: R`\(NPV_S = \$19.98\). One lecture slide shows $19.99 because it adds rounded PVs. If S and L are mutually exclusive, choose S: its NPV is higher than L’s $18.78.` },
       { id: 'w4-q20', topic: 'npv', kind: 'num', level: 2, section: 'B', src: 'Tutorial W4 Q2', formula: 'pv-perp',
         q: R`Burke Inc. can buy Small Ltd for $190,000. The deal adds $30,000 of cash flow a year, forever, starting next year. Burke’s cost of capital is 15%. What is the **NPV** of the acquisition?`,
@@ -422,6 +829,7 @@
           { v: -190000 + (30000 * 1.15) / 0.15, why: 'The first cash flow arrives in one year. Do not compound it.' },
         ],
         steps: [R`The inflows are a perpetuity starting at \(t = 1\): \[PV = \frac{C}{r} = \frac{\$30{,}000}{0.15} = \$200{,}000\]`, R`\[NPV = -\$190{,}000 + \$200{,}000 = \$10{,}000\]`],
+        ti: [TI.line('-190000+30000/0.15')],
         why: R`\(NPV > 0\), so Burke should go ahead with the acquisition.` },
       { id: 'w4-q21', topic: 'npv', kind: 'num', level: 2, section: 'B', src: 'MST 2026 Q19', formula: 'npv',
         q: R`A project costs $2,000,000 today. It returns $550,000 at the end of each of the next 5 years. The discount rate is 8%. What is the **NPV**?`,
@@ -434,6 +842,7 @@
         ],
         steps: [R`\[NPV = -C_0 + C \times \frac{1}{k}\left(1 - \frac{1}{(1+k)^{n}}\right)\]`, R`\[NPV = -\$2{,}000{,}000 + ${annuityPV(550000, 0.08, 5)} = -\$2{,}000{,}000 + ${M(FIN.pvAnnuity(550000, 0.08, 5))} = ${M(-2e6 + FIN.pvAnnuity(550000, 0.08, 5))}\]`],
         calc: npvKeys([-2000000, 550000, 550000, 550000, 550000, 550000], 0.08),
+        ti: [TI.cmd('npv', [8, -2000000, [550000], [5]], { note: R`The count list \(\{5\}\) says the \(\$550{,}000\) happens 5 times.` })],
         why: R`The five equal inflows are an ordinary annuity. Their PV is bigger than the cost, so the NPV is positive.` },
       { id: 'w4-q22', topic: 'npv', kind: 'num', level: 3, section: 'B', src: 'MST 2026 Q12', formula: 'npv', boss: true,
         q: R`A project needs $80,000 today and another $40,000 in one year. It returns $30,000 at the end of each year for 8 years. The discount rate is 6%. What is the **NPV**?`,
@@ -450,6 +859,7 @@
           R`\[NPV = ${M(FIN.pvAnnuity(30000, 0.06, 8))} - ${M(80000 + 40000 / 1.06)} = ${M(-80000 - 40000 / 1.06 + FIN.pvAnnuity(30000, 0.06, 8))}\]`,
         ],
         calc: npvKeys([-80000, -10000, 30000, 30000, 30000, 30000, 30000, 30000, 30000], 0.06),
+        ti: [TI.cmd('npv', [6, -80000, [-10000, 30000], [1, 7]], { note: R`Year 1 nets \(30{,}000 - 40{,}000 = -10{,}000\). Then \(\$30{,}000\) comes 7 more times.` })],
         why: R`Bring every cash flow to \(t = 0\). At \(t = 1\) the net cash flow is \(30{,}000 - 40{,}000 = -\$10{,}000\).` },
       { id: 'w4-q23', topic: 'npv', kind: 'num', level: 1, section: 'B', src: 'Mock MST Q18', formula: 'pv-annuity',
         q: R`A project’s cash **inflows** are $25,000 a year for four years, starting in one year. The cost of capital is 9%. What is the **most** that should be invested at time zero?`,
@@ -461,6 +871,7 @@
         ],
         steps: [R`The most you can pay is the outlay that makes \(NPV = 0\), which is the PV of the inflows.`, R`\[PV = ${annuityPV(25000, 0.09, 4)} = ${M(FIN.pvAnnuity(25000, 0.09, 4))}\]`],
         calc: `${cfKeys([0, 25000, 25000, 25000, 25000])} · 9 [I/YR] · [NPV] → ${T.money(FIN.pvAnnuity(25000, 0.09, 4))}`,
+        ti: [TI.solver({ N: 4, I: 9, Pmt: 25000, FV: 0, PpY: 1, CpY: 1 }, 'PV', { note: R`The PV is negative because it is money you would pay out today. The most to invest is \(${M(FIN.pvAnnuity(25000, 0.09, 4))}\).` })],
         why: R`Pay more than the PV of the inflows and the NPV turns negative.` },
       { id: 'w4-q24', topic: 'npv', kind: 'num', level: 3, section: 'B', src: 'Tutorial W4 Q7', formula: 'pv-grow-perp', boss: true,
         q: R`Chloe gets an $11 million advance today to write a book. Writing takes a year. She gives up $8 million of TV income, paid at \(t = 1\). Royalties start at $5 million at \(t = 1\), then **fall by 40% a year** forever. Her cost of capital is 10%. What is the **NPV** of the book deal?`,
@@ -477,6 +888,7 @@
           R`Royalties are a growing perpetuity with \(g = -40\%\): \[PV = \frac{C_1}{r - g} = \frac{\$5\text{m}}{0.10 - (-0.40)} = \$10\text{m}\]`,
           R`\[NPV = 11 - ${L.numT(8 / 1.1, 3)} + 10 = ${L.moneyT(11 - 8 / 1.1 + 10, 3)}\text{m}\]`,
         ],
+        ti: [TI.line('11-8/1.1+5/(0.1+0.4)', { note: R`In $ millions. \(k - g = 0.10 - (-0.40) = 0.10 + 0.40\).` })],
         why: R`Count the cash in (advance, royalties) and the cash given up (TV income), each at its own date.` },
       { id: 'w4-q25', topic: 'npv', kind: 'mcq', level: 2, section: 'A', src: 'Tutorial W4 Q3',
         q: R`A property project costs $20 million. At a 23% discount rate its NPV is −$6.53 million. Its IRR is 14.29%. What happens at a **10%** discount rate?`,
@@ -493,6 +905,7 @@
         ],
         steps: [R`Enter the first four cash flows one by one, then $2,500,000 sixteen times (years 5 to 20).`, R`\[NPV_{10\%} = ${M(FIN.npv(0.1, Q3CF))} > 0\]`, R`At 23% the same cash flows give \(NPV = ${M(FIN.npv(0.23, Q3CF))}\), and the IRR is \(${L.pct(FIN.irr(Q3CF))}\).`],
         calc: npvKeys(Q3CF, 0.1),
+        ti: [tiNpv(0.1, Q3CF, { note: R`The count list says: the first four cash flows once each, then \(\$2{,}500{,}000\) sixteen times (years 5 to 20).` })],
         why: R`At 10% the project is accepted; at 23% it is rejected. The IRR of 14.29% sits between the two rates.` },
       { id: 'w4-q27', topic: 'npv', kind: 'num', level: 2, section: 'B', src: 'Mock MST Q08', formula: 'npv',
         q: R`Harvest Co.’s cost of capital is 5%. What is the **NPV of Project X**? (Cash flows are in $ millions.)`,
@@ -505,7 +918,8 @@
         ],
         steps: npvSteps(HX, 0.05),
         calc: npvKeys(HX, 0.05),
-        why: R`\(NPV_X = \$51.43\text{m}\) and \(NPV_Y = \$73.90\text{m}\). Clear the cash-flow memory between projects!` },
+        ti: [tiNpv(0.05, HX, { note: 'Cash flows in $ millions, so the NPV is in $ millions too.' })],
+        why: R`\(NPV_X = \$51.43\text{m}\) and \(NPV_Y = \$73.90\text{m}\). Keep each project’s cash flows in its own list.` },
       { id: 'w4-q28', topic: 'npv', kind: 'mcq', level: 2, section: 'A', src: 'Mock MST Q08–09',
         q: R`Harvest Co. (\(k = 5\%\)) must choose **one** project. \(NPV_X = \$51.43\text{m}\) and \(IRR_X = 42.78\%\). \(NPV_Y = \$73.90\text{m}\) and \(IRR_Y = 29.19\%\). Which should it choose?`,
         table: HARVEST,
@@ -544,6 +958,7 @@
           R`Check: \(\frac{70}{${L.num(1 + FIN.irr(EX_S), 4)}} + \frac{50}{${L.num(1 + FIN.irr(EX_S), 4)}^{2}} + \frac{20}{${L.num(1 + FIN.irr(EX_S), 4)}^{3}} = 100\).`,
         ],
         calc: irrKeys(EX_S, FIN.irr(EX_S)),
+        ti: [tiIrr(EX_S)],
         why: R`\(IRR_S = 23.56\%\) and \(IRR_L = 18.13\%\). Both beat \(k = 10\%\), so both are acceptable if independent.` },
       { id: 'w4-q34', topic: 'irr', kind: 'num', level: 2, section: 'B', src: 'Mock MST Q09', formula: 'irr',
         q: R`What is the **IRR of Project X** (Harvest Co.)?`,
@@ -556,6 +971,7 @@
         ],
         steps: [R`\[0 = -45 + \frac{20}{1+IRR} + \frac{25}{(1+IRR)^{2}} + \frac{30}{(1+IRR)^{3}} + \frac{35}{(1+IRR)^{4}}\]`, R`By calculator: \(IRR_X = ${L.pct(FIN.irr(HX))}\). For Y: \(IRR_Y = ${L.pct(FIN.irr(HY))}\).`],
         calc: irrKeys(HX, FIN.irr(HX)),
+        ti: [tiIrr(HX)],
         why: R`X has the higher IRR (42.78% vs 29.19%), but Y has the higher NPV at 5%. For a choice between them, NPV wins.` },
 
       /* ----- NPV profiles and crossover ----- */
@@ -593,6 +1009,7 @@
         ],
         steps: [R`Incremental cash flows \(L - S\): \(0,\; -60,\; +10,\; +60\).`, R`Find the IRR of the differences: \[0 = \frac{-60}{1+r} + \frac{10}{(1+r)^{2}} + \frac{60}{(1+r)^{3}} \;\Rightarrow\; r = ${L.pct(FIN.crossover(EX_L, EX_S))}\]`, R`Check: at 8.68%, \(NPV_L = NPV_S = ${M(FIN.npv(FIN.crossover(EX_L, EX_S), EX_L))}\).`],
         calc: irrKeys([0, -60, 10, 60], FIN.crossover(EX_L, EX_S)),
+        ti: [TI.line('irr(0,{10,60,80}-{70,50,20})', { note: R`The calculator subtracts the lists year by year: \(L - S = \{-60, 10, 60\}\). \(CF_0\) is \(-100 - (-100) = 0\).` })],
         chart: { type: 'npv', projects: [{ name: 'Project L', cfs: EX_L }, { name: 'Project S', cfs: EX_S }], rMax: 0.25, showIRR: true },
         why: R`At 8.68% both projects have the same NPV. Below it L wins on NPV; above it S wins.` },
       { id: 'w4-q41', topic: 'profile', kind: 'mcq', level: 2, section: 'A', src: 'Lecture W4',
@@ -618,6 +1035,7 @@
         ],
         steps: [R`Incremental cash flows \(M - N\): \(0,\; +400,\; -500\).`, R`\[\frac{400}{1+r} = \frac{500}{(1+r)^{2}} \;\Rightarrow\; 1 + r = \frac{500}{400} = 1.25 \;\Rightarrow\; r = 25\%\]`],
         calc: irrKeys([0, 400, -500], 0.25),
+        ti: [TI.cmd('irr', [0, [400, -500]], { note: R`\(M - N\): \(0\) today, \(+400\) in year 1, \(-500\) in year 2.` })],
         why: R`At 25% the two NPVs are equal. Below 25%, N has the higher NPV (even though M has the higher IRR).` },
       { id: 'w4-q45', topic: 'profile', kind: 'num', level: 3, section: 'B', src: 'Tutorial W4 Q6', formula: 'crossover', boss: true,
         q: R`Taylor Made Inc. must choose between two projects. What is the **crossover rate**?`,
@@ -634,6 +1052,7 @@
           R`The differences change sign twice, so a second crossover exists at about \(${L.pct(FIN.irrAll(TM_D)[1], 0)}\). No real cost of capital is that high, so ignore it.`,
         ],
         calc: irrKeys(TM_D, FIN.irrAll(TM_D)[0]),
+        ti: [tiIrr(TM_D, { note: R`The differences change sign twice, so a second IRR exists near \(${L.pct(FIN.irrAll(TM_D)[1], 0)}\). Use the one near normal rates.` })],
         chart: { type: 'npv', projects: [{ name: 'Project 1', cfs: TM1 }, { name: 'Project 2', cfs: TM2 }], rMax: 0.3, showIRR: true },
         why: R`Project 1 is preferred for any cost of capital below 20.02%. Above it (up to its IRR), Project 2 has the higher NPV.` },
       { id: 'w4-q46', topic: 'profile', kind: 'mcq', level: 2, section: 'B', src: 'Tutorial W4 Q6',
@@ -703,6 +1122,7 @@
           R`\[NPV = ${M(HOBART.npv + HOBART.out)} - \$125{,}000 = ${M(HOBART.npv)}\]`,
           R`\[PI = \frac{NPV}{\text{Initial investment}} = \frac{${M(HOBART.npv)}}{\$125{,}000} = ${L.num(HOBART.pi, 3)}\]`,
         ],
+        ti: [tiNpv(0.1, [-125000, 60000, 60000, 60000], { note: 'The NPV of the Hobart café.' }), TI.line('ans/125000', { note: 'Divide by the initial investment.' })],
         why: R`Every dollar invested in Hobart creates about 19 cents of NPV, the best ratio of the four cities.` },
       { id: 'w4-q59', topic: 'pi', kind: 'mcq', level: 3, section: 'B', src: 'Lecture W4 Example 2', formula: 'pi', boss: true,
         q: R`Taken Inn faces hard rationing: its bank caps spending at **$1,000,000**. Each café lasts 3 years and the discount rate is 10%. Using the PI, where should it open cafés?`,
@@ -749,6 +1169,7 @@
           R`\[NPV_X = -\$4{,}000 - ${annuityPV(100, 0.1, 10)} = ${M(NPV_X_CLEAN)}\]`,
           R`\[EAC = \frac{NPV \times k}{1 - \frac{1}{(1+k)^{n}}} = \frac{${M(NPV_X_CLEAN)} \times 0.10}{1 - \frac{1}{1.1^{10}}} = ${M(FIN.eac(NPV_X_CLEAN, 0.1, 10))}\]`,
         ],
+        ti: [TI.cmd('npv', [10, -4000, [-100], [10]], { note: 'The NPV of buying and running Cleaner X.' }), tiEaa(NPV_X_CLEAN, 0.1, 10, { note: 'The NPV goes in PV with its sign flipped. The payment is the equivalent annual cost: negative, because it is a cost.' })],
         why: R`Cleaner X costs \(\$750.98\) a year. Cleaner Y (5 years) costs \(\$763.80\) a year, so X is cheaper even though Y’s NPV looks better.` },
       { id: 'w4-q65', topic: 'lives', kind: 'num', level: 3, section: 'B', src: 'Lecture W4 (replacement chain)', formula: 'npv', boss: true,
         q: R`Cleaner Y costs $1,000, costs $500 a year to run and lasts 5 years. Its NPV at 10% is −$2,895.39. To compare it with the 10-year Cleaner X, buy Y twice in a row. What is the **NPV of the two Y cycles**?`,
@@ -761,6 +1182,7 @@
         ],
         steps: [R`The second cycle’s NPV is valued at \(t = 5\), when it starts.`, R`\[NPV_{chain} = ${M(NPV_Y_CLEAN)} + \frac{${M(NPV_Y_CLEAN)}}{1.1^{5}} = ${M(FIN.chainNPV(NPV_Y_CLEAN, 0.1, 5, 2))}\]`],
         calc: npvKeys([-1000, -500, -500, -500, -500, -1500, -500, -500, -500, -500, -500], 0.1),
+        ti: [tiNpv(0.1, [-1000, -500, -500, -500, -500, -1500, -500, -500, -500, -500, -500], { note: R`Year 5 pays the last \(\$500\) running cost plus \(\$1{,}000\) for the second cleaner: \(-\$1{,}500\).` })],
         why: R`Over the same 10 years, X costs \(${M(NPV_X_CLEAN)}\) and Y costs \(${M(FIN.chainNPV(NPV_Y_CLEAN, 0.1, 5, 2))}\). X is cheaper.` },
       { id: 'w4-q66', topic: 'lives', kind: 'mcq', level: 2, section: 'B', src: 'Tutorial W4 Q5', formula: 'eav',
         q: R`Billy’s two projects are mutually exclusive and will be **repeated** into the future. The cost of capital is 10%. Which should he choose?`,
@@ -781,6 +1203,7 @@
           { v: NPV_BS, why: 'That is the NPV. Spread it over the 2 years as an annuity.' },
         ],
         steps: [R`\[NPV_S = -100{,}000 + \frac{60{,}000}{1.1} + \frac{60{,}000}{1.1^{2}} = ${M(NPV_BS)}\]`, R`\[EAA = \frac{NPV \times k}{1 - \frac{1}{(1+k)^{n}}} = \frac{${M(NPV_BS)} \times 0.1}{1 - \frac{1}{1.1^{2}}} = ${M(FIN.eac(NPV_BS, 0.1, 2))}\]`],
+        ti: [tiNpv(0.1, BILLY_S), tiEaa(NPV_BS, 0.1, 2, { note: 'The NPV goes in PV with a minus sign. The payment is the EAA.' })],
         why: R`S is worth the same as \(${M(FIN.eac(NPV_BS, 0.1, 2))}\) a year for 2 years. L’s EAA is only \(${M(FIN.eac(NPV_BL, 0.1, 4))}\).` },
       { id: 'w4-q68', topic: 'lives', kind: 'num', level: 2, section: 'B', src: 'Textbook Ch 8 P28', formula: 'eav',
         q: R`Utopia Tours will keep one bus model forever. **Old Reliable** costs $200,000 plus $4,000 a year for 7 years. The discount rate is 11%. What is its **equivalent annual cost**? (Enter a cost as a negative number.)`,
@@ -795,6 +1218,7 @@
           R`\[EAC = \frac{${M(OR_NPV)} \times 0.11}{1 - \frac{1}{1.11^{7}}} = ${M(FIN.eac(OR_NPV, 0.11, 7))}\]`,
           R`Short and Sweet ($100,000 plus $2,000 a year for 4 years): \(NPV = ${M(SS_NPV)}\), \(EAC = ${M(FIN.eac(SS_NPV, 0.11, 4))}\).`,
         ],
+        ti: [TI.cmd('npv', [11, -200000, [-4000], [7]], { note: 'The NPV of buying and running Old Reliable.' }), tiEaa(OR_NPV, 0.11, 7, { note: 'The equivalent annual cost comes out negative: it is a cost every year.' })],
         why: R`Old Reliable costs about $46,443 a year; Short and Sweet about $34,233. Utopia Tours should buy Short and Sweet.` },
       { id: 'w4-q69', topic: 'lives', kind: 'mcq', level: 2, section: 'B', src: 'Textbook Ch 8 P28', formula: 'eav',
         q: R`Utopia Tours will keep one bus model forever. Old Reliable: $200,000 plus $4,000 a year for 7 years. Short and Sweet: $100,000 plus $2,000 a year for 4 years. The discount rate is 11%. Which bus should it choose?`,
@@ -810,12 +1234,14 @@
           { v: -HF_NPV / 3, why: 'Dividing the NPV by 3 ignores the time value of money. Use the annuity formula.' },
         ],
         steps: [R`\[NPV_{costs} = -\$15{,}000 - ${annuityPV(2000, 0.1, 3)} = ${M(HF_NPV)}\]`, R`\[EAC = \frac{${M(-HF_NPV)} \times 0.1}{1 - \frac{1}{1.1^{3}}} = ${M(-FIN.eac(HF_NPV, 0.1, 3))} \text{ a year}\]`],
+        ti: [TI.cmd('npv', [10, -15000, [-2000, -2000, -2000]], { note: 'The NPV of all the costs of the service.' }), TI.cmd('tvmPmt', [3, 10, r2(HF_NPV), 0, 1, 1], { note: 'The costs are money out today (PV negative). The payment is the yearly fee that exactly pays them back.' })],
         why: R`Any fee above about $8,032 a year gives a positive NPV. The hotel now pays $10,000, so Hassle-Free can undercut it.` },
       { id: 'w4-q71', topic: 'lives', kind: 'mcq', level: 3, section: 'B', src: 'Lecture W4 recap (General Foods)', boss: true,
         q: R`General Foods’ machine is 6 years old and can last 2 more years at most. The cost of capital is 10% and there is no tax. When should the machine be **retired**?`,
         table: { head: ['End of year', 'Net cash flow', 'Residual value'], rows: [[6, '—', '$18,000'], [7, '$22,000', '$9,000'], [8, '$14,000', '$0']] },
         choices: ['At the end of year 8', 'Now, at the end of year 6', 'At the end of year 7', 'It does not matter: every option is worth the same'], answer: 0,
         steps: [R`Retire now: \(\$18{,}000\).`, R`Retire at the end of year 7: \(\frac{22{,}000 + 9{,}000}{1.1} = ${M(31000 / 1.1)}\).`, R`Retire at the end of year 8: \(\frac{22{,}000}{1.1} + \frac{14{,}000}{1.1^{2}} = ${M(22000 / 1.1 + 14000 / 1.21)}\).`],
+        ti: [TI.line('(22000+9000)/1.1', { note: 'Value today of retiring at the end of year 7.' }), TI.cmd('npv', [10, 0, [22000, 14000]], { note: R`Value today of keeping it to the end of year 8. \(CF_0 = 0\): nothing is received now.` })],
         why: R`Keeping the machine to the end of year 8 has the highest PV, so it maximises shareholder wealth.` },
     ],
 
@@ -850,6 +1276,10 @@
                 R`The total turns positive in year ${m}. At the start of that year, \(${L.moneyT(unrec)}\) is still unrecovered.`,
                 R`\[\text{Payback} = ${m - 1} + \frac{${L.moneyT(unrec)}}{${L.moneyT(cfs[m])}} = ${L.num(pb, 2)} \text{ years}\]`,
               ],
+              ti: [
+                TI.cmd('cumulativeSum', [cfs], { note: R`The total first turns positive in year ${m}. After year ${m - 1}, \(${L.moneyT(-unrec)}\) is left to recover.` }),
+                TI.line(`${m - 1}+${TI.num(unrec)}/${TI.num(cfs[m])}`),
+              ],
               why: R`Full years before recovery, plus the fraction of the recovery year: \(${m - 1} + \frac{${L.moneyT(unrec)}}{${L.moneyT(cfs[m])}}\).`,
             };
           }
@@ -880,6 +1310,7 @@
                 R`The cash flows are equal, so use the shortcut: \[\text{Payback} = \frac{\text{Cost}}{\text{Annual cash flow}} = \frac{${L.moneyT(cost)}}{${L.moneyT(c)}} = ${L.num(pb, 2)} \text{ years}\]`,
                 R`The ${T.pctT(k)} cost of capital is not needed: payback ignores the time value of money.`,
               ],
+              ti: [TI.line(`${TI.num(cost)}/${TI.num(c)}`, { note: 'Equal cash flows: cost ÷ yearly cash flow.' })],
               why: R`With equal cash flows, \(\text{payback} = \frac{\text{cost}}{\text{annual cash flow}}\).`,
             };
           }
@@ -911,6 +1342,7 @@
                 R`B, running total:`, cumBlock(B, Math.min(n, Math.ceil(pB))),
                 R`B pays back in \(${L.num(pB, 2)}\) years.`,
               ],
+              ti: [TI.line(`${TI.num(costA)}/${TI.num(cA)}`, { note: 'A has equal cash flows: cost ÷ yearly cash flow.' }), TI.cmd('cumulativeSum', [B], { note: 'B: find where the running total turns positive.' })],
               why: `Compare each payback with the ${cut}-year cut-off. A: ${T.num(pA, 2)} years (${okA ? 'accept' : 'reject'}). B: ${T.num(pB, 2)} years (${okB ? 'accept' : 'reject'}).`,
             };
           }
@@ -936,11 +1368,12 @@
             answer: npv, unit: '$', dp: 2,
             mistakes: [
               { v: npv + cost, why: R`That is only the PV of the inflows. Subtract the outlay at \(t = 0\).` },
-              { v: npv / (1 + r), why: 'That discounts every cash flow one year too many. In Excel, keep CF0 outside the NPV() range.' },
+              { v: npv / (1 + r), why: 'That discounts every cash flow one year too many. CF0 is not discounted: on the TI-Nspire it goes before the list in npv( ).' },
               { v: sum(cfs), why: 'That just adds the cash flows. Discount each one first.' },
             ],
             steps: npvSteps(cfs, r),
             calc: npvKeys(cfs, r),
+            ti: [tiNpv(r, cfs)],
             why: R`${npv > 0 ? R`\(NPV > 0\), so the project adds value: accept.` : R`\(NPV < 0\), so the project destroys value: reject.`}`,
           };
         } },
@@ -971,6 +1404,7 @@
               R`\[NPV = ${L.moneyT(-cost)} + ${annuityPV(c, r, n)} = ${L.moneyT(-cost)} + ${M(pv)} = ${M(npv)}\]`,
             ],
             calc: npvKeys(cfs, r),
+            ti: [TI.cmd('npv', [P(r), -cost, [c], [n]], { note: R`The count list \(\{${n}\}\) repeats the inflow ${n} times.` })],
             why: R`${npv > 0 ? 'The PV of the inflows is bigger than the cost: accept.' : 'The PV of the inflows is smaller than the cost: reject.'}`,
           };
         } },
@@ -990,6 +1424,7 @@
             ],
             steps: [R`The most you can invest is the amount that makes \(NPV = 0\): the PV of the inflows.`, R`\[PV = ${annuityPV(c, r, n)} = ${M(pv)}\]`],
             calc: `${cfKeys([0].concat(Array(n).fill(c)))} · ${rateKey(r)} [I/YR] · [NPV] → ${T.money(pv)}`,
+            ti: [TI.solver({ N: n, I: P(r), Pmt: c, FV: 0, PpY: 1, CpY: 1 }, 'PV', { note: R`The PV is negative because it is money you would pay out today. The most to invest is \(${M(pv)}\).` })],
             why: 'Invest more than the PV of the inflows and the NPV turns negative.',
           };
         } },
@@ -1023,6 +1458,8 @@
                 : R`A growing perpetuity starting at \(t = 1\): \[PV = \frac{C_1}{k - g} = \frac{${L.moneyT(c1)}}{${L.dec(r)} - (${L.dec(g)})} = ${M(pv)}\]`,
               R`\[NPV = ${M(pv)} - ${L.moneyT(cost)} = ${M(npv)}\]`,
             ],
+            ti: [TI.line(g === 0 ? `${TI.num(c1)}/${TI.num(r)}-${TI.num(cost)}` : `${TI.num(c1)}/(${TI.num(r)}${g > 0 ? '-' : '+'}${TI.num(Math.abs(g))})-${TI.num(cost)}`,
+              g < 0 ? { note: R`The cash flows shrink, so \(g\) is negative and \(k - g = ${L.dec(r)} + ${L.dec(-g)}\).` } : undefined)],
             why: R`The perpetuity formula values the cash flows at \(t = 0\), one period before the first one. ${npv > 0 ? R`\(NPV > 0\), so buy.` : R`\(NPV < 0\), so do not buy.`}`,
           };
         } },
@@ -1047,6 +1484,7 @@
               R`Royalties, a growing perpetuity with \(g = -${L.pctT(d)}\): \[PV = \frac{C_1}{k - g} = \frac{${L.moneyT(roy)}\text{m}}{${L.dec(r)} + ${L.dec(d)}} = ${L.moneyT(roy / (r + d), 3)}\text{m}\]`,
               R`\[NPV = ${L.numT(adv)} - ${L.numT(lost / (1 + r), 3)} + ${L.numT(roy / (r + d), 3)} = ${L.moneyT(npv, 3)}\text{m}\]`,
             ],
+            ti: [TI.line(`${TI.num(adv)}-${TI.num(lost)}/${TI.num(1 + r)}+${TI.num(roy)}/(${TI.num(r)}+${TI.num(d)})`, { note: R`In $ millions. The royalties shrink, so \(k - g = ${L.dec(r)} + ${L.dec(d)}\).` })],
             why: R`A shrinking perpetuity is a growing perpetuity with a negative \(g\), so \(r - g\) gets bigger.`,
           };
         } },
@@ -1076,6 +1514,7 @@
               R`\[NPV = ${M(pvIn)} - ${M(pvOut)} = ${M(npv)}\]`,
             ],
             calc: npvKeys(cfs, r),
+            ti: [TI.cmd('npv', [P(r), -i0, [c - i1, c], [1, n - 1]], { note: R`Year 1 nets \(${L.numT(c)} - ${L.numT(i1)} = ${L.numT(c - i1)}\). Then \(${L.moneyT(c)}\) comes ${n - 1} more times.` })],
             why: R`Bring every cash flow to \(t = 0\). At \(t = 1\) the net cash flow is \(${L.moneyT(c - i1)}\).`,
           };
         } },
@@ -1116,6 +1555,7 @@
                 R`\(IRR ${irr > k ? '>' : '<'} k = ${L.pctT(k)}\), so ${irr > k ? 'accept' : 'reject'}.`,
               ],
               calc: irrKeys(cfs, irr),
+              ti: [tiIrr(cfs)],
               why: `At ${T.pct(irr)} the PV of the inflows exactly equals the cost.`,
             };
           }
@@ -1147,7 +1587,8 @@
                 R`Solve by calculator: \(IRR = ${L.pct(irr)}\).`,
               ],
               calc: `${n} [N] · −${cost} [PV] · ${c} [PMT] · 0 [FV] · [I/YR] → ${T.num(irr * 100)}`,
-              why: 'With equal cash flows, the IRR is the interest rate of the annuity: solve for I/YR.',
+              ti: [TI.solver({ N: n, PV: -cost, Pmt: c, FV: 0, PpY: 1, CpY: 1 }, 'I', { note: R`The IRR is the interest rate of this annuity. \(\text{irr}(${TI.num(-cost)}, \{${TI.num(c)}\}, \{${n}\})\) gives the same.` })],
+              why: 'With equal cash flows, the IRR is the interest rate of the annuity: solve for the rate, I(%) in the Finance Solver.',
             };
           }
           return null;
@@ -1174,6 +1615,7 @@
               R`The signs are \(+\) then \(-\): you receive cash first and pay later. That is **borrowing**, and the IRR is the rate you pay.`,
               R`\[NPV = ${signedSum(cfs.map((c, t) => disc(c, k, t)))} = ${M(npv)}\]`,
             ],
+            ti: [tiNpv(k, cfs, { note: R`Trust the NPV: \(${M(npv)}\).` })],
             why: R`${hiIrr ? `Borrowing at ${T.pct(irrT)} when money costs ${T.pctT(k)} destroys value.` : `Borrowing at ${T.pct(irrT)} when money costs ${T.pctT(k)} is cheap.`} \(NPV = ${M(npv)}\). Trust the NPV.`,
           };
         } },
@@ -1198,6 +1640,7 @@
               { v: FIN.npv(r, cfs), why: 'That is the NPV at the cost of capital. The y-axis is where the discount rate is 0%.' },
             ],
             steps: [R`On the y-axis the discount rate is 0%, so nothing is discounted.`, R`\[NPV_{0\%} = ${signedSum(cfs)} = ${M(y0)}\]`],
+            ti: [tiNpv(0, cfs, { note: 'A 0% rate: the NPV is just the sum of the cash flows.' })],
             why: 'The y-intercept of an NPV profile is the plain sum of the cash flows. The x-intercept is the IRR.',
           };
         } },
@@ -1221,6 +1664,7 @@
               R`Check: at \(${L.pct(pr.cross)}\), \(NPV_{${a}} = NPV_{${b}} = ${M(FIN.npv(pr.cross, pr.A))}\).`,
             ],
             calc: irrKeys(pr.diff, pr.cross),
+            ti: [tiIrr(pr.diff, { note: R`The list is \(${a} - ${b}\), year by year.` })],
             why: `Below ${T.pct(pr.cross)}, ${a} has the higher NPV. Above it, ${b} does.`,
           };
         } },
@@ -1249,6 +1693,7 @@
                 R`\(IRR_{${a}} = ${L.pct(pr.irrA)}\) and \(IRR_{${b}} = ${L.pct(pr.irrB)}\). Crossover rate \(= ${L.pct(pr.cross)}\).`,
                 conflict ? R`\(k\) is below the crossover rate, so NPV and IRR **conflict**. Follow NPV.` : R`\(k\) is above the crossover rate, so NPV and IRR agree.`,
               ],
+              ti: [tiNpv(k, pr.A, { note: `NPV of ${a}.` }), tiNpv(k, pr.B, { note: `NPV of ${b}.` })],
               why: R`Choose the higher NPV: Project ${nA > nB ? a : b}. ${conflict ? `${b} has the higher IRR, but that is the wrong rule here.` : ''}`,
             };
           }

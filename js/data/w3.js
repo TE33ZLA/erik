@@ -1,9 +1,10 @@
 /* Floor 3 — Week 3: Valuing bonds and shares. */
 (function (root) {
   'use strict';
-  const { FIN, L, T } = root;
+  const { FIN, L, T, TI } = root;
   const R = String.raw;
   const P = (r) => +(r * 100).toFixed(8); // decimal rate -> percent units for answers
+  const tn = (x) => TI.num(x); // a number as typed on the TI-Nspire (no commas, at most 6 decimals)
 
   /* ---------- local helpers ---------- */
   const r2 = (x) => FIN.round(x, 2);
@@ -82,7 +83,7 @@
       { h: 'Semi-annual coupons and the EAY', points: [
         R`Work in half-years: **halve** the coupon, **halve** the yield, **double** \(n\).`,
         R`Effective annual yield: \(EAY = \left(1 + \frac{y}{2}\right)^{2} - 1\). A 10% semi-annual YTM gives \(1.05^{2} - 1 = 10.25\%\).`,
-        R`The calculator’s [I/YR] result for a semi-annual bond is already the half-year yield. Square \((1 + i)\); do not halve it again.`,
+        R`Given a yield **per half-year**, \(i\)? It is already halved. Compound it: \(EAY = (1 + i)^{2} - 1\). Do not halve it again.`,
       ] },
       { h: 'Yields and interest-rate risk', points: [
         R`**YTM:** the average return if you buy now, hold to maturity and every payment is made. Your expected return can differ from it.`,
@@ -109,6 +110,12 @@
         R`Step 3: once growth is constant, \(P_n = \frac{D_{n+1}}{r_E - g}\). It sits at \(t = n\).`,
         R`Step 4: \(P_0 = \) PV of the dividends \(+ \frac{P_n}{(1+r_E)^{n}}\).`,
         R`If the latest dividend is still to be paid (tomorrow), add it to the price.`,
+      ] },
+      { h: 'On your TI-Nspire CX CAS', points: [
+        R`Bond price: Finance Solver with \(N\) = coupons left, \(I(\%)\) = the yield, \(Pmt\) = the coupon, \(FV\) = the face value. Solve \(PV\); the minus sign just means it is the price you pay.`,
+        R`Semi-annual bond: \(N = 2 \times\) years, \(Pmt\) = the half-year coupon, \(I(\%)\) = the yearly yield, \(PpY = CpY = 2\).`,
+        R`YTM: put \(PV = -\text{price}\) and solve \(I(\%)\). With \(PpY = CpY = 2\) that is the nominal yearly yield; \(\text{eff}(\text{ans}, 2)\) gives the EAY.`,
+        R`Shares: type the formula, e.g. \(0.15 \times 1.05/(0.10-0.05)\). Variable growth: \(\text{npv}(r, 0, \{D_1, D_2, D_3 + P_3\})\).`,
       ] },
     ],
 
@@ -271,6 +278,7 @@
         ],
         steps: [R`\[P = \frac{FV}{(1+i)^{n}} = \frac{1{,}000}{1.06^{30}} = ${L.money(FIN.zeroPrice(1000, 0.06, 30))}\]`],
         calc: `30 [N] · 6 [I/YR] · 0 [PMT] · 1000 [FV] · [PV] → −${T.money(FIN.zeroPrice(1000, 0.06, 30))}`,
+        ti: [TI.solver({ N: 30, I: 6, Pmt: 0, FV: 1000, PpY: 1, CpY: 1 }, 'PV', { note: R`No coupons, so \(Pmt = 0\). The minus sign means it is the price you pay: \(${L.money(FIN.zeroPrice(1000, 0.06, 30))}\).` })],
         why: 'A zero-coupon bond is one lump sum at maturity. Discount it back 30 years.' },
 
       /* ----- pricing coupon bonds ----- */
@@ -300,6 +308,7 @@
           R`The coupon rate (5%) is below the yield (6%), so it trades at a **discount**. At 5% it would sell at par ($1,000). At 4% it would sell at a premium (${T.money(FIN.bondPrice(1000, 0.05, 0.04, 10))}).`,
         ],
         calc: `10 [N] · 6 [I/YR] · 50 [PMT] · 1000 [FV] · [PV] → −${T.money(EX3.p)}`,
+        ti: [TI.solver({ N: 10, I: 6, Pmt: 50, FV: 1000, PpY: 1, CpY: 1 }, 'PV', { note: R`The coupon goes in \(Pmt\) and the face value in \(FV\). The minus sign means it is the price you pay: \(${L.money(EX3.p)}\).` })],
         why: 'Price = PV of the coupons + PV of the face value, both at the market rate.' },
       { id: 'w3-q13', topic: 'bondprice', kind: 'num', level: 1, section: 'B', src: 'Tutorial W3 Q1', formula: 'bond-price',
         q: R`Lahey Industries has a $1,000 par value bond with an 8% coupon, paid annually, and 12 years to maturity. What is the bond worth if its yield to maturity is 7%?`,
@@ -314,6 +323,7 @@
           R`\[P = \frac{80}{0.07}\left(1 - \frac{1}{1.07^{12}}\right) + \frac{1{,}000}{1.07^{12}} = ${L.num(FIN.pvAnnuity(80, 0.07, 12))} + ${L.num(1000 / 1.07 ** 12)} = ${L.money(FIN.bondPrice(1000, 0.08, 0.07, 12))}\]`,
         ],
         calc: `12 [N] · 7 [I/YR] · 80 [PMT] · 1000 [FV] · [PV] → −${T.money(FIN.bondPrice(1000, 0.08, 0.07, 12))}`,
+        ti: [TI.solver({ N: 12, I: 7, Pmt: 80, FV: 1000, PpY: 1, CpY: 1 }, 'PV', { note: R`The minus sign means it is the price you pay: \(${L.money(FIN.bondPrice(1000, 0.08, 0.07, 12))}\).` })],
         why: 'The 8% coupon is above the 7% yield, so the bond sells at a premium.' },
       { id: 'w3-q14', topic: 'bondprice', kind: 'num', level: 2, section: 'B', src: 'Mock MST Q29', formula: 'bond-price',
         q: R`A bond has a par value of $1,000, a 10% annual coupon and 8 years left to maturity. What would its price be at a theoretical discount rate of **0%**?`,
@@ -327,6 +337,7 @@
           R`At 0%, every discount factor \(\frac{1}{(1+0)^{t}}\) equals 1. The price is the sum of the cash flows.`,
           R`\[P = 8 \times \$100 + \$1{,}000 = \$1{,}800\]`,
         ],
+        ti: [TI.line('8*100+1000', { note: R`The Finance Solver agrees: with \(I(\%) = 0\) it gives \(PV = -1800\).` })],
         why: 'With no discounting, the price is simply the total of all the cash flows.' },
 
       /* ----- semi-annual coupons and EAY ----- */
@@ -337,12 +348,14 @@
       { id: 'w3-q16', topic: 'semi', kind: 'mcq', level: 2, section: 'A', src: 'Tutorial W3 concept check Q2',
         q: R`The Chadstone Company has a $1,000 bond with 15 years to maturity. Its coupon rate is 8%, paid semi-annually. The YTM is 7.5%. How will this bond trade?`,
         choices: ['At a premium', 'At par', 'At a discount', 'You cannot tell without calculating the price'], answer: 0,
-        why: R`The coupon rate (8%) is above the YTM (7.5%), so the price is above face value. (It works out at ${T.money(FIN.bondPrice(1000, 0.08, 0.075, 15, 2))}.)` },
+        why: R`The coupon rate (8%) is above the YTM (7.5%), so the price is above face value. (It works out at ${T.money(FIN.bondPrice(1000, 0.08, 0.075, 15, 2))}.)`,
+        ti: [TI.solver({ N: 30, I: 7.5, Pmt: 40, FV: 1000, PpY: 2, CpY: 2 }, 'PV', { note: 'The price is above the $1,000 face value: a premium.' })] },
       { id: 'w3-q17', topic: 'semi', kind: 'mcq', level: 2, section: 'A', src: 'Mock MST Q30 feedback', formula: 'eay',
-        q: R`Your calculator gives a semi-annual bond’s yield as 6.0245% **per half-year**. What is its effective annual yield?`,
+        q: R`You find that a semi-annual bond’s yield is 6.0245% **per half-year**. What is its effective annual yield?`,
         choices: [R`\((1.060245)^{2} - 1 = ${L.pct(1.060245 ** 2 - 1)}\)`, R`\(\left(1 + \frac{0.060245}{2}\right)^{2} - 1 = ${L.pct((1 + 0.060245 / 2) ** 2 - 1)}\)`, R`\(2 \times 6.0245\% = ${L.pct(2 * 0.060245)}\)`, R`\(6.02\%\)`], answer: 0,
         wrong: { 1: 'That halves a yield that is already per half-year.', 2: 'That is the nominal annual yield (APR), not the effective yield.' },
-        why: R`The calculator result is **already** the half-year yield. Do not halve it again. Compound it for two half-years: \(EAY = (1 + 0.060245)^{2} - 1\).` },
+        why: R`6.0245% is **already** the half-year yield. Do not halve it again. Compound it for two half-years: \(EAY = (1 + 0.060245)^{2} - 1\).`,
+        ti: [TI.line('(1+0.060245)^2-1', { pct: true, note: R`Or: the nominal yield is \(2 \times 6.0245 = 12.049\%\), and \(\text{eff}(12.049, 2)\) gives the same EAY.` })] },
       { id: 'w3-q18', topic: 'semi', kind: 'num', level: 2, section: 'B', src: 'Lecture W3 Example 5', formula: 'bond-price',
         q: R`A bond has a face value of $1,000, a 6% coupon rate and 10 years to maturity. Coupons are paid **semi-annually**. What is its price if the discount rate is 10% p.a.?`,
         answer: EX5.p, unit: '$', dp: 2,
@@ -356,6 +369,7 @@
           R`\[P = \frac{30}{0.05}\left(1 - \frac{1}{1.05^{20}}\right) + \frac{1{,}000}{1.05^{20}} = ${L.num(EX5.c)} + ${L.num(EX5.f)} = ${L.money(EX5.p)}\]`,
         ],
         calc: `20 [N] · 5 [I/YR] · 30 [PMT] · 1000 [FV] · [PV] → −${T.money(EX5.p)}`,
+        ti: [TI.solver({ N: 20, I: 10, Pmt: 30, FV: 1000, PpY: 2, CpY: 2 }, 'PV', { note: R`\(N = 10 \times 2 = 20\), \(Pmt = 30\) (half of the $60 coupon), \(I(\%) = 10\) (the yearly yield) and \(PpY = CpY = 2\). The minus sign means it is the price you pay.` })],
         why: 'Semi-annual: halve the coupon, halve the rate, double the periods.' },
       { id: 'w3-q19', topic: 'semi', kind: 'num', level: 2, section: 'B', src: 'Tutorial W3 Q2', formula: 'bond-price',
         q: R`Tohey Industries has a $1,000 par value bond with an 8% coupon, paid **semi-annually**, and 12 years to maturity. What is it worth if the required return is 10% p.a.?`,
@@ -370,6 +384,7 @@
           R`\[P = \frac{40}{0.05}\left(1 - \frac{1}{1.05^{24}}\right) + \frac{1{,}000}{1.05^{24}} = ${L.money(FIN.bondPrice(1000, 0.08, 0.10, 12, 2))}\]`,
         ],
         calc: `24 [N] · 5 [I/YR] · 40 [PMT] · 1000 [FV] · [PV] → −${T.money(FIN.bondPrice(1000, 0.08, 0.10, 12, 2))}`,
+        ti: [TI.solver({ N: 24, I: 10, Pmt: 40, FV: 1000, PpY: 2, CpY: 2 }, 'PV', { note: R`\(N = 24\) half-years, \(Pmt = 40\), \(I(\%) = 10\), \(PpY = CpY = 2\). The minus sign means it is the price you pay.` })],
         why: 'The 8% coupon is below the 10% yield, so the bond sells at a discount.' },
       { id: 'w3-q20', topic: 'semi', kind: 'num', level: 2, section: 'B', src: 'MST 2026 Q16', formula: 'bond-price',
         q: R`A $1,000 bond has a 9% coupon rate, paid semi-annually, and 10 years to maturity. Its YTM is 7% p.a. What is its price?`,
@@ -384,6 +399,7 @@
           R`\[P = \frac{45}{0.035}\left(1 - \frac{1}{1.035^{20}}\right) + \frac{1{,}000}{1.035^{20}} = ${L.money(FIN.bondPrice(1000, 0.09, 0.07, 10, 2))}\]`,
         ],
         calc: `20 [N] · 3.5 [I/YR] · 45 [PMT] · 1000 [FV] · [PV] → −${T.money(FIN.bondPrice(1000, 0.09, 0.07, 10, 2))}`,
+        ti: [TI.solver({ N: 20, I: 7, Pmt: 45, FV: 1000, PpY: 2, CpY: 2 }, 'PV', { note: R`\(N = 20\) half-years, \(Pmt = 45\), \(I(\%) = 7\), \(PpY = CpY = 2\). The minus sign means it is the price you pay.` })],
         why: 'The 9% coupon is above the 7% yield, so the bond sells at a premium.' },
       { id: 'w3-q21', topic: 'semi', kind: 'num', level: 1, section: 'B', src: 'Lecture W3 EAY example', formula: 'eay',
         q: R`A semi-annual bond has a yield to maturity of 10% p.a. (compounded semi-annually). What is its **effective annual yield**?`,
@@ -395,11 +411,13 @@
         ],
         steps: [R`\[EAY = \left(1 + \frac{0.10}{2}\right)^{2} - 1 = 1.05^{2} - 1 = 10.25\%\]`],
         calc: '10 [NOM%] · 2 [P/YR] · [EFF%] → 10.25 (then set P/YR back to 1)',
+        ti: [TI.cmd('eff', [10, 2])],
         why: 'Interest earned in the first half-year also earns interest in the second.' },
       { id: 'w3-q22', topic: 'semi', kind: 'mcq', level: 2, section: 'A', src: 'Tutorial W3 Q6(a)', formula: 'eay',
         q: R`A bond was sold at par ($1,000) with a 12% coupon, paid semi-annually. What was its yield to maturity when it was sold?`,
         choices: [R`12% p.a. nominal, which is an effective \(1.06^{2} - 1 = 12.36\%\)`, R`6% p.a.`, R`24% p.a.`, R`12.36% nominal, which is 12% effective`], answer: 0,
-        why: R`At par, the YTM equals the coupon rate: 6% per half-year, or 12% p.a. nominal. The effective annual yield is \(1.06^{2} - 1 = 12.36\%\).` },
+        why: R`At par, the YTM equals the coupon rate: 6% per half-year, or 12% p.a. nominal. The effective annual yield is \(1.06^{2} - 1 = 12.36\%\).`,
+        ti: [TI.cmd('eff', [12, 2], { note: 'The effective annual yield of 12% p.a. compounded semi-annually.' })] },
 
       /* ----- yields ----- */
       { id: 'w3-q23', topic: 'yield', kind: 'mcq', level: 1, section: 'A', src: 'Lecture W3 bond yields',
@@ -427,35 +445,47 @@
           R`\[EAY = (1 + 0.07)^{2} - 1 = ${L.pct((1 + T6C) ** 2 - 1)}\]`,
         ],
         calc: `19 [N] · −896.64 [PV] · 60 [PMT] · 1000 [FV] · [I/YR] → ${T.num(T6C * 100)} · then 1.07² − 1 = ${T.num(((1 + T6C) ** 2 - 1) * 100)}%`,
-        why: R`The calculator gives a half-year yield. Square \((1+i)\) to make it effective annual.` },
+        ti: [
+          TI.solver({ N: 19, PV: -896.64, Pmt: 60, FV: 1000, PpY: 2, CpY: 2 }, 'I', { note: R`With \(PpY = CpY = 2\) this is the nominal yearly yield: \(2 \times 7\% = 14\%\).` }),
+          TI.line('eff(ans,2)', { note: 'Turn the nominal yield into the effective annual yield.' }),
+        ],
+        why: R`The half-year yield is 7%. Compound it for two half-years: \((1 + 0.07)^{2} - 1\).` },
       { id: 'w3-q27', topic: 'yield', kind: 'num', level: 2, section: 'B', src: 'Mock MST Q30', formula: 'eay',
         q: R`A $1,000 bond has 8 years to maturity and a 10% coupon rate, paid **semi-annually**. It is priced at $896.64. What is its **effective** yield to maturity?`,
         answer: P((1 + M30) ** 2 - 1), unit: '%', dp: 2,
         mistakes: [
           { v: P(2 * M30), why: R`That is the nominal yield. Convert it: \((1 + i_{\text{half}})^{2} - 1\).` },
-          { v: P((1 + M30 / 2) ** 2 - 1), why: 'The calculator result is already per half-year. Do not halve it again.' },
+          { v: P((1 + M30 / 2) ** 2 - 1), why: 'The half-year yield is already halved. Do not halve it again.' },
           { v: P(FIN.bondYieldPeriodic(896.64, 1000, 100, 8)), why: 'That treats the coupons as annual. They are paid every six months.' },
         ],
         steps: [
-          R`Per half-year: \(n = 16\), \(C = \$50\), \(FV = \$1{,}000\). The calculator gives \(i = ${L.pct(M30, 4)}\) per half-year.`,
+          R`Per half-year: \(n = 16\), \(C = \$50\), \(FV = \$1{,}000\). Solving gives \(i = ${L.pct(M30, 4)}\) per half-year (\(${L.pct(2 * M30, 3)}\) p.a. nominal).`,
           R`\[EAY = (1 + ${L.dec(M30, 6)})^{2} - 1 = ${L.pct((1 + M30) ** 2 - 1)}\]`,
         ],
         calc: `16 [N] · −896.64 [PV] · 50 [PMT] · 1000 [FV] · [I/YR] → ${T.num(M30 * 100, 4)} · then (1.060245)² − 1 = ${T.num(((1 + M30) ** 2 - 1) * 100)}%`,
+        ti: [
+          TI.solver({ N: 16, PV: -896.64, Pmt: 50, FV: 1000, PpY: 2, CpY: 2 }, 'I', { note: R`\(N = 8 \times 2 = 16\), \(Pmt = 50\), \(PpY = CpY = 2\). This is the nominal yearly yield.` }),
+          TI.line('eff(ans,2)', { note: 'The effective annual yield.' }),
+        ],
         why: 'Solve for the half-year yield, then compound it for two half-years.' },
       { id: 'w3-q28', topic: 'yield', kind: 'num', level: 3, section: 'B', src: 'Mock MST Q01', formula: 'eay',
         q: R`Ten years ago, {NAME} paid $980 for a 15-year, $1,000 bond with a 10% coupon paid semi-annually. Today the bond is priced at $1,054.36. If {NAME} sells it today, what is the **realised yield** (effective annual)?`,
         answer: P((1 + M01) ** 2 - 1), unit: '%', dp: 2,
         mistakes: [
           { v: P(2 * M01), why: 'That is the nominal yield. Convert the half-year yield to an effective annual yield.' },
-          { v: P((1 + M01 / 2) ** 2 - 1), why: 'The calculator result is already per half-year. Do not halve it again.' },
+          { v: P((1 + M01 / 2) ** 2 - 1), why: 'The half-year yield is already halved. Do not halve it again.' },
           { v: P((1054.36 / 980) ** (1 / 10) - 1), why: 'That ignores the coupons received. They are part of the return.' },
         ],
         steps: [
           R`Per half-year: \(n = 10 \times 2 = 20\), \(C = \$50\), pay \(\$980\) at the start, receive the sale price \(\$1{,}054.36\) at the end.`,
-          R`Solve \[980 = \frac{50}{i}\left(1 - \frac{1}{(1+i)^{20}}\right) + \frac{1{,}054.36}{(1+i)^{20}}\] The calculator gives \(i = ${L.pct(M01, 4)}\) per half-year.`,
+          R`Solve \[980 = \frac{50}{i}\left(1 - \frac{1}{(1+i)^{20}}\right) + \frac{1{,}054.36}{(1+i)^{20}}\] This gives \(i = ${L.pct(M01, 4)}\) per half-year.`,
           R`\[\text{Realised yield} = (1 + ${L.dec(M01, 6)})^{2} - 1 = ${L.pct((1 + M01) ** 2 - 1)} \approx 11\%\]`,
         ],
         calc: `20 [N] · −980 [PV] · 50 [PMT] · 1054.36 [FV] · [I/YR] → ${T.num(M01 * 100, 4)} · then (1.053238)² − 1 = ${T.num(((1 + M01) ** 2 - 1) * 100)}%`,
+        ti: [
+          TI.solver({ N: 20, PV: -980, Pmt: 50, FV: 1054.36, PpY: 2, CpY: 2 }, 'I', { note: R`The sale price goes in \(FV\) instead of the face value. This is the nominal yearly yield.` }),
+          TI.line('eff(ans,2)', { note: 'The realised yield as an effective annual rate.' }),
+        ],
         why: 'For a realised yield, the sale price takes the place of the face value.' },
 
       /* ----- interest-rate risk ----- */
@@ -504,6 +534,7 @@
           R`The yield rose above the coupon rate, so the bond now trades at a **discount**.`,
         ],
         calc: `10 [N] · 3 [I/YR] · 25 [PMT] · 1000 [FV] · [PV] → −${T.money(FIN.bondPrice(1000, 0.05, 0.06, 5, 2))}`,
+        ti: [TI.solver({ N: 10, I: 6, Pmt: 25, FV: 1000, PpY: 2, CpY: 2 }, 'PV', { note: R`At year 5: \(N = 10\) half-years left and the new yield, \(I(\%) = 6\). The minus sign means it is the price you pay.` })],
         why: 'Price it with the time left and the new yield.' },
       { id: 'w3-q37', topic: 'raterisk', kind: 'num', level: 2, section: 'B', src: 'Tutorial W3 Q6(b)', formula: 'bond-price',
         q: R`A 30-year, $1,000 bond with a 12% coupon (paid semi-annually) was issued at par on 1 January 1992. On 1 January 1997, market rates have fallen to 10% p.a. What is the bond’s price then?`,
@@ -519,6 +550,7 @@
           R`Rates fell, so the price rose above par: a **premium** bond.`,
         ],
         calc: `50 [N] · 5 [I/YR] · 60 [PMT] · 1000 [FV] · [PV] → −${T.money(FIN.bondPrice(1000, 0.12, 0.10, 25, 2))}`,
+        ti: [TI.solver({ N: 50, I: 10, Pmt: 60, FV: 1000, PpY: 2, CpY: 2 }, 'PV', { note: R`25 years left: \(N = 50\), \(Pmt = 60\), \(I(\%) = 10\), \(PpY = CpY = 2\). The minus sign means it is the price you pay.` })],
         why: 'Falling rates push the price of an existing bond up.' },
 
       /* ----- preference shares ----- */
@@ -538,6 +570,7 @@
           R`\[P_0 = \frac{D}{r} = \frac{3}{0.08} = \$37.50\]`,
           R`In five years it is still worth \(\frac{3}{0.08} = \$37.50\). Nothing grows, so the price stays the same.`,
         ],
+        ti: [TI.line('3/0.08')],
         why: R`A preference share is a perpetuity: \(P_0 = \frac{D}{r}\).` },
       { id: 'w3-q40', topic: 'pref', kind: 'tf', level: 1, section: 'A', src: 'Tutorial W3 Q4',
         q: R`A preference share’s dividend is fixed and its required return does not change. Its price in five years will be the same as today.`,
@@ -586,6 +619,7 @@
           R`\[P_0 = \frac{D_1}{r_E - g} = \frac{0.1575}{0.10 - 0.05} = \$3.15\]`,
           R`Check: dividend yield \(= \frac{0.1575}{3.15} = 5\%\), capital gains yield \(= g = 5\%\). Together they make \(r_E = 10\%\).`,
         ],
+        ti: [TI.line('0.15*1.05/(0.10-0.05)', { note: R`\(D_1 = 0.15 \times 1.05\) goes on top.` })],
         why: R`Grow the dividend just paid by one year, then divide by \((r - g)\).` },
       { id: 'w3-q49', topic: 'ddm', kind: 'num', level: 2, section: 'B', src: 'Mock MST Q17', formula: 'share-ddm',
         q: R`Trusty Gets’ Lucky Ltd has **just paid** a dividend of $2.00. Dividends will grow at 6% a year forever. The discount rate is 16%. What is the share’s expected price in **one year**?`,
@@ -600,6 +634,7 @@
           R`\[P_1 = \frac{D_2}{r - g} = \frac{${n4(2 * 1.06 ** 2)}}{0.16 - 0.06} = ${L.money(FIN.ddmConst(2 * 1.06 ** 2, 0.16, 0.06))}\]`,
           R`Check: \(P_1 = P_0(1+g) = 21.20 \times 1.06 = ${L.money(21.2 * 1.06)}\).`,
         ],
+        ti: [TI.line('2*1.06^2/(0.16-0.06)', { note: R`\(D_2 = 2 \times 1.06^{2}\) goes on top, because \(P_1\) values the dividends from year 2 on.` })],
         why: R`The price in one year values the dividends from year 2 onwards. (The mock solution rounds \(D_2\) to $2.25 and gets $22.50.)` },
       { id: 'w3-q50', topic: 'ddm', kind: 'num', level: 2, section: 'B', src: 'Tutorial W3 Q5', formula: 'share-ddm',
         q: R`Brig Company has **just paid** a dividend of $0.20. Dividends grow at 8% a year forever, and investors require 16%. Today’s price is $2.70. What will the share be worth in **five years**?`,
@@ -613,6 +648,7 @@
           R`\[P_5 = P_0(1+g)^{5} = 2.70 \times 1.08^{5} = ${L.money(2.7 * 1.08 ** 5)}\]`,
           R`Or: \(P_5 = \frac{D_6}{r - g} = \frac{0.20 \times 1.08^{6}}{0.16 - 0.08} = ${L.money(FIN.ddmConst(0.2 * 1.08 ** 6, 0.16, 0.08))}\).`,
         ],
+        ti: [TI.line('0.20*1.08^6/(0.16-0.08)', { note: R`\(D_6 = 0.20 \times 1.08^{6}\) on top. Or type \(2.70 \times 1.08^{5}\).` })],
         why: 'With constant growth, the share price also grows at g every year.' },
       { id: 'w3-q51', topic: 'ddm', kind: 'tf', level: 2, section: 'A', src: 'Mock MST Q16 feedback',
         q: R`A dividend \(D_0\) was paid yesterday. You should add it to today’s share price \(P_0 = \frac{D_1}{r - g}\).`,
@@ -645,6 +681,7 @@
           R`\[\text{Capital gains yield} = \frac{P_1 - P_0}{P_0} = \frac{33 - 30}{30} = 10\%\]`,
           R`\[r_E = 4\% + 10\% = 14\%\]`,
         ],
+        ti: [TI.line('(1.20+33-30)/30', { pct: true, note: R`(Dividend \(+\) price rise) \(\div\) the price you pay. Multiply by 100 for %.` })],
         why: 'Total return = dividend yield + capital gains yield.' },
       { id: 'w3-q56', topic: 'returns', kind: 'num', level: 1, section: 'B', src: 'Mock MST Q05', formula: 'total-return',
         q: R`A share is bought for $22.00 and sold one year later for $26.00, just after it pays a $1.50 dividend. What is the **capital gains yield**?`,
@@ -655,6 +692,7 @@
           { v: P(1.5 / 22), why: 'That is the dividend yield.' },
         ],
         steps: [R`\[\text{Capital gains yield} = \frac{P_1 - P_0}{P_0} = \frac{26 - 22}{22} = ${L.pct(4 / 22)}\]`],
+        ti: [TI.line('(26-22)/22', { pct: true, note: 'Multiply by 100 for %.' })],
         why: R`With constant growth this would also be the growth rate \(g\).` },
       { id: 'w3-q57', topic: 'returns', kind: 'num', level: 2, section: 'B', src: 'Mock MST Q15', formula: 'total-return',
         q: R`You would pay $30 today for a share you expect to sell for $32 in one year. You require a 12% return. What dividend must you expect at the end of year 1?`,
@@ -669,6 +707,7 @@
           R`\[D_1 = 30 \times 1.12 - 32 = 33.60 - 32 = \$1.60\]`,
           R`The mock method gives the same: \(g = \frac{32 - 30}{30} = 6.67\%\) and \(D_1 = P_0(r - g) = 30 \times (0.12 - 0.0667) = \$1.60\).`,
         ],
+        ti: [TI.line('30*1.12-32')],
         why: 'The return you need comes from the dividend plus the price rise.' },
 
       /* ----- variable growth ----- */
@@ -703,6 +742,10 @@
           R`Step 3, the price at year 3: \[P_3 = \frac{D_4}{r - g} = \frac{0.2592 \times 1.05}{0.10 - 0.05} = \$${n4(EX8.PT)}\]`,
           R`Step 4, discount and add: \[P_0 = ${n4(EX8.sum)} + \frac{${n4(EX8.PT)}}{1.10^{3}} = ${n4(EX8.sum)} + ${n4(EX8.pvPT)} = ${L.money(EX8.price)}\]`,
         ],
+        ti: [
+          TI.line(`${tn(EX8.divs[2])}*1.05/(0.10-0.05)`, { note: R`Step 3: \(P_3 = \frac{D_4}{r - g}\).` }),
+          TI.line(`npv(10,0,{${EX8.divs.map((d, k) => tn(d) + (k === 2 ? '+ans' : '')).join(',')}})`, { note: R`Steps 2 and 4 in one line: year 3 holds \(D_3 + P_3\).` }),
+        ],
         why: 'Four steps: dividends, their PVs, the terminal price, then discount and add.' },
       { id: 'w3-q63', topic: 'vargrowth', kind: 'num', level: 3, section: 'B', src: 'Tutorial W3 Q7', formula: 'share-general',
         q: R`Networks Ltd has **just paid** a dividend of $0.115. Dividends will grow at 18% for the next two years, 15% in the third year, then 6% a year forever. The required return is 12%. What is the share worth today?`,
@@ -716,6 +759,10 @@
           R`Dividends: \(D_1 = 0.115 \times 1.18 = ${n4(T7.divs[0])}\), \(D_2 = ${n4(T7.divs[1])}\), \(D_3 = D_2 \times 1.15 = ${n4(T7.divs[2])}\), \(D_4 = D_3 \times 1.06 = ${n4(T7.dNext)}\).`,
           R`\[P_3 = \frac{D_4}{r - g} = \frac{${n4(T7.dNext)}}{0.12 - 0.06} = \$${n4(T7.PT)}\]`,
           R`\[P_0 = \frac{${n4(T7.divs[0])}}{1.12} + \frac{${n4(T7.divs[1])}}{1.12^{2}} + \frac{${n4(T7.divs[2])} + ${n4(T7.PT)}}{1.12^{3}} = ${L.money(T7.price)}\]`,
+        ],
+        ti: [
+          TI.line(`${tn(T7.divs[2])}*1.06/(0.12-0.06)`, { note: R`\(P_3 = \frac{D_4}{r - g}\), with \(D_4 = D_3 \times 1.06\).` }),
+          TI.line(`npv(12,0,{${T7.divs.map((d, k) => tn(d) + (k === 2 ? '+ans' : '')).join(',')}})`, { note: R`Year 3 holds \(D_3 + P_3\).` }),
         ],
         why: 'Grow the dividend year by year with the right rate, then add the PV of the terminal price.' },
       { id: 'w3-q64', topic: 'vargrowth', kind: 'num', level: 3, section: 'B', src: 'Tutorial W3 Q8(a)', formula: 'share-general',
@@ -731,6 +778,10 @@
           R`\[P_4 = \frac{D_5}{r - g} = \frac{${n4(T8.divs[3])} \times 1.05}{0.16 - 0.05} = \$${n4(T8.PT)}\]`,
           R`\[P_0 = \frac{${n4(T8.divs[0])}}{1.16} + \frac{${n4(T8.divs[1])}}{1.16^{2}} + \frac{${n4(T8.divs[2])}}{1.16^{3}} + \frac{${n4(T8.divs[3])} + ${n4(T8.PT)}}{1.16^{4}} = ${L.money(T8.price)}\]`,
         ],
+        ti: [
+          TI.line(`${tn(T8.divs[3])}*1.05/(0.16-0.05)`, { note: R`\(P_4 = \frac{D_5}{r - g}\), with \(D_5 = D_4 \times 1.05\).` }),
+          TI.line(`npv(16,0,{${T8.divs.map((d, k) => tn(d) + (k === 3 ? '+ans' : '')).join(',')}})`, { note: R`Year 4 holds \(D_4 + P_4\).` }),
+        ],
         why: 'Constant growth starts in year 5, so the terminal price sits at year 4.' },
       { id: 'w3-q65', topic: 'vargrowth', kind: 'num', level: 2, section: 'B', src: 'Tutorial W3 Q8(b)', formula: 'share-general',
         q: R`Buyonline Ltd is worth $12.20 per share when its $0.85 dividend has just been paid. What is it worth if that $0.85 dividend will instead be paid **tomorrow**?`,
@@ -744,6 +795,7 @@
           R`Today’s buyer now also receives $0.85 tomorrow. It is worth about $0.85 today.`,
           R`\[P_0 = 12.20 + 0.85 = \$13.05\]`,
         ],
+        ti: [TI.line('12.20+0.85')],
         why: 'A dividend about to be paid belongs to today’s owner, so it is part of today’s price.' },
       { id: 'w3-q66', topic: 'vargrowth', kind: 'num', level: 2, section: 'B', src: 'MST 2026 Q17', formula: 'share-general',
         q: R`A share costs $25.56 today. It will pay a $5.00 dividend at the end of each of the next 6 years. Investors require 12% p.a. What price must they expect at the end of year 6, just after the last dividend?`,
@@ -759,6 +811,7 @@
           R`\[P_6 = ${L.num(M17.rest, 5)} \times 1.12^{6} = ${L.money(M17.pn)}\]`,
         ],
         calc: `6 [N] · 12 [I/YR] · −25.56 [PV] · 5 [PMT] · [FV] → ${T.money(M17.pn)}`,
+        ti: [TI.solver({ N: 6, I: 12, PV: -25.56, Pmt: 5, PpY: 1, CpY: 1 }, 'FV', { note: R`You pay the price today (\(PV = -25.56\)) and receive the dividends (\(Pmt = 5\)). \(FV\) is the price you need at year 6.` })],
         why: 'Treat it like a bond: the dividends are the coupons and the future price is the face value.' },
 
       /* ----- more course examples ----- */
@@ -771,6 +824,7 @@
           { v: FIN.pvAnnuity(3, 0.15, 10), why: 'That values only 10 years of dividends. These dividends last forever.' },
         ],
         steps: [R`A constant dividend forever is a perpetuity: \[P_0 = \frac{D}{r_E} = \frac{3}{0.15} = \$20.00\]`],
+        ti: [TI.line('3/0.15')],
         why: R`Zero growth: the share is a perpetuity, \(\frac{D}{r}\).` },
       { id: 'w3-q70', topic: 'ddm', kind: 'num', level: 1, section: 'B', src: 'Mock MST Q14', formula: 'share-ddm',
         q: R`Spacefood Products will pay a dividend of $2.40 per share **at the end of this year**. The dividend is expected to grow by 3% a year, forever. The equity cost of capital is 10%. What is one share worth today?`,
@@ -781,6 +835,7 @@
           { v: 2.4 / 0.13, why: R`Subtract \(g\) from \(r_E\). Do not add it.` },
         ],
         steps: [R`\[P_0 = \frac{D_1}{r_E - g} = \frac{2.40}{0.10 - 0.03} = ${L.money(FIN.ddmConst(2.4, 0.10, 0.03))}\]`],
+        ti: [TI.line('2.40/(0.10-0.03)')],
         why: R`The dividend at the end of this year is \(D_1\), so it goes straight on top.` },
       { id: 'w3-q71', topic: 'ddm', kind: 'num', level: 1, section: 'B', src: 'Mock MST Q16', formula: 'share-ddm',
         q: R`Trusty Gets’ Lucky Ltd has **just paid** a dividend of $2.00 per share. It plans to increase dividends by 6% a year, indefinitely. The discount rate is 16%. What is the share price today?`,
@@ -795,6 +850,7 @@
           R`\[P_0 = \frac{D_1}{r_E - g} = \frac{2.12}{0.16 - 0.06} = ${L.money(FIN.ddmConst(2 * 1.06, 0.16, 0.06))}\]`,
           R`\(D_0\) has already been paid, so it is not part of today’s price.`,
         ],
+        ti: [TI.line('2*1.06/(0.16-0.06)', { note: R`\(D_1 = 2 \times 1.06\) on top.` })],
         why: R`Just paid means \(D_0\). Grow it one year to get \(D_1\), then use the constant-growth model.` },
 
       /* ----- boss-level static ----- */
@@ -810,6 +866,10 @@
           R`Years 1–6, a growing annuity with \(D_1 = 2 \times 1.065 = 2.13\): \[PV = \frac{2.13}{0.09 - 0.065}\left(1 - \left(\frac{1.065}{1.09}\right)^{6}\right) = \$${n4(Q18.pvA)}\]`,
           R`Price at year 6: \(D_7 = 2 \times 1.065^{6} \times 1.035 = ${n4(Q18.d7)}\), so \[P_6 = \frac{D_7}{0.09 - 0.035} = \$${n4(Q18.p6)}\]`,
           R`\[P_0 = ${n4(Q18.pvA)} + \frac{${n4(Q18.p6)}}{1.09^{6}} = ${n4(Q18.pvA)} + ${n4(Q18.pvP6)} = ${L.money(Q18.p0)}\]`,
+        ],
+        ti: [
+          TI.line('2*1.065^6*1.035/(0.09-0.035)', { note: R`\(P_6 = \frac{D_7}{r - g}\), with \(D_7 = 2 \times 1.065^{6} \times 1.035\).` }),
+          TI.line('2.13/(0.09-0.065)*(1-(1.065/1.09)^6)+ans/1.09^6', { note: R`The growing annuity (years 1 to 6) plus \(P_6\) discounted 6 years.` }),
         ],
         why: 'Two growth phases: a growing annuity for 6 years, then a growing perpetuity valued at year 6.' },
       { id: 'w3-q68', topic: 'bondprice', kind: 'num', level: 3, section: 'B', src: 'Mock MST Q12', formula: 'bond-price', boss: true,
@@ -827,7 +887,8 @@
           R`\[P = \frac{1}{1.075^{10}} \times \frac{50}{0.075}\left(1 - \frac{1}{1.075^{5}}\right) + \frac{1{,}550}{1.075^{16}} = ${L.num(M12.a)} + ${L.num(M12.b)} = ${L.money(M12.p)}\]`,
         ],
         calc: `0 [CFj] · 0 [CFj] · 10 [Nj] · 50 [CFj] · 5 [Nj] · 1550 [CFj] · 7.5 [I/YR] · [NPV] → ${T.money(M12.p)}`,
-        why: 'The bond formula cannot handle skipped coupons. Lay out every cash flow and discount each one (the [CFj] keys).' },
+        ti: [TI.cmd('npv', [7.5, 0, [0, 50, 1550], [10, 5, 1]], { note: R`The rate per half-year is 7.5%. The counts: 10 periods of $0, 5 coupons of $50, then $1,550.` })],
+        why: 'The bond formula cannot handle skipped coupons. Lay out every cash flow and discount each one (npv on the TI-Nspire).' },
     ],
 
     generators: [
@@ -851,6 +912,7 @@
             answer: cp, unit: '$', dp: 2,
             mistakes: dedupe(mistakes),
             steps: [R`\[\text{Coupon per period} = \frac{\text{coupon rate} \times \text{face value}}{m} = \frac{${L.dec(c)} \times ${ml(face)}}{${f.m}} = ${L.money(cp)}\]`],
+            ti: [TI.line(`${tn(face)}*${tn(c)}/${f.m}`, { note: `Face value × coupon rate, shared over ${f.m === 1 ? 'one payment' : f.m + ' payments'} a year.` })],
             why: 'The coupon is fixed by the coupon rate and the face value. The price and the YTM do not change it.',
           };
         } },
@@ -880,6 +942,7 @@
               R`\[P = \frac{FV}{(1+i)^{n}} = \frac{${ml(face)}}{(${L.onePlus(y / m)})^{${n * m}}} = ${L.money(price)}\]`,
             ],
             calc: `${n * m} [N] · ${pk(y / m)} [I/YR] · 0 [PMT] · ${face} [FV] · [PV] → −${T.money(price)}`,
+            ti: [TI.solver({ N: n * m, I: P(y), Pmt: 0, FV: face, PpY: m, CpY: m }, 'PV', { note: (semi ? R`Semi-annual: \(N = ${n} \times 2 = ${2 * n}\) and \(PpY = CpY = 2\). ` : '') + R`No coupons, so \(Pmt = 0\). The minus sign means it is the price you pay.` })],
             why: 'A zero-coupon bond is one lump sum at maturity. Discount it back to today.',
           };
         } },
@@ -911,6 +974,7 @@
               kind === 'par' ? R`Coupon rate \(=\) yield, so the bond trades at **par**.` : kind === 'premium' ? R`Coupon rate \(>\) yield, so the bond trades at a **premium**.` : R`Coupon rate \(<\) yield, so the bond trades at a **discount**.`,
             ],
             calc: `${n} [N] · ${pk(y)} [I/YR] · ${kn(cp)} [PMT] · ${face} [FV] · [PV] → −${T.money(price)}`,
+            ti: [TI.solver({ N: n, I: P(y), Pmt: cp, FV: face, PpY: 1, CpY: 1 }, 'PV', { note: R`The coupon goes in \(Pmt\), the face value in \(FV\), the yield in \(I(\%)\). The minus sign means it is the price you pay.` })],
             why: 'Bond price = PV of the coupons (an annuity) + PV of the face value (a lump sum).',
           };
         } },
@@ -934,6 +998,7 @@
               R`Compare the coupon rate with the YTM: \(${L.pctT(c)} ${ans === 0 ? '>' : ans === 1 ? '=' : '<'} ${L.pctT(y)}\).`,
               R`Check with the formula: the price is \(${L.money(price)}\).`,
             ],
+            ti: [TI.solver({ N: yrs * (semi ? 2 : 1), I: P(y), Pmt: (1000 * c) / (semi ? 2 : 1), FV: 1000, PpY: semi ? 2 : 1, CpY: semi ? 2 : 1 }, 'PV', { note: 'Compare the price (ignore the minus sign) with the $1,000 face value.' })],
           };
         } },
       { id: 'w3-g-skip', topic: 'bondprice', level: 3, section: 'B', formula: 'bond-price', boss: true, src: 'Mock MST Q12',
@@ -966,6 +1031,7 @@
               R`\[P = \frac{1}{(${L.onePlus(i)})^{${s}}} \times \frac{${ml(cp)}}{${L.dec(i)}}\left(1 - \frac{1}{(${L.onePlus(i)})^{${n - s - 1}}}\right) + \frac{${ml(cfs[n])}}{(${L.onePlus(i)})^{${n}}} = ${L.num(partC)} + ${L.num(partF)} = ${L.money(price)}\]`,
             ],
             calc: `0 [CFj] · 0 [CFj] · ${s} [Nj] · ${kn(cp)} [CFj] · ${n - s - 1} [Nj] · ${kn(cfs[n])} [CFj] · ${pk(i)} [I/YR] · [NPV] → ${T.money(price)}`,
+            ti: [TI.cmd('npv', [P(i), 0, [0, cp, cfs[n]], [s, n - s - 1, 1]], { note: `The rate per half-year is ${T.pctT(i)}. The counts: ${s} periods of $0, ${n - s - 1} coupons of ${mt(cp)}, then ${mt(cfs[n])}.` })],
             why: 'Skipped coupons break the bond formula. List every cash flow and discount each one.',
           };
         } },
@@ -993,6 +1059,7 @@
               R`\[P = ${bondTex(cp, i, n, face)} = ${L.num(pvC)} + ${L.num(pvF)} = ${L.money(price)}\]`,
             ],
             calc: `${n} [N] · ${pk(i)} [I/YR] · ${kn(cp)} [PMT] · ${face} [FV] · [PV] → −${T.money(price)}`,
+            ti: [TI.solver({ N: n, I: P(y), Pmt: cp, FV: face, PpY: 2, CpY: 2 }, 'PV', { note: R`\(N = ${n}\) half-years, \(Pmt = ${tn(cp)}\) (the half-year coupon), \(I(\%) = ${L.numT(P(y))}\) (the yearly yield), \(PpY = CpY = 2\). The minus sign means it is the price you pay.` })],
             why: 'Semi-annual coupons: halve the coupon, halve the yield, double the periods.',
           };
         } },
@@ -1011,20 +1078,22 @@
               ],
               steps: [R`\[EAY = \left(1 + \frac{y}{2}\right)^{2} - 1 = \left(1 + \frac{${L.dec(y)}}{2}\right)^{2} - 1 = ${L.pct(eay, 4)}\]`],
               calc: `${pk(y)} [NOM%] · 2 [P/YR] · [EFF%] → ${T.num(eay * 100, 4)} (then set P/YR back to 1)`,
+              ti: [TI.cmd('eff', [P(y), 2], { note: R`\(\text{eff}(\text{yearly yield}, 2)\): two half-years a year.` })],
               why: R`\(EAY = \left(1 + \frac{y}{2}\right)^{2} - 1\) for a semi-annual bond.`,
             };
           }
           const yp = rng.step(0.015, 0.075, 0.0001), eay = Math.pow(1 + yp, 2) - 1;
           return {
-            q: R`You solve for a semi-annual bond’s yield on your calculator and get ${T.pctT(yp)} **per half-year**. What is the bond’s **effective annual yield**?`,
+            q: R`You work out a semi-annual bond’s yield and get ${T.pctT(yp)} **per half-year**. What is the bond’s **effective annual yield**?`,
             givens: [[R`i_{\text{half}}`, L.pctT(yp)]],
             answer: P(eay), unit: '%', dp: 2,
             mistakes: dedupe([
-              { v: P(Math.pow(1 + yp / 2, 2) - 1), why: 'The calculator result is already the half-year yield. Do not halve it again.' },
+              { v: P(Math.pow(1 + yp / 2, 2) - 1), why: 'A yield per half-year is already halved. Do not halve it again.' },
               { v: P(2 * yp), why: 'That is the nominal annual yield (APR). The effective yield compounds the half-year rate.' },
               { v: P(yp), why: 'That is the yield per half-year, not per year.' },
             ]),
             steps: [R`\[EAY = (1 + i_{\text{half}})^{2} - 1 = (${L.onePlus(yp)})^{2} - 1 = ${L.pct(eay, 4)}\]`],
+            ti: [TI.line(`(1+${tn(yp)})^2-1`, { pct: true, note: R`Compound the half-year yield twice. Multiply by 100 for %. (Or: \(\text{eff}(${L.numT(P(2 * yp))}, 2)\), using the nominal yield \(2 \times ${L.numT(P(yp))}\%\).)` })],
             why: 'Compound the half-year yield for two half-years. Never halve it again.',
           };
         } },
@@ -1057,6 +1126,7 @@
                 price > 1000 ? R`The bond trades at a premium, so its YTM is **below** its ${T.pctT(c)} coupon rate.` : R`The bond trades at a discount, so its YTM is **above** its ${T.pctT(c)} coupon rate.`,
               ],
               calc: `${n} [N] · −${kn(price)} [PV] · ${kn(cp)} [PMT] · 1000 [FV] · [I/YR] → ${T.num(y * 100)}`,
+              ti: [TI.solver({ N: n, PV: -price, Pmt: cp, FV: 1000, PpY: 1, CpY: 1 }, 'I', { note: R`You pay the price, so \(PV\) is negative. You receive the coupons and the face value, so they are positive.` })],
               why: 'The YTM is the discount rate that makes the PV of the coupons and face value equal the price.',
             };
           }
@@ -1078,16 +1148,20 @@
               answer: P(eay), unit: '%', dp: 2,
               mistakes: dedupe([
                 { v: P(2 * yp), why: R`That is the nominal yield (\(2 \times\) the half-year yield). Convert it to an effective annual yield.` },
-                { v: P(Math.pow(1 + yp / 2, 2) - 1), why: 'The calculator result is already the half-year yield. Do not halve it again.' },
+                { v: P(Math.pow(1 + yp / 2, 2) - 1), why: 'The half-year yield is already halved. Do not halve it again.' },
                 { v: P(yp), why: 'That is the yield per half-year.' },
                 { v: P(Math.pow(1 + c / 2, 2) - 1), why: 'That uses the coupon rate. The yield must come from the price.' },
               ]),
               steps: [
                 R`Per half-year: \(C = ${ml(cp)}\), \(n = ${n}\), \(FV = \$1{,}000\), price \(= ${L.money(price)}\).`,
-                R`Solve for the half-year yield (calculator [I/YR]): \(i = ${L.pct(yp, 4)}\).`,
+                R`Solve for the half-year yield: \(i = ${L.pct(yp, 4)}\) (that is \(${L.pct(2 * yp, 4)}\) p.a. nominal).`,
                 R`\[EAY = (1 + i)^{2} - 1 = (${L.onePlus(yp, 6)})^{2} - 1 = ${L.pct(eay, 2)}\]`,
               ],
               calc: `${n} [N] · −${kn(price)} [PV] · ${kn(cp)} [PMT] · 1000 [FV] · [I/YR] → ${T.num(yp * 100, 4)} · then (1 + ${T.numT(yp, 6)})² − 1 = ${T.num(eay * 100)}%`,
+              ti: [
+                TI.solver({ N: n, PV: -price, Pmt: cp, FV: 1000, PpY: 2, CpY: 2 }, 'I', { note: R`\(N = ${n}\) half-years, \(Pmt = ${tn(cp)}\), \(PpY = CpY = 2\). This is the nominal yearly yield.` }),
+                TI.line('eff(ans,2)', { note: 'The effective annual yield.' }),
+              ],
               why: R`Solve for the half-year yield, then compound it: \(EAY = (1+i)^{2} - 1\).`,
             };
           }
@@ -1110,16 +1184,20 @@
               answer: P(eay), unit: '%', dp: 2,
               mistakes: dedupe([
                 { v: P(2 * yp), why: 'That is the nominal yield. Convert the half-year yield to an effective annual yield.' },
-                { v: P(Math.pow(1 + yp / 2, 2) - 1), why: 'The calculator result is already per half-year. Do not halve it again.' },
+                { v: P(Math.pow(1 + yp / 2, 2) - 1), why: 'The half-year yield is already halved. Do not halve it again.' },
                 { v: P(Math.pow(p1 / p0, 1 / k) - 1), why: 'That ignores the coupons received. They are part of the return.' },
                 { v: P(Math.pow(1 + y0 / 2, 2) - 1), why: 'That is the effective YTM when the bond was bought. The realised yield uses the actual sale price.' },
               ]),
               steps: [
                 R`Per half-year: \(n = ${n}\) coupons of ${mt(cp)}. Pay ${T.money(p0)} at the start; receive ${T.money(p1)} when you sell.`,
-                R`Solve \[${L.num(p0)} = \frac{${ml(cp)}}{i}\left(1 - \frac{1}{(1+i)^{${n}}}\right) + \frac{${L.num(p1)}}{(1+i)^{${n}}}\] The calculator gives \(i = ${L.pct(yp, 4)}\) per half-year.`,
+                R`Solve \[${L.num(p0)} = \frac{${ml(cp)}}{i}\left(1 - \frac{1}{(1+i)^{${n}}}\right) + \frac{${L.num(p1)}}{(1+i)^{${n}}}\] This gives \(i = ${L.pct(yp, 4)}\) per half-year.`,
                 R`\[\text{Realised yield} = (1 + i)^{2} - 1 = (${L.onePlus(yp, 6)})^{2} - 1 = ${L.pct(eay, 2)}\]`,
               ],
               calc: `${n} [N] · −${kn(p0)} [PV] · ${kn(cp)} [PMT] · ${kn(p1)} [FV] · [I/YR] → ${T.num(yp * 100, 4)} · then (1 + ${T.numT(yp, 6)})² − 1 = ${T.num(eay * 100)}%`,
+              ti: [
+                TI.solver({ N: n, PV: -p0, Pmt: cp, FV: p1, PpY: 2, CpY: 2 }, 'I', { note: R`The price you sell at goes in \(FV\). With \(PpY = CpY = 2\) this is the nominal yearly yield.` }),
+                TI.line('eff(ans,2)', { note: 'The realised yield as an effective annual rate.' }),
+              ],
               why: 'Realised yield: the sale price replaces the face value. Solve for the half-year yield, then make it effective.',
             };
           }
@@ -1154,6 +1232,7 @@
               y2 > c ? R`The new yield is above the coupon rate, so the bond trades at a **discount**.` : y2 < c ? R`The new yield is below the coupon rate, so the bond trades at a **premium**.` : R`The new yield equals the coupon rate, so the bond trades at **par**.`,
             ],
             calc: `${n} [N] · ${pk(i)} [I/YR] · ${kn(cp)} [PMT] · 1000 [FV] · [PV] → −${T.money(price)}`,
+            ti: [TI.solver({ N: n, I: P(y2), Pmt: cp, FV: 1000, PpY: m, CpY: m }, 'PV', { note: R`Use the ${semi ? 'half-years' : 'years'} left at that date (\(N = ${n}\)) and the new yield (\(I(\%) = ${L.numT(P(y2))}\)). The minus sign means it is the price you pay.` })],
             why: 'A future price uses the time left at that date and the yield at that date.',
           };
         } },
@@ -1214,6 +1293,7 @@
               steps: [
                 R`A fixed dividend forever is a perpetuity: \[P = \frac{D}{r} = \frac{${dvl(d)}}{${L.dec(r)}} = ${L.money(p)}\]`,
               ].concat(later ? [R`In ${later} years the share still pays ${dv(d)} forever, so its price is the same.`] : []),
+              ti: [TI.line(`${tn(d)}/${tn(r)}`)],
               why: R`Preference share \(=\) perpetuity: \(\frac{D}{r}\). With no growth, the price stays the same over time.`,
             };
           }
@@ -1228,6 +1308,7 @@
               { v: p + dq, why: 'No dividend is due today. The next one is in a quarter.' },
             ],
             steps: [R`Match the rate to the payment period: \[P = \frac{D_{\text{qtr}}}{r_{\text{qtr}}} = \frac{${dvl(dq)}}{${L.dec(rq)}} = ${L.money(p)}\]`],
+            ti: [TI.line(`${tn(dq)}/${tn(rq)}`, { note: 'A quarterly dividend over a quarterly rate.' })],
             why: 'A perpetuity needs the dividend and the rate for the same period.',
           };
         } },
@@ -1253,6 +1334,7 @@
                 R`\[P_0 = \frac{D_1}{r_E - g} = \frac{${dvl(d1)}}{${L.dec(r)} - ${L.dec(g)}} = ${L.money(p)}\]`,
               ],
               calc: `${+d1.toFixed(4)} ÷ (${L.dec(r)} − ${L.dec(g)}) = ${T.money(p)}`,
+              ti: [TI.line(`${tn(d0)}*${tn(1 + g)}/(${tn(r)}-${tn(g)})`, { note: R`\(D_1 = D_0 \times (1+g)\) on top. Keep the brackets around \(r - g\).` })],
               why: R`Grow the dividend just paid by one year, then divide by \((r - g)\).`,
             };
           }
@@ -1268,6 +1350,7 @@
             ],
             steps: [R`\[P_0 = \frac{D_1}{r_E - g} = \frac{${dvl(d1)}}{${L.dec(r)} - ${L.dec(g)}} = ${L.money(p)}\]`],
             calc: `${d1} ÷ (${L.dec(r)} − ${L.dec(g)}) = ${T.money(p)}`,
+            ti: [TI.line(`${tn(d1)}/(${tn(r)}-${tn(g)})`, { note: R`Keep the brackets around \(r - g\).` })],
             why: R`Constant growth forever: next dividend divided by \((r - g)\).`,
           };
         } },
@@ -1290,6 +1373,7 @@
               R`In ${yrsW(k)}: \[P_{${k}} = P_0(1+g)^{${k}} = ${L.num(p0)} \times ${L.onePlus(g)}^{${k}} = ${L.money(pK)}\]`,
               R`Same answer: \(P_{${k}} = \frac{D_{${k + 1}}}{r - g} = \frac{${dvl(dK1)}}{${L.dec(r)} - ${L.dec(g)}} = ${L.money(pK)}\).`,
             ],
+            ti: [TI.line(`${tn(d0)}*${tn(1 + g)}^${k + 1}/(${tn(r)}-${tn(g)})`, { note: R`\(D_{${k + 1}} = D_0(1+g)^{${k + 1}}\) on top: the dividend one year after year ${k}.` })],
             why: 'With constant growth, the price grows at g, just like the dividends.',
           };
         } },
@@ -1317,6 +1401,7 @@
             steps: (justPaid ? [R`\[D_1 = ${dvl(d)} \times ${L.onePlus(g)} = ${dvl(d1)}\]`] : []).concat([
               R`\[r_E = \frac{D_1}{P_0} + g = \frac{${dvl(d1)}}{${L.num(p0)}} + ${L.dec(g)} = ${L.pct(d1 / p0, 2)} + ${L.pctT(g)} = ${L.pct(r, 2)}\]`,
             ]),
+            ti: [TI.line(justPaid ? `${tn(d)}*${tn(1 + g)}/${tn(p0)}+${tn(g)}` : `${tn(d)}/${tn(p0)}+${tn(g)}`, { pct: true, note: R`Dividend yield \(\frac{D_1}{P_0}\) plus \(g\), as decimals. Multiply by 100 for %.` })],
             why: 'Required return = dividend yield + capital gains yield (g).',
           };
         } },
@@ -1347,6 +1432,7 @@
                 R`\[\text{Capital gains yield} = \frac{P_1 - P_0}{P_0} = \frac{${L.num(p1)} - ${L.num(p0)}}{${L.num(p0)}} = ${L.pct(cg)}\]`,
                 R`\[\text{Total return} = ${L.pct(dy)} ${cg < 0 ? '-' : '+'} ${L.pct(Math.abs(cg))} = ${L.pct(tot)}\]`,
               ],
+              ti: [TI.line(ask === 'div' ? `${tn(d1)}/${tn(p0)}` : ask === 'cap' ? `(${tn(p1)}-${tn(p0)})/${tn(p0)}` : `(${tn(d1)}+${tn(p1)}-${tn(p0)})/${tn(p0)}`, { pct: true, note: 'Divide by the price you pay today. Multiply by 100 for %.' })],
               why: 'Total return = dividend yield + capital gains yield. Both are measured against the price you pay today.',
             };
           }
@@ -1375,6 +1461,7 @@
               R`\[P_0 = \frac{D_1 + P_1}{1 + r} \;\Rightarrow\; ${ml(p0)} = \frac{D_1 + ${ml(p1)}}{${L.onePlus(r)}}\]`,
               R`\[D_1 = ${L.num(p0)} \times ${L.onePlus(r)} - ${L.num(p1)} = ${L.num(p0 * (1 + r))} - ${L.num(p1)} = ${L.money(d1)}\]`,
             ],
+            ti: [TI.line(`${tn(p0)}*${tn(1 + r)}-${tn(p1)}`, { note: R`What you need at year 1, \(P_0(1+r)\), minus the sale price.` })],
             why: 'The return you need comes from the dividend plus the price rise.',
           };
         } },
@@ -1408,6 +1495,10 @@
               R`Step 2, their PVs: \[${res.divs.map((x, t) => R`\frac{${n4(x)}}{(${L.onePlus(r)})^{${t + 1}}}`).join(' + ')} = ${n4(sumPV)}\]`,
               R`Step 3, the price at year ${T0}: \[P_{${T0}} = \frac{D_{${T0 + 1}}}{r - g} = \frac{${n4(res.divs[T0 - 1])} \times ${L.onePlus(g2)}}{${L.dec(r)} - ${L.dec(g2)}} = ${n4(res.PT)}\]`,
               R`Step 4, discount and add: \[P_0 = ${n4(sumPV)} + \frac{${n4(res.PT)}}{(${L.onePlus(r)})^{${T0}}} = ${n4(sumPV)} + ${n4(res.pvPT)} = ${L.money(res.price)}\]`,
+            ],
+            ti: [
+              TI.line(`${tn(res.divs[T0 - 1])}*${tn(1 + g2)}/(${tn(r)}-${tn(g2)})`, { note: R`Step 3: \(P_{${T0}} = \frac{D_{${T0 + 1}}}{r - g}\).` }),
+              TI.line(`npv(${tn(P(r))},0,{${res.divs.map((x, t) => tn(x) + (t === T0 - 1 ? '+ans' : '')).join(',')}})`, { note: R`Steps 2 and 4 in one line: the dividends from step 1, with \(P_{${T0}}\) added to year ${T0}.` }),
             ],
             why: 'Four steps: dividends, their PVs, the terminal price, then discount and add.',
           };
@@ -1447,6 +1538,10 @@
               R`\[P_{${T0}} = \frac{D_{${T0 + 1}}}{r - g} = \frac{${n4(res.divs[T0 - 1])} \times ${L.onePlus(gL)}}{${L.dec(r)} - ${L.dec(gL)}} = ${n4(res.PT)}\]`,
               R`\[\text{PV} = ${res.divs.map((x, t) => R`\frac{${n4(x)}}{(${L.onePlus(r)})^{${t + 1}}}`).join(' + ')} + \frac{${n4(res.PT)}}{(${L.onePlus(r)})^{${T0}}} = ${n4(sumPV)} + ${n4(res.pvPT)} = ${n4(res.price)}\]`,
             ].concat(tomorrow ? [R`Add tomorrow’s dividend: \(P_0 = ${n4(res.price)} + ${n4(d0)} = ${L.money(price)}\).`] : [R`\(P_0 = ${L.money(price)}\)`]),
+            ti: [
+              TI.line(`${tn(res.divs[T0 - 1])}*${tn(1 + gL)}/(${tn(r)}-${tn(gL)})`, { note: R`\(P_{${T0}} = \frac{D_{${T0 + 1}}}{r - g}\).` }),
+              TI.line(`npv(${tn(P(r))},0,{${res.divs.map((x, t) => tn(x) + (t === T0 - 1 ? '+ans' : '')).join(',')}})${tomorrow ? '+' + tn(d0) : ''}`, { note: tomorrow ? R`The dividends, with \(P_{${T0}}\) added to year ${T0}. Tomorrow’s ${dv(d0)} is added at the end, without discounting.` : R`The dividends, with \(P_{${T0}}\) added to year ${T0}.` }),
+            ],
             why: 'Follow the growth path year by year, find the terminal price where growth becomes constant, then discount everything.',
           };
         } },
@@ -1474,6 +1569,10 @@
               R`Year ${n + 1} onwards: \(D_{${n + 1}} = D_0(1+g_1)^{${n}}(1+g_2) = ${n4(dn1)}\), so \[P_{${n}} = \frac{D_{${n + 1}}}{r - g_2} = \frac{${n4(dn1)}}{${L.dec(r)} - ${L.dec(g2)}} = ${n4(pn)}\]`,
               R`\[P_0 = ${n4(pvA)} + \frac{${n4(pn)}}{(${L.onePlus(r)})^{${n}}} = ${n4(pvA)} + ${n4(pvPn)} = ${L.money(price)}\]`,
             ],
+            ti: [
+              TI.line(`${tn(d0)}*${tn(1 + g1)}^${n}*${tn(1 + g2)}/(${tn(r)}-${tn(g2)})`, { note: R`\(P_{${n}} = \frac{D_{${n + 1}}}{r - g_2}\).` }),
+              TI.line(`${tn(d1)}/(${tn(r)}-${tn(g1)})*(1-(${tn(1 + g1)}/${tn(1 + r)})^${n})+ans/${tn(1 + r)}^${n}`, { note: R`The growing annuity (years 1 to ${n}) plus \(P_{${n}}\) discounted ${n} years.` }),
+            ],
             why: 'Two phases: a growing annuity for the first n years, then a growing perpetuity valued at year n.',
           };
         } },
@@ -1499,6 +1598,7 @@
               R`\[P_{${n}} = ${L.num(rest, 5)} \times (${L.onePlus(r)})^{${n}} = ${L.money(pn)}\]`,
             ],
             calc: `${n} [N] · ${pk(r)} [I/YR] · −${kn(p0)} [PV] · ${kn(d)} [PMT] · [FV] → ${T.money(pn)}`,
+            ti: [TI.solver({ N: n, I: P(r), PV: -p0, Pmt: d, PpY: 1, CpY: 1 }, 'FV', { note: R`You pay the price today (\(PV\) negative) and receive the dividends (\(Pmt\) positive). \(FV\) is the price you need at year ${n}.` })],
             why: 'Treat it like a bond: the dividends are the coupons and the future price plays the face value.',
           };
         } },

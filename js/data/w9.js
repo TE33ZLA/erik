@@ -1,9 +1,21 @@
 /* Floor 8 — Week 9: Risk and return (single assets, portfolios, diversification, beta, CAPM and the SML). */
 (function (root) {
   'use strict';
-  const { FIN, L, T } = root;
+  const { FIN, L, T, TI } = root;
   const R = String.raw;
   const P = (r) => +(r * 100).toFixed(8); // decimal rate -> percent units for answers
+
+  /* ---------- TI-Nspire helpers ---------- */
+  const tn = (x) => TI.num(x);                                  // a number as typed on the TI
+  const tb = (x) => (x < 0 ? `(${TI.num(x)})` : TI.num(x));     // bracket a negative number inside a typed line
+  const sto = (xs, name, extra) => TI.line(`${TI.list(xs)}→${name}`, extra); // store a list in a letter
+  /** options for a last step whose decimal result is the answer in % */
+  const PCT = (v) => ({ pct: true, note: R`That is \(${L.pct(v, 2)}\).` });
+  /** SD from probabilities: store p and r, E(R) into m, then the square root of the weighted squared deviations */
+  const tiSdProb = (ps, rs) => [sto(ps, 'p', { note: 'The probabilities.' }), sto(rs, 'r', { note: 'The returns, as decimals.' }),
+    TI.line('sum(p*r)→m', { note: R`This is \(E(R)\), stored in \(m\).` }), TI.line('sqrt(sum(p*(r-m)^2))', PCT(FIN.sdProb(ps, rs)))];
+  /** sample covariance of two stored lists x and y */
+  const COV_XY = 'sum((x-mean(x))*(y-mean(y)))/(dim(x)-1)';
 
   /* ---------- local helpers ---------- */
   const pc = (r, dp = 2) => L.pct(r, dp);        // LaTeX percent from a decimal: 0.1234 -> 12.34\%
@@ -58,6 +70,33 @@
   // Tutorial Q5
   const sdQ5 = FIN.portSD2(0.4, 0.40, 0.6, 0.45, 0.2);
 
+  /* ---------- lesson data (every number is computed here) ---------- */
+  // L1: a three-year return stream for the guided card
+  const G1 = [0.12, -0.08, 0.06], G1_HPR = FIN.hprMulti(G1), G1_ANN = FIN.annualise(G1_HPR, 3);
+  // L3: two shares with the same expected return but a different spread
+  const CW = { p: [0.25, 0.5, 0.25], calm: [0.08, 0.10, 0.12], wild: [-0.10, 0.10, 0.30] };
+  const CW_TABLE = { head: ['State', 'Probability', 'Calm Co', 'Wild Co'], rows: STATES.map((s, k) => [s, nt(CW.p[k], 2), tp(CW.calm[k]), tp(CW.wild[k])]) };
+  // L3: Example 3 worked in a table (expected return 11%)
+  const EX3_STEPS = { head: ['Return', 'Probability', 'Deviation', 'Squared', 'Squared × probability'],
+    rows: EX3.r.map((r, k) => { const d = r - 0.11; return [T.numT(r, 2), T.numT(EX3.p[k], 2), T.numT(d, 2), T.numT(d * d, 4), T.numT(EX3.p[k] * d * d, 5)]; })
+      .concat([['Total', '1', '', '', T.numT(FIN.varProb(EX3.p, EX3.r), 5)]]) };
+  // L3: a sample for the guided card
+  const G3 = [0.15, -0.05, 0.10, 0.20], G3_SS = FIN.varS(G3) * (G3.length - 1);
+  // L4: two portfolios for the guided Sharpe card
+  const G4 = { eP: 0.12, sP: 0.16, eQ: 0.10, sQ: 0.10, rf: 0.04 };
+  // L5: a three-month sample for the guided card
+  const G5 = { x: [0.10, -0.04, 0.06], y: [0.08, -0.02, 0.03] };
+  // L6: the same two shares as Lecture Example 8 with different correlations
+  const RHO_TABLE = { head: ['Correlation', 'Portfolio SD'], rows: [1, 0.9336, 0.5, 0, -0.5, -0.9336].map((rho) => [T.numT(rho, 4), tp(FIN.portSD2(0.7, 0.0632, 0.3, 0.1242, rho))]) };
+  // L6: a two-share portfolio for the guided card
+  const G6 = { w: 0.5, sA: 0.20, sB: 0.30, rho: 0.4 };
+  const G6_V = FIN.portVar2(G6.w, G6.sA, 1 - G6.w, G6.sB, G6.rho);
+  // L7: equally weighted portfolios of shares that each have an SD of 40% and a correlation of 0.25 with each other
+  const divSD = (n) => 0.4 * Math.sqrt(1 / n + (1 - 1 / n) * 0.25);
+  const DIV_TABLE = { head: ['Number of shares', 'Portfolio SD'], rows: [1, 2, 5, 10, 16, 30, 100].map((n) => [String(n), tp(divSD(n), 1)]) };
+  // L8: CAPM for the guided card
+  const G8 = { b: 1.3, rf: 0.03, rm: 0.09 };
+
   /** Drop distractors that would display exactly like the answer or like an earlier distractor. */
   function tidy(q) {
     if (!q || (q.kind && q.kind !== 'num') || !q.mistakes) return q;
@@ -87,7 +126,13 @@
         R`**Method 1, probabilities:** \(E(R) = \sum_k P_k R_k\) and \(\sigma^2 = \sum_k P_k\left[R_k - E(R)\right]^2\).`,
         R`**Method 2, past data (a sample):** \(\bar{R} = \frac{R_1 + \cdots + R_T}{T}\) and \(Var(R) = \frac{1}{T-1}\sum_t (R_t - \bar{R})^2\).`,
         R`Divide by \(T - 1\) only for past data. With probabilities, the probabilities do the weighting.`,
-        R`HP10bII+: clear with [C ALL], enter each return with [Σ+], then read the mean [x̄,ȳ] and the sample SD [Sx,Sy].`,
+      ] },
+      { h: 'On your TI-Nspire CX CAS', points: [
+        R`Store a list in a letter with **→** (**ctrl var**): \(\{0.25, 0.6, 0.15\} \to p\). Type \(\{\;\}\) with **ctrl (** and **ctrl )**.`,
+        R`Probabilities: \(E(R) = \text{sum}(p \times r)\). Store it, \(\text{sum}(p \times r) \to m\), then \(\sigma = \text{sqrt}(\text{sum}(p \times (r - m)^{2}))\).`,
+        R`Past data: \(\text{mean}(r)\) and \(\text{stDevSamp}(r)\). The sample SD already divides by \(T - 1\).`,
+        R`Sample covariance: \(\text{sum}((x - \text{mean}(x))(y - \text{mean}(y))) \div (\text{dim}(x) - 1)\). Divide it by \(\text{stDevSamp}(x) \times \text{stDevSamp}(y)\) for the correlation.`,
+        R`Formulas such as CAPM: type them in one line, e.g. \(0.05 + 1.5 \times (0.11 - 0.05)\). The answer is a decimal: \(0.14 = 14\%\).`,
       ] },
       { h: 'The risk–return trade-off', points: [
         R`Finance assumes investors are **risk averse**: they want a higher expected return for more risk. (Risk neutral: ignores risk. Risk seeking: wants more risk.)`,
@@ -139,19 +184,27 @@
     },
 
     nodes: [
+      { id: 'w9-L1', kind: 'lesson', name: 'What is a return?', lesson: 'w9-L1' },
+      { id: 'w9-L2', kind: 'lesson', name: 'Risk and expected return', lesson: 'w9-L2' },
+      { id: 'w9-L3', kind: 'lesson', name: 'Measuring risk: variance and SD', lesson: 'w9-L3' },
       { id: 'w9-1', kind: 'battle', name: 'The Cashier’s Cage', topics: ['ret', 'prob', 'hist'], n: 6,
         enemy: { name: 'Standard Deviant', title: 'Never lands near the mean', body: 'spiky', color: '#9b59b6', acc: ['shades'], mouth: 'smirk', item: '🎲',
           lines: { intro: 'I never land near the mean, darling. That is what makes me exciting!', hit: ['You squared my deviations! Rude!', 'Divided by T − 1? How precise.'],
             taunt: ['Forgot the square root, did we?', 'Divide by T? Amateur hour!'], win: 'My variance… collapses… to zero…', lose: 'Volatility wins again! Roll the dice!' } } },
+      { id: 'w9-L4', kind: 'lesson', name: 'Risk per unit of return: CV and Sharpe', lesson: 'w9-L4' },
+      { id: 'w9-L5', kind: 'lesson', name: 'Covariance and correlation', lesson: 'w9-L5' },
       { id: 'w9-2', kind: 'battle', name: 'The Card Tables', topics: ['trade', 'cv', 'corr'], n: 6,
         enemy: { name: 'The Correlation Croupier', title: 'Deals pairs that move together', body: 'tall', color: '#2e8b57', acc: ['tophat', 'bowtie'], mouth: 'grin', item: '🃏',
           lines: { intro: 'Place your bets! Will these two cards move together… or apart?', hit: ['Divided by both sigmas. The house is impressed.', 'Rho, rho, rho your boat… right past me.'],
             taunt: ['A correlation above 1? The house thanks you!', 'Covariance is not correlation, my friend.'], win: 'My deck… is completely uncorrelated…', lose: 'Perfectly positively correlated… with losing!' } } },
+      { id: 'w9-L6', kind: 'lesson', name: 'Portfolios: return and risk', lesson: 'w9-L6' },
+      { id: 'w9-L7', kind: 'lesson', name: 'Diversification', lesson: 'w9-L7' },
       { id: 'w9-m1', kind: 'mini', name: 'Systematic or Unsystematic?', mini: 'sys-unsys' },
       { id: 'w9-3', kind: 'battle', name: 'The Roulette Floor', topics: ['port', 'divers', 'corr'], n: 6,
         enemy: { name: 'One-Basket Bandit', title: 'Puts every chip on one stock', body: 'round', color: '#e08e2b', acc: ['bandana', 'mustache'], mouth: 'tongue', item: '🧺',
           lines: { intro: 'All my chips on one stock! What could possibly go wrong?', hit: ['You spread the risk! My only weakness!', 'The covariance term! Noooo!'],
             taunt: ['Portfolio SD is a weighted average. Trust me.', 'Why diversify when you can gamble?'], win: 'Should not have put… all my eggs… in one basket…', lose: 'All in! And you are all out!' } } },
+      { id: 'w9-L8', kind: 'lesson', name: 'Beta, CAPM and the SML', lesson: 'w9-L8' },
       { id: 'w9-4', kind: 'battle', name: 'The High-Roller Lounge', topics: ['beta', 'capm'], n: 6,
         enemy: { name: 'Beta Blocker', title: 'Bouncer at the systematic door', body: 'box', color: '#3d5a80', acc: ['shades', 'headset'], mouth: 'flat', item: '📈',
           lines: { intro: 'Only systematic risk gets past this rope. Show me your beta.', hit: ['Beta times the market risk premium. You may pass.', 'You found the SML. Respect.'],
@@ -223,6 +276,7 @@
           R`\[R = \frac{\$520}{\$2{,}500} = 0.208 = 20.80\%\]`,
           R`Per share: \(\frac{0.20 + 30 - 25}{25} = 0.8\% + 20\% = 20.8\%\).`,
         ],
+        ti: [TI.line('(0.20+30-25)/25', PCT(0.208))],
         why: R`Dividend yield \(0.8\%\) plus capital gain yield \(20\%\) gives \(20.8\%\).` },
       { id: 'w9-q04', topic: 'ret', kind: 'num', level: 2, section: 'B', formula: 'hpr', src: 'Lecture W9 Example 2',
         q: R`An investment returned 10%, −5%, 20% and 15% in years 1 to 4. What is the four-year **holding period return** (HPR)?`,
@@ -234,6 +288,7 @@
           { v: 10, why: 'That is the average return per year, not the total return over four years.' },
         ],
         steps: [R`\[HPR = (1+R_1)(1+R_2)(1+R_3)(1+R_4) - 1\]`, R`\[HPR = (1.10)(0.95)(1.20)(1.15) - 1 = 1.4421 - 1 = 44.21\%\]`],
+        ti: [TI.line('1.10*0.95*1.20*1.15-1', PCT(FIN.hprMulti([0.10, -0.05, 0.20, 0.15])))],
         why: R`Returns compound, so multiply the \((1 + R)\) factors and then subtract 1.` },
       { id: 'w9-q05', topic: 'ret', kind: 'num', level: 2, section: 'B', formula: 'hpr', src: 'Lecture W9 Example 2',
         q: R`An investment’s four-year holding period return is 44.21%. What is its **annualised** return (the equivalent return per year)?`,
@@ -246,6 +301,7 @@
         ],
         steps: [R`\[r = (1 + HPR)^{1/T} - 1 = (1.4421)^{1/4} - 1 = 0.0958 = 9.58\%\text{ per year}\]`],
         calc: '4 [N] · −1 [PV] · 0 [PMT] · 1.4421 [FV] · [I/YR] → 9.58',
+        ti: [TI.line('1.4421^(1/4)-1', PCT(FIN.annualise(0.4421, 4)))],
         why: R`Annualising undoes the compounding: take the \(T\)-th root of \((1 + HPR)\), then subtract 1.` },
       { id: 'w9-q06', topic: 'ret', kind: 'mcq', level: 2, section: 'A', formula: 'hpr',
         q: R`A share rises 50% in year 1 and then falls 50% in year 2. What is the two-year holding period return?`,
@@ -262,6 +318,7 @@
           { v: 2.2, why: 'You averaged the five products. Add them up: the probabilities already do the averaging.' },
         ],
         steps: [R`\[E(R) = \sum_{k} P_k R_k\]`, R`\[E(R) = ${probSum(EX3.p, EX3.r)} = 0.11 = 11\%\]`],
+        ti: [sto(EX3.p, 'p'), sto(EX3.r, 'r'), TI.line('sum(p*r)', PCT(0.11))],
         why: 'Weight each possible return by its probability, then add.' },
       { id: 'w9-q08', topic: 'prob', kind: 'num', level: 2, section: 'B', formula: 'var-prob', src: 'Lecture W9 Example 3',
         q: R`The same security has an expected return of 11%. What is the **standard deviation** of its returns?`,
@@ -277,6 +334,7 @@
           R`\[\sigma^2 = ${probSq(EX3.p, EX3.r, 0.11)} = 0.00012\]`,
           R`\[\sigma = \sqrt{0.00012} = 0.010954 = 1.10\%\]`,
         ],
+        ti: [sto(EX3.p, 'p'), sto(EX3.r, 'r'), TI.line('sqrt(sum(p*(r-0.11)^2))', PCT(FIN.sdProb(EX3.p, EX3.r)))],
         why: R`Variance first, then the square root: \(\sigma = 1.095\%\), about \(1.10\%\).` },
       { id: 'w9-q09', topic: 'prob', kind: 'mcq', level: 1, section: 'A',
         q: R`In this unit, what is **risk**?`,
@@ -299,6 +357,7 @@
           R`\[E(R_H) = ${probSum(HB.p, HB.h)} = -0.005 + 0.0552 + 0.0231 = ${nt(eH, 6)} = ${pc(eH)}\]`,
           R`The same method gives Slowbear: \(E(R_S) = ${probSum(HB.p, HB.s)} = ${pc(eS)}\).`,
         ],
+        ti: [sto(HB.p, 'p'), sto(HB.h, 'r', { note: 'Highbull’s returns, as decimals.' }), TI.line('sum(p*r)', PCT(eH))],
         why: 'Multiply each return by its probability, then add.' },
       { id: 'w9-q12', topic: 'prob', kind: 'num', level: 2, section: 'B', formula: 'var-prob', src: 'Tutorial W9 Q1(b)',
         q: R`Using Mr Henry’s forecasts, Highbull’s expected return is 7.33%. What is the **standard deviation** of Highbull’s returns?`,
@@ -315,6 +374,7 @@
           R`\[\sigma_H = \sqrt{${nt(FIN.varProb(HB.p, HB.h), 6)}} = ${nt(sdH, 4)} = ${pc(sdH)}\]`,
           R`The same method gives Slowbear: \(\sigma_S^2 = ${nt(FIN.varProb(HB.p, HB.s), 8)}\), so \(\sigma_S = ${pc(sdSB, 3)}\).`,
         ],
+        ti: [sto(HB.p, 'p'), sto(HB.h, 'r', { note: 'Highbull’s returns, as decimals.' }), TI.line('sqrt(sum(p*(r-0.0733)^2))', PCT(sdH))],
         why: 'Weight the squared deviations by the probabilities, add, then take the square root.' },
       { id: 'w9-q13', topic: 'corr', kind: 'num', level: 2, section: 'B', formula: 'cov-prob', src: 'Tutorial W9 Q1(c)',
         q: R`Using Mr Henry’s forecasts, \(E(R_H) = 7.33\%\) and \(E(R_S) = 6.08\%\). What is the **covariance** between Highbull and Slowbear returns? Give a decimal to 6 places.`,
@@ -330,6 +390,7 @@
           R`\[Cov = ${probXY(HB.p, HB.h, eH, HB.s, eS)}\]`,
           R`\[Cov = ${HB.p.map((p, k) => nt(p * (HB.h[k] - eH) * (HB.s[k] - eS), 8)).join(' + ')} = ${nt(covHS, 6)}\]`,
         ],
+        ti: [sto(HB.p, 'p'), sto(HB.h, 'x', { note: 'Highbull’s returns.' }), sto(HB.s, 'y', { note: 'Slowbear’s returns.' }), TI.line('sum(p*(x-0.0733)*(y-0.0608))')],
         why: 'Both deviations are usually on the same side of their means, so the covariance is positive: the shares move together.' },
       { id: 'w9-q14', topic: 'corr', kind: 'num', level: 3, section: 'B', formula: 'corr', src: 'Tutorial W9 Q1(c)', boss: true,
         q: R`For Highbull and Slowbear: \(Cov(R_H,R_S) = 0.000425\), \(\sigma_H = 5.80\%\) and \(\sigma_S = 0.749\%\). What is the **correlation** between the two shares? (4 decimal places)`,
@@ -343,6 +404,7 @@
         steps: [
           R`\[\rho_{H,S} = \frac{Cov(R_H,R_S)}{\sigma_H\,\sigma_S} = \frac{${nt(covHS, 6)}}{${nt(sdH, 6)} \times ${nt(sdSB, 6)}} = ${nt(covHS / (sdH * sdSB), 4)}\]`,
         ],
+        ti: [TI.line('0.000425/(0.058*0.00749)', { note: R`Type the SDs as decimals: \(5.80\% = 0.058\) and \(0.749\% = 0.00749\).` })],
         why: R`\(\rho \approx 0.978\): the two shares move almost perfectly together, so combining them gives little diversification.` },
 
       /* ----- average return and risk from past data ----- */
@@ -364,6 +426,7 @@
           R`\[SD = \sqrt{0.00025} = 0.0158 = 1.58\%\]`,
         ],
         calc: '[C ALL] · 0.09 [Σ+] · 0.10 [Σ+] · 0.11 [Σ+] · 0.12 [Σ+] · 0.13 [Σ+] · [x̄,ȳ] → 0.11 · [Sx,Sy] → 0.0158',
+        ti: [sto(EX3.r, 'r'), TI.line('mean(r)', { note: 'The mean return: 11%.' }), TI.line('stDevSamp(r)', PCT(FIN.sdS(EX3.r)))],
         why: R`Past data is a sample, so divide by \(T - 1\), then take the square root.` },
       { id: 'w9-q17', topic: 'hist', kind: 'mcq', level: 2, section: 'A', src: 'Lecture W9 Examples 3 and 4',
         q: R`Lecture Example 3 treats the returns 9% to 13% as a **probability distribution** (SD 1.10%). Example 4 treats the same numbers as **five past returns** (SD 1.58%). Why do the SDs differ?`,
@@ -384,6 +447,7 @@
           R`\[SD = \sqrt{${nt(FIN.varS(PRAC), 6)}} = ${nt(FIN.sdS(PRAC), 4)} = ${pc(FIN.sdS(PRAC))}\]`,
         ],
         calc: `[C ALL] · 0.19 [Σ+] · 0.20 [Σ+] · 0.30 [+/−] [Σ+] · 0.26 [Σ+] · [x̄,ȳ] → 0.0875 · [Sx,Sy] → ${T.numT(FIN.sdS(PRAC), 4)}`,
+        ti: [sto(PRAC, 'r'), TI.line('mean(r)', { note: 'The mean return: 8.75%.' }), TI.line('stDevSamp(r)', PCT(FIN.sdS(PRAC)))],
         why: R`The one bad year (\(-30\%\)) is far from the mean of \(8.75\%\), so the SD is large.` },
       { id: 'w9-q19', topic: 'hist', kind: 'num', level: 2, section: 'B', formula: 'var-sample', src: 'Tutorial W9 Q2(a)',
         q: R`The table shows six monthly returns for two share indexes (a sample). What is the monthly **standard deviation** of the **Nikkei**?`,
@@ -401,6 +465,7 @@
           R`For the Russell 2000: mean \(${pc(FIN.mean(RUS))}\) and SD \(${pc(FIN.sdS(RUS))}\).`,
         ],
         calc: `[C ALL] · 0.08 [Σ+] · 0.15 [Σ+] · 0.12 [+/−] [Σ+] · 0.11 [Σ+] · 0.09 [Σ+] · 0.06 [+/−] [Σ+] · [x̄,ȳ] → ${T.numT(FIN.mean(NIK), 4)} · [Sx,Sy] → ${T.numT(FIN.sdS(NIK), 4)}`,
+        ti: [sto(NIK, 'x', { note: 'The Nikkei returns.' }), TI.line('mean(x)', { note: R`The mean monthly return: \(${pc(FIN.mean(NIK))}\).` }), TI.line('stDevSamp(x)', PCT(FIN.sdS(NIK)))],
         why: R`Use the sample formula: divide by \(T - 1\), then take the square root.` },
       { id: 'w9-q20', topic: 'corr', kind: 'num', level: 2, section: 'B', formula: 'cov-sample', src: 'Tutorial W9 Q2(b)',
         q: R`Using the six monthly returns below (a sample), what is the **covariance** between the Nikkei and the Russell 2000? Give a decimal to 6 places.`,
@@ -416,6 +481,7 @@
           R`\[Cov = \frac{1}{N-1}\sum_{n=1}^{N}(R_{N,n} - \bar{R}_N)(R_{R,n} - \bar{R}_R) = \frac{${nt(covNR * 5, 6)}}{5} = ${nt(covNR, 6)}\]`,
         ],
         calc: `[C ALL] · 0.08 [INPUT] 0.12 [Σ+] · 0.15 [INPUT] 0.09 [Σ+] · 0.12 [+/−] [INPUT] 0.07 [+/−] [Σ+] · 0.11 [INPUT] 0.13 [Σ+] · 0.09 [INPUT] 0.04 [Σ+] · 0.06 [+/−] [INPUT] 0.14 [+/−] [Σ+] · [x̂,r] [SWAP] → r · Cov = r × Sx × Sy`,
+        ti: [sto(NIK, 'x', { note: 'The Nikkei returns.' }), sto(RUS, 'y', { note: 'The Russell 2000 returns.' }), TI.line(COV_XY, { note: R`\(\text{dim}(x) = 6\) counts the months, so this divides by \(6 - 1 = 5\).` })],
         why: 'A positive covariance: the two indexes tend to rise and fall together.' },
       { id: 'w9-q21', topic: 'corr', kind: 'num', level: 3, section: 'B', formula: 'corr', src: 'Tutorial W9 Q2(c)', boss: true,
         q: R`Using the same six months of data, what is the **correlation coefficient** between the Nikkei and the Russell 2000? (4 decimal places)`,
@@ -431,6 +497,7 @@
           R`\[\rho = \frac{Cov}{\sigma_N\,\sigma_R} = \frac{${nt(covNR, 6)}}{${nt(FIN.sdS(NIK), 6)} \times ${nt(FIN.sdS(RUS), 6)}} = ${nt(FIN.corrS(NIK, RUS), 4)}\]`,
         ],
         calc: `[C ALL] · 0.08 [INPUT] 0.12 [Σ+] · 0.15 [INPUT] 0.09 [Σ+] · 0.12 [+/−] [INPUT] 0.07 [+/−] [Σ+] · 0.11 [INPUT] 0.13 [Σ+] · 0.09 [INPUT] 0.04 [Σ+] · 0.06 [+/−] [INPUT] 0.14 [+/−] [Σ+] · [x̂,r] [SWAP] → ${T.numT(FIN.corrS(NIK, RUS), 4)}`,
+        ti: [sto(NIK, 'x', { note: 'The Nikkei returns.' }), sto(RUS, 'y', { note: 'The Russell 2000 returns.' }), TI.line(`${COV_XY}→c`, { note: 'The sample covariance, stored in c.' }), TI.line('c/(stDevSamp(x)*stDevSamp(y))')],
         why: 'A strong positive correlation: the two markets usually move together.' },
 
       /* ----- risk attitudes and the risk-return trade-off ----- */
@@ -470,6 +537,7 @@
         table: EX5_TABLE,
         choices: ['Alpha', 'Beta', 'Gamma', 'Delta'], answer: 0,
         steps: [R`\(CV_{Alpha} = \frac{12.3}{17.6} = ${nt(12.3 / 17.6, 4)}\)`, R`\(CV_{Beta} = \frac{20.0}{17.4} = ${nt(20 / 17.4, 4)}\)`, R`\(CV_{Gamma} = \frac{18.8}{13.8} = ${nt(18.8 / 13.8, 4)}\)`, R`\(CV_{Delta} = \frac{13.4}{1.7} = ${nt(13.4 / 1.7, 4)}\)`],
+        ti: [TI.line('{12.3,20,18.8,13.4}/{17.6,17.4,13.8,1.7}', { note: 'Each SD over its expected return, all four at once (Alpha, Beta, Gamma, Delta). The smallest is Alpha’s.' })],
         why: R`Alpha has the lowest risk per unit of return: \(CV = ${nt(12.3 / 17.6, 4)}\). It also has the highest return and the lowest SD.` },
       { id: 'w9-q30', topic: 'cv', kind: 'mcq', level: 1, section: 'A', formula: 'cv',
         q: R`The **coefficient of variation** (CV) measures…`,
@@ -488,6 +556,7 @@
         q: R`Portfolio B: \(E(R) = 9.68\%\), \(\sigma = 10.00\%\). Portfolio C: \(E(R) = 9.44\%\), \(\sigma = 8.08\%\). The risk-free rate is 8%. Using the **Sharpe ratio**, which portfolio is better?`,
         choices: ['Portfolio C', 'Portfolio B', 'Neither: their Sharpe ratios are equal', 'You cannot tell without their betas'], answer: 0,
         steps: [R`\[S_B = \frac{0.0968 - 0.08}{0.1000} = ${nt(FIN.sharpe(ePB, MX.rf, sPB), 4)}\]`, R`\[S_C = \frac{0.0944 - 0.08}{0.0808} = ${nt(FIN.sharpe(0.0944, 0.08, 0.0808), 4)}\]`],
+        ti: [TI.line('(0.0968-0.08)/0.1', { note: 'Portfolio B’s Sharpe ratio.' }), TI.line('(0.0944-0.08)/0.0808', { note: 'Portfolio C’s Sharpe ratio: higher, so C is better.' })],
         why: R`C earns more excess return per unit of risk (\(0.178 > 0.168\)). Its CV is lower too: \(0.856\) vs \(1.033\).` },
       { id: 'w9-q34', topic: 'cv', kind: 'num', level: 2, section: 'B', formula: 'sharpe', src: 'Lecture W9 Example 3(d)',
         q: R`Portfolio C has an expected return of 9.44% and a standard deviation of 8.08%. The risk-free rate is 8%. What is its **Sharpe ratio**? (4 decimal places)`,
@@ -499,6 +568,7 @@
           { v: 0.0808 / 0.0944, why: 'That is the CV (risk per unit of return), not the Sharpe ratio.' },
         ],
         steps: [R`\[\text{Sharpe} = \frac{E[R_P] - r_f}{\sigma_P} = \frac{0.0944 - 0.08}{0.0808} = \frac{0.0144}{0.0808} = ${nt(FIN.sharpe(0.0944, 0.08, 0.0808), 4)}\]`],
+        ti: [TI.line('(0.0944-0.08)/0.0808')],
         why: 'Excess return per unit of total risk. Higher is better.' },
 
       /* ----- covariance and correlation ----- */
@@ -535,6 +605,7 @@
           R`\[Cov = \frac{(0.13 - 0.0267)(0.06 - 0.0167) + (0.07 - 0.0267)(0.09 - 0.0167) + (-0.12 - 0.0267)(-0.10 - 0.0167)}{3 - 1}\]`,
           R`\[Cov = \frac{${nt(covDS * 2, 6)}}{2} = ${nt(covDS, 6)}\]`,
         ],
+        ti: [sto(DJ, 'x', { note: 'The DJIA returns.' }), sto(SPX, 'y', { note: 'The S&P 500 returns.' }), TI.line(COV_XY, { note: R`\(\text{dim}(x) = 3\), so this divides by \(3 - 1 = 2\).` })],
         why: R`Multiply the paired deviations, add them, and divide by \(N - 1\).` },
       { id: 'w9-q41', topic: 'corr', kind: 'num', level: 2, section: 'B', formula: 'corr', src: 'Lecture W9 Example 6(b)',
         q: R`For the DJIA and S&P 500: \(Cov = 0.012383\), \(\sigma_{DJIA} = 0.1305\) and \(\sigma_{S\&P} = 0.1021\). What is the **correlation coefficient**? (4 decimal places)`,
@@ -545,6 +616,7 @@
           { v: 0.012383 / (0.1305 * 0.1305 * 0.1021 * 0.1021), why: 'Divide by the standard deviations, not the variances. A correlation can never be above 1.' },
         ],
         steps: [R`\[\rho = \frac{Cov}{\sigma_{DJIA}\,\sigma_{S\&P}} = \frac{0.012383}{0.1305 \times 0.1021} = ${nt(0.012383 / (0.1305 * 0.1021), 4)}\]`],
+        ti: [TI.line('0.012383/(0.1305*0.1021)')],
         why: R`With the unrounded SDs (\(${nt(FIN.sdS(DJ), 6)}\) and \(${nt(FIN.sdS(SPX), 6)}\)) you get \(${nt(FIN.corrS(DJ, SPX), 4)}\). Both round to about \(0.93\): a strong positive link.` },
       { id: 'w9-q42', topic: 'corr', kind: 'tf', level: 1, section: 'A', formula: 'cov-sample',
         q: R`A positive covariance means the two assets’ returns tend to move in the same direction.`,
@@ -565,6 +637,7 @@
           { v: P(4305 / 10650), why: 'That is the weight of Stock B.' },
         ],
         steps: [R`\[V = \$6{,}345 + \$4{,}305 = \$10{,}650\]`, R`\[w_A = \frac{\$6{,}345}{\$10{,}650} = ${pc(6345 / 10650)} \qquad w_B = \frac{\$4{,}305}{\$10{,}650} = ${pc(4305 / 10650)}\]`],
+        ti: [TI.line('135*47/(135*47+105*41)', PCT(6345 / 10650))],
         why: 'Each weight is the value held in that asset divided by the total value. The weights add up to 100%.' },
       { id: 'w9-q45', topic: 'port', kind: 'num', level: 1, section: 'B', formula: 'port-ret', src: 'Lecture W9 Example 7',
         q: R`60% of a portfolio is in Security 1 (expected return 8%) and 40% is in Security 2 (expected return 12%). What is the portfolio’s **expected return**?`,
@@ -574,6 +647,7 @@
           { v: P(FIN.portRet([0.4, 0.6], [0.08, 0.12])), why: 'The weights are the wrong way round: 60% goes with 8%.' },
         ],
         steps: [R`\[E(R_P) = w_1E(R_1) + w_2E(R_2) = (0.60)(0.08) + (0.40)(0.12) = 0.096 = 9.60\%\]`],
+        ti: [TI.line('0.6*0.08+0.4*0.12', PCT(0.096))],
         why: 'Portfolio return is a weighted average of the assets’ expected returns.' },
       { id: 'w9-q46', topic: 'port', kind: 'num', level: 2, section: 'B', formula: 'port-var', src: 'Lecture W9 Example 8',
         q: R`You invest $14,000 in Cheaters Anonymous Ltd and $6,000 in Tricky Dicky Ltd. Their correlation is 0.9336. What is the **standard deviation** of your portfolio?`,
@@ -590,6 +664,7 @@
           R`\[\sigma_p^2 = 0.001957 + 0.001388 + 0.003078 = ${nt(FIN.portVar2(0.7, 0.0632, 0.3, 0.1242, 0.9336), 6)}\]`,
           R`\[\sigma_p = \sqrt{${nt(FIN.portVar2(0.7, 0.0632, 0.3, 0.1242, 0.9336), 6)}} = ${pc(FIN.portSD2(0.7, 0.0632, 0.3, 0.1242, 0.9336))}\]`,
         ],
+        ti: [TI.line('0.7^2*0.0632^2+0.3^2*0.1242^2+2*0.7*0.3*0.9336*0.0632*0.1242', { note: 'The portfolio variance.' }), TI.line('sqrt(ans)', PCT(FIN.portSD2(0.7, 0.0632, 0.3, 0.1242, 0.9336)))],
         why: 'The expected returns are extra information here. Risk needs the weights, the SDs and the correlation.' },
       { id: 'w9-q47', topic: 'port', kind: 'num', level: 3, section: 'B', formula: 'port-var', src: 'Lecture W9 Example 8 (follow-up)', boss: true,
         q: R`Same portfolio: $14,000 in Cheaters Anonymous (SD 6.32%) and $6,000 in Tricky Dicky (SD 12.42%). What is the portfolio SD if the correlation is now **−0.9336**?`,
@@ -604,6 +679,7 @@
           R`\[\sigma_p^2 = 0.001957 + 0.001388 - 0.003078 = ${nt(FIN.portVar2(0.7, 0.0632, 0.3, 0.1242, -0.9336), 6)}\]`,
           R`\[\sigma_p = \sqrt{${nt(FIN.portVar2(0.7, 0.0632, 0.3, 0.1242, -0.9336), 6)}} = ${pc(FIN.portSD2(0.7, 0.0632, 0.3, 0.1242, -0.9336))}\]`,
         ],
+        ti: [TI.line('0.7^2*0.0632^2+0.3^2*0.1242^2+2*0.7*0.3*(-0.9336)*0.0632*0.1242', { note: 'The portfolio variance. The negative correlation makes the last term subtract.' }), TI.line('sqrt(ans)', PCT(FIN.portSD2(0.7, 0.0632, 0.3, 0.1242, -0.9336)))],
         why: 'A strongly negative correlation makes the covariance term subtract, so the risk falls from 8.01% to about 1.64%.' },
       { id: 'w9-q48', topic: 'port', kind: 'num', level: 2, section: 'B', formula: 'port-var', src: 'Tutorial W9 Q5(b)',
         q: R`Portfolio 1 holds 40% in asset A and 60% in asset B. The correlation between A and B is 0.20. What is the **standard deviation** of Portfolio 1?`,
@@ -620,6 +696,7 @@
           R`\[\sigma_p = \sqrt{0.11578} = ${pc(sdQ5)}\]`,
           R`Its expected return is \(0.4(12.5\%) + 0.6(16\%) = 14.6\%\).`,
         ],
+        ti: [TI.line('0.4^2*0.4^2+0.6^2*0.45^2+2*0.4*0.6*0.2*0.4*0.45', { note: 'The portfolio variance.' }), TI.line('sqrt(ans)', PCT(sdQ5))],
         why: 'Combining A and B (correlation only 0.2) gives an SD well below the weighted average of 43%.' },
       { id: 'w9-q49', topic: 'port', kind: 'num', level: 2, section: 'B', formula: 'port-var', src: 'Tutorial W9 Q5(b)',
         q: R`Portfolio 2 holds 40% in asset A (SD 40%) and 60% in the risk-free asset F (return 8%). What is the **standard deviation** of Portfolio 2?`,
@@ -635,11 +712,13 @@
           R`\[\sigma_p = \sqrt{0.0256} = 0.16 = 16\%\]`,
           R`Its expected return is \(0.4(12.5\%) + 0.6(8\%) = 9.8\%\).`,
         ],
+        ti: [TI.line('0.4*0.4', { pct: true, note: R`\(\sigma_p = w_A\sigma_A\): that is \(16\%\).` })],
         why: R`With a risk-free asset, \(\sigma_p = w \times \sigma\) of the risky part: \(0.4 \times 40\% = 16\%\).` },
       { id: 'w9-q50', topic: 'port', kind: 'mcq', level: 3, section: 'B', formula: 'sharpe', src: 'Tutorial W9 Q5(b)', boss: true,
         q: R`Portfolio 1: \(E(R) = 14.6\%\), \(\sigma = 34.03\%\). Portfolio 2: \(E(R) = 9.8\%\), \(\sigma = 16\%\). The risk-free rate is 8%. Using the Sharpe ratio, which portfolio gives the better reward for its risk?`,
         choices: ['Portfolio 1', 'Portfolio 2, because it has lower risk', 'They are exactly equal', 'Portfolio 2, because it holds the risk-free asset'], answer: 0,
         steps: [R`\[S_1 = \frac{0.146 - 0.08}{${nt(sdQ5, 4)}} = ${nt(FIN.sharpe(0.146, 0.08, sdQ5), 4)}\]`, R`\[S_2 = \frac{0.098 - 0.08}{0.16} = ${nt(FIN.sharpe(0.098, 0.08, 0.16), 4)}\]`],
+        ti: [TI.line('(0.146-0.08)/0.3403', { note: 'Portfolio 1’s Sharpe ratio.' }), TI.line('(0.098-0.08)/0.16', { note: 'Portfolio 2’s Sharpe ratio: lower, so Portfolio 1 is better.' })],
         why: 'Lower risk is not automatically better. Portfolio 1 earns more excess return per unit of risk (0.194 vs 0.113).' },
       { id: 'w9-q51', topic: 'port', kind: 'mcq', level: 2, section: 'A', src: 'Lecture W9 Example 3',
         q: R`In a **variance–covariance matrix**, what sits on the diagonal?`,
@@ -661,6 +740,7 @@
           R`\[\sigma_p = \sqrt{${nt(vPB, 6)}} = ${pc(sPB)}\]`,
           R`The slide shows \(10.01\%\) because it squares the rounded SDs \(0.1487\) and \(0.1285\). Both answers round to about \(10\%\).`,
         ],
+        ti: [TI.line('0.4^2*0.0221+0.6^2*0.0165+2*0.4*0.6*0.0011', { note: 'Variances from the diagonal, the covariance from the off-diagonal cell.' }), TI.line('sqrt(ans)', PCT(sPB))],
         why: R`Its expected return is \(0.4(10.4\%) + 0.6(9.2\%) = 9.68\%\).` },
       { id: 'w9-q53', topic: 'port', kind: 'num', level: 3, section: 'B', formula: 'port-var', src: 'Lecture W9 Example 3(c)', boss: true,
         q: R`Your manager gives {NAME} $500,000 to invest: $200,000 in SSBB, $200,000 in WW and $100,000 in the risk-free asset. Use the matrix. What is the **standard deviation** of this portfolio (Portfolio C)?`,
@@ -676,6 +756,7 @@
           R`\[\sigma_p^2 = (0.4)^2(0.0221) + (0.4)^2(0.0165) + 2(0.4)(0.4)(0.0011) = ${nt(vPC, 6)}\]`,
           R`\[\sigma_p = \sqrt{${nt(vPC, 6)}} = ${pc(sPC)}\]`,
         ],
+        ti: [TI.line('0.4^2*0.0221+0.4^2*0.0165+2*0.4*0.4*0.0011', { note: 'The risk-free asset adds nothing to the variance.' }), TI.line('sqrt(ans)', PCT(sPC))],
         why: R`Its expected return is \(0.4(10.4\%) + 0.4(9.2\%) + 0.2(8\%) = ${pc(ePC)}\).` },
       { id: 'w9-q54', topic: 'port', kind: 'tf', level: 2, section: 'A',
         q: R`A risk-free asset has a standard deviation of zero and zero covariance with every risky asset.`,
@@ -732,6 +813,7 @@
           { v: MX.cSM / Math.sqrt(MX.vS * MX.vM), why: 'That is the correlation between SSBB and the market, not beta.' },
         ],
         steps: [R`\[\beta_{SSBB} = \frac{Cov(R_{SSBB},R_M)}{\sigma_M^2} = \frac{0.0040}{0.0100} = 0.4\]`, R`Likewise \(\beta_{WW} = \frac{0.0020}{0.0100} = 0.2\).`],
+        ti: [TI.line('0.0040/0.0100', { note: 'Covariance with the market over the market’s variance.' })],
         why: 'Read the covariance with the market from the bottom row, and the market variance from the diagonal.' },
       { id: 'w9-q66', topic: 'beta', kind: 'num', level: 1, section: 'B', formula: 'port-beta', src: 'Tutorial W9 Q7(c)',
         q: R`Suppose News Corporation shares have a beta of 1.7 and CBA shares have a beta of 1.0. What is the beta of a portfolio with 60% in News Corporation and 40% in CBA?`,
@@ -741,6 +823,7 @@
           { v: FIN.portBeta([0.4, 0.6], [1.7, 1.0]), why: 'The weights are the wrong way round: 60% goes with News Corporation.' },
         ],
         steps: [R`\[\beta_p = w_1\beta_1 + w_2\beta_2 = 0.6(1.7) + 0.4(1.0) = 1.02 + 0.40 = 1.42\]`],
+        ti: [TI.line('0.6*1.7+0.4*1.0')],
         why: 'Portfolio beta is a weighted average of the betas.' },
       { id: 'w9-q67', topic: 'beta', kind: 'num', level: 2, section: 'B', formula: 'port-beta', src: 'Lecture W9 SML Example 2(a)',
         q: R`A portfolio holds 40% in share 1 (beta 1.00), 25% in share 2 (beta 0.75) and 35% in share 3 (beta 1.30). What is the **portfolio beta**?`,
@@ -750,6 +833,7 @@
           { v: 0.4 * 1 + 0.25 * 0.75, why: 'Include all three shares in the weighted average.' },
         ],
         steps: [R`\[\beta_p = 0.40(1.00) + 0.25(0.75) + 0.35(1.30) = 0.40 + 0.1875 + 0.455 = 1.0425 \approx 1.04\]`, R`Its expected return is \(0.40(12\%) + 0.25(11\%) + 0.35(15\%) = 12.8\%\).`],
+        ti: [TI.line('sum({0.4,0.25,0.35}*{1,0.75,1.3})', { note: 'Weights times betas, item by item, then add.' })],
         why: 'A beta just above 1: the portfolio is slightly riskier than the market.' },
 
       /* ----- CAPM and the SML ----- */
@@ -763,6 +847,7 @@
           { v: 16.5, why: R`That is \(\beta \times E[R_M]\). CAPM is \(r_f + \beta(E[R_M] - r_f)\).` },
         ],
         steps: [R`\[E[R_i] = r_f + \beta_i(E[R_M] - r_f) = 5\% + 1.5(11\% - 5\%) = 5\% + 9\% = 14\%\]`],
+        ti: [TI.line('0.05+1.5*(0.11-0.05)', PCT(0.14))],
         why: 'Risk-free rate plus beta times the market risk premium.' },
       { id: 'w9-q69', topic: 'capm', kind: 'num', level: 1, section: 'B', formula: 'capm', src: 'Tutorial W9 Q7(a)',
         q: R`Suppose News Corporation shares have a beta of 1.7. The risk-free rate is 4% and the expected market return is 10%. Using CAPM, what is the expected return on News Corporation shares?`,
@@ -773,6 +858,7 @@
           { v: 18.2, why: 'You added the risk-free rate twice.' },
         ],
         steps: [R`\[E[R] = 4\% + 1.7(10\% - 4\%) = 4\% + 10.2\% = 14.2\%\]`, R`For CBA (\(\beta = 1\)): \(4\% + 1(6\%) = 10\%\), the same as the market.`],
+        ti: [TI.line('0.04+1.7*(0.10-0.04)', PCT(0.142))],
         why: 'A beta of 1.7 earns 1.7 times the market risk premium on top of the risk-free rate.' },
       { id: 'w9-q70', topic: 'capm', kind: 'num', level: 2, section: 'B', formula: 'port-beta', src: 'Tutorial W9 Q7(d)',
         q: R`Suppose a portfolio holds 60% News Corporation shares (expected return 14.2%, beta 1.7) and 40% CBA shares (expected return 10%, beta 1.0). The risk-free rate is 4% and the market return is 10%. What is the portfolio’s expected return?`,
@@ -786,6 +872,7 @@
           R`Way 1 (weighted average): \(0.6(14.2\%) + 0.4(10\%) = 8.52\% + 4\% = 12.52\%\).`,
           R`Way 2 (portfolio beta): \(\beta_p = 0.6(1.7) + 0.4(1.0) = 1.42\), so \(E[R_p] = 4\% + 1.42(6\%) = 12.52\%\).`,
         ],
+        ti: [TI.line('0.6*0.142+0.4*0.10', PCT(0.1252))],
         why: 'Both ways agree, because CAPM is a straight line in beta.' },
       { id: 'w9-q71', topic: 'capm', kind: 'mcq', level: 2, section: 'B', formula: 'capm', src: 'Lecture W9 SML Example 2(b)',
         q: R`The risk-free rate is 8% and the market return is 12%. Share 1 (beta 1.00) is expected to earn 12%, share 2 (beta 0.75) 11% and share 3 (beta 1.30) 15%. Which share is **undervalued**?`,
@@ -796,6 +883,7 @@
           R`Share 2: \(8\% + 0.75(4\%) = 11\%\). It is expected to earn 11%: on the SML.`,
           R`Share 3: \(8\% + 1.30(4\%) = 13.2\%\). It is expected to earn 15%: above the SML.`,
         ],
+        ti: [TI.line('0.08+{1,0.75,1.3}*(0.12-0.08)', { note: 'The required returns of shares 1, 2 and 3 in one go: 12%, 11% and 13.2%. Only share 3 is expected to earn more (15%).' })],
         why: R`Share 3 offers more than its fair return (\(15\% > 13.2\%\)), so it is undervalued: buy. (The slide rounds 13.2% to 13%.)` },
       { id: 'w9-q72', topic: 'capm', kind: 'mcq', level: 1, section: 'A', formula: 'capm',
         q: R`A share plots **above** the SML. According to CAPM it is…`,
@@ -830,6 +918,7 @@
           { v: 14, why: 'That is the market return. WW has a low beta, so it needs less than the market.' },
         ],
         steps: [R`\[\beta_{WW} = \frac{0.0020}{0.0100} = 0.2\]`, R`\[E[R_{WW}] = 8\% + 0.2(14\% - 8\%) = 8\% + 1.2\% = 9.2\%\]`],
+        ti: [TI.line('0.08+0.2*(0.14-0.08)', PCT(eWW))],
         why: 'This matches the 9.20% quoted in the lecture, so the estimate is justified.' },
     ],
 
@@ -863,6 +952,7 @@
               R`\[R = \frac{DIV_1 + P_1 - P_0}{P_0} = \frac{${L.money(dps)} + ${L.money(p1)} - ${L.money(p0)}}{${L.money(p0)}} = \frac{${L.money(dps + p1 - p0)}}{${L.money(p0)}} = ${pc(r)}\]`,
               R`Check: dividend yield \(${pc(dps / p0)}\) plus capital gain yield \(${pc((p1 - p0) / p0)}\) gives \(${pc(r)}\).`,
             ],
+            ti: [TI.line(`(${tn(tot)}/${n}+${tn(p1)}-${tn(p0)})/${tn(p0)}`, Object.assign(PCT(r), { note: R`\(${tn(tot)}/${n}\) is the dividend per share. The result, \(${nt(r, 6)}\), is \(${pc(r)}\).` }))],
             why: 'Realised return = dividend yield + capital gain yield, both measured against the price you paid.',
           };
         } },
@@ -879,6 +969,7 @@
           const prod = rs.map((x) => `(${L.onePlus(x)})`).join('');
           const table = { head: ['Year', 'Return'], rows: rs.map((x, k) => [k + 1, tp(x)]) };
           const hprStep = R`\[HPR = ${prod} - 1 = ${nt(1 + hpr, 6)} - 1 = ${pc(hpr)}\]`;
+          const factors = rs.map((x) => tn(1 + x)).join('*'); // growth factors (1 + R), as typed
           if (rng.chance(0.5)) {
             return {
               q: R`An investment earned the yearly returns below. What is the ${n}-year **holding period return** (HPR)?`,
@@ -890,6 +981,7 @@
                 { v: P(sum(rs) / n), why: 'That is the average yearly return, not the total return.' },
               ],
               steps: [R`\[HPR = (1+R_1)(1+R_2)\cdots(1+R_{${n}}) - 1\]`, hprStep],
+              ti: [TI.line(`${factors}-1`, PCT(hpr))],
               why: R`Returns compound, so multiply the \((1 + R)\) factors, then subtract 1.`,
             };
           }
@@ -904,6 +996,7 @@
             ],
             steps: [hprStep, R`\[r = (1 + HPR)^{1/${n}} - 1 = (${nt(1 + hpr, 6)})^{1/${n}} - 1 = ${pc(ann)}\]`],
             calc: `${n} [N] · −1 [PV] · 0 [PMT] · ${T.numT(1 + hpr, 6)} [FV] · [I/YR] → ${T.num(ann * 100)}`,
+            ti: [TI.line(`${factors}-1`, { note: R`The ${n}-year HPR: \(${pc(hpr)}\).` }), TI.line(`(1+ans)^(1/${n})-1`, PCT(ann))],
             why: 'First compound to the HPR, then take the n-th root to get a rate per year.',
           };
         } },
@@ -928,6 +1021,7 @@
             table: { head: ['State', 'Probability', 'Return'], rows: STATES.map((s, k) => [s, nt(ps[k], 2), tp(rs[k])]) },
             answer: P(e), unit: '%', dp: 2, mistakes,
             steps: [R`\[E(R) = \sum_k P_k R_k\]`, R`\[E(R) = ${probSum(ps, rs)} = ${nt(e, 6)} = ${pc(e)}\]`],
+            ti: [sto(ps, 'p', { note: 'The probabilities.' }), sto(rs, 'r', { note: 'The returns, as decimals.' }), TI.line('sum(p*r)', PCT(e))],
             why: 'Weight each return by the chance that it happens, then add.',
           };
         } },
@@ -951,6 +1045,7 @@
               R`\[\sigma^2 = ${probSq(ps, rs, e)} = ${nt(v, 6)}\]`,
               R`\[\sigma = \sqrt{${nt(v, 6)}} = ${nt(s, 4)} = ${pc(s)}\]`,
             ],
+            ti: tiSdProb(ps, rs),
             why: 'Expected return first, then probability-weighted squared deviations, then the square root.',
           };
         } },
@@ -977,6 +1072,7 @@
               R`\[SD = \sqrt{${nt(v, 6)}} = ${nt(s, 4)} = ${pc(s)}\]`,
             ],
             calc: `[C ALL] · ${rs.map((x) => `${hp(x)} [Σ+]`).join(' · ')} · [x̄,ȳ] → ${T.numT(m, 4)} · [Sx,Sy] → ${T.numT(s, 4)}`,
+            ti: [sto(rs, 'r', { note: 'The past returns, as decimals.' }), TI.line('stDevSamp(r)', Object.assign(PCT(s), { note: R`\(\text{stDevSamp}\) divides by \(T - 1\) for you. That is \(${pc(s)}\).` }))],
             why: R`For past data: find the mean, square the deviations, divide by \(T - 1\), then take the square root.`,
           };
         } },
@@ -997,6 +1093,7 @@
               { v: (s * s) / e, why: 'Use the standard deviation, not the variance.' },
             ],
             steps: [R`\[CV = \frac{\sigma}{E(R)} = \frac{${pcT(s)}}{${pcT(e)}} = ${nt(cv, 4)}\]`],
+            ti: [TI.line(`${tn(s)}/${tn(e)}`, { note: 'Risk on top, return underneath.' })],
             why: `The CV is the risk per unit of return: ${T.numT(cv, 2)} units of SD for each unit of expected return.`,
           };
         } },
@@ -1017,6 +1114,7 @@
               table: { head: ['Share', 'Expected return', 'Standard deviation'], rows: as.map((a) => [a.nm, tp(a.e, 1), tp(a.s, 1)]) },
               choices: as.map((a) => a.nm), answer: as.indexOf(best),
               steps: as.map((a) => R`\(CV_{\text{${a.nm}}} = \frac{${pcT(a.s)}}{${pcT(a.e)}} = ${nt(a.cv, 4)}\)`),
+              ti: [TI.line(`${TI.list(as.map((a) => a.s))}/${TI.list(as.map((a) => a.e))}`, { note: `All four CVs at once, in the order of the table. The smallest is ${best.nm}’s.` })],
               why: R`The lowest CV means the least risk per unit of return. ${best.nm} has the lowest CV (\(${nt(best.cv, 4)}\)).`,
             };
           }
@@ -1037,6 +1135,7 @@
               { v: s / e, why: 'That is the CV (risk per unit of return), not the Sharpe ratio.' },
             ],
             steps: [R`\[\text{Sharpe} = \frac{E[R_P] - r_f}{\sigma_P} = \frac{${nt(e)} - ${nt(rf)}}{${nt(s)}} = \frac{${nt(e - rf, 4)}}{${nt(s)}} = ${nt(sh, 4)}\]`],
+            ti: [TI.line(`(${tn(e)}-${tn(rf)})/${tn(s)}`, { note: 'The brackets make the calculator subtract first.' })],
             why: 'Excess return per unit of total risk. Higher is better.',
           };
         } },
@@ -1060,6 +1159,7 @@
                 { v: cov / (si * si * sj * sj), why: 'Divide by the standard deviations, not the variances. A correlation is always between −1 and +1.' },
               ],
               steps: [R`\[\rho = \frac{Cov(R_1,R_2)}{\sigma_1\,\sigma_2} = \frac{${nt(cov, 5)}}{${nt(si, 3)} \times ${nt(sj, 3)}} = \frac{${nt(cov, 5)}}{${nt(si * sj, 6)}} = ${nt(r, 4)}\]`],
+              ti: [TI.line(`${tn(cov)}/(${tn(si)}*${tn(sj)})`, { note: 'Type the SDs as decimals. The brackets keep the two SDs together.' })],
               why: R`Correlation is the covariance scaled by both standard deviations, so it always lies between \(-1\) and \(+1\).`,
             };
           }
@@ -1074,6 +1174,7 @@
               { v: rho * (si + sj), why: 'Multiply the two SDs together; do not add them.' },
             ],
             steps: [R`\[Cov(R_1,R_2) = \rho\,\sigma_1\,\sigma_2 = ${nt(rho, 2)} \times ${nt(si, 3)} \times ${nt(sj, 3)} = ${nt(c, 6)}\]`],
+            ti: [TI.line(`${tb(rho)}*${tn(si)}*${tn(sj)}`, { note: 'Correlation times both SDs (as decimals).' })],
             why: 'Rearrange the correlation formula: covariance = correlation × both standard deviations.',
           };
         } },
@@ -1107,6 +1208,7 @@
               R`\[Cov = \frac{${nt(c * (n - 1), 6)}}{${n - 1}} = ${nt(c, 6)}\]`,
             ],
             calc: `[C ALL] · ${xs.map((x, i) => `${hp(x)} [INPUT] ${hp(ys[i])} [Σ+]`).join(' · ')} · [x̂,r] [SWAP] → r · [Sx,Sy] → Sx, [SWAP] → Sy · Cov = r × Sx × Sy`,
+            ti: [sto(xs, 'x', { note: `${a}’s returns.` }), sto(ys, 'y', { note: `${b}’s returns.` }), TI.line(COV_XY, { note: R`\(\text{dim}(x) = ${n}\), so this divides by \(${n} - 1 = ${n - 1}\).` })],
             why: R`Multiply the paired deviations from the means, add them up, and divide by \(N - 1\).`,
           };
         } },
@@ -1134,6 +1236,7 @@
               { v: P(1 - ans), why: 'That is the weight of the other share.' },
             ],
             steps: [R`\[V = ${L.money(vA)} + ${L.money(vB)} = ${L.money(vA + vB)}\]`, R`\[w = \frac{${L.money(askA ? vA : vB)}}{${L.money(vA + vB)}} = ${pc(ans)}\]`],
+            ti: [TI.line(`${nX}*${tn(pX)}/(${nA}*${tn(pA)}+${nB}*${tn(pB)})`, Object.assign(PCT(ans), { note: R`Value of ${askA ? a : b} over the total value. That is \(${pc(ans)}\).` }))],
             why: 'A weight is the value held in one asset divided by the value of the whole portfolio.',
           };
         } },
@@ -1157,6 +1260,7 @@
             givens: names.map((nm, i) => [`w_${i + 1}`, R`\frac{${L.money(amts[i], 0)}}{${L.money(tot, 0)}} = ${nt(ws[i], 4)}`]),
             answer: P(e), unit: '%', dp: 2, mistakes,
             steps: [R`\[E(R_p) = \sum_i w_iE(R_i) = ${ws.map((w, i) => `${nt(w, 4)}(${pcT(es[i])})`).join(' + ')} = ${pc(e)}\]`],
+            ti: [TI.line(`(${amts.map((x, i) => `${x}*${tn(es[i])}`).join('+')})/${tot}`, Object.assign(PCT(e), { note: R`Each amount times its return, added, then divided by the total \(${L.money(tot, 0)}\). That is \(${pc(e)}\).` }))],
             why: 'Portfolio return is a weighted average, with weights from the dollar amounts.',
           };
         } },
@@ -1188,6 +1292,7 @@
               R`\[\sigma_p^2 = ${nt(w * w * sA * sA, 6)} + ${nt((1 - w) * (1 - w) * sB * sB, 6)} ${rho < 0 ? '-' : '+'} ${nt(Math.abs(2 * w * (1 - w) * rho * sA * sB), 6)} = ${nt(v, 6)}\]`,
               R`\[\sigma_p = \sqrt{${nt(v, 6)}} = ${pc(s)}\]`,
             ],
+            ti: [TI.line(`${tn(w)}^2*${tn(sA)}^2+${tn(1 - w)}^2*${tn(sB)}^2+2*${tn(w)}*${tn(1 - w)}*${tb(rho)}*${tn(sA)}*${tn(sB)}`, { note: 'The portfolio variance.' }), TI.line('sqrt(ans)', PCT(s))],
             why: rho < 0 ? 'A negative correlation makes the covariance term subtract, so the portfolio is much less risky.' : 'Unless the correlation is +1, the portfolio SD is below the weighted average of the SDs.',
           };
         } },
@@ -1210,6 +1315,7 @@
                 { v: P(w * w * s * s), why: R`That is the variance \(w^2\sigma^2\). Take the square root.` },
               ],
               steps: [R`The risk-free asset has \(\sigma_F = 0\) and zero covariance, so only one term is left:`, R`\[\sigma_p = \sqrt{w^2\sigma^2} = w\sigma = ${nt(w, 2)} \times ${pcT(s)} = ${pc(sp)}\]`],
+              ti: [TI.line(`${tn(w)}*${tn(s)}`, PCT(sp))],
               why: 'Risk falls in proportion to the money moved into the risk-free asset.',
             };
           }
@@ -1223,6 +1329,7 @@
               { v: P((1 - w) * e + w * rf), why: 'The weights are the wrong way round.' },
             ],
             steps: [R`\[E(R_p) = w\,E(R) + (1 - w)\,r_f = ${nt(w, 2)}(${pcT(e)}) + ${nt(1 - w, 2)}(${pcT(rf)}) = ${pc(ep)}\]`],
+            ti: [TI.line(`${tn(w)}*${tn(e)}+${tn(1 - w)}*${tn(rf)}`, PCT(ep))],
             why: 'Portfolio return is still a weighted average, including the risk-free part.',
           };
         } },
@@ -1246,6 +1353,7 @@
               { v: cov / (si * sM), why: 'That is the correlation with the market, not beta.' },
             ],
             steps: [R`\[\beta_i = \frac{Cov(R_i,R_M)}{\sigma_M^2} = \frac{${nt(cov, 5)}}{(${nt(sM, 2)})^2} = \frac{${nt(cov, 5)}}{${nt(sM * sM, 4)}} = ${nt(b, 4)}\]`],
+            ti: [TI.line(`${tn(cov)}/${tn(sM)}^2`, { note: 'Square the market’s SD to get its variance.' })],
             why: `The share’s own SD is extra information. Beta needs only the covariance with the market and the market’s variance.`,
           };
         } },
@@ -1276,6 +1384,7 @@
               R`Total value: \(${L.money(tot, 0)}\). Weights: ${ws.map((w, i) => R`\(w_${i + 1} = ${nt(w, 4)}\)`).join(', ')}${withRf ? R`, and \(w_F = ${nt(aF / tot, 4)}\) with \(\beta_F = 0\)` : ''}.`,
               R`\[\beta_p = ${ws.map((w, i) => `${nt(w, 4)}(${nt(bs[i], 2)})`).join(' + ')}${withRf ? ' + 0' : ''} = ${nt(bp, 4)}\]`,
             ],
+            ti: [TI.line(`(${amts.map((x, i) => `${x}*${tn(bs[i])}`).join('+')})/${tot}`, { note: withRf ? R`Each amount times its beta, divided by the total \(${L.money(tot, 0)}\). The Treasury bills add \(0\) on top but still count in the total.` : R`Each amount times its beta, divided by the total \(${L.money(tot, 0)}\).` })],
             why: 'Portfolio beta is the value-weighted average of the betas.',
           };
         } },
@@ -1304,6 +1413,7 @@
             givens: giveMRP ? [['\\beta', nt(b, 2)], ['r_f', pcT(rf)], ['E[R_M] - r_f', pcT(mrp)]] : [['\\beta', nt(b, 2)], ['r_f', pcT(rf)], ['E[R_M]', pcT(rm)]],
             answer: P(e), unit: '%', dp: 2, mistakes,
             steps: [R`\[E[R_i] = r_f + \beta_i(E[R_M] - r_f) = ${pcT(rf)} + ${nt(b, 2)}(${giveMRP ? pcT(mrp) : `${pcT(rm)} - ${pcT(rf)}`}) = ${pcT(rf)} + ${pcT(b * mrp)} = ${pc(e)}\]`],
+            ti: [TI.line(giveMRP ? `${tn(rf)}+${tn(b)}*${tn(mrp)}` : `${tn(rf)}+${tn(b)}*(${tn(rm)}-${tn(rf)})`, PCT(e))],
             why: 'Risk-free rate plus beta times the market risk premium.',
           };
         } },
@@ -1330,6 +1440,7 @@
               R`Way 1: \(\beta_p = ${nt(w, 2)}(${nt(b1, 2)}) + ${nt(1 - w, 2)}(${nt(b2, 2)}) = ${nt(bp, 4)}\), so \(E[R_p] = ${pcT(rf)} + ${nt(bp, 4)}(${pcT(rm - rf)}) = ${pc(ep)}\).`,
               R`Way 2: \(E[R_1] = ${pc(e1)}\) and \(E[R_2] = ${pc(e2)}\), so \(E[R_p] = ${nt(w, 2)}(${pc(e1)}) + ${nt(1 - w, 2)}(${pc(e2)}) = ${pc(ep)}\).`,
             ],
+            ti: [TI.line(`${tn(w)}*${tn(b1)}+${tn(1 - w)}*${tn(b2)}`, { note: 'The portfolio beta.' }), TI.line(`${tn(rf)}+ans*(${tn(rm)}-${tn(rf)})`, PCT(ep))],
             why: 'Both ways give the same answer, because CAPM is a straight line in beta.',
           };
         } },
@@ -1349,6 +1460,7 @@
             chart: { type: 'sml', rf, rm, points: [{ name: co.split(' ')[0], beta: b, er }] }, // short label keeps it inside the plot
             choices: ['Undervalued: it plots above the SML, so buy', 'Overvalued: it plots below the SML, so sell', 'Fairly priced: it plots on the SML', 'Impossible to judge without its standard deviation'],
             answer: ans,
+            ti: [TI.line(`${tn(rf)}+${tn(b)}*(${tn(rm)}-${tn(rf)})`, { note: R`The required return (CAPM): \(${pcT(req)}\). Compare it with the forecast of \(${pcT(er)}\).` })],
             steps: [R`Required return: \[E[R] = ${pcT(rf)} + ${nt(b, 2)}(${pcT(rm)} - ${pcT(rf)}) = ${pcT(req)}\]`,
               ans === 2 ? R`The forecast equals the required return, so the share sits on the SML.` : R`The forecast \(${pcT(er)}\) is ${ans === 0 ? 'above' : 'below'} the required \(${pcT(req)}\).`],
             why: ans === 0 ? 'It offers more than CAPM requires for its beta: above the line, undervalued.' : ans === 1 ? 'It offers less than CAPM requires for its beta: below the line, overvalued.' : 'Its expected return is exactly what its beta requires: fairly priced.',
@@ -1374,6 +1486,7 @@
                 { v: P(old), why: R`Higher expected inflation raises \(r_f\), so required returns rise.` },
               ],
               steps: [R`Before: \(${pcT(rf)} + ${nt(b, 2)}(${pcT(mrp)}) = ${pc(old)}\).`, R`Inflation raises \(r_f\) to \(${pcT(rf + k)}\). The premium is unchanged:`, R`\[E[R] = ${pcT(rf + k)} + ${nt(b, 2)}(${pcT(mrp)}) = ${pc(nu)}\]`],
+              ti: [TI.line(`(${tn(rf)}+${tn(k)})+${tn(b)}*${tn(mrp)}`, Object.assign(PCT(nu), { note: R`The new \(r_f\) in brackets, plus beta times the same premium. That is \(${pc(nu)}\).` }))],
               why: 'Higher expected inflation shifts the whole SML up in parallel.',
             };
           }
@@ -1388,6 +1501,7 @@
               { v: P(rf + b * k), why: R`Use the whole new premium: \(r_f + \beta(${pcT(mrp)} + ${pcT(k)})\).` },
             ],
             steps: [R`Before: \(${pcT(rf)} + ${nt(b, 2)}(${pcT(mrp)}) = ${pc(old)}\).`, R`\[E[R] = ${pcT(rf)} + ${nt(b, 2)}(${pcT(mrp + k)}) = ${pc(nu)}\]`],
+            ti: [TI.line(`${tn(rf)}+${tn(b)}*(${tn(mrp)}+${tn(k)})`, Object.assign(PCT(nu), { note: R`Beta times the new, bigger premium. That is \(${pc(nu)}\).` }))],
             why: 'Higher risk aversion makes the SML steeper: high-beta shares need the biggest increase.',
           };
         } },
@@ -1424,6 +1538,9 @@
                 R`\[Cov = ${probXY(ps, x, ex, y, ey)} = ${nt(cov, 8)}\]`,
                 R`\[\rho = \frac{Cov}{\sigma_X\sigma_Y} = \frac{${nt(cov, 8)}}{${nt(sx, 6)} \times ${nt(sy, 6)}} = ${nt(rho, 4)}\]`,
               ],
+              ti: [sto(ps, 'p', { note: 'The probabilities.' }), sto(x, 'x', { note: 'The returns of X.' }), sto(y, 'y', { note: 'The returns of Y.' }),
+                TI.line('x-sum(p*x)→a', { note: R`X’s deviations from \(E(R_X)\), stored in \(a\).` }), TI.line('y-sum(p*y)→b', { note: R`Y’s deviations from \(E(R_Y)\), stored in \(b\).` }),
+                TI.line('sum(p*a*b)/sqrt(sum(p*a^2)*sum(p*b^2))', { note: R`The covariance over \(\sigma_X \times \sigma_Y\) (the square root of the two variances multiplied).` })],
               why: rho > 0 ? 'Positive: the two shares tend to do well in the same states of the economy.' : 'Negative: one share does well when the other does badly, which is great for diversification.',
             };
           }
@@ -1457,6 +1574,7 @@
                 R`\[\rho = \frac{${nt(c, 6)}}{${nt(sx, 6)} \times ${nt(sy, 6)}} = ${nt(r, 4)}\]`,
               ],
               calc: `[C ALL] · ${xs.map((x, i) => `${hp(x)} [INPUT] ${hp(ys[i])} [Σ+]`).join(' · ')} · [x̂,r] [SWAP] → ${T.numT(r, 4)}`,
+              ti: [sto(xs, 'x', { note: `${a}’s returns.` }), sto(ys, 'y', { note: `${b}’s returns.` }), TI.line(`${COV_XY}→c`, { note: 'The sample covariance, stored in c.' }), TI.line('c/(stDevSamp(x)*stDevSamp(y))')],
               why: R`Use \(N - 1\) for the covariance and for both SDs. The divisors then cancel, and \(\rho\) always lands between \(-1\) and \(+1\).`,
             };
           }
@@ -1500,6 +1618,8 @@
             const erStep = R`\[E(R_p) = ${nt(wX, 2)}(${pc(eX, 3)}) + ${nt(wY, 2)}(${pc(eY, 3)})${withRf ? ` + ${nt(wF, 2)}(${pcT(rf)})` : ''} = ${pc(eP, 3)}\]`;
             const varStep = R`\[\sigma_p^2 = (${nt(wX, 2)})^2(${nt(vX, 4)}) + (${nt(wY, 2)})^2(${nt(vY, 4)}) + 2(${nt(wX, 2)})(${nt(wY, 2)})(${br(cXY, 4)}) = ${nt(vP, 6)}\]`;
             const sdStep = R`\[\sigma_p = \sqrt{${nt(vP, 6)}} = ${pc(sP)}${withRf ? R` \quad (\text{the risk-free asset adds no variance or covariance})` : ''}\]`;
+            const tiVar = `${tn(wX)}^2*${tn(vX)}+${tn(wY)}^2*${tn(vY)}+2*${tn(wX)}*${tn(wY)}*${tb(cXY)}`; // variances from the diagonal, X–Y covariance
+            const tiCapm = (cM, nm) => TI.line(`${tn(rf)}+${tn(cM)}/${tn(vM)}*(${tn(rm)}-${tn(rf)})→${nm}`, { note: R`CAPM for ${nm === 'a' ? 'X' : 'Y'}: beta \(= \frac{${nt(cM, 4)}}{${nt(vM, 4)}}\) from the market row, stored in \(${nm}\).` });
             if (ask === 'sd') {
               const wXn = wX / (wX + wY), wYn = wY / (wX + wY);
               const mistakes = [
@@ -1512,6 +1632,7 @@
                 q: R`${intro} What is the **standard deviation** of your portfolio?`,
                 table, answer: P(sP), unit: '%', dp: 2, mistakes,
                 steps: [R`The diagonal holds variances; the other cells hold covariances.`, wStep, varStep, sdStep],
+                ti: [TI.line(tiVar, { note: withRf ? 'The portfolio variance. The risk-free asset adds nothing to it.' : 'The portfolio variance.' }), TI.line('sqrt(ans)', PCT(sP))],
                 why: 'Read the variances from the diagonal and the X–Y covariance from the off-diagonal cell. The market row is not needed for risk.',
               };
             }
@@ -1526,6 +1647,7 @@
                 q: R`${intro} Using CAPM for each share, what is the **expected return** of your portfolio?`,
                 table, answer: P(eP), unit: '%', dp: 2, mistakes,
                 steps: [betaStep, capmStep, wStep, erStep],
+                ti: [tiCapm(cXM, 'a'), tiCapm(cYM, 'b'), TI.line(`${tn(wX)}*a+${tn(wY)}*b${withRf ? `+${tn(wF)}*${tn(rf)}` : ''}`, PCT(eP))],
                 why: 'Betas from the matrix, CAPM for each share, then a weighted average.',
               };
             }
@@ -1538,6 +1660,8 @@
                 { v: sP / eP, why: 'That is the CV, not the Sharpe ratio.' },
               ],
               steps: [betaStep, capmStep, wStep, erStep, varStep, sdStep, R`\[\text{Sharpe} = \frac{E(R_p) - r_f}{\sigma_p} = \frac{${pc(eP, 3)} - ${pcT(rf)}}{${pc(sP, 3)}} = ${nt(sh, 4)}\]`],
+              ti: [tiCapm(cXM, 'a'), tiCapm(cYM, 'b'), TI.line(`${tn(wX)}*a+${tn(wY)}*b${withRf ? `+${tn(wF)}*${tn(rf)}` : ''}→m`, { note: R`The portfolio’s expected return, stored in \(m\).` }),
+                TI.line(`(m-${tn(rf)})/sqrt(${tiVar})`, { note: 'Excess return over the portfolio SD (the square root of its variance).' })],
               why: 'Return needs the betas (market row). Risk needs the variances and the X–Y covariance.',
             };
           }
@@ -1566,6 +1690,7 @@
               R`\[\beta_i = \frac{Cov(R_i,R_M)}{\sigma_M^2} = \frac{${nt(cov, 6)}}{${nt(sM * sM, 4)}} = ${nt(b, 4)}\]`,
               R`\[E[R_i] = ${pcT(rf)} + ${nt(b, 4)}(${pcT(rm)} - ${pcT(rf)}) = ${pc(e)}\]`,
             ],
+            ti: [TI.line(`${tn(rho)}*${tn(si)}*${tn(sM)}/${tn(sM)}^2→b`, { note: R`Beta: the covariance \(\rho\,\sigma_i\,\sigma_M\) over the market variance, stored in \(b\).` }), TI.line(`${tn(rf)}+b*(${tn(rm)}-${tn(rf)})`, PCT(e))],
             why: 'A share can be very volatile but have a low beta, if much of its risk is unsystematic (low correlation with the market).',
           };
         } },
@@ -1596,6 +1721,7 @@
                 R`\[w = \frac{${nt(bt, 4)} - ${nt(bB, 2)}}{${nt(bA, 2)} - ${nt(bB, 2)}} = ${pc(w)}\]`,
                 R`Check: \(E[R_A] = ${pc(eA)}\), \(E[R_B] = ${pc(eB)}\), and \(${nt(w, 4)}(${pc(eA)}) + ${nt(1 - w, 4)}(${pc(eB)}) = ${pc(w * eA + (1 - w) * eB)}\).`,
               ],
+              ti: [TI.line(`nSolve(${tn(rf)}+(w*${tn(bA)}+(1-w)*${tn(bB)})*${tn(mrp)}=${tn(target)},w)`, Object.assign(PCT(w), { note: R`CAPM with the portfolio beta \(w\beta_A + (1 - w)\beta_B\). nSolve finds \(w = ${nt(w, 6)}\), which is \(${pc(w)}\).` }))],
               why: R`Turn the target return into a target beta, then solve the weighted average for \(w\).`,
             };
           }

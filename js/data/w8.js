@@ -1,10 +1,14 @@
 /* Floor 7 — Week 8: Working capital management. */
 (function (root) {
   'use strict';
-  const { FIN, L, T, FMT } = root;
+  const { FIN, L, T, FMT, TI } = root;
   const R = String.raw;
   const P = (r) => +(r * 100).toFixed(8); // decimal rate -> percent units for answers
   const K = (x, dp = 4) => String(+(+x).toFixed(dp)); // calculator keystroke number (no commas)
+  const tn = (x) => TI.num(x); // a number as typed on the TI-Nspire (no commas, at most 6 decimals)
+  const plus = (x) => (x < 0 ? `-${tn(-x)}` : `+${tn(x)}`); // "+5" or "-5" inside a typed line
+  // TI-Nspire line for the cost of forgoing a discount: (1+d/(100-d))^(year/(net-discount days))-1, a decimal rate
+  const earTI = (d, x, y, yr = 365, note) => TI.line(`(1+${K(d * 100)}/${K(100 - d * 100)})^(${yr}/(${y}-${x}))-1`, { pct: true, note: note || 'The result is a decimal. Times 100 gives the percentage.' });
 
   /* ---------- local helpers ---------- */
   const pct = (p) => T.pctT(p); // 0.15 -> "15%"
@@ -225,6 +229,7 @@
           { v: 4.2 + 3.0 - 1.8 - 4.7, why: 'Cash is a current asset. Include it.' },
         ],
         steps: [R`Current assets: \(1.6 + 4.2 + 3.0 = \$8.8\text{m}\)`, R`Current liabilities: \(1.8 + 4.7 = \$6.5\text{m}\)`, R`\[NWC = 8.8 - 6.5 = \$2.3\text{m}\]`],
+        ti: [TI.line('1.6+4.2+3.0-1.8-4.7', { note: 'Current assets less current liabilities ($m). Long-term debt stays out.' })],
         why: R`Current assets less current liabilities. Long-term debt is not current, so it is left out.` },
       { id: 'w8-q06', topic: 'nwc', kind: 'num', level: 2, section: 'B', src: 'Lecture W8 slides 12–14', formula: 'pv-grow-perp',
         q: R`**Emerald City Paints** expects next year: net income $20m, depreciation $5m, capital expenditure $5m and an increase in working capital of $1m. Free cash flow grows 4% a year forever, and \(r = 12\%\). What is the firm worth (in $m)?`,
@@ -236,6 +241,7 @@
           { v: (19e6 * 1.04) / 0.08 / 1e6, why: 'The $19m is already next year’s FCF. Do not grow it again.' },
         ],
         steps: [R`\[FCF_1 = 20{,}000 + 5{,}000 - 5{,}000 - 1{,}000 = \$19{,}000\text{k}\]`, R`\[V = \frac{FCF_1}{r - g} = \frac{19{,}000{,}000}{0.12 - 0.04} = \$237{,}500{,}000\]`],
+        ti: [TI.line('(20+5-5-1)/(0.12-0.04)', { note: R`Next year’s FCF in $m, divided by \(r - g\).` })],
         why: R`A growing perpetuity: next year’s FCF divided by \(r - g\).` },
       { id: 'w8-q07', topic: 'nwc', kind: 'num', level: 2, section: 'B', src: 'Lecture W8 slide 14', formula: 'pv-grow-perp',
         q: R`Emerald City Paints cuts its yearly increase in working capital by 20%, from $1m to $0.8m. Everything else is unchanged (FCF growth 4%, \(r = 12\%\)). What is the firm worth now (in $m)?`,
@@ -246,6 +252,7 @@
           { v: (EMERALD.v1 - EMERALD.v0) / 1e6, why: 'That is the gain in value. The question asks for the new value.' },
         ],
         steps: [R`\[FCF_1 = 20{,}000{,}000 + 5{,}000{,}000 - 5{,}000{,}000 - 800{,}000 = \$19{,}200{,}000\]`, R`\[V = \frac{19{,}200{,}000}{0.12 - 0.04} = \$240{,}000{,}000\]`],
+        ti: [TI.line('(20+5-5-0.8)/(0.12-0.04)', { note: 'The working capital increase is now $0.8m.' })],
         why: R`Value rises from \(\$237.5\text{m}\) to \(\$240\text{m}\): a gain of \(\$2.5\text{m}\).` },
       { id: 'w8-q08', topic: 'nwc', kind: 'mcq', level: 2, section: 'A', src: 'Lecture W8 slide 14',
         q: R`Emerald City saves only $200,000 a year in working capital, yet its value rises by $2.5m. Why?`,
@@ -285,6 +292,7 @@
           { v: COA.inv, why: 'That is only the inventory days. Add the A/R days.' },
         ],
         steps: [R`\[\text{Operating cycle} = \text{Inventory days} + \text{A/R days} = 54.75 + 43.8 = 98.55 \text{ days}\]`],
+        ti: [TI.line('54.75+43.8', { note: 'Inventory days plus A/R days. No A/P days in the operating cycle.' })],
         why: R`From buying stock to collecting the cash: inventory days plus A/R days.` },
 
       /* ----- cash conversion cycle ----- */
@@ -304,6 +312,7 @@
           { v: 33.2 + 1.4, why: 'That is the operating cycle. The CCC also subtracts A/P days.' },
         ],
         steps: [R`\[CCC = 33.2 + 1.4 - 46.0 = -11.4 \text{ days}\]`],
+        ti: [TI.line('33.2+1.4-46.0')],
         why: R`A **negative** CCC: Woolworths collects from customers before it pays its suppliers.` },
       { id: 'w8-q18', topic: 'ccc', kind: 'mcq', level: 2, section: 'A', src: 'Lecture W8 slide 10',
         q: R`Woolworths had a cash conversion cycle of −11.4 days in 2012. What does a **negative** CCC mean?`,
@@ -329,6 +338,11 @@
           R`\[CCC = ${L.num(SIFTY.inv)} + ${L.num(SIFTY.ar)} - ${L.num(SIFTY.ap)} = ${L.num(SIFTY.ccc)} \text{ days}\]`,
           R`The tutorial rounds the daily figures to 8.92 and 9.96 first and gets 59.97 days. Both answers are accepted.`,
         ],
+        ti: [
+          TI.line('420/(3257/365)→i', { note: 'Inventory days, stored in i. Inventory is divided by daily COGS.' }),
+          TI.line('432/(3635/365)→a', { note: 'A/R days, stored in a. Receivables are divided by daily sales.' }),
+          TI.line('i+a-272/(3257/365)', { note: 'Subtract the A/P days (payables divided by daily COGS).' }),
+        ],
         why: R`Inventory days and A/P days on daily COGS, A/R days on daily sales. Then add, add, subtract.` },
       { id: 'w8-q21', topic: 'ccc', kind: 'num', level: 2, section: 'B', src: 'Task sheet W8 (A Ltd)', formula: 'ccc',
         q: R`**A Ltd** had sales of $35m and COGS of $20m in 2022. Year-end balances: accounts receivable $4.2m, inventory $3.0m, accounts payable $1.8m. Use a 365-day year. What is A Ltd’s **cash conversion cycle**?`,
@@ -341,6 +355,11 @@
         steps: [
           R`\[\text{A/R days} = \frac{4.2}{35/365} = 43.8 \qquad \text{Inventory days} = \frac{3}{20/365} = 54.75 \qquad \text{A/P days} = \frac{1.8}{20/365} = 32.85\]`,
           R`\[CCC = 54.75 + 43.8 - 32.85 = 65.7 \text{ days}\]`,
+        ],
+        ti: [
+          TI.line('3/(20/365)→i', { note: 'Inventory days, stored in i (COGS).' }),
+          TI.line('4.2/(35/365)→a', { note: 'A/R days, stored in a (sales).' }),
+          TI.line('i+a-1.8/(20/365)', { note: 'Subtract the A/P days (COGS).' }),
         ],
         why: R`A Ltd has about 66 days of cash tied up between paying suppliers and collecting from customers.` },
       { id: 'w8-q22', topic: 'ccc', kind: 'mcq', level: 1, section: 'A', formula: 'ccc',
@@ -382,6 +401,7 @@
         ],
         steps: [R`Period rate: \(\frac{2}{98} = 2.0408\%\) for \(30 - 10 = 20\) days.`, R`\[EAR = ${earTex(0.02, 10, 30)} = (1.020408)^{18.25} - 1 = ${L.pct(ear(0.02, 10, 30), 2)}\]`],
         calc: earCalc(0.02, 10, 30),
+        ti: [earTI(0.02, 10, 30)],
         why: R`About 44.6% a year: far dearer than a bank loan. The lecture advises taking the discount.` },
       { id: 'w8-q29', topic: 'tcost', kind: 'num', level: 2, section: 'B', src: 'Lecture W8 slide 18', formula: 'trade-credit',
         q: R`What is the effective annual cost of forgoing the discount on terms of **3/10, net 40**? Use a 365-day year.`,
@@ -393,6 +413,7 @@
         ],
         steps: [R`Period rate: \(\frac{3}{97} = 3.0928\%\) for \(40 - 10 = 30\) days.`, R`\[EAR = ${earTex(0.03, 10, 40)} = ${L.pct(ear(0.03, 10, 40), 2)}\]`],
         calc: earCalc(0.03, 10, 40),
+        ti: [earTI(0.03, 10, 40)],
         why: R`A bigger discount over a longer window still costs about 44.86% a year.` },
       { id: 'w8-q30', topic: 'tcost', kind: 'num', level: 2, section: 'B', src: 'Tutorial W8 Q2(A)', formula: 'trade-credit',
         q: R`Your supplier, ABC Ltd, offers **2/20, net 60**. Assume a **360-day** year. What is the effective annual cost of giving up the discount?`,
@@ -404,6 +425,7 @@
         ],
         steps: [R`Period rate: \(\frac{2}{98} = 2.0408\%\) for \(60 - 20 = 40\) days. There are \(\frac{360}{40} = 9\) such periods a year.`, R`\[EAR = (1.020408)^{9} - 1 = ${L.pct(ear(0.02, 20, 60, 360), 2)}\]`],
         calc: earCalc(0.02, 20, 60, 360),
+        ti: [earTI(0.02, 20, 60, 360)],
         why: R`About 19.94% a year, which is dearer than a 15% bank loan.` },
       { id: 'w8-q31', topic: 'tcost', kind: 'mcq', level: 2, section: 'A', formula: 'trade-credit',
         q: R`Why is the period rate \(\frac{d}{1-d}\) (e.g. \(\frac{2}{98}\)) rather than just \(d\) (2%)?`,
@@ -427,6 +449,7 @@
         choices: ['Take the discount, pay on day 20, and borrow from the bank', 'Give up the discount and pay on day 60', 'Give up the discount and pay on day 40', 'Take the discount, but pay on day 60'], answer: 0,
         why: R`The trade credit costs 19.94%, more than the bank’s 15%. Borrow from the bank and take the discount.`,
         steps: [R`\[EAR = \left(1 + \frac{2}{98}\right)^{\frac{360}{60 - 20}} - 1 = ${L.pct(ear(0.02, 20, 60, 360), 2)}\]`, R`\(19.94\% > 15\%\): trade credit is the dearer loan. Take the discount, pay on day 20, and fund it with the bank loan.`],
+        ti: [earTI(0.02, 20, 60, 360, R`That is \(${L.pct(ear(0.02, 20, 60, 360), 2)}\) a year: more than the bank’s 15%, so take the discount.`)],
         wrong: { 3: 'The discount is only available if you pay within 20 days.' } },
       { id: 'w8-q36', topic: 'payables', kind: 'num', level: 2, section: 'B', src: 'Tutorial W8 Q2(C)', formula: 'trade-credit',
         q: R`ABC Ltd offers 2/20, net 60, but you could stretch your payment by 20 days, to day 80. Using a **360-day** year, what is the effective annual cost of forgoing the discount now?`,
@@ -438,6 +461,7 @@
         ],
         steps: [R`Stretching makes the terms like 2/20, net 80: a \(80 - 20 = 60\)-day loan.`, R`\[EAR = (1.020408)^{\frac{360}{60}} - 1 = (1.020408)^{6} - 1 = ${L.pct(ear(0.02, 20, 80, 360), 2)}\]`],
         calc: earCalc(0.02, 20, 80, 360),
+        ti: [earTI(0.02, 20, 80, 360)],
         why: R`Stretching cuts the cost to about 12.89%, below the bank’s 15%.` },
       { id: 'w8-q37', topic: 'payables', kind: 'mcq', level: 2, section: 'A', src: 'Tutorial W8 Q2(C)',
         q: R`Stretching ABC Ltd’s terms to day 80 cuts the cost of trade credit to 12.89%, below the bank’s 15%. What is the best description of the choice?`,
@@ -451,6 +475,7 @@
           { v: 250000 / (14000 * 365) * 360, why: 'Daily COGS is already given. Do not convert it with a 360-day year.' },
         ],
         steps: [R`\[\text{A/P days} = \frac{\text{Accounts payable}}{\text{Average daily COGS}} = \frac{250{,}000}{14{,}000} = ${L.num(UWE)} \text{ days}\]`],
+        ti: [TI.line('250000/14000', { note: 'Daily COGS is already given, so divide straight away.' })],
         why: R`About 17.9 days. On 2/15, net 40 terms, that is too late for the discount and too early for the due date.` },
       { id: 'w8-q39', topic: 'payables', kind: 'mcq', level: 2, section: 'A', src: 'Lecture W8 slide 26',
         q: R`Uwe gets terms of **2/15, net 40** and pays after about 18 days. What is wrong with this?`,
@@ -467,6 +492,7 @@
         ],
         steps: [R`\[EAR = ${earTex(0.01, 15, 40)} = ${L.pct(ear(0.01, 15, 40), 2)}\]`],
         calc: earCalc(0.01, 15, 40),
+        ti: [earTI(0.01, 15, 40)],
         why: R`Paying on day 40 costs about 15.80% a year.` },
       { id: 'w8-q41', topic: 'payables', kind: 'num', level: 2, section: 'B', src: 'Lecture W8 slide 28', formula: 'trade-credit',
         q: R`Terms are **1/15, net 40**, but the firm **stretches** its payables and pays on day 60. What is the effective annual cost now? Use a 365-day year.`,
@@ -478,6 +504,7 @@
         ],
         steps: [R`The firm now borrows for \(60 - 15 = 45\) days.`, R`\[EAR = \left(1 + \frac{1}{99}\right)^{\frac{365}{45}} - 1 = ${L.pct(ear(0.01, 15, 60), 2)}\]`],
         calc: earCalc(0.01, 15, 60),
+        ti: [earTI(0.01, 15, 60)],
         why: R`Stretching to day 60 cuts the cost from 15.80% to 8.49%. It is cheap, but it risks the supplier relationship.` },
       { id: 'w8-q42', topic: 'payables', kind: 'mcq', level: 1, section: 'A', src: 'Lecture W8 slide 27',
         q: R`Which is a real risk of **stretching** accounts payable (paying after the due date)?`,
@@ -491,33 +518,39 @@
         q: R`Company A buys from Supplier E on **1/20, net 40**. The bank lends to Company A at 15%. Using a 365-day year, what should Company A do?`,
         choices: [R`Take the discount: the EAR is \(${L.pct(ear(0.01, 20, 40), 2)}\), above 15%. Borrow from the bank and pay on day 20.`, R`Forgo the discount: the EAR is \(${L.pct(ear(0.01, 20, 40), 2)}\), so pay on day 40.`, R`Forgo the discount: the cost is only 1%, so pay on day 40.`, 'Pay on day 30 to balance the two costs.'], answer: 0,
         why: R`\(EAR = ${earTex(0.01, 20, 40)} = ${L.pct(ear(0.01, 20, 40), 2)}\) is above the 15% bank rate, so take the discount.`,
-        steps: [R`Period rate: \(\frac{1}{99} = 1.0101\%\) for \(40 - 20 = 20\) days.`, R`\[EAR = ${earTex(0.01, 20, 40)} = ${L.pct(ear(0.01, 20, 40), 2)}\]`, R`\(${L.pct(ear(0.01, 20, 40), 2)} > 15\%\): borrow from the bank and pay Supplier E on day 20.`] },
+        steps: [R`Period rate: \(\frac{1}{99} = 1.0101\%\) for \(40 - 20 = 20\) days.`, R`\[EAR = ${earTex(0.01, 20, 40)} = ${L.pct(ear(0.01, 20, 40), 2)}\]`, R`\(${L.pct(ear(0.01, 20, 40), 2)} > 15\%\): borrow from the bank and pay Supplier E on day 20.`],
+        ti: [earTI(0.01, 20, 40, 365, R`That is \(${L.pct(ear(0.01, 20, 40), 2)}\) a year: more than the bank’s 15%, so take the discount.`)] },
       { id: 'w8-q45', topic: 'payables', kind: 'mcq', level: 2, section: 'B', src: 'Task sheet W8 Part 1 (Company D)',
         q: R`Company D buys from Supplier C on **2/10, net 60**. The bank lends to Company D at 20%. Using a 365-day year, what should Company D do?`,
         choices: [R`Forgo the discount and pay on day 60: the EAR is \(${L.pct(ear(0.02, 10, 60), 2)}\), below 20%`, R`Take the discount and borrow at 20%: 2% for 50 days is expensive`, R`Forgo the discount and pay on day 10`, R`Take the discount and pay on day 60`], answer: 0,
         why: R`\(EAR = ${earTex(0.02, 10, 60)} = ${L.pct(ear(0.02, 10, 60), 2)}\). That is cheaper than the bank, so use the trade credit fully.`,
-        steps: [R`Period rate: \(\frac{2}{98} = 2.0408\%\) for \(60 - 10 = 50\) days.`, R`\[EAR = ${earTex(0.02, 10, 60)} = ${L.pct(ear(0.02, 10, 60), 2)}\]`, R`\(${L.pct(ear(0.02, 10, 60), 2)} < 20\%\): skip the discount and pay Supplier C on day 60.`] },
+        steps: [R`Period rate: \(\frac{2}{98} = 2.0408\%\) for \(60 - 10 = 50\) days.`, R`\[EAR = ${earTex(0.02, 10, 60)} = ${L.pct(ear(0.02, 10, 60), 2)}\]`, R`\(${L.pct(ear(0.02, 10, 60), 2)} < 20\%\): skip the discount and pay Supplier C on day 60.`],
+        ti: [earTI(0.02, 10, 60, 365, R`That is \(${L.pct(ear(0.02, 10, 60), 2)}\) a year: less than the bank’s 20%, so skip the discount and pay on day 60.`)] },
       { id: 'w8-q46', topic: 'payables', kind: 'mcq', level: 2, section: 'A', src: 'Task sheet W8 Part 2 (Company C)',
         q: R`Company C’s supplier offers **2/10, net 30**. Company C’s A/P days are ${T.num(COC_AP)}. Is it managing its payables well?`,
         choices: ['No: it pays after the 30-day due date, which signals cash-flow trouble', 'Yes: it pays within the discount period', 'Yes: it pays exactly on the due date', 'No: it pays too early and wastes free credit'], answer: 0,
-        why: R`\(\frac{2.2}{24/365} = ${L.num(COC_AP)}\) days is past day 30. It should take the discount (bank-funded) or at least pay by day 30.` },
+        why: R`\(\frac{2.2}{24/365} = ${L.num(COC_AP)}\) days is past day 30. It should take the discount (bank-funded) or at least pay by day 30.`,
+        ti: [TI.line('2.2/(24/365)', { note: 'A/P days: payables divided by daily COGS.' })] },
 
       { id: 'w8-q60', topic: 'payables', kind: 'mcq', level: 2, section: 'B', src: 'Task sheet W8 Part 1 (Company B)',
         q: R`Company B buys from Supplier A on **1/10, net 55**. The bank lends to Company B at 15%. Using a 365-day year, what should Company B do?`,
         choices: [R`Forgo the discount and pay on day 55: the EAR is \(${L.pct(ear(0.01, 10, 55), 2)}\), below 15%`, R`Take the discount and borrow at 15%, paying on day 10`, R`Forgo the discount and pay on day 30`, R`Take the discount but pay on day 55`], answer: 0,
         why: R`\(EAR = ${earTex(0.01, 10, 55)} = ${L.pct(ear(0.01, 10, 55), 2)}\). The long 45-day window makes trade credit cheap, so use it fully.`,
-        steps: [R`Period rate: \(\frac{1}{99} = 1.0101\%\) for \(55 - 10 = 45\) days.`, R`\[EAR = ${earTex(0.01, 10, 55)} = ${L.pct(ear(0.01, 10, 55), 2)}\]`, R`\(${L.pct(ear(0.01, 10, 55), 2)} < 15\%\): skip the discount and pay on day 55.`] },
+        steps: [R`Period rate: \(\frac{1}{99} = 1.0101\%\) for \(55 - 10 = 45\) days.`, R`\[EAR = ${earTex(0.01, 10, 55)} = ${L.pct(ear(0.01, 10, 55), 2)}\]`, R`\(${L.pct(ear(0.01, 10, 55), 2)} < 15\%\): skip the discount and pay on day 55.`],
+        ti: [earTI(0.01, 10, 55, 365, R`That is \(${L.pct(ear(0.01, 10, 55), 2)}\) a year: less than the bank’s 15%, so skip the discount and pay on day 55.`)] },
       { id: 'w8-q61', topic: 'payables', kind: 'mcq', level: 2, section: 'B', src: 'Task sheet W8 Part 1 (Company C)',
         q: R`Company C buys from Supplier B on **2/10, net 30**. The bank lends to Company C at 20%. Using a 365-day year, what should Company C do?`,
         choices: [R`Take the discount: the EAR is \(${L.pct(ear(0.02, 10, 30), 2)}\), above 20%. Borrow and pay on day 10.`, R`Forgo the discount and pay on day 30, because 2% is less than 20%`, R`Forgo the discount and pay on day 20`, R`Take the discount but pay on day 30`], answer: 0,
         why: R`\(EAR = ${earTex(0.02, 10, 30)} = ${L.pct(ear(0.02, 10, 30), 2)}\), far above the 20% bank rate.`,
         steps: [R`\[EAR = ${earTex(0.02, 10, 30)} = ${L.pct(ear(0.02, 10, 30), 2)}\]`, R`\(${L.pct(ear(0.02, 10, 30), 2)} > 20\%\): borrow from the bank and pay on day 10.`],
+        ti: [earTI(0.02, 10, 30, 365, R`That is \(${L.pct(ear(0.02, 10, 30), 2)}\) a year: far more than the bank’s 20%, so take the discount.`)],
         wrong: { 1: R`The 2% is for 20 days only. As a yearly rate it is about 44.6%.` } },
       { id: 'w8-q62', topic: 'payables', kind: 'mcq', level: 2, section: 'B', src: 'Task sheet W8 Part 1 (Company E)',
         q: R`Company E buys from Supplier D on **2/15, net 35**. The bank lends to Company E at 18%. Using a 365-day year, what should Company E do?`,
         choices: [R`Take the discount: borrow at 18% and pay on day 15`, R`Forgo the discount and pay on day 35`, R`Forgo the discount and pay on day 25`, R`Take the discount but pay on day 35`], answer: 0,
         why: R`\(EAR = ${earTex(0.02, 15, 35)} = ${L.pct(ear(0.02, 15, 35), 2)}\), well above 18%. If E cannot pay by day 15, it should wait until day 35.`,
-        steps: [R`\[EAR = ${earTex(0.02, 15, 35)} = ${L.pct(ear(0.02, 15, 35), 2)}\]`, R`\(${L.pct(ear(0.02, 15, 35), 2)} > 18\%\): take the discount and pay on day 15.`] },
+        steps: [R`\[EAR = ${earTex(0.02, 15, 35)} = ${L.pct(ear(0.02, 15, 35), 2)}\]`, R`\(${L.pct(ear(0.02, 15, 35), 2)} > 18\%\): take the discount and pay on day 15.`],
+        ti: [earTI(0.02, 15, 35, 365, R`That is \(${L.pct(ear(0.02, 15, 35), 2)}\) a year: more than the bank’s 18%, so take the discount.`)] },
       { id: 'w8-q63', topic: 'tcost', kind: 'mcq', level: 2, section: 'B', src: 'Task sheet W8 Part 1',
         q: R`Five firms in one supply chain face the terms and bank rates in the table. Using a 365-day year, which firms should **forgo** the discount and pay on the last day?`,
         table: { head: ['Company', 'Terms from its supplier', 'Bank rate'], rows: [['A', '1/20, net 40', '15%'], ['B', '1/10, net 55', '15%'], ['C', '2/10, net 30', '20%'], ['D', '2/10, net 60', '20%'], ['E', '2/15, net 35', '18%']] },
@@ -556,6 +589,7 @@
           R`Every month after: \(25{,}000 - 5{,}250 = \$19{,}750\), forever.`,
           R`\[NPV_{current} = -5{,}250 + \frac{19{,}750}{0.01} = \$1{,}969{,}750\]`,
         ],
+        ti: [TI.line('-500*60+250*99', { note: 'Month 0: pay the production costs, receive the cash sales.' }), TI.line('-5250+(250*100-5250)/0.01', { note: 'Month 0, plus the monthly perpetuity: credit sales in, less the next month’s net outflow.' })],
         why: R`Lay out one month’s cash flows, then value the repeating part as a monthly perpetuity at 1%.` },
       { id: 'w8-q51', topic: 'receivables', kind: 'num', level: 3, section: 'B', src: 'Lecture W8 slides 19–21', boss: true,
         q: R`Same firm (price $100, cost $60, 1% per month). If it **drops** the 1% cash discount, it sells 480 units a month and every customer pays in 30 days. The current policy is worth $1,969,750. What is the **NPV of switching** to the new policy?`,
@@ -571,6 +605,7 @@
           R`\[NPV_{switch} = 1{,}891{,}200 - 1{,}969{,}750 = -\$78{,}550\]`,
           R`Negative, so do **not** switch: keep the cash discount.`,
         ],
+        ti: [TI.line('-480*60+(480*100-480*60)/0.01', { note: 'The NPV of the new policy.' }), TI.line('ans-1969750', { note: 'New policy minus current policy.' })],
         why: R`Dropping the discount delays every receipt and loses 20 sales a month. That costs more than the 1% discount saves.` },
       { id: 'w8-q52', topic: 'receivables', kind: 'mcq', level: 2, section: 'A', src: 'Lecture W8 slide 21',
         q: R`Current credit policy NPV: $1,969,750. NPV if the cash discount is dropped: $1,891,200. What should the firm do?`,
@@ -579,7 +614,8 @@
       { id: 'w8-q53', topic: 'receivables', kind: 'mcq', level: 2, section: 'A', src: 'Task sheet W8 Part 2 (Company B)',
         q: R`Company B sells on **2/10, net 30**. Its A/R days are ${T.num(COB_AR)}. Is it managing its receivables well?`,
         choices: ['No: on average, customers pay after the 30-day due date', 'Yes: collections are inside the 30-day credit period', 'Yes: most customers take the 2% discount', 'It cannot be judged without the firm’s A/P days'], answer: 0,
-        why: R`\(\frac{4}{37/365} = ${L.num(COB_AR)}\) days is past the 30-day limit. Past-due accounts may signal customers in trouble.` },
+        why: R`\(\frac{4}{37/365} = ${L.num(COB_AR)}\) days is past the 30-day limit. Past-due accounts may signal customers in trouble.`,
+        ti: [TI.line('4/(37/365)', { note: 'A/R days: receivables divided by daily sales.' })] },
 
       /* ----- inventory and cash ----- */
       { id: 'w8-q54', topic: 'invcash', kind: 'mcq', level: 1, section: 'A', src: 'Lecture W8 slide 29',
@@ -630,6 +666,7 @@
               R`Current liabilities: \(${ap.toFixed(1)} + ${accr.toFixed(1)} = ${cl.toFixed(1)}\)`,
               R`\[NWC = ${ca.toFixed(1)} - ${cl.toFixed(1)} = ${milL(nwc)}\]`,
             ],
+            ti: [TI.line(`${cash.toFixed(1)}+${ar.toFixed(1)}+${inv.toFixed(1)}-${ap.toFixed(1)}-${accr.toFixed(1)}`, { note: 'Cash, receivables and inventory, less payables and accruals ($m). PP&E and long-term debt stay out.' })],
             why: R`Only current items count. PP&E and long-term debt are left out.`,
           };
         } },
@@ -656,6 +693,7 @@
               R`\[FCF_1 = ${K(ni, 2)} + ${K(dep, 2)} - ${K(capex, 2)} - ${K(dwc, 2)} = ${milL(fcf)}\]`,
               R`\[V = \frac{FCF_1}{r - g} = \frac{${L.numT(fcf, 2)}}{${L.dec(r)} - ${L.dec(g)}} = ${milL(v)}\]`,
             ],
+            ti: [TI.line(`(${tn(ni)}+${tn(dep)}-${tn(capex)}-${tn(dwc)})/(${tn(r)}-${tn(g)})`, { note: R`Next year’s FCF ($m), divided by \(r - g\).` })],
             why: R`Build next year’s FCF, then value it as a growing perpetuity.`,
           };
           }
@@ -687,6 +725,7 @@
                 R`\[\Delta V = \frac{\text{saving}}{r - g} = \frac{${LM(save * 1e6)}}{${L.dec(r)} - ${L.dec(g)}} = ${LM(gain, 0)}\]`,
                 R`Check: \(FCF_1\) rises from \(${milL(fcf)}\) to \(${milL(fcf + save)}\), so the value rises from \(${milL(v0)}\) to \(${milL(v1)}\).`,
               ],
+              ti: [TI.line(`${tn(cut)}*${tn(dwc * 1e6)}/(${tn(r)}-${tn(g)})`, { note: R`The yearly saving in dollars, valued as a growing perpetuity: divide by \(r - g\).` })],
               why: R`A permanent, growing cut in working capital is worth its growing-perpetuity value.`,
             };
           }
@@ -712,6 +751,7 @@
             steps: [askOp
               ? R`\[\text{Operating cycle} = \text{Inventory days} + \text{A/R days} = ${K(inv, 1)} + ${K(ar, 1)} = ${L.numT(op, 1)} \text{ days}\]`
               : R`\[CCC = \text{Inventory days} + \text{A/R days} - \text{A/P days} = ${K(inv, 1)} + ${K(ar, 1)} - ${K(ap, 1)} = ${L.numT(cc, 1)} \text{ days}\]`],
+            ti: [TI.line(askOp ? `${K(inv, 1)}+${K(ar, 1)}` : `${K(inv, 1)}+${K(ar, 1)}-${K(ap, 1)}`, { note: askOp ? 'Inventory days plus A/R days.' : 'Inventory days plus A/R days, minus A/P days.' })],
             why: R`Operating cycle: buy stock to collect cash. Cash cycle: the operating cycle less the days suppliers wait.`,
           };
         } },
@@ -733,6 +773,7 @@
               { v: cogs / inv, why: 'That is inventory turnover (times a year), not days.' },
             ], 'days', 2),
             steps: [R`Average daily COGS \(= \frac{${K(cogs, 2)}}{365} = ${L.numT(cogs / 365, 5)}\)`, R`\[\text{Inventory days} = \frac{${K(inv, 2)}}{${K(cogs, 2)}/365} = ${L.num(d)} \text{ days}\]`],
+            ti: [TI.line(`${K(inv, 2)}/(${K(cogs, 2)}/365)`, { note: 'Inventory divided by daily COGS.' })],
             why: R`\(\text{Inventory days} = \frac{\text{Inventory}}{COGS/365}\): stock is held at cost, so use COGS.`,
           };
         } },
@@ -752,6 +793,7 @@
               { v: sales / ar, why: 'That is receivables turnover (times a year), not days.' },
             ], 'days', 2),
             steps: [R`Average daily sales \(= \frac{${K(sales, 2)}}{365} = ${L.numT(sales / 365, 5)}\)`, R`\[\text{A/R days} = \frac{${K(ar, 2)}}{${K(sales, 2)}/365} = ${L.num(d)} \text{ days}\]`],
+            ti: [TI.line(`${K(ar, 2)}/(${K(sales, 2)}/365)`, { note: 'Receivables divided by daily sales.' })],
             why: R`\(\text{A/R days} = \frac{\text{Accounts receivable}}{Sales/365}\): the average time customers take to pay.`,
           };
         } },
@@ -771,6 +813,7 @@
               { v: cogs / ap, why: 'That is payables turnover (times a year), not days.' },
             ], 'days', 2),
             steps: [R`Average daily COGS \(= \frac{${K(cogs, 2)}}{365} = ${L.numT(cogs / 365, 5)}\)`, R`\[\text{A/P days} = \frac{${K(ap, 2)}}{${K(cogs, 2)}/365} = ${L.num(d)} \text{ days}\]`],
+            ti: [TI.line(`${K(ap, 2)}/(${K(cogs, 2)}/365)`, { note: 'Payables divided by daily COGS.' })],
             why: R`\(\text{A/P days} = \frac{\text{Accounts payable}}{COGS/365}\): the average time the firm takes to pay suppliers.`,
           };
         } },
@@ -799,6 +842,11 @@
               R`\[\text{A/P days} = \frac{${K(ap, 2)}}{${K(cogs, 2)}/365} = ${L.num(pD)}\]`,
               R`\[CCC = ${L.num(iD)} + ${L.num(aD)} - ${L.num(pD)} = ${L.num(c)} \text{ days}\]`,
             ],
+            ti: [
+              TI.line(`${K(inv, 2)}/(${K(cogs, 2)}/365)→i`, { note: 'Inventory days, stored in i (COGS).' }),
+              TI.line(`${K(ar, 2)}/(${K(sales, 2)}/365)→a`, { note: 'A/R days, stored in a (sales).' }),
+              TI.line(`i+a-${K(ap, 2)}/(${K(cogs, 2)}/365)`, { note: 'Subtract the A/P days (COGS).' }),
+            ],
             why: R`COGS for inventory and payables, sales for receivables. Then add, add, subtract.`,
           };
         } },
@@ -826,6 +874,7 @@
               R`One day of ${bal} is one day of ${kind === 'ar' ? 'sales' : 'COGS'}: \(\frac{${K(base, 2)}}{365} = ${L.numT(base / 365, 5)}\) (in $m).`,
               R`\[\text{Cash freed} = ${cut} \times ${L.numT(base / 365, 5)} = \$${L.numT(freed, 3)}\text{m}\]`,
             ],
+            ti: [TI.line(`${cut}*${K(base, 2)}/365`, { note: `${cut} days of ${kind === 'ar' ? 'sales' : 'COGS'} ($m).` })],
             why: kind === 'ap' ? R`Paying suppliers later (within the terms) keeps cash in the firm for longer.` : R`Fewer ${word} mean a smaller ${bal} balance, so cash is released.`,
           };
         } },
@@ -856,6 +905,10 @@
                 R`\[\text{A/P days} = \frac{${K(ap, 2)}}{${K(cogs, 2)}/365} = ${L.num(pD)}\]`,
                 R`It pays after day ${x}, so it misses the discount, yet before day ${y}, so it wastes free credit. Today: \(CCC = ${L.num(c0)}\) days.`,
                 R`Paying on day ${y}: \[CCC = ${L.num(iD)} + ${L.num(aD)} - ${y} = ${L.num(c1)} \text{ days}\]`,
+              ],
+              ti: [
+                TI.line(`${K(ap, 2)}/(${K(cogs, 2)}/365)`, { note: `A/P days today: after day ${x}, so no discount, but before day ${y}, so free credit is wasted.` }),
+                TI.line(`${K(inv, 2)}/(${K(cogs, 2)}/365)+${K(ar, 2)}/(${K(sales, 2)}/365)-${y}`, { note: `Inventory days plus A/R days, minus ${y} A/P days (paying on the last day).` }),
               ],
               why: R`If you forgo the discount, pay on the due date. A/P days rise to ${y}, and the CCC shrinks.`,
             };
@@ -895,6 +948,7 @@
               { v: P(ear(d, x, y)), why: `That is the effective annual rate. The question asks for the rate over ${y - x} days.` },
             ], '%', 2),
             steps: [R`On a $100 bill you could pay $${K(100 - d * 100, 2)} on day ${x}. Paying $100 on day ${y} costs $${K(d * 100, 2)} more.`, R`\[\frac{d}{1-d} = \frac{${K(d * 100)}}{${K(100 - d * 100)}} = ${L.pct(per, 4)} \text{ per } ${y - x} \text{ days}\]`],
+            ti: [TI.line(`${K(d * 100)}/${K(100 - d * 100)}`, { pct: true, note: `The discount divided by the price you would pay on day ${x}. Times 100 gives the percentage.` })],
             why: R`The discount you give up is interest on the discounted price.`,
           };
         } },
@@ -919,6 +973,7 @@
               R`\[EAR = ${earTex(d, x, y, yr)} = ${L.pct(e, 2)}\]`,
             ],
             calc: earCalc(d, x, y, yr),
+            ti: [earTI(d, x, y, yr)],
             why: R`Compound the period rate \(\frac{${yr}}{${y - x}}\) times a year.`,
           };
         } },
@@ -943,6 +998,7 @@
               answer: take ? 0 : 1,
               why: R`\(EAR = ${earTex(d, x, y)} = ${L.pct(e, 2)}\). That is ${take ? 'above' : 'below'} the bank’s ${pct(b)}, so ${take ? `take the discount and pay on day ${x}` : `use the trade credit in full and pay on day ${y}`}.`,
               steps: [R`\[EAR = ${earTex(d, x, y)} = ${L.pct(e, 2)}\]`, take ? R`Trade credit is dearer than the bank, so borrow from the bank and take the discount.` : R`Trade credit is cheaper than the bank, so skip the discount and pay on the last day.`, R`Never pay between day ${x} and day ${y}: you would lose the discount and free days of credit.`],
+              ti: [earTI(d, x, y, 365, R`That is \(${L.pct(e, 2)}\) a year, against the bank’s ${pct(b)}.`)],
             };
           }
           return null;
@@ -963,6 +1019,7 @@
             ], '%', 2),
             steps: [R`The firm now borrows the discounted price for \(${S} - ${x} = ${S - x}\) days.`, R`\[EAR = ${earTex(d, x, S)} = ${L.pct(e, 2)}\]`, R`Paying on day ${y} would cost \(${L.pct(e0, 2)}\). Stretching is cheaper, but it risks cash-on-delivery terms, a lost supplier and a poor credit rating.`],
             calc: earCalc(d, x, S),
+            ti: [earTI(d, x, S)],
             why: R`Stretching spreads the same discount over more days, so the annual cost falls.`,
           };
         } },
@@ -986,6 +1043,7 @@
             choices, answer: regime,
             why: R`\(\text{A/P days} = \frac{${L.moneyT(ap)}}{${L.moneyT(daily)}} = ${days}\) days, against a discount window of ${x} days and a due date of day ${y}.`,
             steps: [R`\[\text{A/P days} = \frac{\text{Accounts payable}}{\text{Daily COGS}} = \frac{${L.moneyT(ap)}}{${L.moneyT(daily)}} = ${days}\]`, R`Compare with the terms: discount until day ${x}, full amount due on day ${y}.`],
+            ti: [TI.line(`${ap}/${daily}`, { note: 'A/P days: payables divided by daily COGS.' })],
           };
         } },
       { id: 'w8-g-stretchdecide', topic: 'payables', level: 3, section: 'A', formula: 'trade-credit', src: 'Tutorial W8 Q2(C)', boss: true,
@@ -1014,6 +1072,7 @@
                 R`\[EAR_{day\ ${S}} = ${earTex(d, x, S, yr)} = ${L.pct(eS, 2)}\]`,
                 stretch ? R`\(${L.pct(eS, 2)} < ${L.pctT(b)}\): stretching to day ${S} is the cheapest source of funds. In practice, weigh the risks: cash-on-delivery terms, a lost supplier, a poor credit rating.` : R`Both costs are above \(${L.pctT(b)}\), so borrow from the bank and pay on day ${x}.`,
               ],
+              ti: [earTI(d, x, y, yr, R`Paying on day ${y}: \(${L.pct(eY, 2)}\) a year.`), earTI(d, x, S, yr, R`Stretching to day ${S}: \(${L.pct(eS, 2)}\) a year. Compare both with the bank’s ${pct(b)}.`)],
             };
           }
           return null;
@@ -1054,6 +1113,10 @@
                 R`\[NPV_{new} = ${LM(net0n)} + \frac{${LM(creditN + net0n)}}{${L.dec(r)}} = ${LM(nw)}\]`,
                 R`\[NPV_{switch} = ${LM(nw)} - ${LM(cur)} = ${LM(sw)}\]`,
                 sw < 0 ? R`Negative, so **keep** the cash discount.` : R`Positive, so **drop** the discount.`,
+              ],
+              ti: [
+                TI.line(`${tn(net0)}+(${tn(credit)}${plus(net0)})/${tn(r)}→c`, { note: 'The current policy: month 0, plus the monthly perpetuity. Stored in c.' }),
+                TI.line(`${tn(net0n)}+(${tn(creditN)}${plus(net0n)})/${tn(r)}-c`, { note: 'The new policy, minus the current one.' }),
               ],
               why: R`Value each policy as month-0 cash plus a monthly perpetuity, then take the difference.`,
             };
