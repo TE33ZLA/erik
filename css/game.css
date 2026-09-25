@@ -292,7 +292,8 @@ fieldset { border: 0; padding: 0; margin: 0 0 10px; }
 .fcard { border: 1.5px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--panel-2); }
 .fcard.compact { padding: 8px 10px; }
 .fc-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; font-size: 0.92rem; }
-.fc-tex { overflow-x: auto; }
+.fc-tex { overflow-x: auto; overflow-y: hidden; }
+@media (max-width: 640px) { .fc-tex { font-size: 0.9em; } }
 .fc-vars, .fc-when { font-size: 0.86rem; margin: 0.2em 0 0; color: var(--ink-2); }
 .briefing { display: grid; gap: 14px; }
 .brief-sec { border: 1.5px solid var(--line); border-radius: 12px; padding: 10px 14px; background: var(--panel-2); }
@@ -715,8 +716,8 @@ fieldset { border: 0; padding: 0; margin: 0 0 10px; }
 .confirm { border: 2px solid var(--bad); border-radius: 12px; padding: 10px 12px; background: var(--bad-soft); }
 .help h3 { margin-top: 0.8em; }
 .checks { display: grid; gap: 6px; }
-.check { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
-.check input { width: 20px; height: 20px; margin-top: 3px; accent-color: var(--accent); }
+label.check { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+label.check input { width: 20px; height: 20px; margin-top: 3px; accent-color: var(--accent); }
 .exam-bar { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 60px); z-index: 5; display: flex; align-items: center; gap: 12px; background: var(--panel); border: 1.5px solid var(--line); border-radius: 12px; padding: 6px 12px; box-shadow: var(--shadow); }
 .exam-clock { margin-left: auto; font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-weight: 600; }
 .exam-clock.low { color: var(--bad); }

@@ -103,7 +103,7 @@
         ${done ? `${c.answer ? `<p class="lans">✅ ${UI.rich(c.answer)}</p>` : ''}${c.ti ? TIVIEW.html(c.ti, { title: 'Now do it on your calculator' }) : ''}` : `<button class="btn" data-act="lesson-reveal">Show step ${n + 1} of ${c.steps.length}</button>`}</article>`;
     }
     if (c.kind === 'check') {
-      return `<article class="lcard check">${head(c)}${c.intro ? paras(c.intro) : ''}<div class="lcheck">${QVIEW.card(st.q, {})}</div></article>`;
+      return `<article class="lcard quick-check">${head(c)}${c.intro ? paras(c.intro) : ''}<div class="lcheck">${QVIEW.card(st.q, {})}</div></article>`;
     }
     if (c.kind === 'guided') return guidedHTML(c, st);
     return `<article class="lcard">${paras(c.body)}</article>`;
