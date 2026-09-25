@@ -600,7 +600,7 @@ fieldset { border: 0; padding: 0; margin: 0 0 10px; }
 .ti-note { color: var(--ink-2); }
 .ti-note::before { content: "👉 "; }
 .ti-res { font-family: var(--font-mono); white-space: nowrap; }
-.ti-screen { background: var(--ti-screen); color: var(--ti-ink); border: 6px solid var(--ti-body); border-radius: 12px; padding: 8px 12px; max-width: 26rem; font-family: var(--font-mono); font-variant-numeric: tabular-nums; overflow-x: auto; }
+.ti-screen { background: var(--ti-screen); color: var(--ti-ink); border: 6px solid var(--ti-body); border-radius: 12px; padding: 8px 12px; max-width: min(26rem, 100%); box-sizing: border-box; font-family: var(--font-mono); font-variant-numeric: tabular-nums; overflow-x: auto; }
 .ti-title { font-family: var(--font-body); font-weight: 700; font-size: 0.85rem; border-bottom: 1px solid var(--ti-rule); padding-bottom: 3px; margin-bottom: 4px; }
 .ti-form { display: grid; gap: 2px; }
 .ti-f { display: grid; grid-template-columns: 4.6em 1fr auto; align-items: center; gap: 8px; padding: 1px 6px; border-radius: 6px; }
@@ -618,7 +618,9 @@ fieldset { border: 0; padding: 0; margin: 0 0 10px; }
 /* ---------------- lessons ---------------- */
 .stop-ico.lesson { background: color-mix(in srgb, var(--floor, var(--accent)) 16%, var(--panel)); }
 .stop.kind-lesson .stop-kind { color: var(--accent); }
-.lesson { display: grid; gap: 14px; max-width: 46rem; margin: 0 auto; }
+.lesson { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; max-width: 46rem; margin: 0 auto; }
+.lesson > *, .lcard, .lcard > *, .ti, .ti-step, .lsteps > li, .gparts > li, .lpoints > li, .ti-steps > li, .gpart > * { min-width: 0; }
+.lcard .katex-display, .ti .katex-display { overflow-x: auto; overflow-y: hidden; padding: 2px 0; }
 .lesson-head { display: grid; gap: 4px; }
 .lesson-title h1 { margin: 0; text-wrap: balance; }
 .lesson-goal { margin: 4px 0 0; color: var(--ink-2); }

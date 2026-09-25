@@ -80,6 +80,9 @@
 
   /* ---------------- achievements ---------------- */
   const ACH = [
+    { id: 'lesson1', name: 'First Lesson', icon: '📖', desc: 'Finish your first lesson.', test: (s) => (s.stats.lessons || 0) >= 1 },
+    { id: 'toolkit', name: 'Tooled Up', icon: '🧰', desc: 'Finish every lesson in the Basement.', test: (s) => { const p = root.PACKS.find((x) => x.floor === 0); return !!p && p.nodes.filter((n) => n.kind === 'lesson').every((n) => (s.nodes[n.id] || {}).wins > 0); } },
+    { id: 'scholar', name: 'Scholar', icon: '🎓', desc: 'Finish 20 lessons.', test: (s) => Object.keys(s.nodes).filter((id) => /-L\d+$/.test(id) && s.nodes[id].wins > 0).length >= 20 },
     { id: 'first', name: 'First Blood', icon: '🩸', desc: 'Answer your first question correctly.', test: (s) => s.stats.correct >= 1 },
     { id: 'streak5', name: 'On a Roll', icon: '🔥', desc: 'Get 5 answers right in a row.', test: (s) => s.stats.bestStreak >= 5 },
     { id: 'streak10', name: 'Compounding Genius', icon: '📈', desc: 'Get 10 answers right in a row.', test: (s) => s.stats.bestStreak >= 10 },

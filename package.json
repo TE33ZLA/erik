@@ -4,7 +4,7 @@
   "description": "A dyslexia-friendly RPG for learning BFC2140 Corporate Finance.",
   "private": true,
   "scripts": {
-    "test": "node tests/fin.test.js && node tests/validate.js",
+    "test": "node tests/fin.test.js && node tests/nspire.test.js && node tests/validate.js",
     "build": "node tools/build.js",
     "serve": "npx --yes http-server -p 8080 -c-1 ."
   },

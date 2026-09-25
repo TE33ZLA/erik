@@ -109,9 +109,19 @@
     const calcLbl = (GAME.store.state.settings.calc || 'ti') === 'hp' ? 'On the HP10bII+' : 'On your TI-Nspire';
     const methodBlock = m ? `<details class="fb-steps fb-ti"${res.ok ? '' : ' open'}><summary>🧮 ${calcLbl}</summary>${m}</details>` : '';
     const f = q.formula && FORMULAS.byId[q.formula] ? `<button class="chip-btn" data-act="show-formula" data-f="${esc(q.formula)}">📘 ${esc(FORMULAS.byId[q.formula].name)}</button>` : '';
+    const les = lessonFor(q);
+    const lb = les && !extra.noLesson ? `<button class="chip-btn" data-act="lesson-peek" data-pack="${esc(q.pack)}" data-lesson="${esc(les.id)}">📖 Review: ${esc(les.title)}</button>` : '';
     return `${head}${extra.gain ? `<p class="fb-gain">${extra.gain}</p>` : ''}${note}${ans}${why}${stepsBlock}${methodBlock}
       <div class="fb-actions">${extra.next === false ? '' : `<button class="btn primary" data-act="${extra.nextAct || 'next'}" id="next-btn">${esc(extra.nextLabel || 'Next')} <span aria-hidden="true">▶</span></button>`}
-      <button class="icon-btn" data-act="speak-fb" aria-label="Read the explanation aloud">🔊</button>${f}</div>`;
+      <button class="icon-btn" data-act="speak-fb" aria-label="Read the explanation aloud">🔊</button>${f}${res.ok ? '' : lb}</div>`;
+  }
+
+  /** The lesson on the question's floor that teaches its topic (the first one on the route). */
+  function lessonFor(q) {
+    const pack = q && GAME.packById(q.pack);
+    if (!pack || !pack.lessons) return null;
+    const node = pack.nodes.find((n) => n.kind === 'lesson' && pack.lessons[n.lesson] && (pack.lessons[n.lesson].topics || []).includes(q.topic));
+    return node ? Object.assign({ id: node.lesson, node: node.id }, pack.lessons[node.lesson]) : null;
   }
 
   function speechFor(q) {
@@ -131,5 +141,5 @@
     return t;
   }
 
-  root.QVIEW = { card, answers, feedback, markOptions, formulaCard, pips, calcKeys, method, methodSpeech, speechFor, speechForFeedback, LETTERS, QCORE };
+  root.QVIEW = { card, answers, feedback, markOptions, formulaCard, pips, calcKeys, method, methodSpeech, lessonFor, speechFor, speechForFeedback, LETTERS, QCORE };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -148,7 +148,7 @@
     QVIEW.markOptions(cardEl, q, q.mode === 'choice' ? given : -1);
     const fb = cardEl.querySelector('.feedback');
     fb.hidden = false;
-    fb.innerHTML = QVIEW.feedback(q, res, { lead: res.ok ? (st.tries === 1 ? 'Correct!' : 'Correct on the second try.') : 'Here is how it works.', nextLabel: L.i === L.cards.length - 1 ? 'Finish the lesson' : 'Next card' });
+    fb.innerHTML = QVIEW.feedback(q, res, { lead: res.ok ? (st.tries === 1 ? 'Correct!' : 'Correct on the second try.') : 'Here is how it works.', nextLabel: L.i === L.cards.length - 1 ? 'Finish the lesson' : 'Next card', noLesson: true });
     SFX.play(res.ok ? 'correct' : 'wrong');
     if (res.ok) GAME.addXP(5);
     nav();
@@ -284,7 +284,33 @@
     if (k === 's') speakCard();
   }
 
+  /** A quick refresher from a battle: the lesson's key points, without leaving the fight. */
+  function peek(packId, lessonId) {
+    const pack = GAME.packById(packId);
+    const les = pack && pack.lessons && pack.lessons[lessonId];
+    if (!les) return;
+    const recap = les.cards.filter((c) => c.kind === 'recap');
+    const firstLearn = les.cards.find((c) => c.kind === 'learn');
+    const node = pack.nodes.find((n) => n.kind === 'lesson' && n.lesson === lessonId);
+    const body = `${les.goal ? `<p class="lesson-goal">🎯 ${UI.rich(les.goal)}</p>` : ''}
+      ${firstLearn ? `<article class="lcard learn">${head(firstLearn)}${paras(firstLearn.body)}${points(firstLearn.points)}</article>` : ''}
+      ${recap.map((c) => `<article class="lcard recap">${head(c)}${points(c.points)}${c.formula ? QVIEW.formulaCard(c.formula) : ''}</article>`).join('')}
+      <div class="fb-actions"><button class="btn" data-act="modal-close">Back to the question</button>${node ? `<button class="btn" data-act="lesson-open" data-node="${node.id}">Open the full lesson</button>` : ''}</div>`;
+    UI.modal({ title: `📖 ${esc(les.title)}`, body, wide: true });
+  }
+
   Object.assign(GAME.actions, {
+    'lesson-peek': (el) => peek(el.dataset.pack, el.dataset.lesson),
+    'lesson-open': (el) => {
+      const inBattle = GAME.current.name === 'battle' && root.BATTLE.state && root.BATTLE.state.phase !== 'end';
+      if (inBattle) {
+        UI.closeModal();
+        UI.modal({ title: 'Leave this battle?', body: `<p>Opening the lesson ends this battle. XP from answers so far is kept.</p><div class="fb-actions"><button class="btn primary" data-act="lesson-open-yes" data-node="${esc(el.dataset.node)}">Open the lesson</button><button class="btn" data-act="modal-close">Stay and fight</button></div>` });
+        return;
+      }
+      UI.closeModal(); GAME.go('lesson', { nodeId: el.dataset.node });
+    },
+    'lesson-open-yes': (el) => { const B = root.BATTLE.state; if (B && B.xp) { GAME.addXP(B.xp); GAME.addCoins(B.coins); GAME.store.save(); } UI.closeModal(); GAME.go('lesson', { nodeId: el.dataset.node }); },
     'lesson-next': () => {
       if (!L) return;
       const c = L.cards[L.i], st = L.st[L.i] || {};

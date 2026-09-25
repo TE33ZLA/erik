@@ -161,7 +161,7 @@
         <div><h2 class="sec-h">The route</h2><ol class="route">${stops}</ol></div>
         <aside class="floor-side">
           <section class="card"><div class="card-h"><h2>Briefing notes</h2><button class="icon-btn" data-act="open-briefing" data-floor="${pack.id}" aria-label="Open the briefing notes">⤢</button></div>
-            <p class="muted small">The key ideas of ${esc(pack.week)} on one page. Read them before the boss.</p>
+            <p class="muted small">The key ideas of this floor on one page: a quick revision sheet before the boss.</p>
             <button class="btn wide" data-act="open-briefing" data-floor="${pack.id}">📖 Read the briefing</button></section>
           <section class="card"><h2>Topic mastery</h2><ul class="mastery">${topics}</ul></section>
           ${fids.length ? `<section class="card"><h2>Formulas on this floor</h2><div class="fc-list">${fids.map((id) => QVIEW.formulaCard(id, true)).join('')}</div></section>` : ''}

@@ -27,7 +27,8 @@ const PAGE = process.env.PAGE || 'index.html';
   const srv = await serve();
   const port = srv.address().port;
   const browser = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
-  const page = await (await browser.newContext({ viewport: { width: 1200, height: 900 } })).newPage();
+  const VW = +(process.env.W || 1200);
+  const page = await (await browser.newContext({ viewport: { width: VW, height: +(process.env.H || 900) } })).newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push('PAGEERROR ' + e.message + ' ' + (e.stack || '').split('\n')[1]));
   page.on('console', (m) => { if (m.type() === 'error' && !/404/.test(m.text())) errors.push('CONSOLE ' + m.text()); });
@@ -42,7 +43,8 @@ const PAGE = process.env.PAGE || 'index.html';
   await page.goto(`http://localhost:${port}/${PAGE}`);
   await page.waitForTimeout(600);
   await page.evaluate(() => { const s = GAME.store.state; s.name = 'Bot'; s.started = true; s.settings.sound = false; s.settings.timers = 'off'; s.settings.motion = 'reduce'; GAME.applySettings(); GAME.go('tower'); });
-  const packs = await page.evaluate(() => PACKS.map(p => ({ id: p.id, nodes: p.nodes.map(n => ({ id: n.id, kind: n.kind })) })));
+  const ONLY = process.env.ONLY ? process.env.ONLY.split(',') : null; // e.g. ONLY=w0,w1
+  const packs = (await page.evaluate(() => PACKS.map(p => ({ id: p.id, nodes: p.nodes.map(n => ({ id: n.id, kind: n.kind })) })))).filter((p) => !ONLY || ONLY.includes(p.id));
   console.log('packs:', packs.map(p => p.id + '(' + p.nodes.length + ')').join(' '));
   const domCheck = async (where) => {
     const bad = await page.evaluate(() => {
@@ -53,6 +55,13 @@ const PAGE = process.env.PAGE || 'index.html';
       if (/\bNaN\b/.test(txt)) out.push('NaN in text: ' + txt.slice(txt.indexOf('NaN') - 60, txt.indexOf('NaN') + 20).replace(/\s+/g, ' '));
       if (/\bundefined\b/.test(txt)) out.push('undefined in text: ' + txt.slice(txt.indexOf('undefined') - 60, txt.indexOf('undefined') + 20).replace(/\s+/g, ' '));
       if (/\[object Object\]/.test(txt)) out.push('[object Object] in text');
+      const vw = document.documentElement.clientWidth;
+      if (document.documentElement.scrollWidth > vw + 1) {
+        // the page scrolls sideways: name the widest culprit (tables and code blocks scroll inside their own box)
+        let worst = null;
+        z.querySelectorAll('*').forEach((el) => { const r = el.getBoundingClientRect(); if (r.right > vw + 1 && (!worst || r.width < worst.w)) worst = { w: Math.round(r.width), d: el.tagName + '.' + String(el.className || '').slice(0, 40) }; });
+        out.push('page wider than the screen (' + document.documentElement.scrollWidth + 'px > ' + vw + 'px) at ' + (worst ? worst.d + ' w=' + worst.w : '?'));
+      }
       const plain = z.cloneNode(true); plain.querySelectorAll('.katex, code, kbd, textarea, input').forEach((k) => k.remove());
       const raw = plain.textContent.match(/.{0,40}(\\[a-zA-Z$%]|\{,\}).{0,20}/);
       if (raw) out.push('raw LaTeX in text: ' + raw[0].replace(/\s+/g, ' '));
@@ -164,10 +173,10 @@ const PAGE = process.env.PAGE || 'index.html';
     console.log('done', p.id, 'questions so far', questions, 'errors', errors.length);
   }
   // render sweep: every generator x25 seeds and every static question
-  const sweep = await page.evaluate(() => {
+  const sweep = await page.evaluate((ONLY) => {
     const out = []; let count = 0;
     const box = document.createElement('div'); box.style.cssText = 'position:absolute;left:-9999px;width:900px'; document.body.appendChild(box);
-    for (const p of PACKS) {
+    for (const p of PACKS.filter((x) => !ONLY || ONLY.includes(x.id))) {
       for (const g of p.generators) for (let s = 1; s <= 25; s++) {
         const q = QS.instantiate({ type: 'g', pack: p, src: g }, s * 7777, s % 2 ? 'mcq' : 'type');
         if (!q) { out.push(g.id + ' null'); continue; }
@@ -193,7 +202,7 @@ const PAGE = process.env.PAGE || 'index.html';
     }
     box.remove();
     return { out, count };
-  });
+  }, ONLY);
   console.log('render sweep:', sweep.count, 'renders,', sweep.out.length, 'problems');
   sweep.out.slice(0, 40).forEach(x => console.log('  SWEEP', x));
   console.log(`played ${played} nodes, ${questions} questions`);
