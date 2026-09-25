@@ -17,8 +17,11 @@
     --accent: #1d6f8c;
     --accent-ink: #ffffff;
     --rec: #c0392b;
+    --ok: #2e7d4f;
+    --warn: #a86400;
     --interim: #7c8b93;
     --mark: #fff3c4;
+    --bad-bg: #fde3df;
     --text-size: 22px;
     color-scheme: light;
   }
@@ -32,8 +35,11 @@
       --accent: #5fb3d1;
       --accent-ink: #0d1a20;
       --rec: #ef6b5b;
+      --ok: #62c28b;
+      --warn: #e7a445;
       --interim: #8394a0;
       --mark: #3a3620;
+      --bad-bg: #4a2420;
       color-scheme: dark;
     }
   }
@@ -49,7 +55,7 @@
     letter-spacing: 0.01em;
     padding: 20px 16px;
   }
-  .wrap { max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; height: 100%; }
+  .wrap { max-width: 920px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; min-height: 100%; }
   header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; justify-content: space-between; }
   h1 { font-size: 1.4rem; font-weight: 600; margin: 0; }
   .status { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 1rem; }
@@ -66,13 +72,29 @@
     border-radius: 8px; padding: 10px 16px; cursor: pointer;
   }
   button:hover { border-color: var(--accent); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-  #toggle { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; min-width: 170px; }
+  #toggle { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; min-width: 170px; font-size: 1.1rem; }
   #toggle.on { background: var(--rec); border-color: var(--rec); color: #fff; }
   label { color: var(--muted); font-size: 0.95rem; display: flex; align-items: center; gap: 8px; }
-  input[type=range] { accent-color: var(--accent); }
+  input[type=range], input[type=checkbox] { accent-color: var(--accent); }
 
   .notice { background: var(--mark); border-radius: 8px; padding: 10px 14px; font-size: 1rem; }
+  .notice.bad { background: var(--bad-bg); font-weight: 400; }
+
+  /* Health panel */
+  .health {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+  }
+  .hitem { display: flex; flex-direction: column; gap: 4px; }
+  .hlabel { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .hval { font-size: 1rem; font-weight: 400; font-variant-numeric: tabular-nums; }
+  .hval.ok { color: var(--ok); }
+  .hval.warn { color: var(--warn); }
+  .hval.bad { color: var(--rec); }
+  .meter { height: 10px; border-radius: 5px; background: var(--line); overflow: hidden; }
+  .meter > div { height: 100%; width: 0%; background: var(--ok); transition: width 0.1s linear; }
 
   #transcript {
     flex: 1; min-height: 300px; overflow-y: auto;
@@ -83,8 +105,8 @@
   .time { color: var(--muted); font-size: 0.6em; padding-top: 0.45em; font-variant-numeric: tabular-nums; }
   .entry.marker .say { background: var(--mark); border-radius: 6px; padding: 2px 10px; font-weight: 600; }
   #interim { color: var(--interim); font-style: italic; }
-  .empty { color: var(--muted); font-size: 0.8em; }
-  .empty ol { padding-left: 1.2em; }
+  .help { color: var(--muted); font-size: 0.8em; }
+  .help ol { padding-left: 1.2em; margin: 0.4em 0; }
   footer { color: var(--muted); font-size: 0.85rem; }
   @media (max-width: 520px) {
     .entry { grid-template-columns: 1fr; gap: 0; }
@@ -98,15 +120,14 @@
     <div class="status" id="status"><span class="dot"></span><span id="statusText">Stopped</span></div>
   </header>
 
-  <div class="notice" id="unsupported" hidden>
-    This browser has no live speech recognition. Open this file in <b>Google Chrome</b> or <b>Microsoft Edge</b>.
-  </div>
-
   <div class="controls">
     <button id="toggle" type="button">Start</button>
+    <select id="source" aria-label="What to listen to">
+      <option value="meeting">Zoom audio + my mic (headphones OK)</option>
+      <option value="mic">Microphone only (speakers)</option>
+    </select>
     <select id="lang" aria-label="Spoken language">
-      <option value="en-US">English (US)</option>
-      <option value="en-GB">English (UK)</option>
+      <option value="en-US">English</option>
       <option value="sv-SE">Svenska</option>
       <option value="de-DE">Deutsch</option>
       <option value="fr-FR">Français</option>
@@ -115,13 +136,22 @@
       <option value="da-DK">Dansk</option>
       <option value="fi-FI">Suomi</option>
     </select>
+    <select id="model" aria-label="Accuracy">
+      <option value="Xenova/whisper-tiny">Fast (lower accuracy)</option>
+      <option value="Xenova/whisper-base" selected>Balanced</option>
+      <option value="Xenova/whisper-small">Accurate (needs fast computer)</option>
+    </select>
+  </div>
+  <div class="controls">
     <button id="mark" type="button" title="Insert a highlighted marker">Mark moment</button>
     <button id="copy" type="button">Copy</button>
     <button id="download" type="button">Save .txt</button>
     <button id="clear" type="button">Clear</button>
     <label for="size">Text size <input id="size" type="range" min="16" max="40" value="22"></label>
+    <label for="beep"><input id="beep" type="checkbox" checked> Beep if something breaks</label>
   </div>
 
+  <div class="notice bad" id="alarm" hidden></div>
   <div class="notice" id="confirmClear" hidden>
     Delete the whole transcript?
     <button id="clearYes" type="button">Yes, delete</button>
@@ -129,190 +159,546 @@
   </div>
   <div class="notice" id="msg" hidden></div>
 
+  <section class="health" aria-label="Health check">
+    <div class="hitem"><span class="hlabel">Overall</span><span class="hval" id="hOverall">Not running</span></div>
+    <div class="hitem"><span class="hlabel">Sound level</span><div class="meter"><div id="hMeter"></div></div><span class="hval" id="hSound">–</span></div>
+    <div class="hitem"><span class="hlabel">Last text</span><span class="hval" id="hLast">–</span></div>
+    <div class="hitem"><span class="hlabel">Waiting to process</span><span class="hval" id="hQueue">–</span></div>
+  </section>
+
   <div id="transcript" aria-live="polite">
     <div id="lines"></div>
     <div id="interim"></div>
-    <div class="empty" id="empty">
+    <div class="help" id="help">
+      <b>With headphones</b> (choose “Zoom audio + my mic”):
       <ol>
-        <li>Press <b>Start</b> and allow the microphone.</li>
-        <li>In Zoom, play the meeting through your <b>speakers</b> (not headphones) so the mic hears everyone.</li>
-        <li>Text appears here with timestamps. It is saved in this browser as you go.</li>
-        <li>Press <b>Save .txt</b> at the end.</li>
+        <li>Join Zoom <b>in Chrome</b>: on the Zoom join page click <b>“Join from your browser”</b>.<br>
+            Windows users can also keep the Zoom app and share the <b>Entire screen</b> instead.</li>
+        <li>Press <b>Start</b>. The first time, it downloads the speech model (about 1 minute).</li>
+        <li>A sharing window opens. Pick the <b>Zoom tab</b> (or Entire screen) and switch on <b>“Share tab audio”</b> / <b>“Share system audio”</b>. Click Share.</li>
+        <li>Allow the microphone, so your own voice is included.</li>
+        <li>Watch the <b>Health check</b> box. Green means it is working.</li>
+        <li>Press <b>Stop</b> at the end. The transcript saves as a .txt file automatically.</li>
       </ol>
     </div>
   </div>
 
-  <footer>Uses the browser's built-in speech recognition. In Chrome, audio is sent to Google to turn it into text.</footer>
+  <footer>“Zoom audio” mode turns speech into text on this computer. Nothing is uploaded. “Microphone only” mode uses Chrome's built-in recognition, which sends audio to Google.</footer>
 </div>
 
-<script>
-(function () {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const $ = (id) => document.getElementById(id);
-  const linesEl = $('lines'), interimEl = $('interim'), emptyEl = $('empty');
-  const toggleBtn = $('toggle'), statusEl = $('status'), statusText = $('statusText');
-  const box = $('transcript');
-  const KEY = 'meeting-transcriber-v1';
+<script type="module">
+const TRANSFORMERS_URL = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.5/dist/transformers.min.js';
+const WHISPER_LANG = { en: 'english', sv: 'swedish', de: 'german', fr: 'french', es: 'spanish', nb: 'norwegian', da: 'danish', fi: 'finnish' };
+const RATE = 16000;
+const KEY = 'meeting-transcriber-v1';
 
-  let entries = [];      // {t: ISO string, text, marker?}
-  let running = false;   // what the user wants
-  let rec = null;
-  let wakeLock = null;
+const $ = (id) => document.getElementById(id);
+const linesEl = $('lines'), interimEl = $('interim'), helpEl = $('help');
+const toggleBtn = $('toggle'), statusEl = $('status'), statusText = $('statusText');
+const box = $('transcript');
 
-  function load() {
-    try {
-      const saved = JSON.parse(localStorage.getItem(KEY) || '{}');
-      entries = Array.isArray(saved.entries) ? saved.entries : [];
-      if (saved.lang) $('lang').value = saved.lang;
-      if (saved.size) { $('size').value = saved.size; setSize(saved.size); }
-    } catch (e) { entries = []; }
-  }
-  function save() {
-    try {
-      localStorage.setItem(KEY, JSON.stringify({ entries, lang: $('lang').value, size: $('size').value }));
-    } catch (e) {}
-  }
-  function fmt(iso) {
-    return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  }
-  function nearBottom() { return box.scrollHeight - box.scrollTop - box.clientHeight < 80; }
-  function scrollDown(force) { if (force) box.scrollTop = box.scrollHeight; }
+let entries = [];
+let running = false;
+let startedAt = 0;
+let lastTextAt = 0;
+let lastSoundAt = 0;
+let level = 0;
+let wakeLock = null;
+let alarmKey = '';
 
-  function renderEntry(e) {
-    const row = document.createElement('div');
-    row.className = 'entry' + (e.marker ? ' marker' : '');
-    const t = document.createElement('div'); t.className = 'time'; t.textContent = fmt(e.t);
-    const s = document.createElement('div'); s.className = 'say'; s.textContent = e.text;
-    row.append(t, s);
-    linesEl.append(row);
-  }
-  function renderAll() {
-    linesEl.textContent = '';
-    entries.forEach(renderEntry);
-    emptyEl.hidden = entries.length > 0 || running;
-  }
-  function add(text, marker) {
-    const stick = nearBottom();
-    const e = { t: new Date().toISOString(), text, marker: !!marker };
-    entries.push(e);
-    renderEntry(e);
-    emptyEl.hidden = true;
-    save();
-    scrollDown(stick);
-  }
-  function flash(text) {
-    const m = $('msg'); m.textContent = text; m.hidden = false;
-    clearTimeout(flash._t); flash._t = setTimeout(() => { m.hidden = true; }, 4000);
-  }
-  function setSize(v) { document.documentElement.style.setProperty('--text-size', v + 'px'); }
-  function setStatus(live, text) {
-    statusEl.classList.toggle('live', live);
-    statusText.textContent = text;
-    toggleBtn.textContent = running ? 'Stop' : 'Start';
-    toggleBtn.classList.toggle('on', running);
-  }
-  function asText() {
-    return entries.map(e => '[' + fmt(e.t) + '] ' + (e.marker ? '*** ' + e.text + ' ***' : e.text)).join('\n');
-  }
+/* ---------- storage & rendering ---------- */
+function load() {
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY) || '{}');
+    entries = Array.isArray(s.entries) ? s.entries : [];
+    if (s.lang) $('lang').value = s.lang;
+    if (s.source) $('source').value = s.source;
+    if (s.model) $('model').value = s.model;
+    if (s.size) { $('size').value = s.size; setSize(s.size); }
+  } catch (e) { entries = []; }
+}
+function save() {
+  try {
+    localStorage.setItem(KEY, JSON.stringify({
+      entries, lang: $('lang').value, source: $('source').value, model: $('model').value, size: $('size').value,
+    }));
+  } catch (e) {}
+}
+const fmt = (iso) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+const nearBottom = () => box.scrollHeight - box.scrollTop - box.clientHeight < 80;
 
-  async function keepAwake() {
-    try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
-  }
+function renderEntry(e) {
+  const row = document.createElement('div');
+  row.className = 'entry' + (e.marker ? ' marker' : '');
+  const t = document.createElement('div'); t.className = 'time'; t.textContent = fmt(e.t);
+  const s = document.createElement('div'); s.className = 'say'; s.textContent = e.text;
+  row.append(t, s);
+  linesEl.append(row);
+}
+function renderAll() {
+  linesEl.textContent = '';
+  entries.forEach(renderEntry);
+  helpEl.hidden = entries.length > 0 || running;
+}
+function add(text, marker, when) {
+  const stick = nearBottom();
+  const e = { t: (when || new Date()).toISOString(), text, marker: !!marker };
+  entries.push(e);
+  renderEntry(e);
+  helpEl.hidden = true;
+  if (!marker) lastTextAt = Date.now();
+  save();
+  if (stick) box.scrollTop = box.scrollHeight;
+}
+function flash(text) {
+  const m = $('msg'); m.textContent = text; m.hidden = false;
+  clearTimeout(flash._t); flash._t = setTimeout(() => { m.hidden = true; }, 6000);
+}
+function setSize(v) { document.documentElement.style.setProperty('--text-size', v + 'px'); }
+function setStatus(text) {
+  statusEl.classList.toggle('live', running);
+  statusText.textContent = text;
+  toggleBtn.textContent = running ? 'Stop' : 'Start';
+  toggleBtn.classList.toggle('on', running);
+}
+function asText() {
+  return entries.map(e => '[' + fmt(e.t) + '] ' + (e.marker ? '*** ' + e.text + ' ***' : e.text)).join('\n');
+}
+function downloadTxt() {
+  if (!entries.length) return;
+  const blob = new Blob([asText() + '\n'], { type: 'text/plain' });
+  const a = document.createElement('a');
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  a.href = URL.createObjectURL(blob);
+  a.download = `transcript-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.txt`;
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
 
-  function makeRecognizer() {
-    const r = new SR();
-    r.continuous = true;
-    r.interimResults = true;
-    r.lang = $('lang').value;
-    r.onstart = () => setStatus(true, 'Listening…');
-    r.onresult = (ev) => {
-      let interim = '';
-      for (let i = ev.resultIndex; i < ev.results.length; i++) {
-        const res = ev.results[i];
-        const txt = res[0].transcript.trim();
-        if (!txt) continue;
-        if (res.isFinal) add(txt.charAt(0).toUpperCase() + txt.slice(1));
-        else interim += txt + ' ';
+/* ---------- alarm (visible + beep) ---------- */
+let beepCtx = null;
+function beep() {
+  if (!$('beep').checked) return;
+  try {
+    beepCtx = beepCtx || new AudioContext();
+    const o = beepCtx.createOscillator(), g = beepCtx.createGain();
+    o.frequency.value = 880; g.gain.value = 0.15;
+    o.connect(g).connect(beepCtx.destination);
+    o.start(); o.stop(beepCtx.currentTime + 0.35);
+  } catch (e) {}
+}
+function raise(key, text) {
+  const a = $('alarm');
+  if (!key) { a.hidden = true; alarmKey = ''; return; }
+  a.textContent = text; a.hidden = false;
+  if (key !== alarmKey) { alarmKey = key; beep(); }
+}
+
+async function keepAwake() {
+  try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
+}
+
+/* ================= Mode 1: Zoom audio via screen/tab share + local Whisper ================= */
+// Classic worker + dynamic import: Chrome refuses module workers on pages opened from a file.
+const workerSrc = `
+let T = null, asr = null, loadedModel = null;
+self.onmessage = async (e) => {
+  const m = e.data;
+  try {
+    if (m.type === 'load') {
+      if (!T) {
+        T = await import('${TRANSFORMERS_URL}');
+        T.env.allowLocalModels = false;
       }
-      const stick = nearBottom();
-      interimEl.textContent = interim;
-      scrollDown(stick);
-    };
-    r.onerror = (ev) => {
-      if (ev.error === 'no-speech' || ev.error === 'aborted') return;
-      if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') {
-        running = false;
-        setStatus(false, 'Microphone blocked');
-        flash('The microphone is blocked. Click the camera/mic icon in the address bar, allow it, then press Start.');
-        return;
+      if (loadedModel !== m.model) {
+        asr = await T.pipeline('automatic-speech-recognition', m.model, {
+          progress_callback: (p) => self.postMessage({ type: 'progress', p }),
+        });
+        loadedModel = m.model;
       }
-      if (ev.error === 'network') flash('Network problem. Reconnecting…');
-      else flash('Speech error: ' + ev.error + '. Reconnecting…');
-    };
-    r.onend = () => {
-      interimEl.textContent = '';
-      if (running) {
-        // Chrome ends sessions after silence or ~60s; restart right away.
-        setTimeout(() => { if (running) { try { rec = makeRecognizer(); rec.start(); } catch (e) {} } }, 250);
-      } else {
-        setStatus(false, 'Stopped');
-      }
-    };
-    return r;
+      self.postMessage({ type: 'ready' });
+    } else if (m.type === 'run') {
+      const out = await asr(m.audio, { language: m.language, task: 'transcribe' });
+      self.postMessage({ type: 'text', id: m.id, text: (out && out.text) || '' });
+    }
+  } catch (err) {
+    self.postMessage({ type: 'error', stage: m.type, id: m.id, message: String(err && err.message || err) });
   }
+};`;
 
-  function start() {
-    running = true;
-    emptyEl.hidden = true;
-    rec = makeRecognizer();
-    try { rec.start(); } catch (e) {}
-    setStatus(true, 'Starting…');
-    keepAwake();
+let worker = null, workerReady = false;
+let capture = null;          // { display, mic, ctx, proc }
+let chunk = [], chunkLen = 0, chunkStart = 0, silentSamples = 0, chunkPeak = 0;
+let queue = [], busy = false, nextId = 1, inflight = null;
+let stopping = false;
+
+function getWorker() {
+  if (worker) return worker;
+  const url = URL.createObjectURL(new Blob([workerSrc], { type: 'text/javascript' }));
+  worker = new Worker(url);
+  worker.onmessage = onWorker;
+  worker.onerror = (e) => {
+    if (loadReject) { loadReject(new Error('the speech engine was blocked')); loadReject = loadResolve = null; return; }
+    raise('worker', 'The speech engine could not start (' + (e.message || 'blocked') + '). Check your internet, or switch to “Microphone only”.');
+  };
+  return worker;
+}
+
+const progress = {};
+function onWorker(ev) {
+  const m = ev.data;
+  if (m.type === 'progress') {
+    const p = m.p;
+    if (p.status === 'progress' && p.total) {
+      progress[p.file] = [p.loaded, p.total];
+      let l = 0, t = 0;
+      Object.values(progress).forEach(([a, b]) => { l += a; t += b; });
+      setStatus('Downloading speech model… ' + Math.round((l / t) * 100) + '%');
+    }
+  } else if (m.type === 'ready') {
+    workerReady = true;
+    if (loadResolve) { loadResolve(); loadResolve = null; }
+  } else if (m.type === 'text') {
+    busy = false;
+    const job = inflight; inflight = null;
+    const text = clean(m.text);
+    if (text) add(text, false, new Date(job.start));
+    pump();
+  } else if (m.type === 'error') {
+    if (m.stage === 'load') {
+      if (loadReject) { loadReject(new Error(m.message)); loadReject = null; }
+    } else {
+      busy = false; inflight = null;
+      flash('Skipped a few seconds of audio (' + m.message + ').');
+      pump();
+    }
   }
-  function stop() {
+}
+
+let loadResolve = null, loadReject = null;
+function loadModel() {
+  const w = getWorker();
+  workerReady = false;
+  return new Promise((res, rej) => {
+    loadResolve = res; loadReject = rej;
+    w.postMessage({ type: 'load', model: $('model').value });
+    setTimeout(() => {
+      if (loadReject) { loadReject(new Error('it took longer than 5 minutes')); loadReject = loadResolve = null; }
+    }, 300000);
+  });
+}
+
+// Whisper invents text on silence and noise. Drop the usual suspects.
+const JUNK = /^(\[.*\]|\(.*\)|\*.*\*|♪+|\.+|you|thank you\.?|thanks for watching!?|tack för att du tittade!?|undertexter.*)$/i;
+function clean(t) {
+  t = (t || '').replace(/\s+/g, ' ').trim();
+  if (t.length < 2 || JUNK.test(t)) return '';
+  return t;
+}
+
+function pump() {
+  if (busy || !workerReady || !queue.length) {
+    if (stopping && !busy && !queue.length) finishStop();
+    return;
+  }
+  inflight = queue.shift();
+  busy = true;
+  const lang = WHISPER_LANG[$('lang').value.slice(0, 2)] || 'english';
+  worker.postMessage({ type: 'run', id: inflight.id, audio: inflight.audio, language: lang }, [inflight.audio.buffer]);
+}
+
+function flushChunk() {
+  if (!chunkLen) return;
+  const audio = new Float32Array(chunkLen);
+  let o = 0;
+  for (const c of chunk) { audio.set(c, o); o += c.length; }
+  const peak = chunkPeak;
+  const start = chunkStart;
+  chunk = []; chunkLen = 0; silentSamples = 0; chunkPeak = 0;
+  if (peak < 0.02) return; // nothing but silence
+  queue.push({ id: nextId++, audio, start, secs: audio.length / RATE });
+  pump();
+}
+
+function onAudio(e) {
+  const d = e.inputBuffer.getChannelData(0);
+  let sum = 0, peak = 0;
+  for (let i = 0; i < d.length; i++) { const v = d[i]; sum += v * v; const a = v < 0 ? -v : v; if (a > peak) peak = a; }
+  const rms = Math.sqrt(sum / d.length);
+  level = Math.max(rms, level * 0.85);
+  const loud = rms > 0.01;
+  if (loud) lastSoundAt = Date.now();
+  if (!running) return;
+
+  if (!chunkLen) chunkStart = Date.now() - (d.length / RATE) * 1000;
+  chunk.push(new Float32Array(d));
+  chunkLen += d.length;
+  if (peak > chunkPeak) chunkPeak = peak;
+  silentSamples = loud ? 0 : silentSamples + d.length;
+
+  // Cut at a pause once we have ≥ 3 s, or force a cut at 15 s.
+  if ((chunkLen >= RATE * 3 && silentSamples >= RATE * 0.6) || chunkLen >= RATE * 15) flushChunk();
+}
+
+async function startMeeting() {
+  setStatus('Loading speech engine…');
+  try {
+    await loadModel();
+  } catch (err) {
     running = false;
-    try { rec && rec.stop(); } catch (e) {}
-    try { wakeLock && wakeLock.release(); } catch (e) {}
-    setStatus(false, 'Stopped');
+    setStatus('Stopped');
+    raise('load', 'Could not download the speech model: ' + err.message + '. Check your internet, then press Start again, or switch to “Microphone only”.');
+    return;
+  }
+  if (!running) return;
+  setStatus('Choose the Zoom tab and turn on audio sharing…');
+
+  let display;
+  try {
+    display = await navigator.mediaDevices.getDisplayMedia({
+      video: true,
+      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+      systemAudio: 'include',
+      selfBrowserSurface: 'exclude',
+    });
+  } catch (err) {
+    running = false; setStatus('Stopped');
+    flash('Sharing was cancelled. Press Start and pick the Zoom tab.');
+    return;
+  }
+  if (!running) { display.getTracks().forEach(t => t.stop()); return; }
+  if (!display.getAudioTracks().length) {
+    display.getTracks().forEach(t => t.stop());
+    running = false; setStatus('Stopped');
+    raise('noaudio', 'No sound was shared. Press Start again and switch on “Share tab audio” (or “Share system audio”) before clicking Share.');
+    return;
   }
 
-  toggleBtn.onclick = () => (running ? stop() : start());
-  $('lang').onchange = () => { save(); if (running) { try { rec.stop(); } catch (e) {} } };
-  $('size').oninput = (e) => { setSize(e.target.value); save(); };
-  $('mark').onclick = () => add('Marked moment', true);
-  $('copy').onclick = async () => {
-    try { await navigator.clipboard.writeText(asText()); flash('Copied to clipboard.'); }
-    catch (e) {
-      const range = document.createRange(); range.selectNodeContents(linesEl);
-      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(range);
-      flash('Text selected. Press Ctrl+C (Cmd+C on Mac) to copy.');
+  let mic = null;
+  try {
+    mic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+  } catch (e) {
+    flash('Microphone not allowed. Other people will be transcribed, but not you.');
+  }
+
+  const ctx = new AudioContext({ sampleRate: RATE });
+  const proc = ctx.createScriptProcessor(4096, 1, 1);
+  proc.channelCount = 1; proc.channelCountMode = 'explicit'; proc.channelInterpretation = 'speakers';
+  ctx.createMediaStreamSource(new MediaStream(display.getAudioTracks())).connect(proc);
+  if (mic) ctx.createMediaStreamSource(mic).connect(proc);
+  const mute = ctx.createGain(); mute.gain.value = 0;
+  proc.connect(mute).connect(ctx.destination);
+  proc.onaudioprocess = onAudio;
+
+  display.getAudioTracks()[0].addEventListener('ended', () => {
+    if (running) raise('ended', 'Audio sharing stopped. Press Stop, then Start again to continue.');
+  });
+
+  capture = { display, mic, ctx, proc };
+  lastSoundAt = Date.now();
+  setStatus('Listening to the meeting');
+  raise('');
+}
+
+function stopMeeting() {
+  flushChunk();
+  if (capture) {
+    try { capture.proc.onaudioprocess = null; capture.proc.disconnect(); } catch (e) {}
+    capture.display.getTracks().forEach(t => t.stop());
+    if (capture.mic) capture.mic.getTracks().forEach(t => t.stop());
+    try { capture.ctx.close(); } catch (e) {}
+    capture = null;
+  }
+  stopping = true;
+  if (queue.length || busy) setStatus('Finishing the last few seconds…');
+  pump();
+}
+
+/* ================= Mode 2: microphone only via Web Speech API ================= */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null, micStream = null, micCtx = null;
+
+function makeRecognizer() {
+  const r = new SR();
+  r.continuous = true;
+  r.interimResults = true;
+  r.lang = $('lang').value;
+  r.onstart = () => setStatus('Listening to the microphone');
+  r.onresult = (ev) => {
+    let interim = '';
+    for (let i = ev.resultIndex; i < ev.results.length; i++) {
+      const res = ev.results[i];
+      const txt = res[0].transcript.trim();
+      if (!txt) continue;
+      if (res.isFinal) add(txt.charAt(0).toUpperCase() + txt.slice(1));
+      else interim += txt + ' ';
+    }
+    const stick = nearBottom();
+    interimEl.textContent = interim;
+    if (stick) box.scrollTop = box.scrollHeight;
+  };
+  r.onerror = (ev) => {
+    if (ev.error === 'no-speech' || ev.error === 'aborted') return;
+    if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') {
+      running = false; setStatus('Stopped');
+      raise('mic', 'The microphone is blocked. Click the mic icon in the address bar, allow it, then press Start.');
+      return;
+    }
+    flash('Speech error: ' + ev.error + '. Reconnecting…');
+  };
+  r.onend = () => {
+    interimEl.textContent = '';
+    if (running && $('source').value === 'mic') {
+      setTimeout(() => { if (running) { try { rec = makeRecognizer(); rec.start(); } catch (e) {} } }, 250);
     }
   };
-  $('download').onclick = () => {
-    const blob = new Blob([asText() + '\n'], { type: 'text/plain' });
-    const a = document.createElement('a');
-    const d = new Date();
-    a.href = URL.createObjectURL(blob);
-    a.download = 'transcript-' + d.toISOString().slice(0, 16).replace(/[:T]/g, '-') + '.txt';
-    document.body.append(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  };
-  $('clear').onclick = () => { $('confirmClear').hidden = false; };
-  $('clearNo').onclick = () => { $('confirmClear').hidden = true; };
-  $('clearYes').onclick = () => {
-    entries = []; save(); renderAll(); $('confirmClear').hidden = true; flash('Transcript deleted.');
-  };
-  document.addEventListener('visibilitychange', () => { if (running && document.visibilityState === 'visible') keepAwake(); });
-  window.addEventListener('beforeunload', (e) => { if (running) { e.preventDefault(); e.returnValue = ''; } });
+  return r;
+}
 
-  load();
-  renderAll();
-  box.scrollTop = box.scrollHeight;
+async function startMic() {
   if (!SR) {
-    $('unsupported').hidden = false;
-    toggleBtn.disabled = true;
+    running = false; setStatus('Stopped');
+    raise('nosr', 'This browser cannot do “Microphone only”. Use Chrome or Edge, or choose “Zoom audio + my mic”.');
+    return;
   }
-})();
+  // A separate level meter so the health check can see sound.
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    micCtx = new AudioContext();
+    const src = micCtx.createMediaStreamSource(micStream);
+    const an = micCtx.createAnalyser(); an.fftSize = 2048; src.connect(an);
+    const buf = new Float32Array(an.fftSize);
+    const tick = () => {
+      if (!micCtx) return;
+      an.getFloatTimeDomainData(buf);
+      let s = 0; for (const v of buf) s += v * v;
+      const rms = Math.sqrt(s / buf.length);
+      level = Math.max(rms, level * 0.85);
+      if (rms > 0.01) lastSoundAt = Date.now();
+      requestAnimationFrame(tick);
+    };
+    tick();
+  } catch (e) {
+    running = false; setStatus('Stopped');
+    raise('mic', 'The microphone is blocked. Click the mic icon in the address bar, allow it, then press Start.');
+    return;
+  }
+  rec = makeRecognizer();
+  try { rec.start(); } catch (e) {}
+  lastSoundAt = Date.now();
+  raise('');
+}
+function stopMic() {
+  try { rec && rec.stop(); } catch (e) {}
+  if (micStream) micStream.getTracks().forEach(t => t.stop());
+  try { micCtx && micCtx.close(); } catch (e) {}
+  micStream = null; micCtx = null;
+  finishStop();
+}
+
+/* ---------- start / stop ---------- */
+async function start() {
+  running = true; stopping = false;
+  startedAt = Date.now(); lastTextAt = 0; lastSoundAt = Date.now();
+  helpEl.hidden = true;
+  $('source').disabled = $('model').disabled = true;
+  setStatus('Starting…');
+  add('Recording started', true);
+  keepAwake();
+  if ($('source').value === 'meeting') await startMeeting();
+  else await startMic();
+  if (!running) { $('source').disabled = $('model').disabled = false; }
+}
+function stop() {
+  running = false;
+  raise('');
+  if ($('source').value === 'meeting') stopMeeting();
+  else stopMic();
+  setStatus(stopping ? 'Finishing the last few seconds…' : 'Stopped');
+}
+function finishStop() {
+  if (!stopping && $('source').value === 'meeting') return;
+  stopping = false;
+  add('Recording stopped', true);
+  $('source').disabled = $('model').disabled = false;
+  try { wakeLock && wakeLock.release(); } catch (e) {}
+  setStatus('Stopped');
+  downloadTxt();
+  flash('Stopped. The transcript was saved as a .txt file in your Downloads folder.');
+}
+
+/* ---------- health check (runs every second) ---------- */
+function ago(ms) {
+  const s = Math.round(ms / 1000);
+  return s < 60 ? s + ' s ago' : Math.floor(s / 60) + ' min ' + (s % 60) + ' s ago';
+}
+function setH(id, text, cls) { const el = $(id); el.textContent = text; el.className = 'hval' + (cls ? ' ' + cls : ''); }
+
+setInterval(() => {
+  $('hMeter').style.width = Math.min(100, Math.round(level * 600)) + '%';
+  level *= 0.9;
+  if (!running) {
+    setH('hOverall', stopping ? 'Finishing…' : 'Not running');
+    setH('hSound', '–'); setH('hLast', lastTextAt ? ago(Date.now() - lastTextAt) : '–'); setH('hQueue', '–');
+    return;
+  }
+  const now = Date.now();
+  const quiet = now - lastSoundAt;
+  const sinceText = lastTextAt ? now - lastTextAt : now - startedAt;
+  const backlog = queue.reduce((s, j) => s + j.secs, 0) + (inflight ? inflight.secs : 0);
+  const meeting = $('source').value === 'meeting';
+  const sharing = !meeting || (capture && capture.display.getAudioTracks()[0]?.readyState === 'live');
+
+  setH('hSound', quiet < 3000 ? 'Hearing sound' : 'Quiet for ' + Math.round(quiet / 1000) + ' s', quiet < 3000 ? 'ok' : quiet > 90000 ? 'warn' : '');
+  setH('hLast', lastTextAt ? ago(now - lastTextAt) : 'None yet', sinceText > 120000 && quiet < 3000 ? 'warn' : '');
+  setH('hQueue', meeting ? Math.round(backlog) + ' s of audio' : 'Live', backlog > 60 ? 'warn' : '');
+
+  let overall = ['Working', 'ok'];
+  if (meeting && !capture) overall = ['Starting…', ''];
+  else if (!sharing) {
+    overall = ['Broken: sharing stopped', 'bad'];
+    raise('ended', 'Audio sharing stopped. Press Stop, then Start again to continue.');
+  } else if (quiet > 90000) {
+    overall = ['No sound', 'warn'];
+    raise('quiet', 'No sound for ' + Math.round(quiet / 1000) + ' seconds. Is the meeting quiet? If people are talking, press Stop, then Start and make sure “Share tab audio” is on.');
+  } else if (sinceText > 120000 && quiet < 3000) {
+    overall = ['Sound but no text', 'warn'];
+    raise('notext', 'There is sound but no text for 2 minutes. Check the language setting matches the meeting.');
+  } else if (backlog > 60) {
+    overall = ['Falling behind', 'warn'];
+    raise('slow', 'This computer is falling behind. Text will still arrive, just later. Next time choose “Fast”.');
+  } else if (alarmKey && alarmKey !== 'ended') {
+    raise('');
+  }
+  setH('hOverall', overall[0], overall[1]);
+}, 1000);
+
+/* ---------- controls ---------- */
+toggleBtn.onclick = () => (running ? stop() : start());
+$('lang').onchange = () => { save(); if (running && rec && $('source').value === 'mic') { try { rec.stop(); } catch (e) {} } };
+$('source').onchange = save;
+$('model').onchange = save;
+$('size').oninput = (e) => { setSize(e.target.value); save(); };
+$('mark').onclick = () => add('Marked moment', true);
+$('copy').onclick = async () => {
+  try { await navigator.clipboard.writeText(asText()); flash('Copied to clipboard.'); }
+  catch (e) {
+    const range = document.createRange(); range.selectNodeContents(linesEl);
+    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(range);
+    flash('Text selected. Press Ctrl+C (Cmd+C on Mac) to copy.');
+  }
+};
+$('download').onclick = downloadTxt;
+$('clear').onclick = () => { $('confirmClear').hidden = false; };
+$('clearNo').onclick = () => { $('confirmClear').hidden = true; };
+$('clearYes').onclick = () => { entries = []; save(); renderAll(); $('confirmClear').hidden = true; flash('Transcript deleted.'); };
+document.addEventListener('visibilitychange', () => { if (running && document.visibilityState === 'visible') keepAwake(); });
+window.addEventListener('beforeunload', (e) => { if (running) { e.preventDefault(); e.returnValue = ''; } });
+
+load();
+renderAll();
+box.scrollTop = box.scrollHeight;
 </script>
 </body>
 </html>
