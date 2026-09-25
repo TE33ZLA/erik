@@ -148,6 +148,7 @@ em, i:not([class]) { font-style: normal; }
 .icon-btn { display: inline-grid; place-items: center; width: 42px; height: 42px; border-radius: 10px; border: 2px solid transparent; background: transparent; cursor: pointer; font-size: 1.15rem; line-height: 1; }
 .icon-btn:hover { background: var(--panel-2); border-color: var(--line); }
 .chip-btn { display: inline-flex; align-items: center; gap: 0.35em; border: 1.5px solid var(--line-2); background: var(--panel); border-radius: 999px; padding: 0.2em 0.75em; cursor: pointer; font-size: 0.86rem; min-height: 34px; white-space: nowrap; }
+.fb-actions .chip-btn, .lcard .chip-btn { white-space: normal; max-width: 100%; text-align: left; }
 .chip-btn:hover { background: var(--panel-2); }
 .linkbtn { background: none; border: 0; padding: 0.3em 0; color: var(--accent); cursor: pointer; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
 .card { background: var(--panel); border: 1.5px solid var(--line); border-radius: var(--radius); padding: 1.1rem 1.2rem; box-shadow: var(--shadow); }

@@ -196,7 +196,7 @@
     let ok, note = '';
     if (isChoice) ok = +given === p.answer;
     else {
-      const chk = QCORE.checkNumeric(given, { answer: p.answer, unit: unitOf(p), dp: p.dp === undefined ? 2 : p.dp, mistakes: p.mistakes || [] });
+      const chk = QCORE.checkNumeric(given, { answer: p.answer, unit: unitOf(p), dp: p.dp === undefined ? 2 : p.dp, mistakes: p.mistakes || [], tol: p.tol });
       if (chk.invalid) { UI.toast(esc(chk.note), 'warn'); return; }
       ok = chk.ok; note = chk.note || '';
     }

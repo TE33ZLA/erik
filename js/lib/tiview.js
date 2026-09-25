@@ -14,7 +14,8 @@
     if (typeof v !== 'number') return NSPIRE.shown(v);
     if (!Number.isFinite(v)) return 'undef';
     if (Math.abs(v) < 1e-9) return '0';
-    const s = Math.abs(v) >= 1e5 ? String(+v.toFixed(2)) : String(+v.toPrecision(6));
+    // money-sized results to the cent (what the answer needs); small numbers and rates to 6 significant figures
+    const s = Math.abs(v) >= 100 ? String(+v.toFixed(2)) : String(+v.toPrecision(6));
     return s.replace(/^-/, '−');
   }
   /** What you type: show minus signs as the TI's (−) negative sign. */
