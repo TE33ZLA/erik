@@ -398,10 +398,10 @@
             tl: { cfs: EX_S, unit: 'Year' },
             steps: [R`Running total: \(-100\), then \(-100 + 70 = -30\), then \(-30 + 50 = +20\).`, R`It turns positive in year 2. So 1 full year passes first, with \(\$30\) still to recover.`, R`Year 2 brings \(\$50\). The fraction needed is \(\frac{30}{50} = 0.6\).`, R`\[\text{Payback} = 1 + \frac{30}{50} = 1.6 \text{ years}\]`],
             answer: R`Project S pays back in \(1.6\) years, faster than Project L (\(2.375\) years).`,
-            ti: [TI.cmd('cumulativeSum', [EX_S], { note: R`The first positive total is in year 2. Just before it, \(-30\) is left to recover.` }), TI.line('1+30/50')] },
+            ti: [TI.cmd('cumulativeSum', [EX_S], { note: R`The first positive total is in year 2. Just before it, \(-30\) is left to recover.` }), TI.line('1+30/50', { note: 'If you see a fraction, press ctrl enter for a decimal.' })] },
           { kind: 'ti', title: 'cumulativeSum does the running total',
             body: R`Type the cash flows as a list inside \(\text{cumulativeSum}( )\). The calculator shows the running total for every year, starting with year 0.\n\nFind the first positive number. The number just before it is what is still to recover.`,
-            ti: [TI.cmd('cumulativeSum', [EX_L], { note: R`The total turns positive in year 3. After year 2, \(-30\) is left.` }), TI.line('2+30/80')] },
+            ti: [TI.cmd('cumulativeSum', [EX_L], { note: R`The total turns positive in year 3. After year 2, \(-30\) is left.` }), TI.line('2+30/80', { note: 'If you see a fraction, press ctrl enter for a decimal.' })] },
           { kind: 'guided', title: 'Your turn', q: R`A project costs $50,000. It returns $12,000, $18,000, $25,000 and $20,000 in years 1 to 4. Find its payback period.`,
             table: cfTable([PB_G], ['Cash flow']),
             parts: [
@@ -410,15 +410,15 @@
               { ask: R`What is the payback period?`, answer: FIN.payback(PB_G), unit: 'yrs', dp: 2, hint: 'Two full years, plus the unrecovered cost divided by the year 3 cash flow.', why: R`\(2 + \frac{20{,}000}{25{,}000} = 2.8\) years.`, mistakes: [{ v: 2 + 20000 / 18000, why: 'Divide by the year 3 cash flow ($25,000), not the year 2 one.' }] },
             ],
             answer: R`The project pays back in \(2.8\) years.`,
-            ti: [TI.cmd('cumulativeSum', [PB_G]), TI.line('2+20000/25000')] },
+            ti: [TI.cmd('cumulativeSum', [PB_G]), TI.line('2+20000/25000', { note: 'If you see a fraction, press ctrl enter for a decimal.' })] },
           { kind: 'learn', title: 'Equal cash flows: a shortcut',
             body: R`When every yearly cash flow is the same, just divide:\n\n\[\text{Payback} = \frac{\text{Initial cost}}{\text{Yearly cash flow}}\]\n\nA $15,000 project that returns $7,000 a year pays back in \(\frac{15{,}000}{7{,}000} = 2.14\) years.`,
             tip: R`This shortcut only works when the cash flows are equal. Otherwise, use the running total.` },
           { kind: 'check', gen: 'w4-g-payback-level' },
           { kind: 'learn', title: 'What payback ignores',
             body: R`Payback is simple, and a short payback hints at lower **risk** and better **liquidity** (the cash is back sooner). But it has three big flaws:`,
-            points: [R`It ignores the **time value of money**: a dollar in year 3 counts the same as a dollar today.`, R`It ignores **cash after the payback**: if Project L also paid $100 million in year 4, its payback would still be 2.375 years.`, R`The **cut-off is arbitrary**: nothing says why 2 or 3 years is right.`],
-            tip: R`Payback never uses the cost of capital \(k\). If a payback question gives you \(k\), you do not need it.` },
+            points: [R`It ignores the **time value of money**: a dollar in year 3 counts the same as a dollar today.`, R`It ignores **cash after the payback**. Another $100 million in year 4 would not change Project L’s 2.375 years.`, R`The **cut-off is arbitrary**: nothing says why 2 or 3 years is right.`],
+            tip: R`Payback never uses the cost of capital \(k\). If a payback question gives you \(k\), ignore it.` },
           { kind: 'check', ref: 'w4-q08' },
           { kind: 'recap', title: 'Remember', formula: 'payback', points: [
             R`**Payback** \(=\) years before recovery \(+ \frac{\text{unrecovered cost}}{\text{cash flow in the recovery year}}\).`,
@@ -463,8 +463,8 @@
             answer: R`At 6% the NPV is \(${M(FIN.npv(0.06, CAFE))} > 0\): accept. At 10% it was \(${M(FIN.npv(0.1, CAFE))}\). The discount rate matters!`,
             ti: [TI.cmd('npv', [6, -10000, CAFE.slice(1)])] },
           { kind: 'learn', title: 'Cash flows that last forever', formula: 'pv-grow-perp',
-            body: R`Some projects pay forever. Value the inflows with the perpetuity formula from Floor 2. It gives their value at \(t = 0\), one year before the first cash flow:\n\n\[PV = \frac{C_1}{k - g}\]\n\nUse \(g = 0\) for a level perpetuity. Then subtract the cost. A business costs $250,000 and adds $36,000 a year forever, from next year. At 12%: \(NPV = -250{,}000 + \frac{36{,}000}{0.12} = \$50{,}000\).`,
-            ti: [TI.line('-250000+36000/0.12')],
+            body: R`Some projects pay forever. Value their inflows with the perpetuity formula from Floor 2, then subtract the cost:\n\n\[NPV = -\text{Cost} + \frac{C_1}{k - g}\]\n\nThe formula values the cash flows at \(t = 0\), one year before the first one. Use \(g = 0\) if they do not grow.`,
+            ti: [TI.line('-250000+36000/0.12', { note: R`A business costs \(\$250{,}000\) and adds \(\$36{,}000\) a year forever, from next year. At 12% its NPV is \(\$50{,}000\).` })],
             tip: R`If the cash flows shrink, \(g\) is negative. Falling by 40% a year at \(k = 10\%\) gives \(k - g = 0.10 + 0.40 = 0.50\).` },
           { kind: 'check', gen: 'w4-g-npv' },
           { kind: 'recap', title: 'Remember', formula: 'npv', points: [
@@ -587,7 +587,7 @@
             chart: { type: 'npv', projects: [{ name: 'Mine', cfs: MINE }], rMax: 0.7 },
             tip: R`A calculator reports only one IRR, with no warning that there are others. Use the NPV at \(k\) instead.` },
           { kind: 'check', ref: 'w4-q47' },
-          { kind: 'example', title: 'Worked example: lending or borrowing?', q: R`Project Borrow gives you $1,000 today. You must pay back $1,500 in one year. Its IRR is 50%. The cost of capital is 10%. Should you accept it?`,
+          { kind: 'example', title: 'Trap 3: lending or borrowing?', q: R`Project Borrow gives you $1,000 today. You must pay back $1,500 in one year. Its IRR is 50%. The cost of capital is 10%. Should you accept it?`,
             tl: { cfs: [1000, -1500], unit: 'Year' },
             steps: [R`The signs are \(+\) then \(-\): cash comes in first and goes out later. That is **borrowing**.`, R`When you borrow, the IRR is the interest rate **you pay**: 50%. That is expensive when money costs only 10%.`, R`\[NPV = 1{,}000 - \frac{1{,}500}{1.1} = ${M(FIN.npv(0.1, [1000, -1500]))}\]`, R`\(NPV < 0\), so reject. Project Lend (\(-\$1{,}000\), then \(+\$1{,}500\)) has the same 50% IRR, but \(NPV = ${M(FIN.npv(0.1, [-1000, 1500]))}\).`],
             answer: R`Reject Borrow: \(NPV = ${M(FIN.npv(0.1, [1000, -1500]))}\). A high IRR is bad news when you are borrowing.`,
@@ -651,7 +651,7 @@
         topics: ['lives'],
         cards: [
           { kind: 'learn', title: 'A 2-year machine against a 4-year machine',
-            body: R`Two machines do the same job. Whichever you choose will be **replaced** when it wears out, again and again. The cost of capital is 10%.\n\nShort lasts 2 years. Long lasts 4 years. Long has the higher NPV. But after 2 years Short can be bought again and earn a second NPV. So comparing one NPV of each is unfair.`,
+            body: R`Two machines do the same job, and the cost of capital is 10%. Whichever you choose will be **replaced** again and again as it wears out.\n\nShort lasts 2 years and Long lasts 4. Long has the higher NPV. But Short can be bought again after 2 years and earn a second NPV. So comparing one NPV of each is unfair.`,
             table: { head: ['Year', 'Short', 'Long'], rows: LONG.map((c, t) => [t, t < SHORT.length ? cell(SHORT[t]) : '', cell(c)]).concat([['NPV at 10%', T.money(NPV_SH), T.money(NPV_LG)]]) } },
           { kind: 'learn', title: 'Method 1: the replacement chain',
             body: R`Repeat the shorter project until both end at the same time. Here Short runs twice: years 0 to 2, then years 2 to 4.\n\nIn year 2 the first machine pays $30,000 and the second one costs $50,000. So the net cash flow in year 2 is −$20,000.`,
@@ -677,10 +677,10 @@
           { kind: 'learn', title: 'Costs only: the equivalent annual cost',
             body: R`Sometimes there are only costs, such as two machines that do the same job. Then every NPV is negative, and so is every EAA. It is called the **equivalent annual cost** (EAC). Pick the **lower** cost per year.\n\nMachine P costs $6,000 plus $500 a year for 6 years. Machine Q costs $2,000 plus $1,200 a year for 3 years. The rate is 8%.`,
             table: { head: ['', 'Machine P', 'Machine Q'], rows: [['Life', '6 years', '3 years'], ['NPV of the costs', T.money(NPV_P), T.money(NPV_Q)], ['EAC per year', T.money(EAC_P), T.money(EAC_Q)]] },
-            ti: [TI.cmd('npv', [8, -6000, [-500], [6]]), tiEaa(NPV_P, 0.08, 6, { note: 'The EAC comes out negative: it is a cost every year.' })],
+            ti: [TI.cmd('npv', [8, -6000, [-500], [6]], { note: 'The NPV of buying and running Machine P.' }), tiEaa(NPV_P, 0.08, 6, { note: R`\(PV = -NPV\), which is positive here. The EAC comes out negative: it is a cost every year.` })],
             tip: R`Q’s NPV looks better, but P is cheaper per year: \(${M(-EAC_P)}\) against \(${M(-EAC_Q)}\). Choose P.` },
           { kind: 'learn', title: 'When to retire an old machine',
-            body: R`A related question: when should an old machine be retired? Work out the value today of each choice, and pick the **highest**.\n\nAn old machine can be sold now for $10,000. Or keep it 1 more year: it earns $6,000 and then sells for $5,500. Or keep it 2 years: it earns $6,000, then $4,000, and is then worth $0. The rate is 10%.`,
+            body: R`When should an old machine be retired? Work out the value today of each choice, and pick the **highest**.\n\nAn old machine sells for $10,000 now. Kept 1 more year, it earns $6,000 and then sells for $5,500. Kept 2 years, it earns $6,000, then $4,000, and is then worth $0. The rate is 10%.`,
             points: [R`Retire now: \(\$10{,}000\).`, R`Retire in 1 year: \(\frac{6{,}000 + 5{,}500}{1.1} = ${M(RET1)}\).`, R`Retire in 2 years: \(\frac{6{,}000}{1.1} + \frac{4{,}000}{1.1^{2}} = ${M(RET2)}\).`],
             tip: R`The highest value is ${T.money(RET1)}: keep the machine 1 more year, then retire it.` },
           { kind: 'recap', title: 'Remember', formula: 'eav', points: [
@@ -741,7 +741,7 @@
           { v: 2.5, why: 'That divides $30 by the year 2 cash flow. Use the recovery year’s cash flow ($80).' },
         ],
         steps: [cumBlock(EX_L, 3), R`After 2 years, \(\$30\) is still unrecovered. Year 3 brings \(\$80\).`, R`\[\text{Payback} = 2 + \frac{\$30}{\$80} = 2.375 \text{ years}\]`],
-        ti: [TI.cmd('cumulativeSum', [EX_L], { note: R`The total first turns positive in year 3. After year 2, \(-30\) is left to recover.` }), TI.line('2+30/80')],
+        ti: [TI.cmd('cumulativeSum', [EX_L], { note: R`The total first turns positive in year 3. After year 2, \(-30\) is left to recover.` }), TI.line('2+30/80', { note: 'If you see a fraction, press ctrl enter for a decimal.' })],
         why: R`Two full years, plus \(\frac{30}{80}\) of year 3: 2.375 years. (Project S pays back in 1.6 years.)` },
       { id: 'w4-q11', topic: 'payback', kind: 'mcq', level: 2, section: 'A', src: 'Lecture W4',
         q: R`Project L pays back in 2.375 years. Suppose it also paid **$100 million in year 4**. What would happen to its payback period?`,
@@ -758,7 +758,7 @@
           R`B: running total \(-18{,}000 \to -6{,}000 \to -4{,}000 \to -2{,}000 \to 0\). It is recovered at the end of year 4.`,
           R`The 9.5% is not needed: payback ignores the time value of money.`,
         ],
-        ti: [TI.line('15000/7000', { note: 'A has equal cash flows: cost ÷ yearly cash flow.' }), TI.cmd('cumulativeSum', [[-18000, 12000, 2000, 2000, 2000, 2000]], { note: 'B’s running total only reaches 0 at the end of year 4.' })],
+        ti: [TI.line('15000/7000', { note: 'A has equal cash flows: cost ÷ yearly cash flow. If you see a fraction, press ctrl enter for a decimal.' }), TI.cmd('cumulativeSum', [[-18000, 12000, 2000, 2000, 2000, 2000]], { note: 'B’s running total only reaches 0 at the end of year 4.' })],
         why: R`A pays back in 2.14 years and B in 4 years. Both are above the 2-year cut-off, so he takes neither.` },
       { id: 'w4-q13', topic: 'payback', kind: 'num', level: 2, section: 'B', src: 'Mock MST Q06', formula: 'payback',
         q: R`Barcode Biz spends $1,450,000 on new machinery. It expects cash flows of $640,000, $715,250, $823,330 and $907,125 over the next four years. What is the **payback period**?`,
@@ -774,7 +774,7 @@
           R`After year 2: \(810{,}000 - 715{,}250 = \$94{,}750\) is still to recover.`,
           R`\[\text{Payback} = 2 + \frac{\$94{,}750}{\$823{,}330} = ${L.num(FIN.payback(BARCODE), 4)} \approx 2.12 \text{ years}\]`,
         ],
-        ti: [TI.cmd('cumulativeSum', [BARCODE], { note: R`The total first turns positive in year 3. After year 2, \(-94{,}750\) is left to recover.` }), TI.line('2+94750/823330')],
+        ti: [TI.cmd('cumulativeSum', [BARCODE], { note: R`The total first turns positive in year 3. After year 2, \(-94{,}750\) is left to recover.` }), TI.line('2+94750/823330', { note: 'If you see a fraction, press ctrl enter for a decimal.' })],
         why: R`Two full years, plus \(\frac{94{,}750}{823{,}330}\) of year 3. (The official solution has a typo, 712,250 instead of 715,250, but still rounds to 2.12.)` },
 
       /* ----- NPV ----- */
@@ -793,7 +793,8 @@
       { id: 'w4-q17', topic: 'npv', kind: 'mcq', level: 2, section: 'A', src: 'MST 2026 Q9',
         q: R`A project costs $1 million today. It returns a total of $1.2 million, spread evenly over the next 15 years. A manager says: “It returns more than it costs, so it creates value.” What is the best reply?`,
         choices: ['Not necessarily: value depends on the present value of the cash flows, not their total', 'Correct: any project that returns more than it costs creates value', 'Wrong: any project that lasts 15 years destroys value', 'Correct, as long as the payback period is under 15 years'], answer: 0,
-        why: R`Dollars that arrive years from now are worth less today. At 10%, $80,000 a year for 15 years is worth only \(${M(FIN.pvAnnuity(80000, 0.1, 15))}\), less than the $1 million cost.` },
+        why: R`Dollars that arrive years from now are worth less today. At 10%, $80,000 a year for 15 years is worth only \(${M(FIN.pvAnnuity(80000, 0.1, 15))}\), less than the $1 million cost.`,
+        ti: [TI.cmd('npv', [10, -1000000, [80000], [15]], { note: 'At a 10% cost of capital the NPV is negative, even though $1.2m comes back in total.' })] },
       { id: 'w4-q18', topic: 'npv', kind: 'num', level: 1, section: 'B', src: 'Lecture W4 Example 1', formula: 'npv',
         q: R`The cost of capital is 10%. What is the **NPV** of Project L?`,
         table: cfTable([EX_L], ['Project L']),
@@ -893,7 +894,8 @@
       { id: 'w4-q25', topic: 'npv', kind: 'mcq', level: 2, section: 'A', src: 'Tutorial W4 Q3',
         q: R`A property project costs $20 million. At a 23% discount rate its NPV is −$6.53 million. Its IRR is 14.29%. What happens at a **10%** discount rate?`,
         choices: ['The NPV becomes positive, so the decision changes to accept', 'The NPV stays negative, so it is still rejected', 'The IRR falls to 10%, so the project breaks even', 'Nothing: the discount rate does not affect NPV'], answer: 0,
-        why: R`10% is below the 14.29% IRR, so the NPV must be positive: \(NPV_{10\%} = ${M(FIN.npv(0.1, Q3CF))}\). Discount rates are estimates, and a different rate can flip the decision.` },
+        why: R`10% is below the 14.29% IRR, so the NPV must be positive: \(NPV_{10\%} = ${M(FIN.npv(0.1, Q3CF))}\). Discount rates are estimates, and a different rate can flip the decision.`,
+        ti: [tiNpv(0.1, Q3CF, { note: R`\(NPV > 0\) at 10%: accept.` })] },
       { id: 'w4-q26', topic: 'npv', kind: 'num', level: 2, section: 'B', src: 'Tutorial W4 Q3', formula: 'npv',
         q: R`A property project costs $20 million today ($15m for land, a $4m council fee and $1m to lease equipment). Its cash flows are below. What is the **NPV at 10%**?`,
         table: { head: ['Year', 'Cash flow'], rows: [[0, '−$20,000,000'], [1, '$1,500,000'], [2, '$3,278,000'], [3, '$5,000,000'], [4, '$6,450,000'], ['5 to 20', '$2,500,000 each year']] },
@@ -1193,6 +1195,7 @@
           R`\[EAA_S = \frac{${M(NPV_BS)} \times 0.1}{1 - \frac{1}{1.1^{2}}} = ${M(FIN.eac(NPV_BS, 0.1, 2))} \qquad EAA_L = \frac{${M(NPV_BL)} \times 0.1}{1 - \frac{1}{1.1^{4}}} = ${M(FIN.eac(NPV_BL, 0.1, 4))}\]`,
           R`Replacement chain check: S twice over 4 years has \(NPV = ${M(FIN.chainNPV(NPV_BS, 0.1, 2, 2))} > ${M(NPV_BL)}\).`,
         ],
+        ti: [TI.cmd('npv', [10, -100000, [60000, -40000, 60000, 60000]], { note: R`S twice (a replacement chain). Year 2 nets \(60{,}000 - 100{,}000 = -40{,}000\).` }), tiNpv(0.1, BILLY_L, { note: 'L once, over the same 4 years. The chain of S is worth more.' })],
         why: R`With repetition, S creates more value per year. Both methods agree: choose S. (The tutorial’s decision line shows $7,547.37, a typo for $7,547.30.)` },
       { id: 'w4-q67', topic: 'lives', kind: 'num', level: 2, section: 'B', src: 'Tutorial W4 Q5', formula: 'eav',
         q: R`Project S costs $100,000 and returns $60,000 a year for 2 years. The cost of capital is 10%. What is its **equivalent annual annuity (EAA)**?`,
@@ -1278,7 +1281,7 @@
               ],
               ti: [
                 TI.cmd('cumulativeSum', [cfs], { note: R`The total first turns positive in year ${m}. After year ${m - 1}, \(${L.moneyT(-unrec)}\) is left to recover.` }),
-                TI.line(`${m - 1}+${TI.num(unrec)}/${TI.num(cfs[m])}`),
+                TI.line(`${m - 1}+${TI.num(unrec)}/${TI.num(cfs[m])}`, { note: 'If you see a fraction, press ctrl enter for a decimal.' }),
               ],
               why: R`Full years before recovery, plus the fraction of the recovery year: \(${m - 1} + \frac{${L.moneyT(unrec)}}{${L.moneyT(cfs[m])}}\).`,
             };
@@ -1310,7 +1313,7 @@
                 R`The cash flows are equal, so use the shortcut: \[\text{Payback} = \frac{\text{Cost}}{\text{Annual cash flow}} = \frac{${L.moneyT(cost)}}{${L.moneyT(c)}} = ${L.num(pb, 2)} \text{ years}\]`,
                 R`The ${T.pctT(k)} cost of capital is not needed: payback ignores the time value of money.`,
               ],
-              ti: [TI.line(`${TI.num(cost)}/${TI.num(c)}`, { note: 'Equal cash flows: cost ÷ yearly cash flow.' })],
+              ti: [TI.line(`${TI.num(cost)}/${TI.num(c)}`, { note: 'Equal cash flows: cost ÷ yearly cash flow. If you see a fraction, press ctrl enter for a decimal.' })],
               why: R`With equal cash flows, \(\text{payback} = \frac{\text{cost}}{\text{annual cash flow}}\).`,
             };
           }
@@ -1342,7 +1345,7 @@
                 R`B, running total:`, cumBlock(B, Math.min(n, Math.ceil(pB))),
                 R`B pays back in \(${L.num(pB, 2)}\) years.`,
               ],
-              ti: [TI.line(`${TI.num(costA)}/${TI.num(cA)}`, { note: 'A has equal cash flows: cost ÷ yearly cash flow.' }), TI.cmd('cumulativeSum', [B], { note: 'B: find where the running total turns positive.' })],
+              ti: [TI.line(`${TI.num(costA)}/${TI.num(cA)}`, { note: 'A has equal cash flows: cost ÷ yearly cash flow. If you see a fraction, press ctrl enter for a decimal.' }), TI.cmd('cumulativeSum', [B], { note: 'B: find where the running total turns positive.' })],
               why: `Compare each payback with the ${cut}-year cut-off. A: ${T.num(pA, 2)} years (${okA ? 'accept' : 'reject'}). B: ${T.num(pB, 2)} years (${okB ? 'accept' : 'reject'}).`,
             };
           }
@@ -1724,6 +1727,7 @@
                 R`\[PI = \frac{NPV}{\text{Initial investment}} = \frac{${M(npv)}}{${L.moneyT(out)}} = ${L.num(pi, 3)}\]`,
               ],
               calc: `${npvKeys([-out].concat(Array(n).fill(a)), r)} · then ÷ ${out} → ${T.num(pi, 3)}`,
+              ti: [TI.cmd('npv', [P(r), -out, [a], [n]], { note: 'The NPV of the store.' }), TI.line(`ans/${TI.num(out)}`, { note: 'Divide by the initial investment.' })],
               why: R`${pi > 0 ? R`\(PI > 0\): the store creates value, so accept.` : R`\(PI < 0\): the store destroys value, so reject.`}`,
             };
           }
@@ -1816,6 +1820,7 @@
                 R`\[EAA = \frac{NPV \times k}{1 - \frac{1}{(1+k)^{n}}} = \frac{${M(npv)} \times ${L.dec(r)}}{1 - \frac{1}{(${L.onePlus(r)})^{${n}}}} = ${M(eaa)}\]`,
               ],
               calc: `${npvKeys(cfs, r)} · then ${n} [N] · ${rateKey(r)} [I/YR] · −${T.num(npv).replace(/,/g, '')} [PV] · 0 [FV] · [PMT] → ${T.money(eaa)}`,
+              ti: [tiNpv(r, cfs, { note: 'The NPV of one run of the project.' }), tiEaa(npv, r, n, { note: 'The NPV goes in PV with a minus sign. The payment is the EAA.' })],
               why: 'The EAA is the level annual payment with the same NPV as the project.',
             };
           }
@@ -1874,6 +1879,7 @@
               R`\[EAC = \frac{NPV \times k}{1 - \frac{1}{(1+k)^{n}}} = \frac{${M(npv)} \times ${L.dec(r)}}{1 - \frac{1}{(${L.onePlus(r)})^{${n}}}} = ${M(eac)}\]`,
             ],
             calc: `${n} [N] · ${rateKey(r)} [I/YR] · ${keyNum(-npv)} [PV] · 0 [FV] · [PMT] → ${T.money(eac)}`,
+            ti: [TI.cmd('npv', [P(r), -p, [-oc], [n]], { note: 'The NPV of buying and running the machine.' }), tiEaa(npv, r, n, { note: 'The NPV goes in PV with its sign flipped. The EAC comes out negative: it is a cost.' })],
             why: 'The EAC is the equal yearly cost with the same PV as buying and running the machine. Compare EACs across machines with different lives.',
           };
         } },
@@ -1905,6 +1911,7 @@
               R`\[NPV_{chain} = ${Array.from({ length: m }, (_, j) => (j === 0 ? M(npv1) : R`\frac{${M(npv1)}}{(${L.onePlus(r)})^{${j * ns}}}`)).join(' + ')} = ${M(chain)}\]`,
             ],
             calc: npvKeys(flows, r),
+            ti: [tiNpv(r, flows, { note: R`The whole ${nl}-year chain as one list. In year${m > 2 ? 's' : ''} ${Array.from({ length: m - 1 }, (_, j) => (j + 1) * ns).join(' and ')} the new cycle’s cost is netted against that year’s cash flow.` })],
             why: R`Replacement chain: repeat the short project until both end together, then compare NPVs over the same ${nl} years.`,
           };
         } },

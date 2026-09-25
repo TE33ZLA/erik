@@ -23,7 +23,10 @@
   function keyTips(cmd, seen) {
     const tips = [];
     const add = (id, html) => { if (!seen.has(id)) { seen.add(id); tips.push(html); } };
-    if (/-/.test(cmd)) add('neg', 'For a negative number use the <kbd>(−)</kbd> key, not the minus key.');
+    // a negative number (not a subtraction): at the start, or after ( , { = or another operator
+    if (/(^|[(,{=*\/^+\-])\s*-\s*[\d.a-z(]/i.test(cmd)) add('neg', 'For a negative number use the <kbd>(−)</kbd> key, not the minus key.');
+    // whole numbers only and a division: the CAS may answer with an exact fraction
+    if (/\//.test(cmd) && !/\d\.\d|\.\d/.test(cmd) && !/tvm|npv|irr|eff|nom|mean|stdev|var|solve|e\^/i.test(cmd)) add('frac', 'If the answer shows as a fraction, press <kbd>ctrl</kbd> <kbd>enter</kbd> for a decimal.');
     if (/[{}]/.test(cmd)) add('brace', 'Type <b>{</b> with <kbd>ctrl</kbd> <kbd>(</kbd> and <b>}</b> with <kbd>ctrl</kbd> <kbd>)</kbd>.');
     if (/→|->/.test(cmd)) add('sto', 'Type <b>→</b> (store) with <kbd>ctrl</kbd> <kbd>var</kbd>.');
     if (/e\^/.test(cmd)) add('exp', 'Type <b>e^(</b> with the <kbd>e<sup>x</sup></kbd> key (<kbd>ctrl</kbd> <kbd>ln</kbd>).');
