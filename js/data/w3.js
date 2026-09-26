@@ -32,6 +32,15 @@
   /** LaTeX for P = C/i (1 - 1/(1+i)^n) + FV/(1+i)^n with numbers */
   const bondTex = (cp, i, n, face) => R`\frac{${ml(cp)}}{${L.dec(i)}}\left(1 - \frac{1}{(${L.onePlus(i)})^{${n}}}\right) + \frac{${ml(face)}}{(${L.onePlus(i)})^{${n}}}`;
   const bondFormula = R`\[P = \frac{C}{i}\left(1 - \frac{1}{(1+i)^{n}}\right) + \frac{FV}{(1+i)^{n}}\]`;
+  /** picture helpers (viz tl): arrows that carry each cash flow at a date in `ts` to date `to`, labelled lab(k) for a k-period trip.
+   *  `travel` puts the labels on brackets under the line instead, so converging arcs never cover them. */
+  const carry = (ts, to, lab) => ts.map((t) => ({ from: t, to, label: lab(Math.abs(t - to)), c: 2 }));
+  const travel = (ts, to, lab) => ({
+    moves: ts.map((t) => ({ from: t, to, c: 2 })),
+    spans: ts.map((t, row) => ({ from: Math.min(t, to), to: Math.max(t, to), label: lab(Math.abs(t - to)), c: 2, row })),
+  });
+  const disc = (x) => (k) => `÷ ${x}${k > 1 ? '^' + k : ''}`; // ÷ (1+i)^k
+  const range = (a, b, d) => Array.from({ length: Math.round((b - a) / d) + 1 }, (_, k) => +(a + k * d).toFixed(6)); // a, a+d, …, b
 
   /* ---------- values from the course examples (all computed) ---------- */
   const EX3 = { c: FIN.pvAnnuity(50, 0.06, 10), f: 1000 / 1.06 ** 10, p: FIN.bondPrice(1000, 0.05, 0.06, 10) };
@@ -274,22 +283,33 @@
         topics: ['bondbasics', 'zero'],
         cards: [
           { kind: 'learn', title: 'Lending to a company',
-            body: R`A company that needs money can **borrow** it from investors by selling **bonds**. A **bond** is a promise to pay you back, with interest, on set dates.\n\nFor the company (the **issuer**) the bond is a **liability**: a debt. For you (the **holder**) it is an **asset**. Bonds are bought and sold, so their price changes over time.` },
+            body: R`A company that needs money can **borrow** it from investors by selling **bonds**. A **bond** is a promise to pay you back, with interest, on set dates.\n\nFor the company (the **issuer**) the bond is a **liability**: a debt. For you (the **holder**) it is an **asset**. Bonds are bought and sold, so their price changes over time.`,
+            viz: { type: 'compare', vsText: '⇄', items: [
+              { icon: '🙋', title: 'You: the holder', big: 'Lend', points: [R`Pay cash **today**`, R`Get it back **later**, with interest`, R`For you it is an **asset**`], c: 1 },
+              { icon: '🏢', title: 'The company: the issuer', big: 'Borrow', points: [R`Gets your cash **today**`, R`Pays it back **later**, with interest`, R`For it the bond is a **liability**`], c: 2 }],
+              cap: R`One bond, two sides: an asset for the lender and a debt for the borrower.` } },
           { kind: 'learn', title: 'The parts of a bond',
-            body: R`Here are the words you need. The timeline shows a 4-year, $1,000 bond with an 8% coupon rate.`,
+            body: R`Here are the words you need. The timelines show a 4-year, $1,000 bond with an 8% coupon rate.`,
             points: [
               R`**Face value** (or **par value**): the amount repaid at the end. Usually $1,000.`,
               R`**Maturity**: the date the face value is repaid. The time until then is the **term**.`,
               R`**Coupon**: the fixed interest payment, usually every year or every half-year.`,
               R`**Coupon rate** \(= \frac{\text{annual coupon}}{\text{face value}}\). An 8% coupon rate on $1,000 means $80 a year.`,
             ],
-            tl: { n: 4, at: { 1: '$80', 2: '$80', 3: '$80', 4: '$80 + $1,000' }, unit: 'Year' } },
+            viz: [
+              { type: 'tl', title: 'The coupons', n: 4, at: { 1: '$80', 2: '$80', 3: '$80', 4: '$80' }, unit: 'Year', spans: [{ from: 0, to: 4, label: 'the term: 4 years' }], cap: R`\(8\% \times \$1{,}000 = \$80\) at the end of every year.` },
+              { type: 'tl', title: 'The face value', n: 4, at: { 4: '$1,000' }, unit: 'Year', hi: [4], cap: R`Repaid once, at **maturity**: the end of year 4.` },
+            ] },
           { kind: 'learn', title: 'Price = PV of the cash flows',
             body: R`A bond is worth the **present value** of the cash it will pay you. Discount at the return investors require for this bond. That rate is its **yield to maturity** (**YTM**, or just the **yield**).\n\nThe coupons are fixed when the bond is issued. When the yield changes, the price changes.`,
+            viz: { type: 'tl', key: true, n: 3, at: { 0: 'Price', 1: 'C', 2: 'C', 3: 'C + FV' }, unit: 'Year', hi: [0], ...travel([1, 2, 3], 0, disc('(1+i)')),
+              cap: R`Discount every coupon \(C\) and the face value \(FV\) at the yield \(i\). Their total is the price.` },
             tip: 'Never discount at the coupon rate. The coupon rate only sets the size of the coupons.' },
           { kind: 'check', ref: 'w3-q03' },
           { kind: 'learn', title: 'A zero-coupon bond',
             body: R`The simplest bond pays **no coupons** at all. It pays only the face value at maturity. It is called a **zero-coupon bond**.\n\nIts price is the PV of one lump sum, just like in Floor 1:\n\[P = \frac{FV}{(1+i)^{n}}\]\n\n\(FV\) is the face value, \(i\) the yield and \(n\) the number of years to maturity.`,
+            viz: { type: 'tl', n: 5, at: { 0: 'Price', 5: 'FV' }, unit: 'Year', hi: [0], moves: carry([5], 0, disc('(1+i)')),
+              cap: R`No coupons at all: just the face value at maturity, discounted back to today.` },
             formula: 'zero-bond' },
           { kind: 'example', title: 'Worked example', q: R`A zero-coupon bond pays $1,000 in 10 years. The yield is 5% p.a. What is it worth today?`,
             tl: { n: 10, at: { 0: '?', 10: '$1,000' }, unit: 'Year', hi: [0] },
@@ -312,6 +332,9 @@
             ti: [TI.solver({ N: 8, I: 4, Pmt: 0, FV: 5000, PpY: 1, CpY: 1 }, 'PV', { note: 'The minus sign means it is the price you pay.' })] },
           { kind: 'learn', title: 'Half-yearly compounding',
             body: R`Sometimes the yield is compounded **semi-annually** (twice a year). Then work in half-years, as in Floor 1: \(N = 2 \times\) years and \(PpY = CpY = 2\). Keep \(I(\%)\) as the yearly yield.\n\n$1,000 in 5 years at 6% p.a., compounded semi-annually: \(\frac{1{,}000}{1.03^{10}} = ${L.money(LS.zeroSemi)}\).`,
+            viz: { type: 'flow', dir: 'col', steps: [{ t: R`5 years at \(6\%\)`, s: 'compounded twice a year', c: 1 }, { t: R`10 half-years at \(3\%\)`, s: R`\(\frac{1{,}000}{1.03^{10}} = ${L.money(LS.zeroSemi)}\)`, c: 3 }],
+              links: ['count in half-years'],
+              cap: R`Count in half-years: twice as many periods, each at half the yearly rate.` },
             ti: [TI.solver({ N: 10, I: 6, Pmt: 0, FV: 1000, PpY: 2, CpY: 2 }, 'PV', { note: R`\(N = 5 \times 2 = 10\) half-years.` })] },
           { kind: 'check', gen: 'w3-g-zero' },
           { kind: 'recap', title: 'Remember', points: [
@@ -331,9 +354,14 @@
         cards: [
           { kind: 'learn', title: 'Two streams of cash',
             body: R`A normal bond pays a **coupon** every year and the **face value** at maturity. So its price has two parts.\n\nThe coupons are equal payments for \(n\) years: an **annuity** (Floor 2). The face value is one amount at the end: a **lump sum**. Here is a 5-year, $1,000 bond with a 7% coupon.`,
-            tl: { n: 5, at: { 1: '$70', 2: '$70', 3: '$70', 4: '$70', 5: '$70 + $1,000' }, unit: 'Year' } },
+            viz: { type: 'bars', key: true, fmt: '$', bars: [1, 2, 3, 4, 5].map((t) => ({ label: 'Year ' + t, parts: [{ v: 70, c: 2 }].concat(t === 5 ? [{ v: 1000, c: 1 }] : []) })),
+              keys: [{ c: 2, label: R`Coupons of \(\$70\): an **annuity**` }, { c: 1, label: R`Face value \(\$1{,}000\): a **lump sum**` }],
+              cap: R`Five equal coupons, then one big face value at the end: two streams, so two formulas.` } },
           { kind: 'learn', title: 'The bond formula',
             body: R`Add the PV of the coupons and the PV of the face value:\n\[P = \frac{C}{i}\left(1 - \frac{1}{(1+i)^{n}}\right) + \frac{FV}{(1+i)^{n}}\]\n\n\(C\) is the coupon per period, \(i\) the yield per period, \(n\) the number of periods left and \(FV\) the face value.`,
+            viz: { type: 'anatomy', tex: R`\begin{aligned} \colC{P} = &\colB{\frac{C}{i}\left(1 - \frac{1}{(1+i)^{n}}\right)} \\ &+ \colA{\frac{FV}{(1+i)^{n}}} \end{aligned}`,
+              parts: [{ sym: 'P', say: 'the price today', c: 'C' }, { sym: R`\dfrac{C}{i}\left(1 - \cdots\right)`, say: R`PV of the coupons: an **annuity**`, c: 'B' }, { sym: R`\dfrac{FV}{(1+i)^{n}}`, say: R`PV of the face value: a **lump sum**`, c: 'A' }],
+              cap: R`Both parts use the same yield \(i\) and the same number of periods \(n\).` },
             formula: 'bond-price' },
           { kind: 'example', title: 'Worked example', q: R`A $1,000 bond has a 7% coupon rate, paid annually, and 10 years to maturity. The yield is 6% p.a. What is its price?`,
             steps: [
@@ -348,6 +376,11 @@
           { kind: 'learn', title: 'Premium, par or discount',
             body: R`Here is the same bond (7% coupon, 10 years) at three different yields. Compare the **coupon rate** with the **yield**.`,
             table: { head: ['Yield', 'Price', 'Trades at'], rows: [['6%', T.money(LS.tbl7[0]), 'a **premium** (above $1,000)'], ['7%', T.money(LS.tbl7[1]), '**par** ($1,000)'], ['8%', T.money(LS.tbl7[2]), 'a **discount** (below $1,000)']] },
+            viz: { type: 'lines', x: { label: 'Yield', fmt: '%', min: 5, max: 9 }, y: { label: 'Price of the 7% bond', fmt: '$' },
+              series: [{ c: 1, pts: range(5, 9, 0.25).map((y) => [y, FIN.bondPrice(1000, 0.07, y / 100, 10)]) }],
+              hlines: [{ y: 1000, label: 'Face value' }],
+              marks: [{ x: 6, y: LS.tbl7[0], label: 'Premium', c: 2, pos: 'right' }, { x: 7, y: 1000, label: 'Par', c: 1 }, { x: 8, y: LS.tbl7[2], label: 'Discount', c: 3, pos: 'right' }],
+              cap: R`Yield below the \(7\%\) coupon rate: price above \(\$1{,}000\). Yield above it: price below.` },
             tip: 'Coupon rate above the yield: the coupons are generous, so buyers pay more than $1,000. Coupon rate below the yield: buyers pay less.' },
           { kind: 'check', gen: 'w3-g-type' },
           { kind: 'guided', title: 'Your turn', q: R`A $1,000 bond pays a 6% coupon once a year and has 8 years to maturity. The yield is 7.5% p.a. What is the bond worth?`,
@@ -362,6 +395,8 @@
           { kind: 'check', ref: 'w3-q10' },
           { kind: 'learn', title: 'When the formula does not fit',
             body: R`Some bonds skip coupons, or pay extra at the end. Then list every cash flow and use **npv** (Floor 2), with the yield per period as the rate.\n\nA 4-year, $1,000 bond with a 6% coupon skips its first two coupons and repays them at maturity. Its cash flows are $0, $0, $60, then \(60 + 1{,}000 + 120 = \$1{,}180\). At an 8% yield it is worth \(${L.money(LS.skip)}\).`,
+            viz: { type: 'tl', cfs: [LS.skip, 0, 0, 60, 1180], unit: 'Year', hi: [0], ...travel([3, 4], 0, disc('1.08')),
+              cap: R`List every cash flow, even the \(\$0\) years. Then npv discounts each one at the yield.` },
             ti: [TI.cmd('npv', [8, 0, [0, 60, 1180], [2, 1, 1]], { note: 'The counts: $0 twice, $60 once, then $1,180 once.' })] },
           { kind: 'recap', title: 'Remember', points: [
             R`Bond price \(=\) PV of the coupons (an annuity) \(+\) PV of the face value (a lump sum).`,
@@ -379,10 +414,16 @@
         cards: [
           { kind: 'learn', title: 'Coupons twice a year',
             body: R`Most bonds pay their coupons every **six months** (**semi-annually**). A $1,000 bond with a 9% coupon rate pays $90 a year: $45 every half-year.`,
-            tl: { n: 4, at: { 1: '$45', 2: '$45', 3: '$45', 4: '$45 …' }, unit: 'Half-year' } },
+            viz: { type: 'tl', n: 4, at: { 1: '$45', 2: '$45', 3: '$45', 4: '$45 …' }, labels: { 0: '0', 1: '½', 2: '1', 3: '1½', 4: '2' }, unit: 'Year',
+              spans: [{ from: 0, to: 2, label: 'year 1: $90' }, { from: 2, to: 4, label: 'year 2: $90' }],
+              cap: R`A coupon every six months: two \(\$45\) coupons make the \(\$90\) a year.` } },
           { kind: 'learn', title: 'Work in half-years',
             body: R`Use the same bond formula, but count in half-years:`,
             points: [R`**Halve** the coupon: \(C = \frac{90}{2} = 45\).`, R`**Halve** the yield: 8% p.a. becomes 4% per half-year.`, R`**Double** the periods: 7 years is 14 half-years.`],
+            viz: { type: 'compare', key: true, vsText: 'becomes', items: [
+              { icon: '📅', title: 'Per year', points: [R`Coupon \(\$90\)`, R`Yield \(8\%\)`, R`\(7\) years`], c: 1 },
+              { icon: '🕧', title: 'Per half-year', points: [R`Coupon \(\frac{90}{2} = \$45\)`, R`Yield \(\frac{8\%}{2} = 4\%\)`, R`\(7 \times 2 = 14\) periods`], c: 3 }],
+              cap: R`All three change together, so every number is counted **per half-year**.` },
             formula: 'bond-price' },
           { kind: 'example', title: 'Worked example', q: R`A $1,000 bond has a 9% coupon rate, paid semi-annually, and 7 years to maturity. The yield is 8% p.a. What is its price?`,
             steps: [
@@ -399,11 +440,18 @@
           { kind: 'check', gen: 'w3-g-semi' },
           { kind: 'learn', title: 'The effective annual yield',
             body: R`A yield of 10% p.a., compounded semi-annually, is really 5% every half-year. Interest earned in the first half-year earns interest in the second. So the true yearly yield is higher:\n\[\begin{aligned} EAY &= \left(1 + \frac{y}{2}\right)^{2} - 1 \\ &= 1.05^{2} - 1 = 10.25\% \end{aligned}\]\n\nThis is the **effective annual yield** (EAY): the EAR from Floor 1, for a bond.`,
+            viz: { type: 'tl', n: 2, at: { 0: '$100', 1: '$105', 2: '$110.25' }, labels: { 0: 'Today', 1: '6 months', 2: '1 year' }, unit: ' ', hi: [2],
+              moves: [{ from: 0, to: 1, label: '× 1.05', c: 2 }, { from: 1, to: 2, label: '× 1.05', c: 2 }],
+              cap: R`The \(\$5\) from the first half-year earns interest too. \(\$100\) grows to \(\$110.25\): an EAY of \(10.25\%\).` },
             formula: 'eay',
             ti: [TI.cmd('eff', [10, 2])] },
           { kind: 'check', gen: 'w3-g-eay' },
           { kind: 'learn', title: 'Already per half-year? Do not halve it again',
             body: R`Sometimes you are given the yield **per half-year**, like 3.5%. It is already halved. Just compound it for two half-years:\n\[EAY = (1 + 0.035)^{2} - 1 = ${L.pct(1.035 ** 2 - 1)}\]\n\nHalving it again is a classic exam mistake.`,
+            viz: { type: 'compare', items: [
+              { title: 'Compound it', big: R`\(1.035^{2} - 1 = ${L.pct(1.035 ** 2 - 1)}\)`, points: [R`\(3.5\%\) is already per half-year`], mark: 'good', markText: 'Right', c: 'good' },
+              { title: 'Halve it again', big: R`\(1.0175^{2} - 1 = ${L.pct(1.0175 ** 2 - 1)}\)`, points: ['It halves a rate that was already halved'], mark: 'bad', markText: 'Wrong', c: 'bad' }],
+              cap: R`Only a **yearly** rate gets halved. A half-year rate is compounded as it is.` },
             ti: [TI.line('(1+0.035)^2-1', { pct: true, note: 'Multiply by 100 for a percentage.' })] },
           { kind: 'check', ref: 'w3-q17' },
           { kind: 'guided', title: 'Your turn', q: R`A $1,000 bond pays a 7% coupon semi-annually and has 6 years to maturity. The yield is 8% p.a. What is its price?`,
@@ -431,6 +479,11 @@
         cards: [
           { kind: 'learn', title: 'The return hidden in the price',
             body: R`If you know a bond’s price, you can work backwards to its **yield to maturity** (YTM). It is the rate that makes the PV of the coupons and face value equal the price.\n\nThe YTM is your average yearly return if you buy now, hold the bond to maturity, and every payment is made.`,
+            viz: { type: 'lines', key: true, x: { label: 'Discount rate', fmt: '%', min: 5, max: 13 }, y: { label: 'PV of the cash flows', fmt: '$' },
+              series: [{ c: 1, pts: range(5, 13, 0.25).map((r) => [r, FIN.bondPrice(1000, 0.08, r / 100, 5)]) }],
+              hlines: [{ y: LS.p5, label: `Price ${T.money(LS.p5)}` }],
+              marks: [{ x: LS.y5 * 100, y: LS.p5, c: 3 }], vlines: [{ x: LS.y5 * 100, label: `YTM = ${T.pct(LS.y5)}` }],
+              cap: R`The next example's bond: its YTM is the one rate where the PV of its cash flows equals its price.` },
             tip: 'A bond below face value gives you the coupons plus a gain as its price rises to face value. So its YTM is above its coupon rate.' },
           { kind: 'example', title: 'Worked example', q: R`A $1,000 bond pays an 8% coupon once a year and has 5 years to maturity. It costs ${T.money(LS.p5)}. What is its YTM?`,
             steps: [
@@ -445,7 +498,10 @@
             ti: [TI.cmd('tvmI', [5, -LS.p5, 80, 1000, 1, 1])] },
           { kind: 'check', gen: 'w3-g-ytm' },
           { kind: 'learn', title: 'Semi-annual bonds: nominal yield, then EAY',
-            body: R`For a semi-annual bond, set \(N = 2 \times\) years, \(Pmt\) = the half-year coupon and \(PpY = CpY = 2\). Solving \(I(\%)\) gives the **nominal** yearly yield: twice the half-year yield.\n\nThen type \(\text{eff}(\text{ans}, 2)\) to turn it into the **effective annual yield**.` },
+            body: R`For a semi-annual bond, set \(N = 2 \times\) years, \(Pmt\) = the half-year coupon and \(PpY = CpY = 2\). Solving \(I(\%)\) gives the **nominal** yearly yield: twice the half-year yield.\n\nThen type \(\text{eff}(\text{ans}, 2)\) to turn it into the **effective annual yield**.`,
+            viz: { type: 'flow', steps: [{ t: R`\(${L.pct(LS.y7, 2)}\)`, s: 'per half-year', c: 1 }, { t: R`\(${L.pct(2 * LS.y7, 2)}\)`, s: R`nominal: \(I(\%)\)`, c: 2 }, { t: R`\(${L.pct((1 + LS.y7) ** 2 - 1, 2)}\)`, s: 'the EAY', c: 3 }],
+              links: [R`\(\times 2\)`, R`\(\text{eff}(\text{ans}, 2)\)`],
+              cap: R`The solver shows the nominal yield. \(\text{eff}\) compounds it into the effective annual yield.` } },
           { kind: 'example', title: 'Worked example: a semi-annual YTM', q: R`A $1,000 bond has a 7% coupon, paid semi-annually, and 6 years to maturity. Its price is ${T.money(LS.p7)}. What is its effective annual YTM?`,
             steps: [
               R`Per half-year: \(N = 12\), \(Pmt = 35\), \(FV = 1{,}000\) and \(PV = -${L.num(LS.p7)}\).`,
@@ -456,7 +512,11 @@
             ti: [TI.solver({ N: 12, PV: -LS.p7, Pmt: 35, FV: 1000, PpY: 2, CpY: 2 }, 'I', { note: 'The nominal yearly yield.' }), TI.line('eff(ans,2)', { note: 'The effective annual yield.' })] },
           { kind: 'check', gen: 'w3-g-ytmsemi' },
           { kind: 'learn', title: 'Realised yield: when you sell early',
-            body: R`The YTM assumes you hold the bond to maturity. If you **sell early**, your actual return is the **realised yield**.\n\nWork it out like a YTM. Use the time you held the bond, and put the **price you sold at** in \(FV\) instead of the face value.` },
+            body: R`The YTM assumes you hold the bond to maturity. If you **sell early**, your actual return is the **realised yield**.\n\nWork it out like a YTM. Use the time you held the bond, and put the **price you sold at** in \(FV\) instead of the face value.`,
+            viz: { type: 'compare', items: [
+              { icon: '🏁', title: 'Hold to maturity', big: 'YTM', points: [R`\(N\) = periods to maturity`, R`\(FV\) = the face value`], c: 1 },
+              { icon: '🏃', title: 'Sell early', big: 'Realised yield', points: [R`\(N\) = periods you held it`, R`\(FV\) = the price you sold at`], c: 3 }],
+              cap: R`Same method. Selling early only changes \(N\) and \(FV\).` } },
           { kind: 'guided', title: 'Your turn: a realised yield', q: R`Three years ago you paid $1,000 for a bond with an 8% coupon, paid semi-annually. Today, just after a coupon, you sell it for $1,040. What was your realised yield, as an effective annual rate?`,
             parts: [
               { ask: R`What goes in \(N\)?`, choices: ['3', '6', '12'], answer: 1, hint: 'Count the half-years you held the bond.', why: R`\(3 \times 2 = 6\) half-years.` },
@@ -484,15 +544,28 @@
         cards: [
           { kind: 'learn', title: 'Rates up, prices down',
             body: R`A bond’s price is a present value. When market interest rates **rise**, bond yields rise, the discount rate rises, and the price **falls**. When rates fall, prices rise.\n\nThe coupons do not change. Only the price does.`,
+            viz: { type: 'seesaw', key: true, down: 'right', left: { icon: '📈', label: 'Interest rates', c: 2 }, right: { icon: '💵', label: 'Bond prices', c: 1 },
+              cap: R`A higher discount rate shrinks every PV, so bond prices **fall**. Lower rates lift them.` },
             tip: 'New bonds now pay the higher rate. Nobody will pay full price for an old bond with a smaller coupon, so its price drops.' },
           { kind: 'check', ref: 'w3-q30' },
           { kind: 'learn', title: 'Interest-rate risk',
-            body: R`**Interest-rate risk** is the risk that a bond’s price changes because market rates change unexpectedly.\n\nAll bonds have it, but some much more than others. Two things matter: the **time to maturity** and the **coupon rate**.` },
+            body: R`**Interest-rate risk** is the risk that a bond’s price changes because market rates change unexpectedly.\n\nAll bonds have it, but some much more than others. Two things matter: the **time to maturity** and the **coupon rate**.`,
+            viz: { type: 'compare', items: [
+              { icon: '🛡️', title: 'Less interest-rate risk', points: [R`**Short** time to maturity`, R`**High** coupon rate`], c: 1 },
+              { icon: '🎢', title: 'More interest-rate risk', points: [R`**Long** time to maturity`, R`**Low** coupon rate`], c: 2 }],
+              cap: R`Every bond has some interest-rate risk. These two things decide how much.` } },
           { kind: 'learn', title: 'Longer maturity, more risk',
             body: R`Here is a $1,000 bond with a 10% coupon, at different market rates. From 10% to 20%, the 1-year bond falls ${T.pct(1 - MAT[3][1] / 1000, 1)}, but the 30-year bond falls ${T.pct(1 - MAT[3][2] / 1000, 1)}.\n\nCash flows far in the future are hit hardest by discounting.`,
+            viz: { type: 'lines', x: { label: 'Market rate', fmt: '%', min: 5, max: 20 }, y: { label: 'Price of a 10% bond', fmt: '$' },
+              series: [{ name: '1 year', c: 1, pts: range(5, 20, 0.5).map((y) => [y, FIN.bondPrice(1000, 0.10, y / 100, 1)]) },
+                { name: '30 years', c: 2, pts: range(5, 20, 0.5).map((y) => [y, FIN.bondPrice(1000, 0.10, y / 100, 30)]) }],
+              vlines: [{ x: 10, label: 'Both at $1,000' }], keys: [],
+              cap: R`The same change in rates moves the 30-year bond's price far more than the 1-year bond's.` },
             table: { head: ['Market rate', '1 year to maturity', '30 years to maturity'], rows: MAT.map(([y, a, b]) => [T.pctT(y), T.money(a), T.money(b)]) } },
           { kind: 'learn', title: 'Lower coupon, more risk',
             body: R`Two 30-year, $1,000 bonds: A has a 5% coupon and B a 10% coupon. From 10% to 15%, A falls ${T.pct(1 - CPN[2][1] / CPN[1][1], 1)}, but B falls ${T.pct(1 - CPN[2][2] / CPN[1][2], 1)}.\n\nA low-coupon bond gets more of its value from the far-away face value, so it is more sensitive.`,
+            viz: { type: 'bars', fmt: '%', dp: 1, bars: [{ label: 'Bond A: 5% coupon', v: -100 * (1 - CPN[2][1] / CPN[1][1]) }, { label: 'Bond B: 10% coupon', v: -100 * (1 - CPN[2][2] / CPN[1][2]) }],
+              cap: R`Rates rise from \(10\%\) to \(15\%\): low-coupon bond A loses a bigger **share** of its price.` },
             table: { head: ['Market rate', 'Bond A (5% coupon)', 'Bond B (10% coupon)'], rows: CPN.map(([y, a, b]) => [T.pctT(y), T.money(a), T.money(b)]) } },
           { kind: 'check', ref: 'w3-q31' },
           { kind: 'example', title: 'Worked example: after rates change', q: R`A 10-year, $1,000 bond pays a 6% coupon once a year. It was issued at par. Two years later, market yields have fallen to 5%. What is the bond worth now?`,
@@ -530,12 +603,26 @@
         topics: ['pref', 'ddm'],
         cards: [
           { kind: 'learn', title: 'Owning part of a company',
-            body: R`A **share** is a small piece of ownership in a company. Shareholders may receive **dividends**: cash the company pays out of its profits.\n\nShares are harder to value than bonds. Dividends are **not promised**, and a share has **no maturity** date.` },
+            body: R`A **share** is a small piece of ownership in a company. Shareholders may receive **dividends**: cash the company pays out of its profits.\n\nShares are harder to value than bonds. Dividends are **not promised**, and a share has **no maturity** date.`,
+            viz: [
+              { type: 'pie', parts: [{ label: 'Your shares', v: 1, c: 3, show: '' }, { label: 'Other owners', v: 7, c: 'grey', show: '' }], center: 'The company',
+                cap: R`Each share is a slice of the company, and of the dividends it pays out.` },
+              { type: 'compare', items: [{ icon: '📜', title: 'A bond', points: [R`**Promised** coupons`, 'A maturity date'], c: 1 }, { icon: '🧩', title: 'A share', points: [R`**Unsure** dividends`, R`**No** maturity`], c: 2 }],
+                cap: R`That is why a share is harder to value than a bond.` },
+            ] },
           { kind: 'learn', title: 'Price = PV of all future dividends',
             body: R`Like a bond, a share is worth the **present value** of the cash it pays: all its future dividends, forever.\n\nThe discount rate is the **required return** on the share, \(r_E\). A riskier share must offer a higher required return, so it has a **lower** price.`,
+            viz: [
+              { type: 'tl', n: 4, at: { 0: 'P0', 1: 'D1', 2: 'D2', 3: 'D3', 4: 'D4 …' }, unit: 'Year', hi: [0], ...travel([1, 2, 3], 0, disc('(1+r_E)')),
+                cap: R`Discount every dividend to today at \(r_E\), forever. Their total is the price.` },
+              { type: 'seesaw', down: 'right', left: { icon: '⚠️', label: 'Risk', c: 2 }, right: { icon: '🏷️', label: 'Share price', c: 1 },
+                cap: R`More risk means a higher required return \(r_E\), and so a **lower** price.` },
+            ],
             tip: R`\(D_1\) is the dividend at \(t = 1\) (next year). \(D_0\) is the one that was just paid.` },
           { kind: 'learn', title: 'Zero growth: a perpetuity',
             body: R`If the dividend \(D\) never changes, the share is a **perpetuity** (Floor 2):\n\[P_0 = \frac{D}{r_E}\]\n\n**Preference shares** pay a fixed dividend forever, so they are valued this way. Their price stays the same over time.`,
+            viz: { type: 'tl', n: 4, at: { 0: 'D/rE', 1: 'D', 2: 'D', 3: 'D', 4: 'D …' }, unit: 'Year', hi: [0], spans: [{ from: 0, to: 1, label: 'one period', c: 2 }],
+              cap: R`The same dividend \(D\) forever: a perpetuity. \(\frac{D}{r_E}\) lands one period before the first one.` },
             formula: 'share-zero',
             tip: 'A dividend paid every quarter? Use the rate per quarter too.' },
           { kind: 'example', title: 'Worked example', q: R`A preference share pays a fixed dividend of $2.50 a year, forever. The next dividend is in one year. The required return is 10%. What is the share worth?`,
@@ -549,10 +636,14 @@
           { kind: 'check', gen: 'w3-g-pref' },
           { kind: 'learn', title: 'Constant growth: the dividend discount model',
             body: R`If dividends grow at a constant rate \(g\) forever, the share is a **growing perpetuity**:\n\[P_0 = \frac{D_1}{r_E - g}\]\n\nThis is the **dividend discount model** (DDM), also called the constant-growth model. It only works when \(r_E > g\).`,
+            viz: { type: 'anatomy', tex: R`\colC{P_0} = \frac{\colA{D_1}}{\colB{r_E} - \colD{g}}`,
+              parts: [{ sym: 'P_0', say: 'the share price today', c: 'C' }, { sym: 'D_1', say: R`the **next** dividend, at \(t = 1\)`, c: 'A' }, { sym: 'r_E', say: 'the required return', c: 'B' }, { sym: 'g', say: R`the growth rate, forever: it must be below \(r_E\)`, c: 'D' }],
+              cap: R`Only the **next** dividend goes on top, and \(r_E\) must be bigger than \(g\).` },
             formula: 'share-ddm' },
           { kind: 'learn', title: R`Just paid? Use \(D_1\), not \(D_0\)`,
             body: R`\(D_0\) has already gone to the previous owner. The formula needs the **next** dividend:\n\[D_1 = D_0(1 + g)\]\n\n“Just paid”: grow it one year. “Paid at the end of this year”: it is already \(D_1\).`,
-            tl: { n: 3, at: { 0: 'D0 (paid)', 1: 'D1', 2: 'D2', 3: 'D3 …' }, unit: 'Year', hi: [1] } },
+            viz: { type: 'tl', key: true, n: 3, at: { 0: 'D0 (paid)', 1: 'D1', 2: 'D2', 3: 'D3 …' }, unit: 'Year', hi: [1], dim: [0], moves: [{ from: 0, to: 1, label: '× (1+g)', c: 2 }],
+              cap: R`\(D_0\) has gone to the last owner. Grow it one year to get \(D_1\), the dividend on top.` } },
           { kind: 'example', title: 'Worked example', q: R`Brig Company has **just paid** a dividend of $0.20. Dividends grow at 8% a year, forever. Investors require 16%. What is a share worth today?`,
             steps: [
               R`It was just paid, so grow it: \(D_1 = 0.20 \times 1.08 = \$0.216\).`,
@@ -587,7 +678,10 @@
         topics: ['returns'],
         cards: [
           { kind: 'learn', title: 'Two ways a share pays you',
-            body: R`You buy a share for $40. During the year you receive a $2 dividend, and the price rises to $42.\n\nPart of your return is the **dividend**. Part is the rise in the price: a **capital gain**.` },
+            body: R`You buy a share for $40. During the year you receive a $2 dividend, and the price rises to $42.\n\nPart of your return is the **dividend**. Part is the rise in the price: a **capital gain**.`,
+            viz: { type: 'bars', fmt: '$', bars: [{ label: 'Today', parts: [{ v: 40, c: 1 }] }, { label: 'A year later', parts: [{ v: 40, c: 1 }, { v: 42 - 40, c: 3 }, { v: 2, c: 2 }] }],
+              keys: [{ c: 1, label: R`The \(\$40\) you paid` }, { c: 3, label: R`Price rise: \(\$2\)` }, { c: 2, label: R`Dividend: \(\$2\)` }],
+              cap: R`A year later you hold \(\$44\): the \(\$42\) share plus the \(\$2\) dividend.` } },
           { kind: 'learn', title: 'Three yields',
             body: R`Measure each part against the price you **pay** today, \(P_0\):`,
             points: [
@@ -595,6 +689,9 @@
               R`**Capital gains yield** \(= \frac{P_1 - P_0}{P_0}\)`,
               R`**Total return** \(= \frac{D_1 + P_1 - P_0}{P_0}\): the dividend yield plus the capital gains yield.`,
             ],
+            viz: { type: 'split', key: true, fmt: '%', total: R`Total return \(${L.numT(100 * (2 + 42 - 40) / 40)}\%\) on the \(\$40\) share`,
+              parts: [{ label: R`Dividend yield \(\frac{2}{40}\)`, v: 100 * 2 / 40, c: 2 }, { label: R`Capital gains yield \(\frac{42 - 40}{40}\)`, v: 100 * (42 - 40) / 40, c: 3 }],
+              cap: R`Both parts are measured against the \(\$40\) you paid. Together they make the total return.` },
             formula: 'total-return' },
           { kind: 'example', title: 'Worked example', q: R`You buy a share for $40. You receive a $2 dividend in one year, and then sell the share for $42. What are the three yields?`,
             steps: [
@@ -607,9 +704,14 @@
           { kind: 'check', gen: 'w3-g-yields' },
           { kind: 'learn', title: 'Returns can be negative',
             body: R`If the price falls by more than the dividend, the total return is **negative**.\n\nBuy at $50, receive a $1 dividend, sell at $46: \(\frac{1 + 46 - 50}{50} = -6\%\).`,
+            viz: { type: 'waterfall', fmt: '%', steps: [{ label: 'Dividend yield', v: 100 * 1 / 50 }, { label: 'Capital loss', v: 100 * (46 - 50) / 50 }, { label: 'Total return', total: true, c: 'bad' }],
+              cap: R`The \(-8\%\) price fall is bigger than the \(+2\%\) dividend yield, so the total is \(-6\%\).` },
             ti: [TI.line('(1+46-50)/50', { pct: true })] },
           { kind: 'learn', title: 'With constant growth, the price grows at g',
             body: R`In the DDM, next year’s price is \(P_1 = \frac{D_2}{r_E - g} = P_0(1+g)\). The price grows at the same rate as the dividends.\n\nSo the capital gains yield is \(g\), and the required return splits into two parts:\n\[r_E = \frac{D_1}{P_0} + g\]`,
+            viz: { type: 'bars', fmt: '$', dp: 2, bars: [0, 1, 2, 3].map((t) => ({ label: t ? 'Year ' + t : 'Today', parts: [{ v: 25, c: 1 }, { v: 25 * (1.06 ** t - 1), c: 3 }] })),
+              keys: [{ c: 1, label: R`Today's price: \(\$25\)` }, { c: 3, label: R`Capital gain: growth at \(g = 6\%\) a year` }],
+              cap: R`The next example's share: its price grows \(6\%\) a year, like its dividends. That growth is the capital gains yield.` },
             formula: 'total-return' },
           { kind: 'example', title: 'Worked example: the required return', q: R`A share trades at $25. It will pay a $1.00 dividend next year, and dividends grow at 6% a year forever. What return do investors require?`,
             steps: [
@@ -622,6 +724,10 @@
           { kind: 'check', gen: 'w3-g-req' },
           { kind: 'learn', title: 'The price in n years',
             body: R`Because the price grows at \(g\): \(P_n = P_0(1+g)^{n}\). Or use the formula one step later: \(P_n = \frac{D_{n+1}}{r_E - g}\). Both give the same answer.\n\nA share has just paid $1.50, \(g = 4\%\) and \(r_E = 11\%\). Its price in 3 years: \(P_3 = \frac{1.50 \times 1.04^{4}}{0.11 - 0.04} = ${L.money(1.5 * 1.04 ** 4 / 0.07)}\).`,
+            viz: { type: 'compare', vsText: '=', items: [
+              { icon: '📈', title: 'Grow the price', big: R`\(P_0(1+g)^{3}\)`, points: [R`\(${L.num(1.5 * 1.04 / 0.07)} \times 1.04^{3}\)`, R`\(= ${L.money(r2(1.5 * 1.04 / 0.07) * 1.04 ** 3)}\)`], c: 1 },
+              { icon: '🔮', title: 'Use the next dividend', big: R`\(\dfrac{D_4}{r_E - g}\)`, points: [R`\(\dfrac{1.50 \times 1.04^{4}}{0.11 - 0.04}\)`, R`\(= ${L.money(1.5 * 1.04 ** 4 / 0.07)}\)`], c: 3 }],
+              cap: R`Two routes, one answer. The formula route uses \(D_4\): the dividend one year **after** \(t = 3\).` },
             ti: [TI.line('1.50*1.04^4/(0.11-0.04)', { note: R`\(D_4\) on top for \(P_3\).` })] },
           { kind: 'guided', title: 'Your turn', q: R`You would pay $50 for a share today. You expect to sell it for $53 in one year. You require a 10% return. What dividend must you expect at the end of the year?`,
             parts: [
@@ -646,7 +752,10 @@
         topics: ['vargrowth'],
         cards: [
           { kind: 'learn', title: 'Fast growth first, steady later',
-            body: R`Young companies often grow fast for a few years, then settle down to a steady rate.\n\nThe constant-growth formula only works from the point where growth is steady. Before that, value each dividend one at a time. Growth faster than \(r_E\) can last a few years, but not forever.` },
+            body: R`Young companies often grow fast for a few years, then settle down to a steady rate.\n\nThe constant-growth formula only works from the point where growth is steady. Before that, value each dividend one at a time. Growth faster than \(r_E\) can last a few years, but not forever.`,
+            viz: { type: 'bars', fmt: '$', dp: 2, bars: [1, 2, 3, 4, 5].map((t) => ({ label: 'Year ' + t, v: t <= 2 ? LS.var1.divs[t - 1] : LS.var1.divs[1] * 1.04 ** (t - 2), c: t <= 2 ? 2 : 1 })),
+              keys: [{ c: 2, label: R`Fast growth: \(15\%\) a year` }, { c: 1, label: R`Steady growth: \(4\%\) a year, forever` }],
+              cap: R`The worked example's dividends: big jumps for two years, then small steady steps that never stop.` } },
           { kind: 'check', ref: 'w3-q58' },
           { kind: 'learn', title: 'The 4-step method',
             body: R`Follow the same four steps every time:`,
@@ -656,6 +765,8 @@
               R`**Step 3:** once growth is steady, \(P_n = \frac{D_{n+1}}{r_E - g}\). This is a price at \(t = n\).`,
               R`**Step 4:** discount \(P_n\) to today, and add everything up.`,
             ],
+            viz: { type: 'flow', key: true, steps: [{ icon: '🔢', t: 'Step 1', s: R`\(D_1\) to \(D_n\)` }, { icon: '⏪', t: 'Step 2', s: 'discount each one' }, { icon: '🔮', t: 'Step 3', s: R`\(P_n = \dfrac{D_{n+1}}{r_E - g}\)`, c: 2 }, { icon: '➕', t: 'Step 4', s: R`discount \(P_n\), add up`, c: 3 }],
+              cap: R`Step 3 swaps every steady-growth dividend for one price, \(P_n\), sitting at \(t = n\).` },
             formula: 'share-general' },
           { kind: 'example', title: 'Worked example', q: R`A company has **just paid** a dividend of $1.00. Dividends will grow at 15% a year for 2 years, then at 4% a year forever. The required return is 12%. What is a share worth?`,
             steps: [
@@ -668,7 +779,8 @@
             ti: [TI.line(`${tn(LS.var1.divs[1])}*1.04/(0.12-0.04)`, { note: R`Step 3: \(P_2\).` }), TI.line(`npv(12,0,{${tn(LS.var1.divs[0])},${tn(LS.var1.divs[1])}+ans})`, { note: R`Steps 2 and 4 in one line. Year 2 holds \(D_2 + P_2\). \(CF_0 = 0\): you get nothing today.` })] },
           { kind: 'learn', title: R`Where does \(P_n\) sit?`,
             body: R`\(P_2\) sits at \(t = 2\), next to \(D_2\). It is the value of every dividend from \(D_3\) onwards.\n\nSo discount it 2 years, not 3. This is the most common mistake with variable growth.`,
-            tl: { n: 4, at: { 1: 'D1', 2: 'D2 + P2', 3: 'D3', 4: 'D4 …' }, unit: 'Year', hi: [2] } },
+            viz: { type: 'tl', n: 4, at: { 1: 'D1', 2: 'D2 + P2', 3: 'D3', 4: 'D4 …' }, unit: 'Year', hi: [2], moves: carry([2], 0, disc('(1+r_E)')), spans: [{ from: 3, to: 4, label: 'these make up P2', c: 1 }],
+              cap: R`\(P_2\) sits at \(t = 2\), next to \(D_2\). So discount it **2** years, not 3.` } },
           { kind: 'check', ref: 'w3-q59' },
           { kind: 'guided', title: 'Your turn', q: R`A company has **just paid** a dividend of $0.50. Dividends will grow at 20% a year for 3 years, then at 5% a year forever. The required return is 11%. What is a share worth?`,
             parts: [
@@ -682,11 +794,20 @@
           { kind: 'check', gen: 'w3-g-var' },
           { kind: 'learn', title: 'Two steady phases',
             body: R`Sometimes growth is steady in **both** phases: say 6.5% a year for 6 years, then 3.5% forever. The first phase is then a **growing annuity** (Floor 2).\n\nValue it with the growing-annuity formula, starting from \(D_1\). Then add the PV of \(P_6 = \frac{D_7}{r_E - g_2}\).`,
+            viz: { type: 'flow', op: true, steps: [{ t: 'Growing annuity', s: R`\(D_1\) to \(D_6\), growing \(6.5\%\)`, c: 2 }, { t: R`\(\dfrac{P_6}{(1+r_E)^{6}}\)`, s: R`\(P_6\): \(3.5\%\) growth forever`, c: 1 }, { t: R`\(P_0\)`, s: 'the price today', c: 3 }],
+              links: [R`\(+\)`, R`\(=\)`],
+              cap: R`Phase 1: a growing annuity. Phase 2: a growing perpetuity valued at \(t = 6\), then discounted to today.` },
             formula: 'pv-grow-annuity' },
           { kind: 'learn', title: 'A dividend due tomorrow',
-            body: R`If the latest dividend has **not been paid yet** (it is paid tomorrow), today’s buyer will get it. Add it to the price, without discounting.\n\nIf it was **just paid**, it is gone. Do not add it.` },
+            body: R`If the latest dividend has **not been paid yet** (it is paid tomorrow), today’s buyer will get it. Add it to the price, without discounting.\n\nIf it was **just paid**, it is gone. Do not add it.`,
+            viz: { type: 'compare', items: [
+              { icon: '👋', title: 'Just paid', big: 'Leave it out', points: ['It went to the last owner'], c: 'grey' },
+              { icon: '🎁', title: 'Paid tomorrow', big: 'Add it', points: [R`Today's buyer gets it`, 'No discounting: it is almost here'], c: 3 }],
+              cap: R`Ask who receives the dividend. Add it only if **today's buyer** will get it.` } },
           { kind: 'learn', title: 'Working back to a future price',
             body: R`A share costs $20 today and will pay $1.50 a year for 4 years. You require 10%. What price must you expect in 4 years?\n\nTreat it like a bond: the dividends are the coupons, and the future price plays the face value. Solve \(FV\) in the Finance Solver: \(${L.money(LS.pn)}\).`,
+            viz: { type: 'tl', n: 4, at: { 0: '−$20', 1: '$1.50', 2: '$1.50', 3: '$1.50', 4: '$1.50+P4' }, unit: 'Year', hi: [4],
+              cap: R`Like a bond: the dividends play the coupons and \(P_4\) plays the face value. Solving \(FV\) gives \(P_4 = ${L.money(LS.pn)}\).` },
             ti: [TI.solver({ N: 4, I: 10, PV: -20, Pmt: 1.5, PpY: 1, CpY: 1 }, 'FV', { note: R`You pay $20 today (\(PV\) negative) and receive the dividends (\(Pmt\) positive).` })] },
           { kind: 'recap', title: 'Remember', points: [
             R`Step 1: the dividends in the fast years. Step 2: their PVs. Step 3: \(P_n = \frac{D_{n+1}}{r_E - g}\). Step 4: discount \(P_n\) and add.`,

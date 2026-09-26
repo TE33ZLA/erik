@@ -284,8 +284,8 @@ tax and profit, two things compared). The picture sits under the card's paragrap
 
 Add `viz` to a card (or a question): one spec, or a list of up to 3 specs that sit side by side (they stack on phones).
 Mark the lesson's most important picture with `key: true`: the recap card shows it again under "The picture to remember".
-Drawn by `js/lib/viz.js`; checked by `tests/validate.js` (`REQUIRE_VIZ=1 node tests/validate.js` fails on any learn card
-without a picture).
+Drawn by `js/lib/viz.js`; checked by `tests/validate.js`, which fails on any learn card without a picture
+(`REQUIRE_VIZ=0` turns that off while drafting).
 
 Rules:
 

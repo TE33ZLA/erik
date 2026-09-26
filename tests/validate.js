@@ -18,7 +18,7 @@ for (const f of packFiles) require(path.join(ROOT, 'js/data', f));
 
 const { PACKS, FORMULAS, RENDER, makeRng, QCORE, NSPIRE, TIVIEW } = globalThis;
 const REQUIRE_TI = process.env.REQUIRE_TI !== '0'; // every calculation question needs a TI-Nspire method
-const REQUIRE_VIZ = process.env.REQUIRE_VIZ === '1'; // every learn card needs a picture
+const REQUIRE_VIZ = process.env.REQUIRE_VIZ !== '0'; // every learn card needs a picture
 const vizStats = {};
 const UNITS = new Set(['$', '%', 'yrs', 'days', 'units', 'x', '', '$m']);
 const BODIES = new Set(['blob', 'ghost', 'box', 'coin', 'spiky', 'tall', 'round']);

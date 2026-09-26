@@ -38,8 +38,11 @@
       ticks = [...s].filter((k) => k >= 0 && k <= n).sort((a, b) => a - b);
     }
     const longest = Math.max(4, ...ticks.map((t) => Math.max(fmtVal(at[t] === undefined ? '' : at[t]).length, String(labels[t] === undefined ? t : labels[t]).length)));
-    const gap = Math.max(58, longest * 7.4 + 14);
-    const padL = 34, padR = 36;
+    const gap = Math.max(58, longest * 8.2 + 14);
+    // room at the ends for a long first/last value and for the unit label ("Half-year")
+    const valW = (t) => (at[t] === undefined ? 0 : fmtVal(at[t]).length * 8.2);
+    const padL = Math.max(34, String(tl.unit || 't').length * 7.2 + 14, valW(ticks[0]) / 2 - 6);
+    const padR = Math.max(36, valW(ticks[ticks.length - 1]) / 2 - 6);
     const W = Math.round(padL + padR + gap * (ticks.length - 1) + 20);
     // arrows above the line stack in levels so they never cross; brackets below stack in rows
     const lv = [];
@@ -74,6 +77,7 @@
         s += `<text x="${cx}" y="${Y - 17}" class="tl-v${isHi ? ' hi' : ''}${dim.has(t) ? ' dim' : ''}" text-anchor="middle">${esc(v)}</text>`;
       }
     });
+    let arcLabels = '';
     moves.forEach((m, k) => {
       const x0 = xt(m.from), x1 = xt(m.to);
       if (x0 === null || x1 === null || x0 === x1) return;
@@ -83,8 +87,9 @@
       const a = Math.atan2(y0 - yc, x1 - mx), hs = 9;
       const p = (dx, dy) => `${(x1 + dx * Math.cos(a) - dy * Math.sin(a)).toFixed(1)} ${(y0 + dx * Math.sin(a) + dy * Math.cos(a)).toFixed(1)}`;
       s += `<path d="M${p(0, 0)} L${p(-hs, -hs * 0.55)} L${p(-hs, hs * 0.55)} Z" class="tl-arrowhead ${c}"/>`;
-      if (m.label) s += `<text x="${mx}" y="${y0 - rise - 6}" class="tl-mlab" text-anchor="middle">${svgT(m.label)}</text>`;
+      if (m.label) arcLabels += `<text x="${mx}" y="${y0 - rise - 6}" class="tl-mlab" text-anchor="middle">${svgT(m.label)}</text>`;
     });
+    s += arcLabels;
     spans.forEach((sp, k) => {
       const x0 = xt(sp.from), x1 = xt(sp.to);
       if (x0 === null || x1 === null) return;

@@ -391,8 +391,9 @@
     const rows = s.rows || [{ parts: s.parts || [] }];
     const totals = rows.map((r) => sum(r.parts.map((p) => Math.abs(+p.v || 0))));
     const big = Math.max(...totals) || 1;
-    const first = rows[0].parts;
-    const keys = `<ul class="vz-key">${first.map((p, i) => `<li class="${kc(p.c !== undefined ? p.c : i + 1, i)}"><i class="sw" aria-hidden="true"></i><span>${vrich(p.label)}${rows.length === 1 && (p.show !== undefined || p.v !== undefined) ? ` <b>${vrich(p.show !== undefined ? p.show : num(+p.v, s.fmt, s.dp))}</b>` : ''}${p.note ? ` <span class="vz-note">${vrich(p.note)}</span>` : ''}</span></li>`).join('')}</ul>`;
+    const first = [], seen = new Set();
+    rows.forEach((r) => r.parts.forEach((p, i) => { const k2 = String(p.label); if (!seen.has(k2)) { seen.add(k2); first.push(Object.assign({ _i: i }, p)); } }));
+    const keys = s.keys ? legend(s.keys) : `<ul class="vz-key">${first.map((p) => `<li class="${kc(p.c !== undefined ? p.c : p._i + 1, p._i)}"><i class="sw" aria-hidden="true"></i><span>${vrich(p.label)}${rows.length === 1 && (p.show !== undefined || p.v !== undefined) ? ` <b>${vrich(p.show !== undefined ? p.show : num(+p.v, s.fmt, s.dp))}</b>` : ''}${p.note ? ` <span class="vz-note">${vrich(p.note)}</span>` : ''}</span></li>`).join('')}</ul>`;
     const body = rows.map((r, k) => `${r.label ? `<div class="vz-rowlab">${vrich(r.label)}</div>` : ''}${splitRow(r.parts, s, s.scale === 'abs' ? (totals[k] / big) * 100 : 100)}`).join('');
     return `<div class="vz-split" role="img" aria-label="${esc(describe(s))}">${s.total ? `<div class="vz-total">${vrich(s.total)}</div>` : ''}${body}${keys}</div>`;
   }
@@ -467,8 +468,9 @@
     return svg(W, Math.max(H, cy + 124), g, describe(s)) + (s.note ? `<p class="vz-note-p">${vrich(s.note)}</p>` : '');
   }
   function seesaw(s) {
-    const W = 400, cx = 200, cy = 128, L = 150;
-    const H = cy + L * Math.sin((13 * Math.PI) / 180) + 34 + ((s.left || {}).sub || (s.right || {}).sub ? 22 : 4) + 6;
+    const hasSub = (s.left || {}).sub || (s.right || {}).sub;
+    const W = 400, cx = 200, cy = 128 + (hasSub ? 20 : 0), L = 150;
+    const H = cy + L * Math.sin((13 * Math.PI) / 180) + 34 + (hasSub ? 22 : 4) + 6;
     const down = s.down === 'left' ? 'left' : 'right';
     const ang = ((down === 'right' ? 1 : -1) * 13 * Math.PI) / 180;
     const ends = [[cx - L * Math.cos(ang), cy - L * Math.sin(ang)], [cx + L * Math.cos(ang), cy + L * Math.sin(ang)]];
@@ -480,11 +482,11 @@
       const c = kc(side.c !== undefined ? side.c : i + 1, i);
       g += `<circle cx="${r1(x)}" cy="${r1(y - 20)}" r="17" class="vz-seat ${c}"/>`;
       if (side.icon) g += `<text x="${r1(x)}" y="${r1(y - 12)}" class="vz-emoji sm" text-anchor="middle">${esc(side.icon)}</text>`;
-      const lw = (plain(side.label || '').length + 2) * 9.6;
+      const lw = (Math.max(plain(side.label || '').length + 2, plain(side.sub || '').length * 0.9)) * 10.6;
       const lx = Math.min(W - lw / 2 - 4, Math.max(lw / 2 + 4, x));
       const ly = isDown ? y + 34 : y - 50;
       g += `<text x="${r1(lx)}" y="${r1(ly)}" class="vz-big-t" text-anchor="middle">${svgT((side.label || '') + (isDown ? ' ↓' : ' ↑'))}</text>`;
-      if (side.sub) g += `<text x="${r1(lx)}" y="${r1(ly + 18)}" class="vz-sub-t" text-anchor="middle">${svgT(side.sub)}</text>`;
+      if (side.sub) g += `<text x="${r1(lx)}" y="${r1(isDown ? ly + 18 : ly - 20)}" class="vz-sub-t" text-anchor="middle">${svgT(side.sub)}</text>`;
     });
     return svg(W, H, g, describe(s)) + (s.note ? `<p class="vz-note-p">${vrich(s.note)}</p>` : '');
   }

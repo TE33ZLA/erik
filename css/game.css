@@ -499,7 +499,8 @@ fieldset { border: 0; padding: 0; margin: 0 0 10px; }
 .tree { display: inline-flex; padding: 6px 4px 6px 0; font-size: 0.9rem; }
 .tn { display: flex; align-items: center; }
 .tn-box { display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border-radius: 8px; border: 2px solid var(--ink-2); background: var(--panel); white-space: nowrap; max-width: 240px; }
-.tn-box span { white-space: normal; }
+.tn-box > span { white-space: normal; }
+.tn-box .katex { white-space: nowrap; }
 .tn-ico { display: inline-block; width: 12px; height: 12px; flex: none; }
 .tn-decision > .tn-box .tn-ico, .k-dec { background: var(--c1); border-radius: 2px; }
 .tn-chance > .tn-box .tn-ico, .k-chance { background: var(--c2); border-radius: 50%; }
