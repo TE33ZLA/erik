@@ -275,3 +275,86 @@ How to write a lesson for a beginner:
    checks 1–3 `mistakes` for the classic slips.
 6. End with a `recap` card: the 3–5 things to remember, and the exam trap to avoid.
 7. A lesson is 6–12 cards (about 5 minutes). Aim for one lesson per battle, placed right before it.
+
+## Pictures (`viz`)
+
+Players are dyslexic, so every **learn** card should carry a picture that *explains* its idea. A picture is not
+decoration: it shows the mechanism in the words above it (money growing, money moving back in time, one bar split into
+tax and profit, two things compared). The picture sits under the card's paragraphs; its caption says what to notice.
+
+Add `viz` to a card (or a question): one spec, or a list of up to 3 specs that sit side by side (they stack on phones).
+Mark the lesson's most important picture with `key: true`: the recap card shows it again under "The picture to remember".
+Drawn by `js/lib/viz.js`; checked by `tests/validate.js` (`REQUIRE_VIZ=1 node tests/validate.js` fails on any learn card
+without a picture).
+
+Rules:
+
+- **Caption** (`cap`, required): one short sentence of what to notice, plain words, LaTeX for maths, 20 words at most.
+  "The aqua part is **interest on interest**. It grows every year." Never repeat the card's paragraph.
+- **Numbers must be right.** Compute them in code from the same inputs as the text (the pack files are JavaScript), for
+  example `bars: [0, 1, 2, 3].map((t) => ({ label: 'Year ' + t, v: 1000 * 1.08 ** t }))`.
+- **Colours keep one meaning** across the game: `1` blue = the starting amount or money now; `2` orange = interest, growth,
+  the extra, the cost; `3` aqua = the result or the new thing; `'good'` / `'bad'` = accept / reject, cash in / cash out,
+  gain / loss; `'grey'` = context. Use at most three of 1-5 in one picture.
+- **Chart labels are plain text** (SVG cannot show KaTeX). `^{5}`, `_{E}`, `\times`, `\$` and `{,}` are converted for you;
+  anything else is an error. Keep category labels short (one or two short words) and charts to 6 bars or fewer, so they
+  fit a phone. HTML pictures (`flow`, `compare`, `cards`, `split`, `pie` legends, `anatomy`) take full rich text and LaTeX.
+- `[[ctrl]]` in rich text draws a calculator key.
+- Check it: `node tools/lesson-pics.js w1 w1-L3` writes a screenshot of every picture in that lesson at desktop and
+  phone width (see the file for options). Look at both.
+
+Pick the type from the idea:
+
+| The idea | Type |
+|---|---|
+| an amount growing, shrinking, or split into parts over years; comparing sizes | `bars` (stack `parts` to show what the extra is made of) |
+| money moving between dates (compounding forward, discounting back), periods to count | `tl` with `moves` / `spans` |
+| a relationship: price vs yield, NPV vs rate, cost vs units, risk vs number of shares | `lines` (`marks`, `vlines`, `hlines`, `shade`) |
+| how two things move together | `scatter` (up to 3 side by side) |
+| spread / risk | `bell` |
+| a total built from pluses and minuses (FCF, NPV build-up) | `waterfall` |
+| per cent, probability, weights | `grid100`, `split`, `pie` |
+| a formula | `anatomy` (colour each symbol, say what it means) |
+| a rule or a process in steps; a conversion | `flow` (`op: true` for × ÷ = between boxes) |
+| two choices, before/after, right vs wrong | `compare` (`mark: 'good'` / `'bad'`) |
+| a list of 2-6 separate ideas (traps, reasons, types) | `cards` (last resort: prefer a real diagram) |
+| benefits against costs; a fair price | `balance` |
+| one thing up, the other down | `seesaw` |
+| a repeating process (cash cycle) | `cycle` |
+| a decision rule with a cut-off (accept if IRR > k) | `numline` (`zones`, `marks`) |
+| what the calculator screen shows | `tiscreen` |
+| a decision tree, a table, an NPV profile, the SML | `tree`, `table`, `npv`, `sml` |
+
+One example of each (see `js/lib/viz.js` for every field):
+
+```js
+viz: { type: 'bars', fmt: '$', cap: 'The aqua part is **interest on interest**. It grows every year.',
+  bars: [0, 1, 2, 3].map((t) => ({ label: t ? 'Year ' + t : 'Today', parts: [{ v: 1000, c: 1 }, { v: 80 * t, c: 2 }, { v: 1000 * (1.08 ** t - 1) - 80 * t, c: 3 }] })),
+  keys: [{ c: 1, label: 'Your $1,000' }, { c: 2, label: 'Interest on the $1,000' }, { c: 3, label: 'Interest on interest' }] }
+viz: { type: 'bars', fmt: '$', sign: true, line: { v: 0, label: 'Paid back' }, cap: '…',
+  bars: [['Start', -1000], ['Yr 1', -600], ['Yr 2', -250], ['Yr 3', 50]].map(([label, v]) => ({ label, v })) }
+viz: { type: 'tl', cfs: [-1000, 300, 400, 500], moves: [{ from: 3, to: 0, label: '÷ 1.1^3', c: 2 }], spans: [{ from: 0, to: 3, label: 'n = 3 periods' }], dim: [], cap: '…' }
+viz: { type: 'lines', x: { label: 'Market rate', fmt: '%' }, y: { label: 'Bond price', fmt: '$' },
+  series: [{ name: '10-year bond', c: 1, pts: [[2, 1359], [6, 1000], [10, 754]] }], marks: [{ x: 6, y: 1000, label: 'Par' }], cap: '…' }
+viz: [{ type: 'scatter', title: 'Positive', sets: [{ c: 1, fit: true, pts: [[1, 2], [2, 3], [3, 4]] }], cap: '…' }, /* up to 3 */]
+viz: { type: 'bell', fmt: '%', curves: [{ mean: 10, sd: 5, name: 'Low risk', c: 1 }, { mean: 10, sd: 15, name: 'High risk', c: 2 }], band: true, cap: '…' }
+viz: { type: 'waterfall', fmt: '$', steps: [{ label: 'EBIT', v: 500, total: true }, { label: 'Tax', v: -150 }, { label: 'Add dep.', v: 100 }, { label: 'Capex', v: -200 }, { label: 'FCF', total: true }], cap: '…' }
+viz: { type: 'grid100', parts: [{ n: 25, c: 2, label: '25 out of 100 = 25%' }], cap: '…' }
+viz: { type: 'split', total: 'Each \\(\\$1\\) of profit', fmt: '$', dp: 2, parts: [{ label: 'Tax (30%)', v: 0.3, c: 'bad' }, { label: 'You keep', v: 0.7, c: 3 }], cap: '…' }
+viz: { type: 'split', scale: 'abs', fmt: '%', rows: [{ label: 'One share', parts: [{ label: 'Market risk', v: 20, c: 1 }, { label: 'Company risk', v: 25, c: 2 }] }, { label: '30 shares', parts: [{ label: 'Market risk', v: 20, c: 1 }, { label: 'Company risk', v: 3, c: 2 }] }], cap: '…' }
+viz: { type: 'pie', arrow: '=', pies: [{ title: 'All equity', center: '$10m', parts: [{ label: 'Equity', v: 10, c: 1, show: '$10m' }] }, { title: 'Half debt', center: '$10m', parts: [{ label: 'Equity', v: 5, c: 1 }, { label: 'Debt', v: 5, c: 2 }] }], cap: '…' }
+viz: { type: 'anatomy', tex: '\\colA{FV} = \\colB{PV} \\times (1 + \\colC{r})^{\\colD{n}}', cap: '…',
+  parts: [{ sym: 'FV', say: 'future value: what it grows to' }, { sym: 'PV', say: 'what you put in today' }, { sym: 'r', say: 'the rate for one period' }, { sym: 'n', say: 'the number of periods' }] }
+viz: { type: 'flow', steps: [{ t: '\\(25\\%\\)', s: 'a percentage', icon: '💯' }, { t: '\\(0.25\\)', s: 'a decimal', c: 3 }], links: ['\\(\\div 100\\)'], cap: '…' }
+viz: { type: 'flow', op: true, steps: [{ t: '\\(1.1\\)' }, { t: '\\(1.1\\)' }, { t: '\\(1.21\\)', c: 2 }], links: ['\\(\\times\\)', '\\(=\\)'], cap: '…' }
+viz: { type: 'compare', items: [{ icon: '💵', title: 'Today', big: '\\(\\$100\\)', points: ['Can earn interest now'], mark: 'good', markText: 'Worth more' }, { icon: '⏳', title: 'In one year', big: '\\(\\$100\\)', points: ['You wait'] }], cap: '…' }
+viz: { type: 'cards', items: [{ icon: '🔀', t: 'Multiple IRRs', s: 'Signs change twice' }, { icon: '📏', t: 'Scale', s: 'Small project, big IRR' }], cap: '…' }
+viz: { type: 'balance', tilt: 'left', left: { icon: '💰', label: 'PV of cash in', sub: '$1,200', c: 'good' }, right: { icon: '🏗️', label: 'Cost today', sub: '$1,000', c: 'bad' }, note: 'NPV = +\\(\\$200\\)', cap: '…' }
+viz: { type: 'seesaw', down: 'right', left: { icon: '📈', label: 'Interest rates' }, right: { icon: '💵', label: 'Bond prices' }, cap: '…' }
+viz: { type: 'cycle', center: 'Operating\ncycle', steps: [{ t: 'Buy stock', icon: '📦' }, { t: 'Sell on credit', icon: '🧾' }, { t: 'Collect cash', icon: '💰' }], cap: '…' }
+viz: { type: 'numline', min: 0, max: 30, fmt: '%', zones: [{ from: 0, to: 12, c: 'bad', label: 'Reject' }, { from: 12, to: 30, c: 'good', label: 'Accept' }], marks: [{ v: 12, label: 'k = 12%', c: 1 }, { v: 18, label: 'IRR = 18%', c: 2 }], cap: '…' }
+viz: { type: 'tiscreen', lines: [{ in: '3/8', out: '3/8' }, { say: 'Press [[ctrl]] [[enter]] for a decimal:' }, { in: '3/8', out: '0.375' }], cap: '…' }
+```
+
+`fmt` for numbers: `'$'` money, `'%'` percentage points (write `8.5` for 8.5%), `'x'` times, otherwise a plain number;
+`dp` fixes the decimals.

@@ -173,15 +173,24 @@
       const size = el.querySelector('#set-size'), rate = el.querySelector('#set-rate');
       size.addEventListener('input', () => { st.size = +size.value; el.querySelector('#size-val').textContent = Math.round(st.size * 100) + '%'; GAME.applySettings(); GAME.store.save(); });
       rate.addEventListener('input', () => { st.rate = +rate.value; el.querySelector('#rate-val').textContent = st.rate.toFixed(2) + '×'; GAME.store.save(); });
-      const vs = el.querySelector('#set-voice');
+      const vs = el.querySelector('#set-voice'), vhelp = el.querySelector('#voice-help');
+      const V = root.VOICE;
       const fill = () => {
-        const voices = (root.speechSynthesis && root.speechSynthesis.getVoices()) || [];
-        const en = voices.filter((v) => /^en/i.test(v.lang));
-        vs.innerHTML = `<option value="">Automatic (English, Australian if available)</option>` + en.map((v) => `<option value="${esc(v.name)}"${v.name === st.voice ? ' selected' : ''}>${esc(v.name)} (${esc(v.lang)})</option>`).join('');
+        if (!vs.isConnected) return;
+        const en = V.list(V.voices());
+        const best = en[0];
+        const opt = (v) => `<option value="${esc(v.name)}"${v.name === st.voice ? ' selected' : ''}>${esc(V.label(v))}</option>`;
+        const nat = en.filter(V.isNatural), old = en.filter((v) => !V.isNatural(v));
+        vs.innerHTML = `<option value="">Automatic${best ? ': ' + esc(V.label(best)) : ''}</option>`
+          + (nat.length ? `<optgroup label="Most natural">${nat.map(opt).join('')}</optgroup>` : '')
+          + (old.length ? `<optgroup label="Older style">${old.map(opt).join('')}</optgroup>` : '');
+        const using = V.pick(st.voice);
+        vhelp.innerHTML = !en.length ? 'Your browser has no English voices, so read-aloud may not work here.'
+          : using && V.isNatural(using) ? `✨ Using <b>${esc(V.label(using))}</b>, one of the most natural voices on this device.`
+            : `This device only offers older, robotic-sounding voices. For a voice that sounds like a real person:<br>• On a computer, open the game in <b>Microsoft Edge</b>. It has free “Natural” voices.<br>• On an iPhone, iPad or Mac, download a better voice: <b>Settings → Accessibility → Spoken Content</b> (on a Mac: <b>Read &amp; Speak</b>) <b>→ Voices → English</b>, then pick one marked <b>Enhanced</b> or <b>Premium</b>. Reload the game afterwards.<br>• On Android, install <b>Speech Recognition &amp; Synthesis from Google</b> and choose it as the text-to-speech engine.`;
       };
-      fill();
-      if (root.speechSynthesis) root.speechSynthesis.onvoiceschanged = fill;
-      vs.addEventListener('change', () => { st.voice = vs.value; GAME.store.save(); });
+      V.onVoices(fill);
+      vs.addEventListener('change', () => { st.voice = vs.value; GAME.store.save(); fill(); });
     };
     return `<section class="page settings">
       <header class="page-head"><button class="linkbtn" data-act="goto-tower">← Tower</button><h1>Settings</h1><p>Make the game comfortable to read. Changes apply straight away.</p></header>
@@ -201,7 +210,7 @@
         <div class="set-row">${toggle('sound', st.sound, 'Sound effects')}</div>
         <div class="set-row">${toggle('autoRead', st.autoRead, 'Read each question aloud automatically')}</div>
         <div class="set-row"><label class="set-lbl" for="set-rate">Reading speed <b id="rate-val">${(st.rate || 0.9).toFixed(2)}×</b></label><input type="range" id="set-rate" min="0.6" max="1.3" step="0.05" value="${st.rate || 0.9}"></div>
-        <div class="set-row"><label class="set-lbl" for="set-voice">Voice</label><select id="set-voice"></select></div>
+        <div class="set-row"><label class="set-lbl" for="set-voice">Voice</label><select id="set-voice"></select><p class="small voice-help" id="voice-help"></p></div>
         <div class="set-row"><button class="btn" data-act="test-voice">🔊 Test the voice</button></div>
       </section>
       <section class="card"><h2>Play</h2>
@@ -307,7 +316,7 @@
       const again = document.querySelector(`[data-act="set"][data-k="${k}"]${typeof v === 'boolean' ? '' : `[data-v="${String(v)}"]`}`);
       if (again) again.focus({ preventScroll: true });
     },
-    'test-voice': () => UI.speak('The present value of an annuity is C over r, times one minus one over one plus r to the power of n.'),
+    'test-voice': () => UI.speak(`Hi ${S().name || 'there'}! This is the voice that will read your lessons. A dollar today is worth more than a dollar next year, because today's dollar can earn interest.`),
     'save-copy': () => {
       const code = GAME.store.exportCode();
       const ta = document.getElementById('save-code');

@@ -192,23 +192,15 @@
     },
     speaking: false,
     speak(text) {
-      const synth = root.speechSynthesis;
-      if (!synth) { UI.toast('Read-aloud is not available in this browser.'); return; }
-      if (UI.speaking) { synth.cancel(); UI.speaking = false; document.documentElement.classList.remove('speaking'); return; }
-      const u = new root.SpeechSynthesisUtterance(text);
-      u.rate = store.state.settings.rate || 0.9;
-      u.lang = 'en-AU';
-      const voices = synth.getVoices ? synth.getVoices() : [];
-      const want = store.state.settings.voice;
-      const v = voices.find((x) => x.name === want) || voices.find((x) => /en[-_]AU/i.test(x.lang)) || voices.find((x) => /^en/i.test(x.lang));
-      if (v) u.voice = v;
-      u.onend = u.onerror = () => { UI.speaking = false; document.documentElement.classList.remove('speaking'); };
-      synth.cancel();
+      if (UI.speaking) { UI.stopSpeaking(); return; }
+      const done = () => { UI.speaking = false; document.documentElement.classList.remove('speaking'); };
+      // the most natural voice on this device unless the player chose one (js/lib/voice.js)
+      const ok = root.VOICE.speak(text, { voice: store.state.settings.voice, rate: store.state.settings.rate || 0.9, onend: done });
+      if (!ok) { UI.toast('Read-aloud is not available in this browser.'); return; }
       UI.speaking = true;
       document.documentElement.classList.add('speaking');
-      synth.speak(u);
     },
-    stopSpeaking() { if (root.speechSynthesis) root.speechSynthesis.cancel(); UI.speaking = false; document.documentElement.classList.remove('speaking'); },
+    stopSpeaking() { root.VOICE.stop(); UI.speaking = false; document.documentElement.classList.remove('speaking'); },
     confetti(opts) {
       if (document.documentElement.classList.contains('reduce-motion') || typeof root.confetti !== 'function') return;
       try { root.confetti(Object.assign({ particleCount: 90, spread: 70, origin: { y: 0.6 }, disableForReducedMotion: true, colors: ['#2451b7', '#f2c14e', '#1e8a4c', '#e0487a', '#3fa7e0'] }, opts || {})); } catch (e) { /* ignore */ }

@@ -12,12 +12,14 @@ const onlyIdx = args.indexOf('--only');
 const ONLY = onlyIdx >= 0 ? new Set(args[onlyIdx + 1].split(',')) : null; // e.g. --only w2,w3
 const katexPath = (args[0] && !args[0].startsWith('--') ? args[0] : null) || process.env.KATEX_PATH || 'katex';
 globalThis.katex = require(katexPath);
-for (const f of ['js/lib/fin.js', 'js/lib/fmt.js', 'js/lib/render.js', 'js/lib/qcore.js', 'js/lib/nspire.js', 'js/lib/tiview.js', 'js/data/formulas.js', 'js/data/registry.js']) require(path.join(ROOT, f));
+for (const f of ['js/lib/fin.js', 'js/lib/fmt.js', 'js/lib/render.js', 'js/lib/qcore.js', 'js/lib/charts.js', 'js/lib/nspire.js', 'js/lib/tiview.js', 'js/lib/viz.js', 'js/data/formulas.js', 'js/data/registry.js']) require(path.join(ROOT, f));
 const packFiles = fs.readdirSync(path.join(ROOT, 'js/data')).filter((f) => /^w[\dx]+\.js$/.test(f)).filter((f) => !ONLY || ONLY.has(f.replace('.js', ''))).sort();
 for (const f of packFiles) require(path.join(ROOT, 'js/data', f));
 
 const { PACKS, FORMULAS, RENDER, makeRng, QCORE, NSPIRE, TIVIEW } = globalThis;
 const REQUIRE_TI = process.env.REQUIRE_TI !== '0'; // every calculation question needs a TI-Nspire method
+const REQUIRE_VIZ = process.env.REQUIRE_VIZ === '1'; // every learn card needs a picture
+const vizStats = {};
 const UNITS = new Set(['$', '%', 'yrs', 'days', 'units', 'x', '', '$m']);
 const BODIES = new Set(['blob', 'ghost', 'box', 'coin', 'spiky', 'tall', 'round']);
 const ACCS = new Set(['tophat', 'crown', 'horns', 'monocle', 'glasses', 'shades', 'bowtie', 'tie', 'pirate', 'antenna', 'halo', 'cap', 'bandana', 'mustache', 'wizard', 'hardhat', 'headset', 'leaf']);
@@ -48,7 +50,28 @@ function checkTexRaw(where, tex) {
   try { globalThis.katex.renderToString(tex, { throwOnError: true, strict: 'ignore' }); }
   catch (e) { err(where, `KaTeX: ${e.message.split('\n')[0]} in «${String(tex).slice(0, 100)}»`); }
 }
+/** Every rich-text string inside a picture spec (captions, step text, labels shown as HTML). */
+function vizTexts(v) {
+  const out = [];
+  [].concat(v || []).forEach((s) => {
+    if (!s) return;
+    out.push(s.cap, s.title, s.total, s.note);
+    (s.steps || []).forEach((x) => out.push(x.t, x.s));
+    (s.links || []).forEach((x) => out.push(x));
+    (s.items || []).forEach((x) => { out.push(x.title, x.big, x.t, x.s, x.markText); (x.points || []).forEach((p) => out.push(p)); });
+    (s.keys || []).forEach((k) => out.push(k.label));
+    (s.parts || []).forEach((p) => out.push(p.label, p.show, p.note, p.say));
+    (s.rows || []).forEach((r) => { out.push(r.label); (r.parts || []).forEach((p) => out.push(p.label, p.show, p.note)); });
+    (s.pies || []).forEach((p) => { out.push(p.title); (p.parts || []).forEach((x) => out.push(x.label, x.show)); });
+    (s.lines || []).forEach((l) => out.push(l.say));
+  });
+  return out.filter((x) => typeof x === 'string').map((x) => x.replace(/\[\[([^\]]+)\]\]/g, '$1'));
+}
 function checkVisuals(where, q) {
+  if (q.viz) {
+    VIZ.check(q.viz).forEach((m) => err(where + '.viz', m));
+    vizTexts(q.viz).forEach((t, i) => checkTex(`${where}.viz[text ${i}]`, t));
+  }
   if (q.tl) {
     const tl = q.tl;
     const n = tl.cfs ? tl.cfs.length - 1 : tl.n;
@@ -185,6 +208,12 @@ function checkLesson(where, pack, L) {
   L.cards.forEach((c, i) => {
     const w = `${where}.card${i}`;
     if (!CARD_KINDS.has(c.kind)) { err(w, `unknown card kind ${c.kind}`); return; }
+    if (c.kind === 'learn') {
+      const vs = vizStats[pack.id] || (vizStats[pack.id] = { learn: 0, pic: 0 });
+      vs.learn++;
+      if (c.viz || c.tl || c.table || c.chart || c.tree || c.ti) vs.pic++;
+      else if (REQUIRE_VIZ) err(w, 'learn card has no picture (viz)');
+    }
     ['title', 'body', 'tip', 'q', 'answer', 'intro'].forEach((k) => { if (typeof c[k] === 'string') checkTex(`${w}.${k}`, c[k]); });
     (c.points || []).forEach((p, j) => checkTex(`${w}.points[${j}]`, p));
     if (c.formula && !FORMULAS.byId[c.formula]) err(w, `unknown formula ${c.formula}`);
@@ -320,7 +349,7 @@ for (const pack of PACKS) {
   (pack.generators || []).forEach((g) => { let q = null; try { q = g.make(makeRng(12345)); } catch (e) { /* reported above */ } if (q && (q.kind || 'num') === 'num') { genNum++; if (q.ti) genTI++; else if (REQUIRE_TI) err(`${P}.${g.id}`, 'calculation generator has no TI-Nspire method (ti)'); } });
   const t = tiStats[P] || { calc: 0, ti: 0, missing: [] };
   if (REQUIRE_TI) t.missing.forEach((w) => err(w, 'calculation question has no TI-Nspire method (ti)'));
-  summary.push(`${P.padEnd(4)} floor ${pack.floor}  static ${String(nStatic).padStart(3)} (A ${secA}, B ${secB}; L1 ${byLevel[1]} L2 ${byLevel[2]} L3 ${byLevel[3]})  generators ${String(nGen).padStart(2)}  nodes ${pack.nodes.length}  lessons ${lessonIds.length}  TI ${t.ti + genTI}/${t.calc + genNum}`);
+  summary.push(`${P.padEnd(4)} floor ${pack.floor}  static ${String(nStatic).padStart(3)} (A ${secA}, B ${secB}; L1 ${byLevel[1]} L2 ${byLevel[2]} L3 ${byLevel[3]})  generators ${String(nGen).padStart(2)}  nodes ${pack.nodes.length}  lessons ${lessonIds.length}  TI ${t.ti + genTI}/${t.calc + genNum}  pictures ${(vizStats[P] || { pic: 0 }).pic}/${(vizStats[P] || { learn: 0 }).learn}`);
 }
 
 console.log(summary.join('\n'));

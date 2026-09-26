@@ -12,9 +12,17 @@
     return String(v);
   }
 
-  /* ---------------- timeline ---------------- */
+  /* ---------------- timeline ----------------
+   * tl: {cfs:[…]} or {n, at:{t:v}}, plus optional hi:[t], labels:{t:'text'}, unit,
+   *     moves:[{from, to, label, c}]  arrows that carry money between dates (compounding or discounting),
+   *     spans:[{from, to, label, c, row}]  brackets under the line (periods, stretches of time),
+   *     dim:[t]  values drawn faintly (for example, cash flows a rule ignores). */
   function timeline(tl, opts) {
     opts = opts || {};
+    const V = root.VIZ;
+    const svgT = (x) => (V ? V.svgT(x) : esc(x));
+    const kc = (c, i) => ({ 1: 'k1', 2: 'k2', 3: 'k3', 4: 'k4', 5: 'k5', good: 'kg', bad: 'kb', grey: 'kn' })[c] || ['k2', 'k1', 'k3'][(i || 0) % 3];
+    const moves = tl.moves || [], spans = tl.spans || [], dim = new Set((tl.dim || []).map(Number));
     let n, at = {};
     if (Array.isArray(tl.cfs)) { n = tl.cfs.length - 1; tl.cfs.forEach((v, t) => { if (v !== '' && v !== null && v !== undefined) at[t] = v; }); }
     else { n = tl.n; at = Object.assign({}, tl.at || {}); }
@@ -26,15 +34,28 @@
       const s = new Set([0, 1, 2, n - 1, n]);
       Object.keys(at).forEach((k) => s.add(+k));
       hi.forEach((k) => s.add(k));
+      moves.concat(spans).forEach((m) => { s.add(+m.from); s.add(+m.to); });
       ticks = [...s].filter((k) => k >= 0 && k <= n).sort((a, b) => a - b);
     }
     const longest = Math.max(4, ...ticks.map((t) => Math.max(fmtVal(at[t] === undefined ? '' : at[t]).length, String(labels[t] === undefined ? t : labels[t]).length)));
     const gap = Math.max(58, longest * 7.4 + 14);
     const padL = 34, padR = 36;
     const W = Math.round(padL + padR + gap * (ticks.length - 1) + 20);
-    const H = 104, Y = 62;
+    // arrows above the line stack in levels so they never cross; brackets below stack in rows
+    const lv = [];
+    moves.forEach((m) => {
+      const a = Math.min(m.from, m.to), b = Math.max(m.from, m.to);
+      let L = 0;
+      while (lv.some((o) => o.L === L && !(b <= o.a || a >= o.b))) L++;
+      lv.push({ a, b, L });
+    });
+    const levels = lv.length ? Math.max(...lv.map((o) => o.L)) + 1 : 0;
+    const Y = 62 + (levels ? 22 + levels * 34 : 0);
+    const rows = spans.length ? Math.max(...spans.map((sp) => sp.row || 0)) + 1 : 0;
+    const H = Y + 42 + (rows ? rows * 36 + 4 : 0);
     const x = (i) => padL + 10 + i * gap;
-    let s = `<svg class="tl-svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Cash flow timeline">`;
+    const xt = (t) => { const i = ticks.indexOf(+t); return i >= 0 ? x(i) : null; };
+    let s = `<svg class="tl-svg" viewBox="0 0 ${W} ${H}" style="width:100%;min-width:${Math.round(W * 0.8)}px;max-width:${W}px" role="img" aria-label="${esc(tl.alt || (V && moves.length ? V.describe(Object.assign({ type: 'tl' }, tl)) : 'Cash flow timeline'))}">`;
     s += `<line x1="${padL - 6}" y1="${Y}" x2="${W - padR + 20}" y2="${Y}" class="tl-axis"/>`;
     s += `<path d="M${W - padR + 20} ${Y} l-9 -5 v10 z" class="tl-arrow"/>`;
     ticks.forEach((t, i) => {
@@ -50,8 +71,26 @@
       s += `<text x="${cx}" y="${Y + 25}" class="tl-t${isHi ? ' hi' : ''}" text-anchor="middle">${esc(lab)}</text>`;
       if (at[t] !== undefined) {
         const v = fmtVal(at[t]);
-        s += `<text x="${cx}" y="${Y - 17}" class="tl-v${isHi ? ' hi' : ''}" text-anchor="middle">${esc(v)}</text>`;
+        s += `<text x="${cx}" y="${Y - 17}" class="tl-v${isHi ? ' hi' : ''}${dim.has(t) ? ' dim' : ''}" text-anchor="middle">${esc(v)}</text>`;
       }
+    });
+    moves.forEach((m, k) => {
+      const x0 = xt(m.from), x1 = xt(m.to);
+      if (x0 === null || x1 === null || x0 === x1) return;
+      const y0 = Y - 34, rise = 30 + lv[k].L * 34, mx = (x0 + x1) / 2, yc = y0 - 2 * rise;
+      const c = kc(m.c, k);
+      s += `<path d="M${x0} ${y0} Q${mx} ${yc} ${x1} ${y0}" class="tl-arc ${c}"/>`;
+      const a = Math.atan2(y0 - yc, x1 - mx), hs = 9;
+      const p = (dx, dy) => `${(x1 + dx * Math.cos(a) - dy * Math.sin(a)).toFixed(1)} ${(y0 + dx * Math.sin(a) + dy * Math.cos(a)).toFixed(1)}`;
+      s += `<path d="M${p(0, 0)} L${p(-hs, -hs * 0.55)} L${p(-hs, hs * 0.55)} Z" class="tl-arrowhead ${c}"/>`;
+      if (m.label) s += `<text x="${mx}" y="${y0 - rise - 6}" class="tl-mlab" text-anchor="middle">${svgT(m.label)}</text>`;
+    });
+    spans.forEach((sp, k) => {
+      const x0 = xt(sp.from), x1 = xt(sp.to);
+      if (x0 === null || x1 === null) return;
+      const y = Y + 44 + (sp.row || 0) * 36, c = kc(sp.c === undefined ? 1 : sp.c, k);
+      s += `<path d="M${x0 + 2} ${y - 7} V${y} H${x1 - 2} V${y - 7}" class="tl-span ${c}"/>`;
+      if (sp.label) s += `<text x="${(x0 + x1) / 2}" y="${y + 17}" class="tl-slab" text-anchor="middle">${svgT(sp.label)}</text>`;
     });
     s += `<text x="4" y="${Y + 25}" class="tl-unit">${esc(tl.unit || 't')}</text>`;
     s += '</svg>';
@@ -188,6 +227,7 @@
   /** Render every visual aid present on a question. */
   function visuals(q, opts) {
     let h = '';
+    if (q.viz && !(opts && opts.noViz) && root.VIZ) h += root.VIZ.render(q.viz, opts);
     if (q.tl) h += timeline(q.tl, opts);
     if (q.table) h += table(q.table, opts);
     if (q.chart && q.chart.type === 'npv') h += npvChart(q.chart);

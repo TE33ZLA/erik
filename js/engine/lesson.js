@@ -9,7 +9,7 @@
  */
 (function (root) {
   'use strict';
-  const { GAME, UI, QS, QVIEW, CHARTS, RENDER, SFX, QCORE, FMT, TIVIEW } = root;
+  const { GAME, UI, QS, QVIEW, CHARTS, RENDER, SFX, QCORE, FMT, TIVIEW, VIZ } = root;
   const esc = RENDER.esc;
   const S = () => GAME.store.state;
   let L = null;
@@ -87,13 +87,26 @@
 
   /* ---------------- cards ---------------- */
   function head(c) { return `<p class="lkind">${KIND[c.kind] || ''}</p>${c.title ? `<h2>${UI.rich(c.title)}</h2>` : ''}`; }
-  function extras(c) {
-    return `${CHARTS.visuals(c, { highlight: S().settings.hl })}${c.formula ? QVIEW.formulaCard(c.formula) : ''}${c.tip ? `<p class="ltip"><span aria-hidden="true">💡</span> ${UI.rich(c.tip)}</p>` : ''}`;
+  function extras(c, noViz) {
+    return `${CHARTS.visuals(c, { highlight: S().settings.hl, noViz })}${c.formula ? QVIEW.formulaCard(c.formula) : ''}${c.tip ? `<p class="ltip"><span aria-hidden="true">💡</span> ${UI.rich(c.tip)}</p>` : ''}`;
+  }
+  /** The picture on a card (js/lib/viz.js); it sits right under the words it explains. */
+  function pic(c) { return c.viz ? VIZ.render(c.viz, { highlight: false }) : ''; }
+  /** A recap card shows the lesson's key picture again (the one marked key: true, else the first). */
+  function keyViz(lesson) {
+    const cards = lesson.cards.filter((k) => k.viz && k.kind !== 'recap');
+    const marked = cards.find((k) => k.key || [].concat(k.viz).some((v) => v && v.key));
+    return (marked || cards[0] || {}).viz || null;
+  }
+  function recapPic(c) {
+    if (c.viz) return pic(c);
+    const v = keyViz(L.lesson);
+    return v ? `<div class="lrecap-pic"><p class="lkind">The picture to remember</p>${VIZ.render(v, { highlight: false })}</div>` : '';
   }
   function cardHTML(c, st) {
-    if (c.kind === 'learn') return `<article class="lcard learn">${head(c)}${paras(c.body)}${points(c.points)}${extras(c)}${c.ti ? TIVIEW.html(c.ti) : ''}</article>`;
-    if (c.kind === 'ti') return `<article class="lcard ti-card">${head(c)}${paras(c.body)}${TIVIEW.html(c.ti)}${extras(c)}</article>`;
-    if (c.kind === 'recap') return `<article class="lcard recap">${head(c)}${paras(c.body)}${points(c.points)}${extras(c)}</article>`;
+    if (c.kind === 'learn') return `<article class="lcard learn">${head(c)}${paras(c.body)}${pic(c)}${points(c.points)}${extras(c, true)}${c.ti ? TIVIEW.html(c.ti) : ''}</article>`;
+    if (c.kind === 'ti') return `<article class="lcard ti-card">${head(c)}${paras(c.body)}${pic(c)}${TIVIEW.html(c.ti)}${extras(c, true)}</article>`;
+    if (c.kind === 'recap') return `<article class="lcard recap">${head(c)}${paras(c.body)}${points(c.points)}${recapPic(c)}${extras(c, true)}</article>`;
     if (c.kind === 'example') {
       const n = st.shown || 0;
       const steps = c.steps.slice(0, n).map((s) => `<li>${UI.rich(s)}</li>`).join('');
@@ -257,6 +270,8 @@
     const st = L.st[L.i] || {};
     let t = (KIND[c.kind] || '') + '. ' + (c.title ? UI.say(c.title) + '. ' : '');
     if (c.body) t += UI.say(c.body) + ' ';
+    const v = c.viz || (c.kind === 'recap' ? keyViz(L.lesson) : null);
+    if (v && VIZ.speech(v)) t += 'In the picture: ' + VIZ.speech(v) + ' ';
     if (c.points) t += c.points.map((p) => UI.say(p)).join('. ') + '. ';
     if (c.kind === 'example') { t += UI.say(c.q) + '. ' + c.steps.slice(0, st.shown || 0).map((x) => UI.say(x)).join('. '); if ((st.shown || 0) >= c.steps.length && c.answer) t += '. ' + UI.say(c.answer); }
     if (c.kind === 'check' && st.q) t += QVIEW.speechFor(st.q);

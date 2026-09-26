@@ -112,8 +112,9 @@
   function texToSpeech(tex) {
     let s = String(tex);
     s = s.replace(/\{,\}/g, ',');
-    s = s.replace(/-\\\$\s*([\d,]+(?:\.\d+)?)/g, ' minus $1 dollars ');
-    s = s.replace(/\\\$\s*([\d,]+(?:\.\d+)?)/g, ' $1 dollars ');
+    // "$1,338.23" lets the voice say "one thousand three hundred and thirty-eight dollars and twenty-three cents"
+    s = s.replace(/-\\\$\s*([\d,]+(?:\.\d+)?)/g, ' minus $$$1 ');
+    s = s.replace(/\\\$\s*([\d,]+(?:\.\d+)?)/g, ' $$$1 ');
     s = s.replace(/\\\$/g, ' dollars ');
     s = s.replace(/\\%/g, ' percent');
     s = s.replace(/\\[,;:! ]/g, ' ');
@@ -167,7 +168,7 @@
     const text = (v) => v.replace(/\*\*/g, '').replace(/\\n/g, '\n').replace(/\s*•\s*/g, '\n')
       .replace(/([.:;!?…])?[ \t]*\n+\s*/g, (m, p) => (p || '.') + ' ');
     return segments(s).map((seg) => (seg.type === 'text' ? text(seg.v) : ' ' + texToSpeech(seg.v) + ' '))
-      .join('').replace(/\s+/g, ' ').trim();
+      .join('').replace(/\s+/g, ' ').replace(/\s+([.,;:!?])/g, '$1').trim();
   }
 
   root.RENDER = { rich, speech, segments, texToSpeech, esc, mathHTML, KATEX_OPTS };
