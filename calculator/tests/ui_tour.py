@@ -1,0 +1,37 @@
+"""Drive the app through its screens on the mock calculator and save screenshots (for checking by eye).
+   python3 calculator/tests/ui_tour.py <out dir>"""
+import os, sys
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(HERE, 'mock'))
+from nspire_mock import NspireApp, render_pngs
+out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, '..', 'build', 'tour')
+app = NspireApp(open(os.path.join(HERE, '..', 'build', 'bfc2140_solver.lua')).read())
+frames, names = [], []
+def shot(name): frames.append(app.svg()); names.append(name)
+k, typ = app.key, app.type
+shot('home')
+k('charIn', 'f'); shot('finder-root')
+for _ in range(7): k('arrowKey', 'down')
+shot('finder-root-risk')
+k('enterKey'); shot('finder-risk')
+k('enterKey'); shot('breakeven-input')
+typ('250000'); k('arrowKey', 'down'); k('arrowKey', 'down'); typ('110'); k('arrowKey', 'down'); typ('80')
+for _ in range(6): k('arrowKey', 'down')
+typ('12'); k('arrowKey', 'down'); typ('8'); shot('breakeven-filled')
+k('enterKey'); shot('breakeven-result')
+for _ in range(8): k('arrowKey', 'down')
+shot('breakeven-result-scrolled')
+k('escapeKey'); k('escapeKey'); shot('week4-menu')
+k('escapeKey'); k('charIn', '6'); shot('week9-menu')
+k('charIn', '3'); typ('2'); k('arrowKey', 'down'); typ('10'); k('arrowKey', 'down'); k('arrowKey', 'down'); typ('1.55'); k('arrowKey', 'down'); typ('13.4')
+shot('capm-filled'); k('enterKey'); shot('capm-result')
+k('escapeKey'); k('escapeKey'); k('escapeKey'); k('charIn', 's'); typ('coupon'); shot('search-coupon')
+k('deleteKey'); typ('2/10'); shot('search-2-10')
+k('enterKey'); shot('search-open-tradecredit')
+k('escapeKey'); k('escapeKey'); k('charIn', '1'); k('enterKey'); shot('lump-input')
+k('arrowKey', 'down'); k('arrowKey', 'down'); shot('lump-input-rate-hint')
+k('escapeKey'); k('escapeKey'); k('charIn', 'h'); shot('help')
+k('escapeKey'); k('charIn', 't'); shot('theory-list')
+render_pngs(frames, out, 'f')
+for i, n in enumerate(names): os.rename(os.path.join(out, f'f{i:02d}.png'), os.path.join(out, f'{i:02d}-{n}.png'))
+print(len(frames), 'screens ->', out)
