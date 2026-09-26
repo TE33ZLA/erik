@@ -4,3 +4,4 @@ node_modules/
 /artifact/
 /tmp-pics/
 /calculator/build/
+__pycache__/
