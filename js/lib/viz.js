@@ -207,7 +207,7 @@
     if (YA.max === undefined) y1 += pad;
     const xt = X.ticks || niceTicks(x0, x1, s.xTicks || 5), yt = YA.hide ? [] : YA.ticks || niceTicks(y0, y1, 4);
     const yLab = (v) => num(v, YA.fmt, YA.dp);
-    const W = s.w || (s._small ? 260 : 400), H = s.h || (s._small ? 220 : 250);
+    const W = s.w || (s._small ? 260 : 370), H = s.h || (s._small ? 220 : 240);
     const mL = YA.hide ? 16 : 14 + Math.max(...yt.map((v) => yLab(v).length), 2) * 8;
     const hasEnd = series.some((se) => se.name && se.label !== false) && s.endLabels !== false;
     const endW = hasEnd ? Math.min(140, 26 + Math.max(...series.map((se) => plain(se.name || '').length)) * 8.4) : 0;
@@ -384,7 +384,7 @@
     return `<div class="vz-bar" style="width:${width || 100}%">${parts.map((p, i) => {
       const share = Math.abs(+p.v || 0) / T;
       const txt = p.show !== undefined ? p.show : num(+p.v, s.fmt, s.dp);
-      return `<span class="vz-seg ${kc(p.c !== undefined ? p.c : i + 1, i)}" style="flex:${Math.abs(+p.v || 0)} 1 0">${share >= 0.2 && txt !== '' ? `<b>${vrich(txt)}</b>` : ''}</span>`;
+      return `<span class="vz-seg ${kc(p.c !== undefined ? p.c : i + 1, i)}" style="flex:${r1(share * 1000)} 1 0">${share >= 0.2 && txt !== '' ? `<b>${vrich(txt)}</b>` : ''}</span>`;
     }).join('')}</div>`;
   }
   function split(s) {
