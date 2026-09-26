@@ -50,12 +50,22 @@ Other features:
 - 🌙 Smart Review targets your weakest topics. 📊 Performance Review shows mastery by topic.
 - 🏦 A savings vault that pays compound interest after each win. Pick the account with the highest EAR.
 
+## The calculator solver (TI-Nspire CX CAS)
+
+`calculator/BFC2140_SOLVER.tns` is a companion app for the calculator itself: every question type of Weeks 1-11,
+a question finder, a search box, theory and what-if pages for the questions without numbers, and the exact TI Finance
+Solver boxes to check each answer. See [`calculator/README.md`](calculator/README.md) for installing and using it.
+
 ## Built for dyslexic readers
 
 - All maths is typeset in LaTeX (KaTeX).
 - Fonts: **Lexend** (default), **Atkinson Hyperlegible**, or **OpenDyslexic**.
 - Adjustable text size, line spacing and letter spacing. Paper tints (ledger green, cream, pale blue, peach, white) and a dark theme.
-- **Read aloud** on every lesson card, question, answer and briefing section (browser speech), with speed and voice settings.
+- **Read aloud** on every lesson card, question, answer and briefing section. It picks the most natural voice the device has
+  (Microsoft Edge "Natural" voices, Apple "Premium"/"Enhanced" voices, Google voices) and reads one sentence at a time;
+  Settings lists the voices and explains how to get a more natural one.
+- **Pictures on every lesson card**: growth bars, timelines with arrows that move money, colour-coded formulas,
+  balances, seesaws, comparisons and more, each with a "what to notice" caption.
 - Lessons show one idea at a time, reveal worked examples one step at a time, and never time you.
 - Numbers in questions are highlighted, and a **Given** panel lists each value in LaTeX.
 - No timers in battles. Mini-game timers can be relaxed or switched off. Reduced motion is respected.

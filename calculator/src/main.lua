@@ -4346,7 +4346,7 @@ if platform then
     bar(gc, title, hint)
     local y = 24
     local i = scroll + 1
-    while i <= #lines and y < SH - 16 do
+    while i <= #lines and y <= SH - 28 do   -- stop before the key line at the bottom
       local ln = lines[i]
       local kind = type(ln) == "table" and ln.kind or "text"
       local text = type(ln) == "table" and ln.text or ln
