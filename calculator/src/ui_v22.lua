@@ -111,6 +111,17 @@
       scr = "tpage"
       inval()
     end
+    -- words that find the theory topic of each question type (key Y)
+    local TYPE_TOPIC = { "time value|compound", "annuit|perpetuit", "loan|amortis", "bond basics|bond", "bond yields|bond",
+      "shares|dividend", "npv|irr|capital budget", "lives|eaa|replace", "fcf|relevant", "apr|ear|rate",
+      "break-even|forecast", "decision tree|expected", "probabilit", "cycle|working capital", "trade credit",
+      "credit policy|receivable", "return|risk", "portfolio|correlation", "capm|beta|sml", "wacc|cost of", "capital structure|mm" }
+    local function topicForType(ti)
+      for word in (TYPE_TOPIC[ti] or ""):gmatch("[^|]+") do
+        for k2, t in ipairs(THEORY) do if t.topic:lower():find(word, 1, true) then return k2 end end
+      end
+      return nil
+    end
     local function findTopic(word)
       for ti, t in ipairs(THEORY) do if t.topic:lower():find(word, 1, true) then return ti end end
       for ti, t in ipairs(THEORY) do
@@ -349,7 +360,8 @@
       if scr == "menu" or scr == "theory" or scr == "search" then scr = "home"
       elseif scr == "finder" then
         if #U.fstack > 0 then table.remove(U.fstack); U.fsel = 1 else scr = "home" end
-      elseif scr == "tpage" then scr = (U.tback == "search") and "search" or "theory"
+      elseif scr == "tpage" then
+        if U.tback == "search" or U.tback == "menu" or U.tback == "input" or U.tback == "result" then scr = U.tback else scr = "theory" end
       elseif scr == "input" then
         U.want, U.say = nil, nil
         U.group = TYPES[curT].group or U.group
@@ -383,6 +395,11 @@
       if scr == "menu" then
         local d = tonumber(ch)
         if d and GROUPS[U.group].types[d] then openGroupType(d); return end
+        if cl == "y" then
+          local ti = topicForType(GROUPS[U.group].types[U.gsel])
+          if ti then openTopic(ti) end
+          return
+        end
         if cl == "n" or cl == "a" or cl == "w" then
           curT = GROUPS[U.group].types[U.gsel]
           if cl == "n" then toNotes() elseif cl == "a" then toAssume() else toWorked() end
@@ -406,6 +423,11 @@
           local wk = (d == 0) and "10" or tostring(d)
           for ti, t in ipairs(THEORY) do if t.week:sub(1, #wk) == wk then U.tsel = ti; inval(); break end end
         end
+        return
+      end
+      if cl == "y" and (scr == "input" or scr == "result" or scr == "notes" or scr == "assume" or scr == "worked") and curT then
+        local ti = topicForType(curT)
+        if ti then openTopic(ti) end
         return
       end
       old.charIn(ch)

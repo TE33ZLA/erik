@@ -309,6 +309,8 @@ ON THE ANSWER PAGE
   to check it with the calculator
 
 HELP ON EVERY PAGE
+Y  the theory for this type: the
+   what-if rules and the traps
 N  notes: formulas + what letters mean
 A  steps + traps: what to WRITE
 W  worked examples from the course
