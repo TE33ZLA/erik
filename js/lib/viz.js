@@ -6,7 +6,7 @@
  * Types and their fields (docs/CONTENT_GUIDE.md "Pictures" has an example of each):
  *   bars       {bars:[{label, v} | {label, parts:[{v, c}]}], keys, fmt, dp, line:{v,label}, hi:[i], sign}
  *   lines      {x:{label,min,max,fmt,dp,ticks}, y:{…, hide, zero}, series:[{name, c, pts:[[x,y]], dash, dots, area, line}],
- *               marks:[{x,y,label,c,pos}], vlines:[{x,label}], hlines:[{y,label}], shade:[{x1,x2,c,label}]}
+ *               marks:[{x,y,label,c,pos}], vlines:[{x,label}], hlines:[{y,label,pos:'left'|'right',below}], shade:[{x1,x2,c,label}]}
  *   scatter    {x, y, sets:[{name, c, pts, fit}]}
  *   bell       {curves:[{mean, sd, name, c}], fmt, band}
  *   waterfall  {steps:[{label, v} | {label, total:true}], fmt, dp}
@@ -230,7 +230,9 @@
     if (YA.label) g += `<text x="${mL - (YA.hide ? 0 : 6)}" y="16" class="vz-axt" text-anchor="start">${svgT(YA.label)}</text>`;
     (s.hlines || []).forEach((h) => {
       g += `<line x1="${mL}" x2="${W - mR}" y1="${r1(PY(h.y))}" y2="${r1(PY(h.y))}" class="vz-ref"/>`;
-      if (h.label) g += `<text x="${W - mR - 4}" y="${r1(PY(h.y) - 6)}" class="vz-reflab" text-anchor="end">${svgT(h.label)}</text>`;
+      // pos: 'right' (default) or 'left' end of the line; 'below' puts the label under the line
+      const left = h.pos === 'left', below = h.below;
+      if (h.label) g += `<text x="${left ? mL + 4 : W - mR - 4}" y="${r1(PY(h.y) + (below ? 16 : -6))}" class="vz-reflab halo" text-anchor="${left ? 'start' : 'end'}">${svgT(h.label)}</text>`;
     });
     (s.vlines || []).forEach((v) => {
       g += `<line x1="${r1(PX(v.x))}" x2="${r1(PX(v.x))}" y1="${mT}" y2="${r1(H - mB)}" class="vz-ref"/>`;

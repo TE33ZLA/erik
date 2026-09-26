@@ -66,7 +66,7 @@ function serve() {
           if (!v && !(ALL && (c.kind === 'learn' || c.kind === 'recap'))) return;
           const id = `${lid}-c${i}`;
           out.push(id);
-          html += `<article class="lcard ${c.kind}" id="${id}"><p class="lkind">${esc(lid)} · card ${i} · ${esc(c.kind)}${c.viz ? '' : c.kind === 'recap' && v ? ' (key picture)' : ' · NO PICTURE'}</p>${c.title ? `<h2>${rich(c.title)}</h2>` : ''}${(c.body || '').split(/\n\s*\n/).map((p) => `<p>${rich(p)}</p>`).join('')}${v ? VIZ.render(v) : ''}${c.points ? `<ul class="lpoints">${c.points.map((p) => `<li>${rich(p)}</li>`).join('')}</ul>` : ''}</article>`;
+          html += `<article class="lcard ${c.kind}" id="${id}"><p class="lkind">${esc(lid)} · card ${i} · ${esc(c.kind)}${c.viz ? '' : c.kind === 'recap' && v ? ' (key picture)' : ' · NO PICTURE'}</p>${c.title ? `<h2>${rich(c.title)}</h2>` : ''}${(c.body || '').split(/\n\s*\n|\\n\\n/).map((p) => `<p>${rich(p.trim())}</p>`).join('')}${v ? VIZ.render(v) : ''}${c.points ? `<ul class="lpoints">${c.points.map((p) => `<li>${rich(p)}</li>`).join('')}</ul>` : ''}</article>`;
         });
       });
       document.getElementById('screen').innerHTML = html + '</section>';
