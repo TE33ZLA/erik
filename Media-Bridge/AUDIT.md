@@ -17,7 +17,7 @@ The specific remaining hypothesis is that spontaneous serial traffic might accom
 | Fresh discovery: seven services | Advertised endpoints in that state | Vehicle-data API |
 | Authenticated/encrypted RFCOMM channel 5 connected | Transport accepted connection | Responding application or health data |
 | Receive-only/receive-ready: zero bytes | Silence during those windows | Exact cause |
-| 25 September receive-ready connection ended `remote_closed` | The peer closed that particular connection | An available listener throughout later button actions |
+| 25 September receive-ready connection ended `remote_closed` | The peer closed that particular connection, after an RFCOMM ready signal (closure time not recorded) | An available listener throughout later button actions. The 26 September passive 10-second listen ended at its own deadline, not by closure. |
 | EXLAP: 74 bytes accepted locally; zero reply | Hypothesis did not identify EXLAP | Car understood the request |
 | MIBBridge: 93 bytes accepted locally; zero reply | Published tunnel not identified | All possible protocols excluded |
 | BLE on/off/on: 20 / 13 / 8 addresses; none attributable | No identified Golf BLE device | Proof BLE is universally absent |
@@ -36,17 +36,17 @@ The completed comparison supersedes older statements that BLE comparison had not
 | Stage | Action / limit | Positive evidence | Failure handling |
 |---|---|---|---|
 | Local check | Hashes; internal groups; media session; audio-output enumeration/assignment; cached pairing | Local preparation only | Block start and explain |
-| Audio route | Select this app's explicit output and play tone; owner check 45 seconds | Owner hears car speakers | Stop as setup-unverified, not car failure |
+| Audio route | Select this app's explicit output (list refreshable; hands-free entries flagged), wait for the stream, play a 3-second tone; owner check 75 seconds | Owner hears car speakers | Stop as setup-unverified, not car failure |
 | First title | New per-session title; owner check 30 seconds | Owner-correlated metadata | Record missing/unobserved; continue |
 | Buttons | Six shuffled Next/Previous prompts; 10 seconds per prompt, 60 seconds maximum | Received Windows callback sequence | Unexpected/rapid events and timeout retained |
 | Second title | Changed title; owner check 30 seconds | Update observed rather than only cached title | Record missing/unobserved |
 | Media finish | Baseline saved before any serial query; finish/optional choice 20 seconds | Independently preserved media observations | Default is finish |
 | Optional services | Fresh SDP query 25 seconds; pinned authenticated peer; reject undecodable records | One unambiguous serial endpoint | Record discovery failure and serial not attempted |
-| Optional serial | Connect 10 seconds; listen 50 seconds; process bound 65 seconds | Timestamped incoming chunks | Early closure makes comparison incomplete |
+| Optional serial | Connect 10 seconds; listen 50 seconds; process bound 70 seconds | Timestamped incoming chunks | Early closure makes comparison incomplete |
 | Optional comparison | On confirmed open listener: active 10s, quiet 10s, active 10s, quiet 10s | Matched observation windows, still only correlation | Missing active events/quiet contamination marked inconclusive |
-| Bounds | Media phase 240 seconds; optional serial phase 110 seconds; Stop throughout | Preserved results | Kill workers, release media, retain captured chunks |
+| Bounds | Media phase 270 seconds; optional serial phase 110 seconds; Stop throughout | Preserved results | Kill workers, release media, retain captured chunks |
 
-Budget: a media worst case of pairing 15 + audio enumeration 5 + route 45 + titles 60 + buttons 60 + final choice 20 = 205 seconds fits within 240. Optional discovery 25 + worker 65 = 90 fits within 110. Normal use can finish much sooner; the ceilings are not estimated completion times. Routine UI work and brief process cleanup consume the spare allowance.
+Budget: a media worst case of pairing 15 + audio enumeration 5 + route 75 + titles 60 + buttons 60 + final choice 20 = 235 seconds fits within 270. Optional discovery 25 + worker 70 = 95 fits within 110. Normal use can finish much sooner; the ceilings are not estimated completion times. Routine UI work and brief process cleanup consume the spare allowance.
 
 The listener sends zero **application** bytes. Bluetooth service discovery, authentication and transport signalling still occur. There are no diagnostic writes, firmware changes, USB payload writes, administrator recording or connections to unowned BLE devices. No automatic pairing deletion, driver installation or indefinite reconnect loop exists.
 

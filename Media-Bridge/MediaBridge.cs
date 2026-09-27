@@ -75,10 +75,11 @@ namespace VehicleMediaBridge {
         public void SetTitle(string title) {lock(lifecycle){if(disposed||controls==null)throw new InvalidOperationException("Media receiver is stopped");controls.DisplayUpdater.MusicProperties.Title=title;controls.DisplayUpdater.Update();}}
         public void SelectOutput(Windows.Devices.Enumeration.DeviceInformation device){lock(lifecycle){if(disposed)throw new InvalidOperationException("Receiver stopped");player.AudioDevice=device;if(player.AudioDevice==null||player.AudioDevice.Id!=device.Id)throw new InvalidOperationException("Windows did not retain the selected audio output");}}
         public async Task TestTone(){
-            string file=Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"route-tone.wav");
-            if(!File.Exists(file))using(var w=new BinaryWriter(File.Create(file))){int samples=8000;w.Write(Encoding.ASCII.GetBytes("RIFF"));w.Write(36+samples*2);w.Write(Encoding.ASCII.GetBytes("WAVEfmt "));w.Write(16);w.Write((short)1);w.Write((short)1);w.Write(8000);w.Write(16000);w.Write((short)2);w.Write((short)16);w.Write(Encoding.ASCII.GetBytes("data"));w.Write(samples*2);for(int i=0;i<samples;i++){double envelope=Math.Min(1,Math.Min(i/100.0,(samples-i)/100.0));w.Write((short)(Math.Sin(2*Math.PI*440*i/8000)*2000*envelope));}}
+            // Three seconds: a short tone can end before a car's Bluetooth music stream is audible. New name so an older one-second file is not reused.
+            string file=Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"route-tone-3s.wav");
+            if(!File.Exists(file))using(var w=new BinaryWriter(File.Create(file))){int samples=24000;w.Write(Encoding.ASCII.GetBytes("RIFF"));w.Write(36+samples*2);w.Write(Encoding.ASCII.GetBytes("WAVEfmt "));w.Write(16);w.Write((short)1);w.Write((short)1);w.Write(8000);w.Write(16000);w.Write((short)2);w.Write((short)16);w.Write(Encoding.ASCII.GetBytes("data"));w.Write(samples*2);for(int i=0;i<samples;i++){double envelope=Math.Min(1,Math.Min(i/100.0,(samples-i)/100.0));w.Write((short)(Math.Sin(2*Math.PI*440*i/8000)*4000*envelope));}}
             lock(lifecycle){if(disposed)return;player.IsLoopingEnabled=false;player.Volume=.25;player.Source=MediaSource.CreateFromUri(new Uri(file));player.Play();}
-            await Task.Delay(1400);
+            await Task.Delay(3400);
             lock(lifecycle){if(disposed)return;player.Volume=0;player.IsLoopingEnabled=true;player.Source=MediaSource.CreateFromUri(new Uri(EnsureSilence()));player.Play();}
         }
         public void Dispose() {

@@ -7,7 +7,7 @@ Double-click **Open Media Bridge.cmd** in this folder (or **START GOLF TEST.cmd*
 3. Tick the confirmation, then click **Begin media test**. Select the car's audio output from the list, play the quiet test tone, and confirm only if it comes from the car. Follow the title and six button prompts.
 4. Finish after the media results are saved, or explicitly choose the optional serial comparison. It alternates ten-second button and quiet periods. **Stop and save** is always available. The engine does not need to run for this infotainment test.
 
-Each button prompt allows ten seconds, with sixty seconds for the six-button sequence. Media preparation and observations have a four-minute ceiling. The optional serial experiment has its own 110-second ceiling. Failure to verify audio ends as a setup problem, not a car failure. Accidental double-clicks cannot immediately advance two steps. Close and reopen for a separate visit.
+Each button prompt allows ten seconds, with sixty seconds for the six-button sequence. Media preparation and observations have a four-and-a-half-minute ceiling; the sound check allows 75 seconds. The optional serial experiment has its own 110-second ceiling. Failure to verify audio ends as a setup problem, not a car failure. Accidental double-clicks cannot immediately advance two steps. Close and reopen for a separate visit.
 
 ## What this visit can answer
 
@@ -24,6 +24,8 @@ This laptop exposes a USB host controller; no active device-mode controller was 
 
 ## Recovery during the visit
 
+- **Car missing from the output list:** connect Bluetooth audio from the car's phone/media menu, then press **Refresh list**. Choose the car's music output, not an entry marked *phone-call audio* (Hands-Free/Headset).
+- **Other Bluetooth headphones:** switch them off before the visit. Headphones paired to this laptop can reconnect, take the audio and send their own Next/Previous events.
 - **Missing title/buttons:** check the selected Bluetooth audio source and pause other media players. Avoid laptop media keys and other remotes: Windows cannot identify which physical device sent a media event.
 - **Missing pairing:** reconnect through Windows settings. The test uses the exact saved Golf identity and never guesses another car by name.
 - **Serial absent, ambiguous, silent or disconnected:** save the result and continue media/USB observations. Silence means inconclusive, not healthy or permanently incompatible.
@@ -40,7 +42,7 @@ See **AUDIT.md** for prior evidence, the test contract and remaining blockers; *
 
 ## Developer checks
 
-`build.ps1` compiles both executables and regenerates `kit-manifest.json`. Hashes detect accidental kit changes, not authenticity or tamper-proof signing. `runtime-path.txt` is specific to this laptop; `private-target.json` pins the previously authorised Golf.
+`build.ps1` compiles both executables and regenerates `kit-manifest.json`. After any source change, run it before **Check laptop**: the app refuses to start a visit while the manifest does not match the files. Hashes detect accidental kit changes, not authenticity or tamper-proof signing. `runtime-path.txt` is specific to this laptop; `private-target.json` pins the previously authorised Golf.
 
 - `--prepare`: actual guided local preflight, without a serial/car query.
 - `--self-test`: 22 synthetic protocol/prompt test groups.
