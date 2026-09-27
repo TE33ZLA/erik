@@ -49,5 +49,6 @@ See **AUDIT.md** for prior evidence, the test contract and remaining blockers; *
 - `--windows-frame`: synthetic integer through this app's actual Windows media APIs and a metadata-update check; Bluetooth is not the test transport.
 - `--rehearse-guided`: scenarios include `complete`, `discovery-failure`, `cancel`, `deadline`, `worker-cancel`, `visit-timeout`, `double-click`, `slow-human`, `serial-early-close`, `audio-unverified` and `windows-guided`. The last uses actual Windows media callbacks in the guided UI; pairing and owner observations are still fixtures. None runs the car's code.
 - `transport/test_visit_worker.py`: offline socket, identity, selection, receive and deadline tests.
+- `transport/golf_obex_control.py --run`: separate control experiment at the parked car. One standard OBEX CONNECT handshake to the radio's Object Push service, to learn whether the radio answers this laptop on any application channel. Not part of the guided visit; not vehicle data. Offline tests in `transport/test_obex_control.py`. Background in `../ENGINE-DATA-ROUTES.md`.
 
 Windows session-manager access can fail inside a restricted tool context. Successful normal-desktop validation is recorded separately; no Windows service configuration was altered.

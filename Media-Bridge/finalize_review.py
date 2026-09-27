@@ -13,6 +13,7 @@ import zipfile
 root=Path(__file__).resolve().parent
 sys.path.insert(0,str(root/'transport'))
 import test_visit_worker
+import test_obex_control
 
 def read(path):return json.loads(path.read_text(encoding='utf-8-sig'))
 def digest(path):return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -29,7 +30,7 @@ for name,expected in manifest.items():
     if digest(root/name)!=expected:raise RuntimeError('Kit changed: '+name)
 
 stream=io.StringIO()
-suite=unittest.defaultTestLoader.loadTestsFromModule(test_visit_worker)
+suite=unittest.TestSuite([unittest.defaultTestLoader.loadTestsFromModule(m) for m in (test_visit_worker,test_obex_control)])
 result=unittest.TextTestRunner(stream=stream,verbosity=2).run(suite)
 (root/'results'/'worker-tests.txt').write_text(stream.getvalue(),encoding='utf-8')
 if not result.wasSuccessful():raise RuntimeError('Offline worker checks failed')
