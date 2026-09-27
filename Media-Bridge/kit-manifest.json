@@ -1,0 +1,21 @@
+{
+  "audit_usb.ps1": "5e509d80e59e8c32906323324606e5d7a50fe639071dda64b76e7cae06630626",
+  "BridgeProtocol.cs": "5f5c8e31bebf1ffebade69b4e8b9d4a320bead7ffd3a8ef2b7e947c5a27430c8",
+  "build.ps1": "462fff9cc13d388b5a0629de7eb4227daee36ec52e7405a7b6e9332643769222",
+  "finalize_review.py": "968e5245328b930fd84b327e65fcdb56dcb57739f5d8d1847e787153d3e6e5bb",
+  "GuidedVisit.cs": "8f9636b76203e1f578cfe9221dc8966d6e0954ba29b5dd2b458e5c19f9901026",
+  "Media Bridge.exe": "7c730be95cb7a94382a2c491dbe2578ee2c19b96e51b10872aee484ceefab350",
+  "MediaBridge.cs": "1a5f554f0f23230e0f01692cb42f68ba09d7e49410d53ffdec4b67fc3ce720e3",
+  "private-target.json": "8a0793409a4756e0bb9939c88a3c70d423b797c9f85a4bd22d7233fcc240a617",
+  "ProtocolTests.cs": "abe3a4360a873b6b7fd108c3237c394729cacebb0c35927d5378423f7d7d4586",
+  "runtime-path.txt": "b3f3fb2c4fa079986e2cd658812dc6c9895ee5fefc82152f5fd2cc15ecdbb803",
+  "VehicleMediaBridge.exe": "6b05df94d7f2c20acb1ece2e540fb4db6844cebcf597476c2f9d685b372418eb",
+  "verify_vector.py": "4dac66cdbe5b1cd48c776dfa8927fa5c4b2a4de8e338bf6d6c29101a5262ca3f",
+  "transport/decode_golf_sdp.py": "a4bd2d65929b4db74fdad2426ac6e5a9b3214271271814550c0f7a135c0c3ffb",
+  "transport/golf_rfcomm_probe.py": "d2f77331714ac60c44de6a953dabd94efad8a0c312cd92eb9f1d696b01805492",
+  "transport/golf_sdp_discovery.py": "2604fa5edf101dc0d052c35071233d6e9cbd9e17e3ebc1fceb266027de653bde",
+  "transport/paired.py": "3b51cb4fb976c51fff33dab1fd7b569f60f07f79473866e13415eef52bdc6c95",
+  "transport/test_deadline_fixture.py": "cac4f16a2b6c9fff2eb905702c42547d1682f39403e53d2186461a192c585e11",
+  "transport/test_visit_worker.py": "9919142e1ef3a1c9013492566c79b6921285f671b643fff02e0b74d8478f1f2a",
+  "transport/visit_worker.py": "1ac0a9e7b2cb35d63ce1217dfb823a40cf266388e9547243f5c3d6cb6f19fb2d"
+}

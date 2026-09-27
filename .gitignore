@@ -1,0 +1,10 @@
+# Build outputs: rebuild with Media-Bridge/build.ps1 on the Windows laptop
+*.exe
+
+# Per-session evidence and private local configuration stay on the laptop
+Media-Bridge/results/
+historical-raw/
+Media-Bridge/private-target.json
+Media-Bridge/runtime-path.txt
+*.wav
+__pycache__/

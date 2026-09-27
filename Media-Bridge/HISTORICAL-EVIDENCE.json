@@ -1,0 +1,18 @@
+[
+  {
+    "archive_path": "historical-raw/capture-0.json",
+    "original_relative_path": "work/golf-package-review-0.1.1/golf-windows-prototype/results/20260925T063044581486Z-ready/private-capture.json",
+    "sha256": "74e16ecf5a1ec96f95075f05778aab55b5428a3600b841be3e75f23b74135314",
+    "recorded_at_utc": "2026-09-25T06:30:44.995865+00:00",
+    "end_reason": "remote_closed",
+    "note": "Original saved bytes, fingerprinted now; not signed at capture time or independently authenticated."
+  },
+  {
+    "archive_path": "historical-raw/capture-1.json",
+    "original_relative_path": "outputs/Golf-Visit/results/20260926T050638-81655b24/private-listen-efeef2ee.json",
+    "sha256": "4029535d0d6bc39b827dde346a1d234cbcb680cbb0b57b6b54d9ad41a431bacf",
+    "recorded_at_utc": "2026-09-26T05:07:01.650316+00:00",
+    "end_reason": "receive_deadline",
+    "note": "Original saved bytes, fingerprinted now; not signed at capture time or independently authenticated."
+  }
+]

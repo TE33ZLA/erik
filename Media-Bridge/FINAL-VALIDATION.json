@@ -1,0 +1,48 @@
+{
+  "at_utc": "2026-09-27T04:22:27.080188+00:00",
+  "readiness": "Prepared for bounded connection experiment; vehicle-data retrieval remains blocked",
+  "kit_manifest_sha256": "c4f24649a0b9f75d349f63ae1a68d0f64c8a4caa0dbfbcd10de0b2cb539bfec3",
+  "gui_executable_sha256": "7c730be95cb7a94382a2c491dbe2578ee2c19b96e51b10872aee484ceefab350",
+  "console_executable_sha256": "6b05df94d7f2c20acb1ece2e540fb4db6844cebcf597476c2f9d685b372418eb",
+  "manifest_verified": true,
+  "internal_test_groups": 22,
+  "offline_worker_tests": 11,
+  "offline_worker_tests_passed": true,
+  "guided_rehearsal_scenarios": 11,
+  "windows_loopback": {
+    "events": 186,
+    "decoded_synthetic_value": 1234,
+    "metadata_update": true,
+    "bluetooth_tested": false,
+    "measured_first_to_last_callback_seconds": 53.131,
+    "independent_recorded_event_decode_verified": true
+  },
+  "source_evidence": {
+    "internal_protocol_and_prompt_tests": "results/20260927T042021-20f6ae/internal-tests.json",
+    "actual_guided_local_preflight": "results/20260927T042108-616f3b/guided-preflight.json",
+    "actual_windows_loopback": "results/20260927T042117-9af4fd/windows-loopback.json",
+    "guided_fixture_complete": "results/20260927T042021-5a737e/guided-rehearsal.json",
+    "guided_fixture_discovery-failure": "results/20260927T042023-2e3193/guided-rehearsal.json",
+    "guided_fixture_cancel": "results/20260927T042024-eb70e9/guided-rehearsal.json",
+    "guided_fixture_deadline": "results/20260927T042025-4263f5/guided-rehearsal.json",
+    "guided_fixture_worker-cancel": "results/20260927T042027-aa1d0f/guided-rehearsal.json",
+    "guided_fixture_visit-timeout": "results/20260927T042028-36676e/guided-rehearsal.json",
+    "guided_fixture_double-click": "results/20260927T042029-06043b/guided-rehearsal.json",
+    "guided_fixture_slow-human": "results/20260927T042030-925680/guided-rehearsal.json",
+    "guided_fixture_serial-early-close": "results/20260927T042031-562ba3/guided-rehearsal.json",
+    "guided_fixture_audio-unverified": "results/20260927T042032-96ddaa/guided-rehearsal.json",
+    "guided_fixture_windows-guided": "results/20260927T042109-8e28dd/guided-rehearsal.json"
+  },
+  "limits": {
+    "car_contact_in_preparation": false,
+    "verified_vehicle_reading": false,
+    "usb_vehicle_connection_verified": false,
+    "radio_helper_available": false,
+    "iphone_tested": false,
+    "other_cars_validated": false
+  },
+  "build_binding": "Every selected C# result must carry the current executable and kit-manifest hashes; collection fails on a missing or different identity. These are self-recorded hashes, not external attestation.",
+  "observed_preparation_failures": [
+    "Windows media-session manager and audio endpoint enumeration are unavailable in the restricted tool context; checks were run in normal desktop context without service changes."
+  ]
+}
