@@ -70,6 +70,38 @@ const PAGE = process.env.PAGE || 'index.html';
     });
     bad.forEach(b => errors.push(where + ' :: ' + b));
   };
+  /** Answer one written part with its own model answer and check the page gives full marks. */
+  const solvePart = async (scope, part, where) => {
+    const full = part.marks || (part.kind === 'blanks' ? 1 : 2);
+    if (part.kind === 'calc') {
+      if (await page.$(`${scope} [data-act="w-pick"]`)) {
+        for (const id of part.formulas) await page.click(`${scope} [data-act="w-pick"][data-id="${id}"]`);
+        await page.click(`${scope} [data-act="w-pick-check"]`);
+        if (!(await page.$(`${scope} .wfb.good`))) errors.push(where + ' :: the right formulas were marked wrong');
+      }
+      await page.fill(`${scope} textarea.wtext`, part.model.join('\n'));
+      await page.click(`${scope} [data-act="w-calc-check"]`);
+    } else if (part.kind === 'theory') {
+      if (part.points && part.points.length) {
+        for (let i = 0; i < part.points.length; i++) if (part.points[i].ok) await page.click(`${scope} [data-act="w-point"][data-i="${i}"]`);
+        await page.click(`${scope} [data-act="w-points-check"]`);
+      }
+      await page.fill(`${scope} textarea.wtext`, String(part.model).replace(/\\\(|\\\)/g, ''));
+      await page.click(`${scope} [data-act="w-theory-done"]`);
+    } else if (part.kind === 'blanks') {
+      for (const sel of await page.$$(`${scope} select.wgap`)) await sel.selectOption('0');
+      await page.click(`${scope} [data-act="w-blanks-check"]`);
+    } else if (part.kind === 'excel') {
+      for (const cb of await page.$$(`${scope} [data-act="w-tick"]`)) await cb.check();
+      await page.fill(`${scope} form[data-submit="w-excel-check"] input`, String(part.answer));
+      await page.click(`${scope} form[data-submit="w-excel-check"] button[type=submit]`);
+    }
+    await page.waitForTimeout(60);
+    const score = await page.$eval(`${scope} .wscore`, (e) => e.textContent).catch(() => '');
+    const m = /([\d.]+)\s*\/\s*(\d+)/.exec(score);
+    if (!m || +m[1] !== full) errors.push(`${where} :: the model answer scored ${m ? m[1] : '?'} / ${full}`);
+    await domCheck(where + ' marked');
+  };
   let played = 0, questions = 0;
   for (const p of packs) {
     for (const n of p.nodes) {
@@ -85,6 +117,8 @@ const PAGE = process.env.PAGE || 'index.html';
             const r = { i: L.i, kind: c.kind };
             if (c.kind === 'check') { const q = s.q; r.missing = !q; r.cdone = !!s.done; r.mode = q && q.mode; r.idx = q && q.mode === 'choice' ? q.options.findIndex((o) => o.correct) : -1; r.ans = q && q.answer; }
             if (c.kind === 'guided') { r.gdone = !!s.done; const pt = c.parts[s.part || 0]; r.pchoice = !!(pt && pt.choices); r.pans = pt && pt.answer; }
+            if (c.kind === 'written') r.wdone = !!s.done;
+            if (c.kind === 'type') r.tdone = !!s.done;
             return r;
           });
           if (!st || st.done) break;
@@ -101,6 +135,19 @@ const PAGE = process.env.PAGE || 'index.html';
             questions++;
             continue;
           }
+          if (st.kind === 'written' && !st.wdone) {
+            const part = await page.evaluate(() => { const L = LESSON.state; return L.cards[L.i].part; });
+            await solvePart('#lesson-card', part, n.id + ' card' + st.i);
+            questions++;
+            continue;
+          }
+          if (st.kind === 'type' && !st.tdone) {
+            const model = await page.evaluate(() => { const L = LESSON.state; return L.cards[L.i].model; });
+            await page.fill('#ltype', model); await page.click('.typeform button[type=submit]'); await page.waitForTimeout(40);
+            const ok = await page.evaluate(() => { const L = LESSON.state; return !!L.st[L.i].done; });
+            if (!ok) errors.push(n.id + ' card' + st.i + ' :: the model line was not accepted');
+            continue;
+          }
           if (st.kind === 'guided' && !st.gdone) {
             if (st.pchoice) { const opts = await page.$$('#lesson-card [data-act="lesson-part-pick"]'); await opts[st.pans].click(); }
             else { await page.fill('#lesson-card #pans', String(st.pans)); await page.click('#lesson-card .numform button[type=submit]'); }
@@ -114,6 +161,25 @@ const PAGE = process.env.PAGE || 'index.html';
         }
         const fin = await page.evaluate(() => !!document.querySelector('#lesson-card .finish'));
         if (!fin) errors.push(n.id + ' :: lesson did not reach its finish card');
+        played++;
+        continue;
+      }
+      if (n.kind === 'case') {
+        await page.evaluate((id) => GAME.go('case', { nodeId: id }), n.id);
+        await page.waitForTimeout(200);
+        const parts = await page.evaluate(() => CASE.state.cs.parts);
+        for (let k = 0; k < parts.length; k++) {
+          await domCheck(n.id + ' part ' + k);
+          await solvePart('#case-part', parts[k], n.id + ' part ' + k);
+          questions++;
+          const nb = await page.$('[data-act="case-next"]');
+          if (!nb || await nb.isDisabled()) { errors.push(n.id + ' part ' + k + ' :: Next is disabled after answering'); break; }
+          await nb.click();
+          await page.waitForTimeout(80);
+        }
+        await domCheck(n.id + ' summary');
+        const fin = await page.evaluate(() => !!document.querySelector('#case-body .finish'));
+        if (!fin) errors.push(n.id + ' :: the written round did not reach its summary');
         played++;
         continue;
       }

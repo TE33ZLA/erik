@@ -24,7 +24,7 @@
       settings: {
         font: 'lexend', size: 1, spacing: 'relaxed', letter: 'normal', hl: true, givens: true,
         theme: 'auto', tint: 'ledger', answer: 'mixed', timers: 'relaxed', motion: 'auto', sound: true,
-        rate: 0.9, autoRead: false, voice: '', ruler: false, calc: 'ti',
+        rate: 0.9, autoRead: false, voice: '', ruler: false, calc: 'ti', excel: true,
       },
       last: { floor: 'w0' },
     };

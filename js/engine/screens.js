@@ -29,8 +29,7 @@
   function starStr(k) { return [1, 2, 3].map((i) => `<span class="${i <= k ? 'on' : ''}">★</span>`).join(''); }
   function formulasOf(pack) {
     const ids = new Set();
-    pack.questions.forEach((q) => q.formula && ids.add(q.formula));
-    pack.generators.forEach((g) => g.formula && ids.add(g.formula));
+    [...pack.questions, ...pack.generators].forEach((q) => FORMULAS.idsOf(q).forEach((id) => ids.add(id)));
     return [...ids].filter((id) => FORMULAS.byId[id]);
   }
   GAME.helpers = { floorProgress, nextNode, continueTarget, starStr, formulasOf };
@@ -91,7 +90,7 @@
       <div class="tower-col">
         <div class="tower" aria-label="The tower. Each floor is one week of BFC2140.">
           <div class="roof" aria-hidden="true"><i></i></div>
-          <button class="penthouse" data-act="goto-exam"><span class="ph-lbl">Penthouse</span><b>The Boardroom</b><small>Exam arena: mixed MST-style questions from any floors</small></button>
+          <button class="penthouse" data-act="goto-exam"><span class="ph-lbl">Penthouse</span><b>The Boardroom</b><small>Practice exams: multiple choice, typed numbers and written answers</small></button>
           ${floors}
           <div class="lobby"><span>Lobby</span><small>BFC2140 · Corporate Finance</small></div>
         </div>
@@ -106,7 +105,8 @@
         <button class="btn primary big wide" data-act="play-node" data-node="${cont.node.id}">▶ Continue: ${esc(cont.node.name)} <small>${GAME.floorName(cont.pack)}</small></button>
         <nav class="hub-menu" aria-label="Menu">
           <button data-act="smart-review"><span aria-hidden="true">🌙</span><b>Smart Review</b><small>Practise your weakest topics</small></button>
-          <button data-act="goto-exam"><span aria-hidden="true">🎓</span><b>Boardroom exam</b><small>MST-style practice test</small></button>
+          <button data-act="goto-exam"><span aria-hidden="true">🎓</span><b>Boardroom exam</b><small>Practice tests and a written section</small></button>
+          <button data-act="goto-floor" data-floor="wr"><span aria-hidden="true">✍️</span><b>Writing Room</b><small>Written answers and Excel</small></button>
           <button data-act="goto" data-s="journal"><span aria-hidden="true">📒</span><b>Mistake Ledger</b><small>${s.journal.length} to fix</small></button>
           <button data-act="goto" data-s="codex"><span aria-hidden="true">📘</span><b>Formula Codex</b><small>The whole formula sheet</small></button>
           <button data-act="goto" data-s="shop"><span aria-hidden="true">🏪</span><b>Company Store</b><small>Items, outfits and the vault</small></button>
@@ -126,20 +126,21 @@
     const nxt = nextNode(pack);
     const stops = pack.nodes.map((n, i) => {
       const rec = s.nodes[n.id] || {};
-      const kindLbl = n.kind === 'boss' ? 'Boss' : n.kind === 'mini' ? 'Mini-game' : n.kind === 'lesson' ? 'Lesson' : 'Battle';
+      const kindLbl = n.kind === 'boss' ? 'Boss' : n.kind === 'mini' ? 'Mini-game' : n.kind === 'lesson' ? 'Lesson' : n.kind === 'case' ? 'Written answer' : 'Battle';
       const spec = n.kind === 'mini' ? pack.minis[n.mini] : null;
       const lesson = n.kind === 'lesson' ? (pack.lessons || {})[n.lesson] : null;
-      const portrait = n.kind === 'mini' ? `<span class="stop-ico" aria-hidden="true">🕹️</span>` : n.kind === 'lesson' ? `<span class="stop-ico lesson" aria-hidden="true">📖</span>` : `<span class="stop-mon" aria-hidden="true">${ART.monsterSVG(n.enemy, { boss: n.kind === 'boss' })}</span>`;
-      const tlist = n.kind === 'lesson' ? (lesson && lesson.topics) || [] : n.topics;
+      const wcase = n.kind === 'case' ? (pack.cases || {})[n.case] : null;
+      const portrait = n.kind === 'mini' ? `<span class="stop-ico" aria-hidden="true">🕹️</span>` : n.kind === 'lesson' ? `<span class="stop-ico lesson" aria-hidden="true">📖</span>` : n.kind === 'case' ? `<span class="stop-ico case" aria-hidden="true">✍️</span>` : `<span class="stop-mon" aria-hidden="true">${ART.monsterSVG(n.enemy, { boss: n.kind === 'boss' })}</span>`;
+      const tlist = n.kind === 'lesson' ? (lesson && lesson.topics) || [] : n.kind === 'case' ? (wcase && wcase.topics) || [] : n.topics;
       const topics = n.kind === 'mini' ? `<span class="chip">${esc(spec ? spec.title : 'Arcade')}</span>` : (tlist === '*' ? '<span class="chip">All topics</span>' : tlist.map((t) => `<span class="chip">${esc(pack.topics[t] || t)}</span>`).join(''));
       return `<li class="stop kind-${n.kind}${nxt && nxt.id === n.id ? ' next' : ''}${rec.stars ? ' done' : ''}">
         <span class="stop-n" aria-hidden="true">${i + 1}</span>
         ${portrait}
         <div class="stop-body"><span class="stop-kind">${kindLbl}${nxt && nxt.id === n.id ? ' · <b>next up</b>' : ''}</span><h3>${esc(n.name)}</h3>
-          ${n.enemy ? `<p class="stop-foe">vs <b>${esc(n.enemy.name)}</b>, ${esc(n.enemy.title || '')}</p>` : ''}${lesson && lesson.goal ? `<p class="stop-foe">🎯 ${UI.rich(lesson.goal)}</p>` : ''}
+          ${n.enemy ? `<p class="stop-foe">vs <b>${esc(n.enemy.name)}</b>, ${esc(n.enemy.title || '')}</p>` : ''}${lesson && lesson.goal ? `<p class="stop-foe">🎯 ${UI.rich(lesson.goal)}</p>` : ''}${wcase ? `<p class="stop-foe">✍️ ${wcase.parts.length} parts · ${root.WRITTEN.caseMarks(wcase)} marks${wcase.parts.some((x) => x.kind === 'excel') ? ' · uses Excel' : ''}</p>` : ''}
           <div class="chips">${topics}</div></div>
         <div class="stop-act"><span class="stars sm" aria-label="${rec.stars || 0} of 3 stars">${starStr(rec.stars || 0)}</span>
-          <button class="btn${nxt && nxt.id === n.id ? ' primary' : ''}" data-act="play-node" data-node="${n.id}">${n.kind === 'boss' ? 'Face the boss' : n.kind === 'mini' ? 'Play' : n.kind === 'lesson' ? (rec.wins ? 'Review' : 'Start lesson') : rec.wins ? 'Fight again' : 'Fight'}</button></div>
+          <button class="btn${nxt && nxt.id === n.id ? ' primary' : ''}" data-act="play-node" data-node="${n.id}">${n.kind === 'boss' ? 'Face the boss' : n.kind === 'mini' ? 'Play' : n.kind === 'lesson' ? (rec.wins ? 'Review' : 'Start lesson') : n.kind === 'case' ? (rec.wins ? 'Write again' : 'Start writing') : rec.wins ? 'Fight again' : 'Fight'}</button></div>
       </li>`;
     }).join('');
     const topics = Object.entries(pack.topics).map(([t, label]) => {
@@ -202,22 +203,36 @@
     </section>`;
   };
 
+  /** The exam formula sheet, exactly as printed, section by section; then the formulas you build yourself. */
+  function sheetHTML() {
+    const secs = FORMULAS.SECTIONS.map((name, i) => {
+      const items = FORMULAS.SHEET.filter((x) => x.sec === i).map((x) => {
+        const card = FORMULAS.byId[x.card];
+        return `<li class="codex-card fs-item" data-text="${esc((name + ' ' + x.line + ' ' + (card ? card.name + ' ' + card.when : '')).toLowerCase())}">
+          <div class="fs-tex">${UI.rich('\\[' + x.tex + '\\]')}</div>
+          <p class="fs-line"><span class="fs-lbl">Type it</span><code>${esc(x.line)}</code></p>${card ? `<p class="fs-use muted small">${esc(card.name)}: ${UI.rich(card.when)}</p>` : ''}</li>`;
+      }).join('');
+      return `<section class="codex-group"><h3>${esc(name)}</h3><ol class="fs-list">${items}</ol></section>`;
+    }).join('');
+    const off = FORMULAS.CARDS.filter((c) => !c.sheet).map((c) => {
+      const from = (c.from || []).map((id) => FORMULAS.byId[id]).filter(Boolean);
+      return `<li class="codex-card fs-item off" data-text="${esc((c.name + ' ' + c.when + ' not on the sheet').toLowerCase())}"><b class="fs-name">${esc(c.name)}</b>
+        <div class="fs-tex">${UI.rich('\\[' + c.tex + '\\]')}</div>
+        <p class="fs-from">${from.length ? `Built from the sheet's <b>${from.map((f) => esc(f.name)).join('</b> and <b>')}</b>. ` : ''}${UI.rich(c.derive || '')}</p></li>`;
+    }).join('');
+    return `<p class="muted small">The exam gives you this sheet on screen. These are its formulas in the same order and words. Under each one: how to type it in a text box (<code>*</code> times, <code>/</code> divide, <code>^</code> power).</p>
+      <label for="sheet-q" class="sr-only">Search</label><input id="sheet-q" class="search" placeholder="Search formulas, e.g. annuity, WACC, beta" autocomplete="off">
+      ${secs}
+      <section class="codex-group"><h3>🧠 Not on the sheet: build these yourself</h3><p class="muted small">Each one comes from a sheet formula (rearranged or used twice) or is a rule to learn.</p><ol class="fs-list">${off}</ol></section>`;
+  }
   function sheetModal() {
-    const cur = GAME.current.name === 'battle' && root.BATTLE.state && root.BATTLE.state.pack;
-    const order = FORMULAS.GROUPS.slice();
-    const body = `<p class="muted small">This is what you get on the exam formula sheet (plus “remember this” lecture formulas).</p><label for="sheet-q" class="sr-only">Search</label><input id="sheet-q" class="search" placeholder="Search formulas" autocomplete="off">` +
-      order.map((g) => `<section class="codex-group"><h3>${esc(g.name)}</h3><div class="fc-list">${FORMULAS.CARDS.filter((c) => c.group === g.id).map((c) => `<div class="codex-card" data-text="${esc((c.name + ' ' + c.when).toLowerCase())}">${QVIEW.formulaCard(c.id, true)}</div>`).join('')}</div></section>`).join('');
-    const m = UI.modal({ title: '📘 Formula sheet', body, wide: true, focus: '#sheet-q' });
+    const m = UI.modal({ title: '📘 Exam formula sheet', body: sheetHTML(), wide: true, focus: '#sheet-q' });
     const f = m.el.querySelector('#sheet-q');
     f.addEventListener('input', () => {
       const q = f.value.trim().toLowerCase();
       m.el.querySelectorAll('.codex-card').forEach((c) => { c.hidden = q && !c.dataset.text.includes(q); });
       m.el.querySelectorAll('.codex-group').forEach((g) => { g.hidden = ![...g.querySelectorAll('.codex-card')].some((c) => !c.hidden); });
     });
-    if (cur) {
-      const fids = formulasOf(cur);
-      if (fids.length) { const first = m.el.querySelector('.codex-card'); if (first) first.scrollIntoView({ block: 'start' }); }
-    }
   }
 
   /* ---------------- actions ---------------- */
@@ -248,6 +263,7 @@
       SFX.unlock(); SFX.play('open');
       if (f.node.kind === 'mini') GAME.go('mini', { nodeId: f.node.id });
       else if (f.node.kind === 'lesson') GAME.go('lesson', { nodeId: f.node.id });
+      else if (f.node.kind === 'case') GAME.go('case', { nodeId: f.node.id });
       else GAME.go('battle', { nodeId: f.node.id });
     },
     'open-briefing': (el) => {

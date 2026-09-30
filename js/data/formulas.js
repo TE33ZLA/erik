@@ -305,7 +305,252 @@
       when: 'Discount rate once the interest tax shield is counted.' },
   ];
 
+  /* ---------- Derived formulas: not on the sheet, but built from a sheet formula ---------- */
+  CARDS.push(
+    { id: 'annuity-pmt', group: 'fm', sheet: false, name: 'Annuity payment (solve for C)',
+      tex: T`C = \frac{PV \times r}{1 - \frac{1}{(1+r)^{n}}}`,
+      vars: T`\(PV\) = amount borrowed or needed today`,
+      when: 'Loan repayments, or how much to save each period.' },
+    { id: 'perp-rate', group: 'fm', sheet: false, name: 'Rate from a perpetuity',
+      tex: T`r = \frac{C}{PV}`,
+      vars: T`\(C\) = payment each period, \(PV\) = price today`,
+      when: 'A perpetuity costs \(PV\) and pays \(C\) forever: what rate does it earn?' },
+    { id: 'apr-from-ear', group: 'fm', sheet: false, name: 'APR from an EAR, and the rate per period',
+      tex: T`APR = m\left((1+EAR)^{1/m} - 1\right) \qquad r_{period} = (1+EAR)^{1/m} - 1`,
+      vars: T`\(m\) = periods per year`,
+      when: 'You know the effective yearly rate but need a monthly (or other) rate.' },
+    { id: 'deferred', group: 'fm', sheet: false, name: 'Deferred annuity or perpetuity (two steps)',
+      tex: T`PV_0 = \frac{PV_{t-1}}{(1+r)^{t-1}}`,
+      vars: T`\(PV_{t-1}\) = annuity or perpetuity value one period before the first payment at \(t\)`,
+      when: 'The first payment comes later than one period from now.' },
+    { id: 'two-stage', group: 'fm', sheet: false, name: 'Level (or growing) stream, then a growing perpetuity',
+      tex: T`PV = \frac{C}{r}\left(1 - \frac{1}{(1+r)^{n}}\right) + \frac{1}{(1+r)^{n}} \times \frac{C_{n+1}}{r - g}`,
+      vars: T`\(C_{n+1}\) = the first cash flow of the growing stage, \(g\) may be negative (a decline)`,
+      when: 'Cash flows are level for \(n\) years, then grow (or shrink) at \(g\) forever.' },
+    { id: 'nwc', group: 'cb', sheet: false, name: 'Net working capital and its change',
+      tex: T`NWC = \text{Current assets} - \text{Current liabilities} \qquad \Delta NWC = NWC_t - NWC_{t-1}`,
+      vars: T`in projects: \(NWC = \text{Inventory} + \text{A/R} - \text{A/P}\)`,
+      when: 'An increase in NWC uses cash (subtract it in FCF); a decrease releases cash.' },
+    { id: 'npv-breakeven', group: 'cb', sheet: false, name: 'NPV break-even',
+      tex: T`OCF^{*} = \frac{I}{\frac{1}{r}\left(1 - \frac{1}{(1+r)^{n}}\right)} \qquad Q^{*} = \frac{OCF^{*} - \ldots}{(P - v)(1 - t_c)}`,
+      vars: T`\(OCF^{*}\) = the yearly cash flow that makes NPV = 0`,
+      when: 'How many units make NPV = 0 (it includes the cost of capital, unlike the EBIT break-even).' },
+    { id: 'option-wait', group: 'cb', sheet: false, name: 'Act now or wait (option to wait)',
+      tex: T`NPV_{now} = PV(E[\text{value}]) - \text{cost now} \qquad NPV_{wait} = PV\left(E[\max(\text{value} - \text{cost later}, 0)]\right)`,
+      vars: T`waiting lets you go ahead only in the good state`,
+      when: 'Compare committing today with waiting for information. Pick the higher NPV.' },
+    { id: 'float', group: 'wc', sheet: false, name: 'Value of cutting collection float',
+      tex: T`\text{Cash freed today} = \text{daily collections} \times \text{days saved} \qquad NPV = \text{cash freed} - PV(\text{fees})`,
+      vars: T`fees paid forever: \(PV = \frac{\text{fee}}{r_{period}}\)`,
+      when: 'A lockbox or billing service speeds up collections. Is the fee worth it?' },
+    { id: 'sd', group: 'rr', sheet: false, name: 'Standard deviation',
+      tex: T`\sigma = \sqrt{\sigma^{2}}`,
+      vars: T`SD = square root of the variance`,
+      when: 'Risk is usually quoted as an SD, in the same units as the returns.' },
+    { id: 'weights', group: 'rr', sheet: false, name: 'Portfolio weights',
+      tex: T`w_i = \frac{\text{value in asset } i}{\text{total value}}`,
+      vars: T`the weights add up to 1 (include any risk-free part)`,
+      when: 'Turn dollar amounts into weights before using a portfolio formula.' },
+    { id: 'vu-cf', group: 'cs', sheet: false, name: 'Firm value from its cash flows',
+      tex: T`V_U = \frac{FCF}{r_U} = \frac{EBIT(1 - T_c)}{r_U} \qquad r_U = \frac{EBIT(1 - T_c)}{V_U}`,
+      vars: T`\(FCF\) = the unlevered after-tax cash flow each year, forever`,
+      when: 'An all-equity firm is a perpetuity of its after-tax cash flow.' },
+    { id: 'share-price-eq', group: 'cs', sheet: false, name: 'Share price from firm value',
+      tex: T`E = V_L - D \qquad \text{Price per share} = \frac{E}{\text{number of shares}}`,
+      vars: T`equity is what is left after the debt`,
+      when: 'Value the firm, take away the debt, then divide by the shares.' },
+    { id: 'tradeoff', group: 'cs', sheet: false, name: 'Trade-off theory',
+      tex: T`V_L = V_U + PV(\text{Interest tax shield}) - PV(\text{Financial distress costs})`,
+      vars: T`more debt: a bigger tax shield, but higher distress costs`,
+      when: 'The best capital structure balances the tax benefit of debt against distress costs.' },
+    { id: 'disc-payback', group: 'cb', sheet: false, name: 'Discounted payback period',
+      tex: T`\text{Discounted payback} = \text{years before recovery} + \frac{\text{unrecovered PV}}{\text{PV of the next cash flow}}`,
+      vars: T`the same as payback, but each cash flow is first discounted: \(\frac{NCF_t}{(1+r)^{t}}\)`,
+      when: 'Payback that allows for the time value of money.' },
+    { id: 'dep-sl', group: 'cb', sheet: false, name: 'Straight-line (prime cost) depreciation',
+      tex: T`Dep = \frac{\text{Cost} - \text{Salvage for tax}}{\text{Life}} \qquad BV_t = \text{Cost} - t \times Dep`,
+      vars: T`the same amount every year`,
+      when: 'Depreciation for the FCF line, and the book value when an asset is sold.' },
+    { id: 'dep-dv', group: 'cb', sheet: false, name: 'Diminishing value depreciation',
+      tex: T`Dep_t = d \times BV_{t-1} \qquad BV_t = \text{Cost} \times (1 - d)^{t}`,
+      vars: T`\(d\) = the depreciation rate each year`,
+      when: 'Depreciation that is bigger in the early years.' },
+    { id: 'real-cf', group: 'cb', sheet: false, name: 'Real and nominal cash flows',
+      tex: T`\text{Nominal } CF_t = \text{Real } CF_t \times (1 + \text{inflation})^{t}`,
+      vars: T`discount nominal cash flows at the nominal rate, real at the real rate`,
+      when: 'Keep cash flows and the discount rate consistent about inflation.' },
+    { id: 'op-cycle', group: 'wc', sheet: false, name: 'Operating cycle',
+      tex: T`\text{Operating cycle} = \text{Inventory Days} + \text{A/R Days}`,
+      vars: T`from buying stock to collecting the cash`,
+      when: 'The first two parts of the CCC; the CCC then takes away A/P days.' },
+    { id: 'cash-freed', group: 'wc', sheet: false, name: 'Cash freed by changing the days',
+      tex: T`\text{Cash freed} = \text{Average daily COGS (or sales)} \times \text{change in days}`,
+      vars: T`A/P days use COGS; A/R days use sales`,
+      when: 'Paying suppliers later, or collecting sooner, frees cash once.' },
+    { id: 'credit-npv', group: 'wc', sheet: false, name: 'NPV of a credit policy',
+      tex: T`NPV = \text{cash received today} + \frac{\text{cash received each period later}}{r} - \frac{\text{cost each period}}{r}`,
+      vars: T`sales go on forever: each stream is a perpetuity at the period rate`,
+      when: 'Compare the NPV of the new policy with the NPV of the current one.' },
+    { id: 'joint-prob', group: 'cb', sheet: false, name: 'Joint and conditional probability',
+      tex: T`P(A \text{ and } B) = P(A) \times P(B \mid A) \qquad P(B \mid A) = \frac{P(A \text{ and } B)}{P(A)}`,
+      vars: T`all paths of a tree add up to 1`,
+      when: 'Two-year trees: the chance of a whole path, or of year 2 given year 1.' },
+    { id: 'alpha', group: 'rr', sheet: false, name: 'Alpha (above or below the SML)',
+      tex: T`\alpha = \text{forecast return} - \left(r_f + \beta(E[R_M] - r_f)\right)`,
+      vars: T`positive alpha: above the SML, undervalued (buy)`,
+      when: 'Compare a forecast return with the CAPM required return.' },
+    { id: 'beta-rho', group: 'rr', sheet: false, name: 'Beta from the correlation',
+      tex: T`\beta_i = \frac{\rho_{iM}\,\sigma_i}{\sigma_M}`,
+      vars: T`because \(Cov(R_i, R_M) = \rho_{iM}\sigma_i\sigma_M\)`,
+      when: 'You know the correlation with the market, not the covariance.' },
+    { id: 'current-yield', group: 'val', sheet: false, name: 'Current yield of a bond',
+      tex: T`\text{Current yield} = \frac{\text{Annual coupon}}{\text{Price}}`,
+      vars: T`only the income part of the return`,
+      when: 'The coupon as a percentage of what you pay for the bond.' },
+  );
+
+  /* How each off-sheet formula comes from the sheet. `from` = sheet card(s); `derive` = how. */
+  const DERIVE = {
+    'simple-int': [[], 'Not built from the sheet. Interest is paid on the first amount only.'],
+    'n-solve': [['fv-lump'], T`Start from \(FV_n = PV \times (1+r)^{n}\). Divide by \(PV\), take \(\ln\) of both sides, then divide by \(\ln(1+r)\).`],
+    'r-solve': [['fv-lump'], T`Start from \(FV_n = PV \times (1+r)^{n}\). Divide by \(PV\), raise both sides to the power \(\frac{1}{n}\), then subtract 1.`],
+    'rule72': [[], 'A rule of thumb. The exam never needs it.'],
+    'fv-m': [['fv-lump', 'ear'], T`Use \(FV_n = PV \times (1+r)^{n}\) with the rate per period \(\frac{APR}{m}\) and \(m \times n\) periods.`],
+    'cont': [['ear'], T`What the EAR formula becomes when \(m\) is huge: \(EAR = e^{APR} - 1\).`],
+    'loan-balance': [['pv-annuity'], 'The balance is the PV of the payments still to come: use PV of an annuity with the payments left.'],
+    'eay': [['ear'], T`The same idea as the EAR: compound the yield per period \(m\) times.`],
+    'total-return': [['share-ddm'], T`Rearrange \(P_0 = \frac{D_1}{r_E - g}\): multiply by \((r_E - g)\), divide by \(P_0\), then add \(g\).`],
+    'payback': [[], 'Not built from the sheet. Add up the cash flows until the outlay is paid back.'],
+    'crossover': [['npv', 'irr'], 'Set NPV of A = NPV of B. That is the IRR of the differences (A − B) in each year.'],
+    'dep-shield': [['fcf'], T`Expand the sheet's FCF: \((Rev - Costs - Dep)(1 - t_c) + Dep = (Rev - Costs)(1 - t_c) + Dep \times t_c\).`],
+    'breakeven': [[], T`Not built from the sheet. Set \(EBIT = Q(P - v) - SG\&A - Dep = 0\) and solve for \(Q\).`],
+    'expected': [['exp-ret'], T`The same weighted average as the sheet's \(E(R_i) = \sum R_{ik} \times P_k\), used on cash flows or values.`],
+    'trade-credit': [['ear'], T`Skipping the discount is a loan costing \(\frac{d}{1-d}\) per period. Compound it \(\frac{365}{\text{net} - \text{discount days}}\) times, like the EAR.`],
+    'hpr': [['realised'], 'Compound the one-year returns from the sheet: multiply the (1 + R) terms, then subtract 1.'],
+    'annuity-pmt': [['pv-annuity'], T`Start from PV of an annuity. Multiply both sides by \(r\), then divide by the bracket \(\left(1 - \frac{1}{(1+r)^{n}}\right)\).`],
+    'perp-rate': [['pv-perp'], T`Start from \(PV = \frac{C}{r}\). Swap \(PV\) and \(r\).`],
+    'apr-from-ear': [['ear'], T`Start from \(EAR = \left(1 + \frac{APR}{m}\right)^{m} - 1\). Add 1, take the \(m\)-th root, subtract 1, then multiply by \(m\).`],
+    'deferred': [['pv-annuity', 'pv-lump'], 'Two sheet formulas in a row: the annuity (or perpetuity) formula lands one period before the first payment, then PV of a lump sum brings it to today.'],
+    'two-stage': [['pv-annuity', 'pv-grow-perp', 'pv-lump'], 'Three sheet formulas: PV of an annuity for the level years, PV of growing perpetuity for the rest (it lands at year n), and PV of a lump sum to bring that to today.'],
+    'nwc': [['fcf'], T`Not on the sheet as a formula, but the sheet's FCF subtracts the "Change in NWC". Work out NWC each year, then the change.`],
+    'npv-breakeven': [['npv', 'pv-annuity'], T`Set NPV = 0: the outlay equals the yearly cash flow × the annuity factor. Solve for the cash flow, then for the units.`],
+    'option-wait': [['exp-ret', 'pv-lump'], 'Expected values (like E(R)) at each branch, brought to today with PV of a lump sum. Waiting means you only pay when the news is good.'],
+    'float': [['pv-perp'], 'The cash freed is received now. A fee paid every month forever is a perpetuity: fee ÷ monthly rate.'],
+    'sd': [['var-prob', 'var-sample'], 'The sheet gives the variance. Take its square root.'],
+    'weights': [['port-ret', 'port-var'], 'The sheet formulas use weights. Each weight is the amount in that asset divided by the total.'],
+    'vu-cf': [['pv-perp'], T`A firm with a level cash flow forever is a perpetuity: \(PV = \frac{C}{r}\) with \(C = EBIT(1 - T_c)\) and \(r = r_U\).`],
+    'share-price-eq': [['mm-t-value'], T`From \(V_L = E + D\): equity is firm value minus debt. Divide by the number of shares.`],
+    'tradeoff': [['mm-t-value'], T`The sheet's \(V^L = V^U + PV(\text{Interest tax shield})\), minus the PV of the costs of financial distress (from the textbook, not the sheet).`],
+    'disc-payback': [['pv-lump'], 'Discount each cash flow with PV of a lump sum, then count the years until the running total turns positive.'],
+    'dep-sl': [[], 'Not on the sheet. The question tells you the method; straight line spreads the cost evenly.'],
+    'dep-dv': [[], 'Not on the sheet. Each year takes the same percentage of what is left.'],
+    'real-cf': [['fisher', 'fv-lump'], T`Grow a real cash flow by inflation, like \(FV_n = PV \times (1+r)^{n}\) with \(r\) = inflation. The sheet's Fisher formula links the two rates.`],
+    'op-cycle': [['ccc'], 'The sheet\'s CCC without the A/P days.'],
+    'cash-freed': [['ap-days', 'ar-days'], 'Rearrange the sheet\'s days formula: balance = days × average daily amount. A change in days changes the balance by that much.'],
+    'credit-npv': [['pv-perp'], 'Each monthly stream of cash goes on forever, so it is a PV of a perpetuity: amount ÷ monthly rate.'],
+    'joint-prob': [[], 'Not on the sheet. Multiply along a path; divide to go back to "given".'],
+    'alpha': [['capm'], 'Work out the sheet\'s CAPM return, then take it away from the forecast return.'],
+    'beta-rho': [['beta', 'corr'], T`Put the sheet's correlation formula into its beta formula: \(Cov(R_i,R_M) = \rho_{iM}\,\sigma_i\,\sigma_M\).`],
+    'current-yield': [[], 'Not on the sheet. The coupon divided by the price.'],
+  };
+  Object.entries(DERIVE).forEach(([id, [from, derive]]) => {
+    const c = CARDS.find((x) => x.id === id);
+    if (c) Object.assign(c, { from, derive });
+  });
+
+  /* ---------- The exam formula sheet, formula by formula, exactly as printed ----------
+   * sec = section index; card = the codex card that teaches it; line = how to type it in a text box
+   * (* for times, / for divide, ^ for powers, brackets). */
+  const SECTIONS = ['Financial Mathematics', 'Valuation of Bonds and Shares', 'Capital Budgeting', 'Working Capital',
+    'Risk and Return', 'Cost of Capital', 'Capital Structure – No Tax World', 'Capital Structure – Tax World'];
+  const X = (s) => `\\text{${s}}`;
+  const SHEET = [
+    ['s-fv', 0, 'fv-lump', T`FV_n = PV \times (1 + r)^{n}`, 'FVn = PV*(1 + r)^n'],
+    ['s-pv', 0, 'pv-lump', T`PV = \frac{FV_n}{(1 + r)^{n}}`, 'PV = FVn/(1 + r)^n'],
+    ['s-pva', 0, 'pv-annuity', `${X('PV of an annuity')} = ` + T`\frac{C}{r}\left(1 - \frac{1}{(1 + r)^{n}}\right)`, 'PV of an annuity = C/r*(1 - 1/(1 + r)^n)'],
+    ['s-pvad', 0, 'pv-annuity-due', `${X('PV of an annuity due')} = ` + T`\frac{C}{r}\left(1 - \frac{1}{(1 + r)^{n}}\right) \times (1 + r)`, 'PV of an annuity due = C/r*(1 - 1/(1 + r)^n)*(1 + r)'],
+    ['s-fva', 0, 'fv-annuity', `${X('FV of an annuity')} = ` + T`\frac{C}{r}\left((1 + r)^{n} - 1\right)`, 'FV of an annuity = C/r*((1 + r)^n - 1)'],
+    ['s-fvad', 0, 'fv-annuity-due', `${X('FV of an annuity due')} = ` + T`\frac{C}{r}\left((1 + r)^{n} - 1\right) \times (1 + r)`, 'FV of an annuity due = C/r*((1 + r)^n - 1)*(1 + r)'],
+    ['s-perp', 0, 'pv-perp', `${X('PV of a perpetuity')} = ` + T`\frac{C}{r}`, 'PV of a perpetuity = C/r'],
+    ['s-gperp', 0, 'pv-grow-perp', `${X('PV of growing perpetuity')} = ` + T`\frac{C}{r - g}`, 'PV of growing perpetuity = C/(r - g)'],
+    ['s-gann', 0, 'pv-grow-annuity', `${X('PV of growing annuity')} = ` + T`\frac{C}{r - g}\left(1 - \left(\frac{1 + g}{1 + r}\right)^{n}\right)`, 'PV of growing annuity = C/(r - g)*(1 - ((1 + g)/(1 + r))^n)'],
+    ['s-ear', 0, 'ear', T`EAR = \left(1 + \frac{APR}{m}\right)^{m} - 1`, 'EAR = (1 + APR/m)^m - 1'],
+    ['s-lam', 0, 'interp', T`\lambda = A_1/(A_1 - A_2)`, 'lambda = A1/(A1 - A2)'],
+    ['s-interp', 0, 'interp', `${X('Interpolated')}\\ r = ` + T`r_1 + \lambda(r_2 - r_1)`, 'Interpolated r = r1 + lambda*(r2 - r1)'],
+    ['s-bond', 1, 'bond-price', T`P_{Bond} = \frac{C}{i}\left(1 - \frac{1}{(1 + i)^{n}}\right) + \frac{FV_n}{(1 + i)^{n}}`, 'PBond = C/i*(1 - 1/(1 + i)^n) + FVn/(1 + i)^n'],
+    ['s-zbond', 1, 'zero-bond', T`P_{Bond} = \frac{FV_n}{(1 + i)^{n}}`, 'PBond = FVn/(1 + i)^n'],
+    ['s-p0z', 1, 'share-zero', T`P_0 = \frac{D_1}{r_E}`, 'P0 = D1/rE'],
+    ['s-p0g', 1, 'share-ddm', T`P_0 = \frac{D_1}{r_E - g}`, 'P0 = D1/(rE - g)'],
+    ['s-p0n', 1, 'share-general', T`P_0 = \frac{D_1}{(1 + r_E)} + \frac{D_2}{(1 + r_E)^{2}} + \cdots + \frac{D_n + P_n}{(1 + r_E)^{n}}`, 'P0 = D1/(1 + rE) + D2/(1 + rE)^2 + ... + (Dn + Pn)/(1 + rE)^n'],
+    ['s-npv', 2, 'npv', T`NPV = NCF_0 + \frac{NCF_1}{(1 + r)} + \frac{NCF_2}{(1 + r)^{2}} + \cdots + \frac{NCF_n}{(1 + r)^{n}}`, 'NPV = NCF0 + NCF1/(1 + r) + NCF2/(1 + r)^2 + ... + NCFn/(1 + r)^n'],
+    ['s-irr', 2, 'irr', T`\sum \frac{NCF_t}{(1 + IRR)^{t}} = 0`, 'Sum of NCFt/(1 + IRR)^t = 0'],
+    ['s-pi', 2, 'pi', `PI = \\frac{NPV}{${X('Resource consumed')}}`, 'PI = NPV/Resource consumed'],
+    ['s-npvinf', 2, 'npv-inf', T`NPV_{\infty} = NPV_0 \frac{(1 + r)^{n}}{(1 + r)^{n} - 1}`, 'NPVinf = NPV0*(1 + r)^n/((1 + r)^n - 1)'],
+    ['s-eav', 2, 'eav', T`EAV = \frac{NPV \times r}{\left(1 - \frac{1}{(1 + r)^{n}}\right)}`, 'EAV = NPV*r/(1 - 1/(1 + r)^n)'],
+    ['s-fisher', 2, 'fisher', `1 + ${X('Real Interest Rate')} = \\frac{1 + ${X('Nominal Interest Rate')}}{1 + ${X('inflation rate')}}`, '1 + Real rate = (1 + Nominal rate)/(1 + inflation rate)'],
+    ['s-fcf', 2, 'fcf', `FCF = (Rev - Costs - Dep) \\times (1 - t_c) + Dep - CapEx - ${X('Change in NWC')}`, 'FCF = (Rev - Costs - Dep)*(1 - tc) + Dep - CapEx - Change in NWC'],
+    ['s-salv', 2, 'salvage', `${X('After-tax salvage')} = SV - (SV - BV)t_c`, 'After-tax salvage = SV - (SV - BV)*tc'],
+    ['s-invd', 3, 'inv-days', `${X('Inventory Days')} = \\frac{${X('Inventory')}}{${X('Average daily COGs')}}`, 'Inventory Days = Inventory/Average daily COGS'],
+    ['s-ard', 3, 'ar-days', `${X('A/R Days')} = \\frac{${X('Accounts receivable')}}{${X('Average daily sales')}}`, 'A/R Days = Accounts receivable/Average daily sales'],
+    ['s-apd', 3, 'ap-days', `${X('A/P Days')} = \\frac{${X('Accounts Payable')}}{${X('Average daily COGs')}}`, 'A/P Days = Accounts payable/Average daily COGS'],
+    ['s-ccc', 3, 'ccc', `CCC = ${X('Inventory Days')} + ${X('A/R Days')} - ${X('A/P Days')}`, 'CCC = Inventory Days + A/R Days - A/P Days'],
+    ['s-er', 4, 'exp-ret', T`E(R_i) = \sum_{k=1}^{n} (R_{ik} \times P_k)`, 'E(Ri) = Sum of Rik*Pk'],
+    ['s-varp', 4, 'var-prob', T`\sigma_i^{2} = \sum_{k=1}^{n} \left\{[R_{ik} - E(R_i)]^{2} \times P_k\right\}`, 'Var(i) = Sum of (Rik - E(Ri))^2*Pk'],
+    ['s-ret', 4, 'realised', T`R_{t+1} = \frac{DIV_{t+1} + P_{t+1} - P_t}{P_t}`, 'R(t+1) = (DIV(t+1) + P(t+1) - Pt)/Pt'],
+    ['s-mean', 4, 'mean', T`\bar{R} = \frac{1}{T}(R_1 + R_2 + \cdots R_T)`, 'Rbar = (R1 + R2 + ... + RT)/T'],
+    ['s-vars', 4, 'var-sample', T`Var(R) = \frac{1}{T - 1}\left((R_1 - \bar{R})^{2} + (R_2 - \bar{R})^{2} + \cdots + (R_T - \bar{R})^{2}\right)`, 'Var(R) = ((R1 - Rbar)^2 + ... + (RT - Rbar)^2)/(T - 1)'],
+    ['s-covp', 4, 'cov-prob', T`Cov(R_i, R_j) = \sum_{n=1}^{N} (R_{i,n} - E(R_i)) \times (R_{j,n} - E(R_j)) \times P_n`, 'Cov(Ri,Rj) = Sum of (Ri,n - E(Ri))*(Rj,n - E(Rj))*Pn'],
+    ['s-covs', 4, 'cov-sample', T`Cov(R_i, R_j) = \frac{1}{N - 1}\sum_{n=1}^{N} (R_{i,n} - \bar{R}_i) \times (R_{j,n} - \bar{R}_j)`, 'Cov(Ri,Rj) = Sum of (Ri,n - Rbar_i)*(Rj,n - Rbar_j)/(N - 1)'],
+    ['s-corr', 4, 'corr', T`\rho_{ij} = Corr(R_i, R_j) = \frac{Cov(R_i, R_j)}{\sigma_i \times \sigma_j}`, 'Corr(Ri,Rj) = Cov(Ri,Rj)/(SDi*SDj)'],
+    ['s-cv', 4, 'cv', T`CV = \frac{\sigma_{R_i}}{E[R_i]}`, 'CV = SD(Ri)/E[Ri]'],
+    ['s-erp', 4, 'port-ret', T`E[R_p] = w_1E[R_1] + w_2E[R_2] + \cdots + w_nE[R_n]`, 'E[Rp] = w1*E[R1] + w2*E[R2] + ... + wn*E[Rn]'],
+    ['s-varpf', 4, 'port-var', T`\sigma_p^{2} = w_i^{2}\sigma_i^{2} + w_j^{2}\sigma_j^{2} + 2 w_i w_j \rho_{ij} \sigma_i \sigma_j`, 'Var(p) = wi^2*SDi^2 + wj^2*SDj^2 + 2*wi*wj*Corr(i,j)*SDi*SDj'],
+    ['s-sharpe', 4, 'sharpe', `${X('Sharpe Ratio')} = ` + T`\frac{E[R_P] - r_f}{\sigma_P}`, 'Sharpe Ratio = (E[Rp] - rf)/SDp'],
+    ['s-beta', 4, 'beta', T`\beta_i = \frac{Cov(R_i, R_M)}{\sigma_M^{2}}`, 'Beta(i) = Cov(Ri,RM)/SDM^2'],
+    ['s-capm', 4, 'capm', T`E[R_i] = r_f + \beta_i\left(E[R_M] - r_f\right)`, 'E[Ri] = rf + Beta(i)*(E[RM] - rf)'],
+    ['s-betap', 4, 'port-beta', T`\beta_p = w_1\beta_1 + w_2\beta_2 + \cdots w_n\beta_n`, 'Beta(p) = w1*Beta1 + w2*Beta2 + ... + wn*Betan'],
+    ['s-rp', 5, 'cost-pref', T`R_p = \frac{DIV_p}{P_P}`, 'Rp = DIVp/Pp'],
+    ['s-wacc', 5, 'wacc', T`r_{WACC} = r_e\frac{E}{V} + r_p\frac{P}{V} + r_d(1 - T_c)\frac{D}{V}`, 'rWACC = re*E/V + rp*P/V + rd*(1 - Tc)*D/V'],
+    ['s-v', 5, 'wacc', T`V = E + P + D`, 'V = E + P + D'],
+    ['s-mm1', 6, 'mm-nt-value', T`E + D = U = A`, 'E + D = U = A'],
+    ['s-ru', 6, 'mm-nt-ru', T`r_U = r_E\frac{E}{E + D} + r_D\frac{D}{E + D}`, 'rU = rE*E/(E + D) + rD*D/(E + D)'],
+    ['s-re', 6, 'mm-nt-re', T`r_E = r_U + \frac{D}{E}(r_U - r_D)`, 'rE = rU + D/E*(rU - rD)'],
+    ['s-rura', 6, 'mm-nt-value', T`r_U = r_A`, 'rU = rA'],
+    ['s-vl', 7, 'mm-t-value', `V^{L} = V^{U} + PV(${X('Interest tax shield')})`, 'VL = VU + PV(Interest tax shield)'],
+    ['s-its', 7, 'its', `${X('Interest tax shield')} = ${X('Interest')} \\times T_c`, 'Interest tax shield = Interest*Tc'],
+    ['s-pvits', 7, 'its', `PV(${X('Interest tax shield of Permanent Debt')}) = T_c \\times D`, 'PV(Interest tax shield of permanent debt) = Tc*D'],
+    ['s-ret2', 7, 'mm-t-re', T`r_E = r_U + \frac{D}{E}(r_U - r_D)(1 - T_c)`, 'rE = rU + D/E*(rU - rD)*(1 - Tc)'],
+    ['s-wacct', 7, 'mm-t-wacc', T`r_{WACC} = r_E\frac{E}{E + D} + r_D\frac{D}{E + D}(1 - T_c)`, 'rWACC = rE*E/(E + D) + rD*D/(E + D)*(1 - Tc)'],
+  ].map(([id, sec, card, tex, line]) => ({ id, sec, section: SECTIONS[sec], card, tex, line }));
+
   const byId = {};
   CARDS.forEach((c) => { byId[c.id] = c; });
-  root.FORMULAS = { GROUPS, CARDS, byId };
+  const sheetById = {};
+  SHEET.forEach((s) => { sheetById[s.id] = s; });
+  /** The sheet entries that belong to a card (empty for off-sheet cards). */
+  function sheetFor(cardId) { return SHEET.filter((s) => s.card === cardId); }
+  CARDS.forEach((c) => { c.sheetIds = sheetFor(c.id).map((s) => s.id); });
+
+  /** Split a question's formula ids into what is on the sheet and what is not.
+   * Ids may be card ids or sheet entry ids. Off-sheet cards also bring the sheet formulas they come from. */
+  function forQuestion(ids) {
+    const on = [], off = [], seen = new Set();
+    const addSheet = (s) => { if (s && !seen.has(s.id)) { seen.add(s.id); on.push(s); } };
+    (ids || []).forEach((id) => {
+      if (sheetById[id]) return addSheet(sheetById[id]);
+      const c = byId[id];
+      if (!c) return;
+      if (c.sheet) sheetFor(id).forEach(addSheet);
+      else if (!off.includes(c)) off.push(c);
+    });
+    return { on, off };
+  }
+  /** The formula ids of a question: `formulas` (array) or the older single `formula`. */
+  function idsOf(q) {
+    if (!q) return [];
+    if (Array.isArray(q.formulas) && q.formulas.length) return q.formulas;
+    return q.formula ? [q.formula] : [];
+  }
+
+  root.FORMULAS = { GROUPS, CARDS, byId, SECTIONS, SHEET, sheetById, sheetFor, forQuestion, idsOf };
 })(typeof window !== 'undefined' ? window : globalThis);

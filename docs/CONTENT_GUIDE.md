@@ -358,3 +358,118 @@ viz: { type: 'tiscreen', lines: [{ in: '3/8', out: '3/8' }, { say: 'Press [[ctrl
 
 `fmt` for numbers: `'$'` money, `'%'` percentage points (write `8.5` for 8.5%), `'x'` times, otherwise a plain number;
 `dp` fixes the decimals.
+
+## Formula-sheet links (`formulas`)
+
+Every answer shows **the formulas from the exam formula sheet** that it uses (the 📄 box), exactly as the
+sheet prints them, with how to type each one in a text box. List them on the question (or generator, or
+`make()` output) in the order the working uses them:
+
+```js
+formulas: ['fcf', 'salvage', 'npv'],   // codex card ids from js/data/formulas.js, in the order used
+```
+- Use card ids (`FORMULAS.CARDS`). A card on the sheet (`sheet: true`) brings its exact sheet entries
+  (`FORMULAS.SHEET`). You may also name one sheet entry directly with its `s-…` id (e.g. `'s-pvits'` for just
+  the PV of the tax shield, when the card `its` would also show `Interest × Tc`).
+- A card that is **not** on the sheet (`sheet: false`: payback, loan balance, `annuity-pmt`, `nwc`,
+  `option-wait`, …) appears under "Not on the sheet" with the sheet formula it is built from (`from`) and how
+  (`derive`). Use these whenever the working rearranges a sheet formula (solving for `C`, `r`, `n`, `g`) or uses
+  a rule that is not printed.
+- List every formula the working needs, not just the main one. "If there are several, say so" is automatic.
+- The older single `formula: 'id'` still works (it is treated as `formulas: ['id']`).
+- Concept questions may list the formula they are about, but do not have to.
+
+## Excel (`xl`)
+
+Every calculation with a TI-Nspire method automatically gets an **📗 In Excel** version (`XL.fromTI`, only
+shown when it gives exactly the same number). Write an Excel sheet by hand when Excel would lay the
+problem out differently from the calculator, above all **cash flow tables** (Week 5), **decision trees**
+(Week 7) and statistics from data (Week 9). A hand-written sheet on a question overrides the automatic one:
+
+```js
+xl: {
+  title: 'FCF table',
+  rows: [                                   // row 1 first; cells: number | 'label' | '=FORMULA' | null
+    ['Year', 0, 1, 2],
+    ['Revenue', null, 50000, 52000],
+    ['Costs', null, -20000, -21000],
+    ['Depreciation', null, -10000, -10000],
+    ['EBIT', null, '=SUM(C2:C4)', '=SUM(D2:D4)'],
+    ['Tax (30%)', null, '=-C5*0.3', '=-D5*0.3'],
+    ['Add back depreciation', null, '=-C4', '=-D4'],
+    ['CapEx', -30000, null, null],
+    ['FCF', '=SUM(B5:B8)', '=SUM(C5:C8)', '=SUM(D5:D8)'],
+    ['NPV at 10%', '=NPV(10%,C9:D9)+B9'],
+  ],
+  fmt: { 'B2:D9': '$', 'B10': '$' },        // '$' money, '%' percent, '0' whole, '0.00', '0.0000'
+  bold: ['A1:D1', 'A9:D9'],
+  answer: 'B10',                            // the validator checks this cell equals the question's answer
+  steps: [ { t: R`Years across row 1.`, cells: 'A1:D1' }, { t: R`EBIT adds the three rows above it.`, cells: 'C5:D5' } ],
+}
+```
+- The sheet is computed by `js/lib/xl.js`, so every number you show is what Excel shows. Supported:
+  `+ - * / ^ %`, brackets, `$A$1` references, ranges, `SUM AVERAGE MIN MAX COUNT PRODUCT ABS ROUND SQRT
+  EXP LN POWER SUMPRODUCT NPV IRR PV FV PMT NPER RATE EFFECT NOMINAL STDEV.S STDEV.P VAR.S VAR.P
+  COVARIANCE.S COVARIANCE.P CORREL SLOPE IF AND OR NOT`, and a Goal Seek step
+  `goal: { set: 'B3', to: 0, change: 'B1' }` (the sheet shows the solved value).
+- Excel rules to teach (they match real Excel): `=NPV(rate, CF1:CFn)` starts at year 1, so **add CF0
+  separately**; `=IRR(CF0:CFn)` includes year 0; money you pay is negative in `PV/FV/PMT`; rates in functions
+  are per period (`8%/12` for monthly); percentages can be typed as `8%`.
+- Put inputs in their own labelled cells and point formulas at them (that is what markers want to see).
+- Lesson card: `{ kind: 'excel', title, body, xl, points }` shows a sheet with its steps.
+
+## Written answers (`cases`)
+
+Most exam marks are for written answers: a scenario with parts a, b, c … Each floor has 2–3 written
+rounds on its route (a map node `{ id: 'w5-W1', kind: 'case', name: 'Written round: …', case: 'w5-C1' }`,
+usually just before the boss) and the pack holds them in `cases`:
+
+```js
+cases: {
+  'w5-C1': {
+    title: 'The bakery oven',
+    topics: ['fcf', 'salvage'],             // this pack's topic ids
+    story: R`The scenario with all the numbers (short sentences, \n\n between paragraphs).`,
+    table: {...} | tl: {...} | viz: {...},  // optional visual for the story
+    parts: [ …2 to 6 parts… ],
+  },
+},
+```
+Part kinds (each has `ask` and `marks`, 1–8; calc parts default to 2):
+
+```js
+{ kind: 'calc', marks: 2, ask: R`Calculate the after-tax salvage value.`,
+  formulas: ['salvage'],                    // sheet formulas used, in order (required)
+  pick: ['salvage', 'fcf', 'pv-lump'],      // optional: options for "which formula?" (else auto)
+  answer: 13200, unit: '$', dp: 2,
+  model: ['After-tax salvage = SV - (SV - BV)*tc',   // 1. the formula in letters
+          '= 15000 - (15000 - 9000)*0.3',            // 2. the numbers
+          '= $13,200.00'],                           // 3. the answer, exactly dp decimals (% sign for %)
+  meaning: R`So selling the oven brings in \(\$13{,}200\) after tax.`,   // 4. what it means (optional)
+  hint: R`Book value = cost − depreciation so far.`,  // optional
+  xl: {...} }                               // optional Excel version of the model answer
+{ kind: 'theory', marks: 2, ask: R`Explain why …`,
+  points: [ { t: R`A point that earns a mark.`, ok: true }, { t: R`A tempting wrong point.`, ok: false, why: R`Why it is wrong.` } ],
+  model: R`A full-marks answer in 2–4 short sentences: point, because …, linked to this firm, conclusion.`,
+  keys: [['tax', 'deductible'], ['risk']] }  // word groups the player's own answer should mention
+{ kind: 'blanks', marks: 1, ask: R`Choose the right words.`,
+  text: R`If rates rise, the bond price {{falls|rises|stays the same}}.`,   // first option is right
+  why: R`One sentence of explanation.` }
+{ kind: 'excel', marks: 4, ask: R`In Excel, build the cash flow table and find the NPV.`,
+  build: [R`Put the years 0 to 5 across row 1.`, R`…`],   // 3+ steps the player ticks off in real Excel
+  result: R`What NPV does your table give?`, answer: 12345.67, unit: '$', dp: 2,
+  xl: { …the full model sheet, answer: 'B12' } }
+```
+Rules:
+1. **Model working is typed maths** (the exam's text box): `*` `/` `^` brackets, no LaTeX. The validator works
+   out every line: it must start with the formula in letters, show the numbers, reach the answer, and end
+   with the answer to exactly `dp` decimal places (`%` sign on percentages). Write percentages inside
+   formulas as decimals (`0.08`) or with a % sign (`8%`).
+2. Mix calculation and theory parts, like the exam. Theory parts ask "explain", "why", "what happens if",
+   "advise", "compare". Their model answer uses the course's words and links to the scenario.
+3. Invent your own scenarios, names and numbers. Never copy an exam or a practice paper.
+4. Each case is 4–10 marks and takes 5–12 minutes.
+
+Lesson cards can hold one written part: `{ kind: 'written', title, body, story, part: {…any part…} }`,
+and a typing drill: `{ kind: 'type', title, q, answer: 5955.08, model: '5000*(1 + 0.06)^3', why, trap }`
+(the player types a one-line expression; it must work out to `answer`).

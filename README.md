@@ -28,9 +28,10 @@ Progress saves in your browser automatically. Use **Settings → Copy save code*
 | 7 · The Working Capital Warehouse | Week 8 | Cash conversion cycle, trade credit, payables and receivables |
 | 8 · The Risk Casino | Week 9 | Returns, variance, correlation, portfolios, beta, CAPM, SML |
 | 9 · The Capital Summit | Weeks 10–11 (preview) | WACC and capital structure, built from the formula sheet |
-| Penthouse · The Boardroom | All | MST-style practice exams (Section A 0.5 marks, Section B 2 marks) |
+| 10 · The Writing Room | All weeks | Written answers (setting out working, typing maths in one line, theory answers) and the Excel Lab (cash flow tables, decision trees, statistics, WACC, Goal Seek) |
+| Penthouse · The Boardroom | All | Practice exams: mid-semester style, final-exam style (multiple choice, typed numbers, written answers) or a written section on its own |
 
-Every floor has **lessons** 📖 (70 in total), battles, mini-games, a boss and a one-page revision sheet.
+Every floor has **lessons** 📖, battles, mini-games, **written rounds** ✍️, a boss and a one-page revision sheet.
 Lessons assume no prior knowledge: one small idea per card, worked examples revealed one step
 at a time, the same example on the TI-Nspire, quick checks, and "your turn" problems split
 into small steps. Each battle comes right after the lessons it needs.
@@ -40,13 +41,25 @@ forever. Every answer comes with an explanation, a worked solution in LaTeX, and
 the **TI-Nspire CX CAS** (Finance Solver screens and the exact lines to type). Wrong answers go
 into the **Mistake Ledger**, and a **Review** button shows the lesson's key points.
 
+Every answer also shows **the formulas from the exam formula sheet** it used (📄), exactly as the sheet prints
+them, with how to type each one in an exam text box; when there are several it says how many, and a formula
+that is not on the sheet (a rearranged one, or a rule to learn) shows which sheet formula it comes from.
+Every calculation also shows **how to do it in Excel** (📗), in a small spreadsheet whose every cell is
+computed, so what you see is what Excel gives.
+
+**Written rounds** practise the exam's written answers: a scenario with parts a, b, c. For a calculation you
+pick the sheet formula, type your working in one line (checked by working it out: formula, numbers, value,
+rounding) and compare with a full-marks answer. For theory you pick the points that earn marks, write your
+own answer, and compare it with a model answer. Some rounds are built in Excel.
+
 Other features:
 
 - 🧮 A TI-Nspire-style calculator: the Finance Solver (N, I(%), PV, Pmt, FV, PpY, CpY, PmtAt) and a
   calculator line that understands `tvmFV(…)`, `npv(…)`, `irr(…)`, `eff(…)`, `nom(…)`, `nSolve(…)`,
   lists, `mean`, `stDevSamp` and stored values. Prefer the course's HP10bII+? Switch the worked
   steps to HP keystrokes in Settings.
-- 📘 The Formula Codex: the whole BFC2140 formula sheet, searchable, with "when to use it" notes.
+- 📘 The Formula Codex and the exam formula sheet (formula by formula, with how to type each one), plus the
+  formulas that are not on the sheet and how to build them from it.
 - 🌙 Smart Review targets your weakest topics. 📊 Performance Review shows mastery by topic.
 - 🏦 A savings vault that pays compound interest after each win. Pick the account with the highest EAR.
 
@@ -98,10 +111,13 @@ js/lib/art.js           SVG monsters and the player avatar
 js/lib/charts.js        timelines, tables, NPV profiles, SML charts, decision trees
 js/lib/nspire.js        a small TI-Nspire CX CAS emulator (checks and runs every calculator step)
 js/lib/tiview.js        draws TI-Nspire steps: Finance Solver screens and calculator lines
+js/lib/linear.js        one-line maths (the exam's text box): reads, draws and marks typed working
+js/lib/xl.js            a small Excel: formulas, sheets, the sheet view, and TI-Nspire steps turned into Excel
 js/lib/sfx.js           Web Audio sound effects
 js/data/formulas.js     the formula codex
-js/data/w*.js           one content pack per floor: lessons, questions, battles (see docs/CONTENT_GUIDE.md)
-js/engine/*.js          screens, battles, mini-games, calculator, exam, store, settings
+js/data/w*.js           one content pack per floor: lessons, questions, battles, written rounds (see docs/CONTENT_GUIDE.md)
+js/data/wr.js           Floor 10, the Writing Room and the Excel Lab
+js/engine/*.js          screens, battles, mini-games, calculator, exam, written rounds (case.js), store, settings
 tests/                  finance tests against the course's worked answers + content validator
 tools/build.js          builds the embedded fonts and dist/corporate-ladder.html
 ```
@@ -116,8 +132,9 @@ npm run build     # regenerate css/katex-inline.css, css/opendyslexic.css and di
 
 To add or edit questions or lessons, follow `docs/CONTENT_GUIDE.md`. `tests/validate.js` runs
 each generator hundreds of times, compiles every LaTeX string with KaTeX, and runs every
-TI-Nspire method to check that it reaches the question's answer. `tests/e2e.js` plays through
-every lesson, battle and mini-game in a real browser.
+TI-Nspire method to check that it reaches the question's answer, builds every Excel sheet, and works out
+every model answer of every written round. `tests/e2e.js` plays through every lesson, battle, mini-game and
+written round in a real browser.
 
 The questions are based on the BFC2140 lecture slides, tutorials, the mock MST and the MST
 solutions. Floor 9 is a preview built only from the formula sheet, because the course

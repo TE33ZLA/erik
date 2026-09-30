@@ -295,9 +295,10 @@
     S().items.hint--; B.hintUsed = true;
     const box = document.querySelector('#qzone .hintbox');
     let h = '<h4>📜 Hint</h4>';
-    if (q.formula) h += QVIEW.formulaCard(q.formula, true);
+    const fids = root.FORMULAS.idsOf(q);
+    if (fids.length) h += QVIEW.sheetBox(q, { bare: true });
     if (q.steps && q.steps.length > 1) h += `<p class="hint-step"><b>First step:</b> ${UI.rich(q.steps[0])}</p>`;
-    else if (!q.formula) h += `<p>${UI.rich(q.why ? 'Think about this: ' + q.why.split('. ')[0] + '.' : 'Re-read the question and underline each number.')}</p>`;
+    else if (!fids.length) h += `<p>${UI.rich(q.why ? 'Think about this: ' + q.why.split('. ')[0] + '.' : 'Re-read the question and underline each number.')}</p>`;
     if (q.ti && q.ti.length && (S().settings.calc || 'ti') === 'ti') h += root.TIVIEW.html(q.ti, { title: 'Set it up like this (you work out the answer)', hideResults: true });
     const les = QVIEW.lessonFor(q);
     if (les) h += `<p><button class="chip-btn" data-act="lesson-peek" data-pack="${q.pack}" data-lesson="${les.id}">📖 Review: ${RENDER.esc(les.title)}</button></p>`;

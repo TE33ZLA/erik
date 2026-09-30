@@ -52,7 +52,7 @@
   function instantiate(item, seed, mode) {
     const src = item.src;
     const pack = item.pack;
-    const base = { pack: pack.id, topic: src.topic, topicLabel: pack.topics[src.topic] || src.topic, level: src.level || 1, section: src.section || (item.type === 'g' ? 'B' : 'A'), formula: src.formula || null, src: src.src || null, boss: !!src.boss, srcId: src.id };
+    const base = { pack: pack.id, topic: src.topic, topicLabel: pack.topics[src.topic] || src.topic, level: src.level || 1, section: src.section || (item.type === 'g' ? 'B' : 'A'), formula: src.formula || null, formulas: src.formulas || null, src: src.src || null, boss: !!src.boss, srcId: src.id };
     let q;
     if (item.type === 'g') {
       if (!Number.isFinite(seed)) seed = Math.floor(Math.random() * 2 ** 31);
@@ -62,6 +62,7 @@
       seed = s;
       q = Object.assign({}, base, made, { kind: made.kind || 'num', key: src.id + ':' + seed, seed, src: made.src || base.src });
       if (made.formula) q.formula = made.formula;
+      if (made.formulas) q.formulas = made.formulas;
     } else {
       q = Object.assign({}, base, src, { kind: src.kind, key: src.id, seed: null });
     }
@@ -114,7 +115,7 @@
     const t = st.topics[tk] || (st.topics[tk] = { a: 0, c: 0 });
     t.a++; if (res.ok) t.c++; t.last = Date.now();
     if (!q.seed) { const r = st.qs[q.srcId] || (st.qs[q.srcId] = { a: 0, c: 0 }); r.a++; if (res.ok) r.c++; }
-    if (q.formula && res.ok) st.formulas[q.formula] = (st.formulas[q.formula] || 0) + 1;
+    if (res.ok) root.FORMULAS.idsOf(q).forEach((id) => { if (root.FORMULAS.byId[id]) st.formulas[id] = (st.formulas[id] || 0) + 1; });
     const J = S().journal;
     const existing = J.findIndex((j) => j.key === q.key);
     if (!res.ok) {

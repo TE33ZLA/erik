@@ -14,7 +14,7 @@
   const S = () => GAME.store.state;
   let L = null;
 
-  const KIND = { learn: 'Learn', example: 'Worked example', ti: 'On your TI-Nspire', check: 'Quick check', guided: 'Your turn, step by step', recap: 'Remember' };
+  const KIND = { learn: 'Learn', example: 'Worked example', ti: 'On your TI-Nspire', check: 'Quick check', guided: 'Your turn, step by step', recap: 'Remember', excel: 'In Excel', written: 'Write it like the exam', type: 'Type it in one line' };
 
   function lessonOf(pack, node) { return pack.lessons && pack.lessons[node.lesson]; }
   function paras(text) { return text ? String(text).split(/\n\s*\n|\\n\\n/).map((p) => `<p>${UI.rich(p.trim())}</p>`).join('') : ''; }
@@ -79,6 +79,8 @@
     if (c.kind === 'example' && (st.shown || 0) < c.steps.length) label = `Show step ${(st.shown || 0) + 1} of ${c.steps.length}`;
     if (c.kind === 'check' && !st.done) { can = false; label = 'Answer to continue'; }
     if (c.kind === 'guided' && !st.done) { can = false; label = 'Finish the steps to continue'; }
+    if (c.kind === 'written' && !st.done) { can = false; label = 'Answer to continue'; }
+    if (c.kind === 'type' && !st.done) { can = false; label = 'Type it to continue'; }
     document.getElementById('lesson-nav').innerHTML = `
       <button class="btn" data-act="lesson-back" ${L.i === 0 ? 'disabled' : ''}>← Back</button>
       <button class="icon-btn" data-act="lesson-speak" aria-label="Read this card aloud" title="Read aloud (S)">🔊</button>
@@ -119,7 +121,54 @@
       return `<article class="lcard quick-check">${head(c)}${c.intro ? paras(c.intro) : ''}<div class="lcheck">${QVIEW.card(st.q, {})}</div></article>`;
     }
     if (c.kind === 'guided') return guidedHTML(c, st);
+    if (c.kind === 'excel') return `<article class="lcard excel-card">${head(c)}${paras(c.body)}${pic(c)}${root.XLVIEW.html(c.xl, { formulas: !!c.formulas })}${points(c.points)}${extras(c, true)}</article>`;
+    if (c.kind === 'written') {
+      const key = `L-${L.node.id}-${L.i}`;
+      return `<article class="lcard written-card">${head(c)}${paras(c.body)}${c.story ? `<div class="case-text">${paras(c.story)}</div>` : ''}${root.WRITTEN.lessonPart(c.part, st, key, () => { st.done = true; nav(); })}</article>`;
+    }
+    if (c.kind === 'type') return typeHTML(c, st);
     return `<article class="lcard">${paras(c.body)}</article>`;
+  }
+
+  /* ---------------- typing drill: write maths in one line ---------------- */
+  function typeHTML(c, st) {
+    const res = st.res;
+    return `<article class="lcard type-card">${head(c)}${paras(c.body)}<div class="lq">${UI.rich(c.q)}</div>
+      <form class="typeform" data-submit="lesson-type" autocomplete="off">
+        <label class="sr-only" for="ltype">Type it in one line</label>
+        <input id="ltype" name="t" class="wtext mono" type="text" spellcheck="false" data-live-type="1" value="${esc(st.text || '')}" placeholder="${esc(c.placeholder || 'e.g. 1000/(1 + 0.05)^3')}" ${st.done ? 'readonly' : ''}>
+        <div class="wprev" id="ltype-prev">${root.WRITTEN.previewHTML(st.text || '')}</div>
+        ${st.done ? '' : '<div class="fb-actions"><button class="btn primary" type="submit">Check</button><button type="button" class="linkbtn" data-act="lesson-type-show">Show me</button></div>'}
+      </form>
+      ${res ? `<p class="wfb ${res.ok ? 'good' : 'bad'}">${res.ok ? '✅ ' : '🔎 '}${UI.rich(res.msg)}</p>` : ''}
+      ${st.done ? `<p class="lans">A correct line: <code class="mono">${esc(c.model)}</code></p>${c.why ? `<p class="ltip">💡 ${UI.rich(c.why)}</p>` : ''}` : ''}</article>`;
+  }
+  if (typeof document !== 'undefined') {
+    document.addEventListener('input', (ev) => {
+      const t = ev.target;
+      if (!t || !t.dataset || !t.dataset.liveType) return;
+      const box = document.getElementById('ltype-prev');
+      if (box) { clearTimeout(t._t); t._t = setTimeout(() => { box.innerHTML = root.WRITTEN.previewHTML(t.value); }, 150); }
+    });
+  }
+  function typeCheck(text) {
+    const c = L.cards[L.i], st = L.st[L.i];
+    st.text = text;
+    const v = root.LINEAR.value(text);
+    const want = c.answer;
+    if (v === null) {
+      let why = 'I could not work that out. Use numbers and * / ^ ( ) only.';
+      try { root.LINEAR.parse(text); } catch (e) { if (e.lin) why = e.message; }
+      st.res = { ok: false, msg: why };
+    } else if (Math.abs(v - want) <= Math.max(1e-6, Math.abs(want) * 1e-6)) {
+      st.res = { ok: true, msg: `It works out to \\(${+v.toFixed(6)}\\). The brackets are right.` };
+      st.done = true;
+      SFX.play('good'); GAME.addXP(3);
+    } else {
+      st.res = { ok: false, msg: `That works out to \\(${+v.toFixed(6)}\\), not \\(${+want.toFixed(6)}\\). Check the brackets: ${esc(c.trap || 'a power or a division may cover the wrong part.')}` };
+      SFX.play('bad');
+    }
+    render();
   }
 
   /* ---------------- quick checks ---------------- */
@@ -276,6 +325,9 @@
     if (c.kind === 'example') { t += UI.say(c.q) + '. ' + c.steps.slice(0, st.shown || 0).map((x) => UI.say(x)).join('. '); if ((st.shown || 0) >= c.steps.length && c.answer) t += '. ' + UI.say(c.answer); }
     if (c.kind === 'check' && st.q) t += QVIEW.speechFor(st.q);
     if (c.kind === 'guided') { t += UI.say(c.q) + '. ' + UI.say(c.parts[st.part || 0].ask); }
+    if (c.kind === 'excel' && c.xl) t += root.XLVIEW.speech(c.xl) + ' ';
+    if (c.kind === 'written' && c.part) { if (c.story) t += UI.say(c.story) + ' '; t += UI.say(c.part.ask) + ' '; }
+    if (c.kind === 'type') t += UI.say(c.q) + ' ';
     if (c.ti && (c.kind !== 'example' || (st.shown || 0) >= c.steps.length)) t += '. ' + TIVIEW.speech(c.ti);
     if (c.tip) t += '. Tip: ' + UI.say(c.tip);
     UI.speak(t);
@@ -315,6 +367,10 @@
     UI.modal({ title: `📖 ${esc(les.title)}`, body, wide: true });
   }
 
+  Object.assign(GAME.actions, {
+    'lesson-type': (form) => { if (!L) return; typeCheck(form.querySelector('input').value); },
+    'lesson-type-show': () => { if (!L) return; const st = L.st[L.i]; st.done = true; st.res = { ok: false, msg: 'Here is one way to type it.' }; render(); },
+  });
   Object.assign(GAME.actions, {
     'lesson-peek': (el) => peek(el.dataset.pack, el.dataset.lesson),
     'lesson-open': (el) => {
