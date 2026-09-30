@@ -65,6 +65,7 @@
       { id: 'w0-L4', kind: 'lesson', name: 'The Finance Solver', lesson: 'w0-L4' },
       { id: 'w0-L5', kind: 'lesson', name: 'Solve anything with nSolve', lesson: 'w0-L5' },
       { id: 'w0-L6', kind: 'lesson', name: 'Lists and statistics', lesson: 'w0-L6' },
+      { id: 'w0-W1', kind: 'case', name: 'Written round: the smoothie stall', case: 'w0-C1' },
       { id: 'w0-2', kind: 'battle', name: 'The Calculator Cage', topics: ['solver', 'nsolve', 'lists', 'ti'], n: 6,
         enemy: { name: 'Calcu-Later', title: 'Always one key press behind', body: 'box', color: '#5b8bd6', acc: ['antenna', 'glasses'], mouth: 'flat', item: '🧮',
           lines: { intro: 'I will do the sums… later. You first.', hit: ['Beep! Your Finance Solver works!', 'Negative in, positive out. Correct!'],
@@ -324,6 +325,48 @@
       },
     },
 
+    /* ---------- written round: the basic skills every written finance answer needs ---------- */
+    cases: {
+      'w0-C1': {
+        title: 'The smoothie stall',
+        topics: ['pct', 'pow'],
+        story: R`Tama runs a smoothie stall. Last year a large smoothie cost \(\$6.40\). This year it costs \(\$6.88\).\n\nTama also wants \(\$3{,}000\) in 5 years to buy a new blender. A bank pays \(4\%\) a year, compounded yearly.`,
+        parts: [
+          { kind: 'calc', marks: 2, ask: R`By what percentage did the price of a large smoothie rise this year?`,
+            formulas: ['fv-lump', 'r-solve'], pick: ['fv-lump', 'r-solve', 'pv-lump', 'simple-int', 'ear'],
+            answer: P(6.88 / 6.40 - 1), unit: '%', dp: 2,
+            model: ['r = FV/PV - 1', '= 6.88/6.40 - 1', '= 7.50%'],
+            meaning: R`So the price rose by \(7.50\%\).`,
+            hint: R`Growing by \(r\) multiplies by \((1 + r)\). So \(6.40 \times (1 + r) = 6.88\). Divide, then take away 1.` },
+          { kind: 'calc', marks: 2, ask: R`Say the price keeps rising at this rate every year. What will a large smoothie cost in 3 years? Use your answer to (a).`,
+            formulas: ['fv-lump'], pick: ['fv-lump', 'pv-lump', 'r-solve', 'simple-int'],
+            answer: 6.88 * 1.075 ** 3, unit: '$', dp: 2,
+            model: ['FVn = PV*(1 + r)^n', '= 6.88*(1 + 0.075)^3', '= $8.55'],
+            meaning: R`In 3 years a large smoothie would cost about \(\$8.55\).`,
+            hint: R`Write the rate as a decimal: \(7.50\% = 0.075\). Each year multiplies the price by \(1.075\).` },
+          { kind: 'calc', marks: 2, ask: R`How much must Tama put in the bank today to have \(\$3{,}000\) in 5 years?`,
+            formulas: ['pv-lump'], pick: ['pv-lump', 'fv-lump', 'r-solve', 'simple-int'],
+            answer: 3000 / 1.04 ** 5, unit: '$', dp: 2,
+            model: ['PV = FVn/(1 + r)^n', '= 3000/(1 + 0.04)^5', '= $2,465.78'],
+            meaning: R`Tama must put \(\$2{,}465.78\) in the bank today.`,
+            hint: R`You know the amount at the end. Going back in time **divides** by \((1 + r)^{n}\).` },
+          { kind: 'theory', marks: 2, ask: R`Tama's friend says: “Three rises of \(7.5\%\) make a \(22.5\%\) rise.” Explain why this is wrong.`,
+            points: [
+              { t: R`Each rise is taken on the new, higher price, so the rises **compound**.`, ok: true },
+              { t: R`Three rises multiply the price by \(1.075^{3} = 1.2423\): a rise of \(24.23\%\).`, ok: true },
+              { t: R`Adding the rates is fine when the rate is the same every year.`, ok: false, why: R`Adding ignores that each rise is taken on a bigger price.` },
+              { t: R`The total rise is less than \(22.5\%\), because the price gets bigger.`, ok: false, why: R`A bigger price makes each rise bigger in dollars. So the total is more than \(22.5\%\), not less.` },
+              { t: R`It is wrong only because \(7.5\%\) must be written as \(0.075\).`, ok: false, why: R`\(0.075 \times 3 = 0.225\) is still \(22.5\%\). The problem is compounding, not how the rate is written.` },
+            ],
+            model: R`The friend is wrong because each \(7.5\%\) rise is taken on the new, higher price, not on the first price. So the rises **compound**: the price is multiplied by \(1.075\) three times, and \(1.075^{3} = 1.2423\). That is a rise of \(24.23\%\), which is why the smoothie reaches \(\$8.55\) in (b), not \(6.88 \times 1.225 = \$8.43\).`,
+            keys: [['compound', 'new price', 'higher price', 'new, higher'], ['1.075', 'power', 'multiplied', 'multiply'], ['24.23']] },
+          { kind: 'blanks', marks: 1, ask: R`Setting out a written answer. Choose the right words.`,
+            text: R`A full-marks calculation starts with the {{formula in letters|final answer|calculator keys}}. Next it shows the {{numbers going in|keys you pressed|units only}}. You round to 2 decimal places {{only at the end|at every step|before you start}}.`,
+            why: R`Markers give marks for the method: the formula, then the numbers, then the answer. Rounding early makes the final answer drift.` },
+        ],
+      },
+    },
+
     questions: [
       { id: 'w0-q01', topic: 'pct', kind: 'mcq', level: 1, section: 'A', q: R`Which decimal is the same as \(4.5\%\)?`,
         choices: [R`\(0.045\)`, R`\(0.45\)`, R`\(4.5\)`, R`\(0.0045\)`], answer: 0, why: R`Divide by 100: \(4.5 \div 100 = 0.045\).` },
@@ -355,7 +398,7 @@
     ],
 
     generators: [
-      { id: 'w0-g-todec', topic: 'pct', level: 1, section: 'B',
+      { id: 'w0-g-todec', topic: 'pct', level: 1, section: 'B', formulas: ['fv-lump'],
         make(rng) {
           const p = rng.pick([0.25, 0.5, 1.5, 2.75, 3, 4.25, 5.5, 6, 7.2, 8.5, 9.75, 11, 12.5, 14, 18, 22.5]);
           return {
@@ -367,7 +410,7 @@
             why: 'Per cent means out of 100, so divide by 100.',
           };
         } },
-      { id: 'w0-g-topct', topic: 'pct', level: 1, section: 'B',
+      { id: 'w0-g-topct', topic: 'pct', level: 1, section: 'B', formulas: ['r-solve'],
         make(rng) {
           const d = rng.pick([0.035, 0.0425, 0.06, 0.0725, 0.085, 0.1, 0.125, 0.1575, 0.2, 0.4459]);
           return {
@@ -379,7 +422,7 @@
             why: 'Multiply by 100 and add the % sign.',
           };
         } },
-      { id: 'w0-g-of', topic: 'pct', level: 1, section: 'B',
+      { id: 'w0-g-of', topic: 'pct', level: 1, section: 'B', formulas: ['simple-int', 'fv-lump'],
         make(rng) {
           const x = rng.step(200, 20000, 50), p = rng.pick([2, 3.5, 4, 5, 6.5, 8, 10, 12.5, 15, 20, 25, 30]);
           const grow = rng.chance(0.5);
@@ -387,6 +430,7 @@
           return {
             q: grow ? R`An amount of ${T.moneyT(x)} grows by ${L.numT(p, 2)}%. What is the new amount?` : R`What is ${L.numT(p, 2)}% of ${T.moneyT(x)}?`,
             answer: ans, unit: '$', dp: 2,
+            formulas: grow ? ['fv-lump'] : ['simple-int'],
             mistakes: grow
               ? [{ v: x * p / 100, why: 'That is only the increase. Add it on, or multiply by (1 + r).' }, { v: x * (1 + p), why: 'Turn the percentage into a decimal first.' }]
               : [{ v: x * p, why: 'Turn the percentage into a decimal first (divide by 100).' }, { v: x * (1 + p / 100), why: 'That grows the amount. The question asks for the percentage of it.' }],
@@ -395,7 +439,7 @@
             why: grow ? 'Growing by r multiplies by (1 + r).' : '“Of” means multiply by the decimal.',
           };
         } },
-      { id: 'w0-g-pow', topic: 'pow', level: 1, section: 'B',
+      { id: 'w0-g-pow', topic: 'pow', level: 1, section: 'B', formulas: ['fv-lump'],
         make(rng) {
           const x = rng.step(100, 10000, 50), r = rng.pick([0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.12]), n = rng.int(2, 12);
           const v = x * Math.pow(1 + r, n);
@@ -408,7 +452,7 @@
             why: 'Power first, then multiply.',
           };
         } },
-      { id: 'w0-g-negpow', topic: 'pow', level: 2, section: 'B',
+      { id: 'w0-g-negpow', topic: 'pow', level: 2, section: 'B', formulas: ['pv-lump'],
         make(rng) {
           const x = rng.step(1000, 50000, 500), r = rng.pick([0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.1]), n = rng.int(2, 10);
           const v = x / Math.pow(1 + r, n);
@@ -421,7 +465,7 @@
             why: 'A negative power divides.',
           };
         } },
-      { id: 'w0-g-solver', topic: 'solver', level: 1, section: 'B', formula: 'fv-lump',
+      { id: 'w0-g-solver', topic: 'solver', level: 1, section: 'B', formula: 'fv-lump', formulas: ['fv-lump'],
         make(rng) {
           const pv = rng.step(500, 20000, 250), r = rng.step(0.02, 0.10, 0.005), n = rng.int(2, 15);
           const fv = FIN.fv(pv, r, n);
@@ -435,7 +479,7 @@
             why: 'Money out (PV) is negative, so the future value you receive is positive.',
           };
         } },
-      { id: 'w0-g-nsolve', topic: 'nsolve', level: 2, section: 'B', formula: 'r-solve',
+      { id: 'w0-g-nsolve', topic: 'nsolve', level: 2, section: 'B', formula: 'r-solve', formulas: ['fv-lump', 'r-solve'],
         make(rng) {
           const pv = rng.step(500, 5000, 100), n = rng.int(2, 10), r = rng.step(0.02, 0.12, 0.0025);
           const fv = Math.round(pv * Math.pow(1 + r, n));
@@ -449,7 +493,7 @@
             why: 'nSolve finds the rate; multiply by 100 for a percentage.',
           };
         } },
-      { id: 'w0-g-mean', topic: 'lists', level: 1, section: 'B',
+      { id: 'w0-g-mean', topic: 'lists', level: 1, section: 'B', formulas: ['mean'],
         make(rng) {
           const k = rng.int(4, 6);
           let xs, m;

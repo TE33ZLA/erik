@@ -69,6 +69,61 @@
   const vPC = 0.4 * 0.4 * MX.vS + 0.4 * 0.4 * MX.vW + 2 * 0.4 * 0.4 * MX.cSW, sPC = Math.sqrt(vPC), ePC = FIN.portRet([0.4, 0.4, 0.2], [eSS, eWW, MX.rf]);
   // Tutorial Q5
   const sdQ5 = FIN.portSD2(0.4, 0.40, 0.6, 0.45, 0.2);
+  // Beta from past returns (Excel: =SLOPE): six months of market and share returns, treated as a sample
+  const BW = { m: [0.02, -0.04, 0.05, 0.03, -0.02, 0.06], s: [0.03, -0.07, 0.06, 0.02, -0.01, 0.09] };
+  const bWB = FIN.covS(BW.s, BW.m) / FIN.varS(BW.m);
+  const BW_TABLE = { head: ['Month', 'Market', 'Wattlebird Wines'], rows: BW.m.map((x, k) => [k + 1, tp(x), tp(BW.s[k])]) };
+
+  /* ---------- written rounds (every number is computed here) ---------- */
+  // C1: $800,000 in two shares and Treasury bills; risk from a variance-covariance matrix
+  const C1 = { amt: [320000, 280000, 200000], eO: 0.12, eT: 0.09, rf: 0.04, vO: 0.04, vT: 0.0225, cOT: 0.0045 };
+  C1.tot = sum(C1.amt); C1.w = C1.amt.map((a) => a / C1.tot);
+  C1.eP = FIN.portRet(C1.w, [C1.eO, C1.eT, C1.rf]);
+  C1.vP = C1.w[0] ** 2 * C1.vO + C1.w[1] ** 2 * C1.vT + 2 * C1.w[0] * C1.w[1] * C1.cOT;
+  C1.sP = Math.sqrt(C1.vP);
+  C1.sh = FIN.sharpe(C1.eP, C1.rf, C1.sP);
+  C1.avgSD = C1.w[0] * Math.sqrt(C1.vO) + C1.w[1] * Math.sqrt(C1.vT);
+  C1.rho = C1.cOT / Math.sqrt(C1.vO * C1.vT);
+  // C2: two shares against the SML, and a portfolio with Treasury bills
+  const C2 = { rf: 0.035, rm: 0.10, bA: 1.3, fA: 0.134, bB: 0.8, fB: 0.081, amt: [50000, 30000, 20000] };
+  C2.reqA = FIN.capm(C2.rf, C2.bA, C2.rm); C2.reqB = FIN.capm(C2.rf, C2.bB, C2.rm);
+  C2.aA = C2.fA - C2.reqA; C2.aB = C2.fB - C2.reqB;
+  C2.bp = FIN.portBeta(C2.amt.map((a) => a / sum(C2.amt)), [C2.bA, C2.bB, 0]);
+  // C3: covariance to correlation
+  const C3 = { cov: 0.0084, sS: 0.28, sG: 0.20 };
+  C3.rho = C3.cov / (C3.sS * C3.sG);
+
+  /* ---------- Excel sheets written by hand: data in columns, then Excel's statistics functions ---------- */
+  /** Past returns in column B: the mean, the sample variance and the sample SD (the answer). */
+  const xlSample = (rs, head, name) => {
+    const z = rs.length + 1; // the last data row
+    return {
+      title: 'Past returns in a column',
+      rows: [[head, name], ...rs.map((x, k) => [k + 1, x]), ['Mean', `=AVERAGE(B2:B${z})`], ['Variance (sample)', `=VAR.S(B2:B${z})`], ['SD (sample)', `=STDEV.S(B2:B${z})`]],
+      fmt: { [`B2:B${z + 1}`]: '%', [`B${z + 3}`]: '%' },
+      bold: [`A1:B1`, `A${z + 3}:B${z + 3}`], answer: `B${z + 3}`,
+      steps: [
+        { t: 'Type the returns as decimals, one per row, in column B.', cells: `B2:B${z}` },
+        { t: `The mean: =AVERAGE(B2:B${z}).`, cells: `B${z + 1}` },
+        { t: `The sample variance: =VAR.S(B2:B${z}). The .S means a sample, so it divides by T − 1.`, cells: `B${z + 2}` },
+        { t: `The sample SD: =STDEV.S(B2:B${z}), the square root of the variance.`, cells: `B${z + 3}` },
+      ],
+    };
+  };
+  /** Three states: probabilities in B, returns in C. E(R) and the variance with =SUMPRODUCT, then the SD (the answer). */
+  const xlProb = (ps, rs) => ({
+    title: 'Probabilities and returns in columns',
+    rows: [['State', 'Probability', 'Return', 'Squared deviation'], ...ps.map((p, k) => [STATES[k], p, rs[k], `=(C${k + 2}-$B$6)^2`]),
+      ['Total', '=SUM(B2:B4)'], ['E(R)', '=SUMPRODUCT(B2:B4,C2:C4)'], ['Variance', '=SUMPRODUCT(B2:B4,D2:D4)'], ['SD', '=SQRT(B7)']],
+    fmt: { 'C2:C4': '%', 'B6': '%', 'B8': '%' },
+    bold: ['A1:D1', 'A8:B8'], answer: 'B8',
+    steps: [
+      { t: 'Probabilities in column B, returns as decimals in column C. Check that the probabilities add up to 1.', cells: 'B2:C5' },
+      { t: 'Expected return: =SUMPRODUCT(B2:B4,C2:C4) multiplies each probability by its return, then adds.', cells: 'B6' },
+      { t: 'Squared deviation from E(R): =(C2-$B$6)^2, copied down. The $ signs keep B6 fixed.', cells: 'D2:D4' },
+      { t: 'Variance: =SUMPRODUCT(B2:B4,D2:D4). SD: =SQRT(B7).', cells: 'B7:B8' },
+    ],
+  });
 
   /* ---------- lesson data (every number is computed here) ---------- */
   // L1: a three-year return stream for the guided card
@@ -815,7 +870,7 @@
         q: R`A share’s **realised return** for one year has two parts. Which two?`,
         choices: ['Dividend yield + capital gain yield', 'Dividend yield + interest yield', 'Capital gain yield + risk premium', 'Coupon rate + yield to maturity'], answer: 0,
         why: R`\(R_{t+1} = \frac{DIV_{t+1}}{P_t} + \frac{P_{t+1} - P_t}{P_t}\): the income part plus the price-change part.` },
-      { id: 'w9-q03', topic: 'ret', kind: 'num', level: 1, section: 'B', formula: 'realised', src: 'Lecture W9 Example 1',
+      { id: 'w9-q03', topic: 'ret', kind: 'num', level: 1, section: 'B', formulas: ['realised'], formula: 'realised', src: 'Lecture W9 Example 1',
         q: R`You bought 100 shares of ABC Ltd one year ago at $25.00 per share. You received $20.00 of dividends in total (20 cents per share). The share now sells for $30.00. What is your realised return?`,
         givens: [['P_0', R`\$25.00`], ['DIV_1', R`\$0.20 \text{ per share}`], ['P_1', R`\$30.00`]],
         answer: P(FIN.holdingReturn(25, 30, 0.2)), unit: '%', dp: 2,
@@ -832,7 +887,7 @@
         ],
         ti: [TI.line('(0.20+30-25)/25', PCT(0.208))],
         why: R`Dividend yield \(0.8\%\) plus capital gain yield \(20\%\) gives \(20.8\%\).` },
-      { id: 'w9-q04', topic: 'ret', kind: 'num', level: 2, section: 'B', formula: 'hpr', src: 'Lecture W9 Example 2',
+      { id: 'w9-q04', topic: 'ret', kind: 'num', level: 2, section: 'B', formulas: ['hpr'], formula: 'hpr', src: 'Lecture W9 Example 2',
         q: R`An investment returned 10%, −5%, 20% and 15% in years 1 to 4. What is the four-year **holding period return** (HPR)?`,
         table: { head: ['Year', 'Return'], rows: [[1, '10%'], [2, '−5%'], [3, '20%'], [4, '15%']] },
         answer: P(FIN.hprMulti([0.10, -0.05, 0.20, 0.15])), unit: '%', dp: 2,
@@ -844,7 +899,7 @@
         steps: [R`\[HPR = (1+R_1)(1+R_2)(1+R_3)(1+R_4) - 1\]`, R`\[HPR = (1.10)(0.95)(1.20)(1.15) - 1 = 1.4421 - 1 = 44.21\%\]`],
         ti: [TI.line('1.10*0.95*1.20*1.15-1', PCT(FIN.hprMulti([0.10, -0.05, 0.20, 0.15])))],
         why: R`Returns compound, so multiply the \((1 + R)\) factors and then subtract 1.` },
-      { id: 'w9-q05', topic: 'ret', kind: 'num', level: 2, section: 'B', formula: 'hpr', src: 'Lecture W9 Example 2',
+      { id: 'w9-q05', topic: 'ret', kind: 'num', level: 2, section: 'B', formulas: ['hpr'], formula: 'hpr', src: 'Lecture W9 Example 2',
         q: R`An investment’s four-year holding period return is 44.21%. What is its **annualised** return (the equivalent return per year)?`,
         givens: [['HPR', R`44.21\%`], ['T', '4']],
         answer: P(FIN.annualise(0.4421, 4)), unit: '%', dp: 2,
@@ -863,7 +918,7 @@
         why: R`\(HPR = (1.50)(0.50) - 1 = 0.75 - 1 = -25\%\). Adding the returns (\(+50\% - 50\% = 0\%\)) ignores compounding.` },
 
       /* ----- expected return and risk from probabilities ----- */
-      { id: 'w9-q07', topic: 'prob', kind: 'num', level: 1, section: 'B', formula: 'exp-ret', src: 'Lecture W9 Example 3',
+      { id: 'w9-q07', topic: 'prob', kind: 'num', level: 1, section: 'B', formulas: ['exp-ret'], formula: 'exp-ret', src: 'Lecture W9 Example 3',
         q: R`A security has the return distribution below. What is its **expected return**?`,
         table: EX3_TABLE,
         answer: P(FIN.expRet(EX3.p, EX3.r)), unit: '%', dp: 2,
@@ -874,7 +929,7 @@
         steps: [R`\[E(R) = \sum_{k} P_k R_k\]`, R`\[E(R) = ${probSum(EX3.p, EX3.r)} = 0.11 = 11\%\]`],
         ti: [sto(EX3.p, 'p'), sto(EX3.r, 'r'), TI.line('sum(p*r)', PCT(0.11))],
         why: 'Weight each possible return by its probability, then add.' },
-      { id: 'w9-q08', topic: 'prob', kind: 'num', level: 2, section: 'B', formula: 'var-prob', src: 'Lecture W9 Example 3',
+      { id: 'w9-q08', topic: 'prob', kind: 'num', level: 2, section: 'B', formulas: ['var-prob', 'sd'], formula: 'var-prob', src: 'Lecture W9 Example 3',
         q: R`The same security has an expected return of 11%. What is the **standard deviation** of its returns?`,
         table: EX3_TABLE,
         answer: P(FIN.sdProb(EX3.p, EX3.r)), unit: '%', dp: 2,
@@ -898,7 +953,7 @@
         q: R`You have a table of **states of the economy with probabilities**. How do you find the variance of returns?`,
         choices: [R`Weight each squared deviation by its probability: \(\sum_k P_k[R_k - E(R)]^2\)`, R`Add the squared deviations and divide by \(T - 1\)`, R`Add the squared deviations and divide by \(T\)`, R`Weight each deviation (not squared) by its probability`], answer: 0,
         why: R`With probabilities, the probabilities do the averaging. Dividing by \(T - 1\) is only for a sample of past returns.` },
-      { id: 'w9-q11', topic: 'prob', kind: 'num', level: 1, section: 'B', formula: 'exp-ret', src: 'Tutorial W9 Q1(a)',
+      { id: 'w9-q11', topic: 'prob', kind: 'num', level: 1, section: 'B', formulas: ['exp-ret'], formula: 'exp-ret', src: 'Tutorial W9 Q1(a)',
         q: R`Mr Henry’s return forecasts for Highbull and Slowbear shares are below. What is the **expected return on Highbull**?`,
         table: HB_TABLE,
         answer: P(eH), unit: '%', dp: 2,
@@ -913,7 +968,7 @@
         ],
         ti: [sto(HB.p, 'p'), sto(HB.h, 'r', { note: 'Highbull’s returns, as decimals.' }), TI.line('sum(p*r)', PCT(eH))],
         why: 'Multiply each return by its probability, then add.' },
-      { id: 'w9-q12', topic: 'prob', kind: 'num', level: 2, section: 'B', formula: 'var-prob', src: 'Tutorial W9 Q1(b)',
+      { id: 'w9-q12', topic: 'prob', kind: 'num', level: 2, section: 'B', formulas: ['var-prob', 'sd'], formula: 'var-prob', src: 'Tutorial W9 Q1(b)',
         q: R`Using Mr Henry’s forecasts, Highbull’s expected return is 7.33%. What is the **standard deviation** of Highbull’s returns?`,
         table: HB_TABLE,
         answer: P(sdH), unit: '%', dp: 2,
@@ -929,8 +984,9 @@
           R`The same method gives Slowbear: \(\sigma_S^2 = ${nt(FIN.varProb(HB.p, HB.s), 8)}\), so \(\sigma_S = ${pc(sdSB, 3)}\).`,
         ],
         ti: [sto(HB.p, 'p'), sto(HB.h, 'r', { note: 'Highbull’s returns, as decimals.' }), TI.line('sqrt(sum(p*(r-0.0733)^2))', PCT(sdH))],
+        xl: xlProb(HB.p, HB.h),
         why: 'Weight the squared deviations by the probabilities, add, then take the square root.' },
-      { id: 'w9-q13', topic: 'corr', kind: 'num', level: 2, section: 'B', formula: 'cov-prob', src: 'Tutorial W9 Q1(c)',
+      { id: 'w9-q13', topic: 'corr', kind: 'num', level: 2, section: 'B', formulas: ['cov-prob'], formula: 'cov-prob', src: 'Tutorial W9 Q1(c)',
         q: R`Using Mr Henry’s forecasts, \(E(R_H) = 7.33\%\) and \(E(R_S) = 6.08\%\). What is the **covariance** between Highbull and Slowbear returns? Give a decimal to 6 places.`,
         table: HB_TABLE,
         answer: covHS, unit: '', dp: 6,
@@ -945,8 +1001,17 @@
           R`\[Cov = ${HB.p.map((p, k) => nt(p * (HB.h[k] - eH) * (HB.s[k] - eS), 8)).join(' + ')} = ${nt(covHS, 6)}\]`,
         ],
         ti: [sto(HB.p, 'p'), sto(HB.h, 'x', { note: 'Highbull’s returns.' }), sto(HB.s, 'y', { note: 'Slowbear’s returns.' }), TI.line('sum(p*(x-0.0733)*(y-0.0608))')],
+        xl: { title: 'Covariance from probabilities',
+          rows: [['State', 'Probability', 'Highbull', 'Slowbear'], ...HB.p.map((p, k) => [STATES[k], p, HB.h[k], HB.s[k]]),
+            ['E(R)', null, '=SUMPRODUCT($B2:$B4,C2:C4)', '=SUMPRODUCT($B2:$B4,D2:D4)'], ['Covariance', '=SUMPRODUCT(B2:B4,C2:C4-C5,D2:D4-D5)']],
+          fmt: { 'C2:D5': '%' }, bold: ['A1:D1', 'A6:B6'], answer: 'B6',
+          steps: [
+            { t: 'Probabilities in column B. Each share’s returns, as decimals, in its own column.', cells: 'B2:D4' },
+            { t: 'Each expected return: =SUMPRODUCT($B2:$B4,C2:C4), copied across to column D.', cells: 'C5:D5' },
+            { t: 'Covariance: =SUMPRODUCT(B2:B4,C2:C4-C5,D2:D4-D5). Each probability times both deviations, then added.', cells: 'B6' },
+          ] },
         why: 'Both deviations are usually on the same side of their means, so the covariance is positive: the shares move together.' },
-      { id: 'w9-q14', topic: 'corr', kind: 'num', level: 3, section: 'B', formula: 'corr', src: 'Tutorial W9 Q1(c)', boss: true,
+      { id: 'w9-q14', topic: 'corr', kind: 'num', level: 3, section: 'B', formulas: ['corr'], formula: 'corr', src: 'Tutorial W9 Q1(c)', boss: true,
         q: R`For Highbull and Slowbear: \(Cov(R_H,R_S) = 0.000425\), \(\sigma_H = 5.80\%\) and \(\sigma_S = 0.749\%\). What is the **correlation** between the two shares? (4 decimal places)`,
         table: HB_TABLE,
         answer: covHS / (sdH * sdSB), unit: '', dp: 4, tol: 0.0006,
@@ -966,7 +1031,7 @@
         q: R`You estimate the variance from a **sample of past returns**. What do you divide the sum of squared deviations by?`,
         choices: [R`\(T - 1\), the number of observations minus one`, R`\(T\), the number of observations`, R`\(T + 1\)`, 'The sum of the probabilities'], answer: 0,
         why: R`Past returns are a sample, so the unit divides by \(T - 1\). Probabilities are only used with a probability distribution.` },
-      { id: 'w9-q16', topic: 'hist', kind: 'num', level: 2, section: 'B', formula: 'var-sample', src: 'Lecture W9 Example 4',
+      { id: 'w9-q16', topic: 'hist', kind: 'num', level: 2, section: 'B', formulas: ['mean', 'var-sample', 'sd'], formula: 'var-sample', src: 'Lecture W9 Example 4',
         q: R`Asset A returned 9%, 10%, 11%, 12% and 13% over the past five years. Treating this as a sample, what is the **standard deviation** of returns?`,
         answer: P(FIN.sdS(EX3.r)), unit: '%', dp: 2,
         mistakes: [
@@ -986,7 +1051,7 @@
         q: R`Lecture Example 3 treats the returns 9% to 13% as a **probability distribution** (SD 1.10%). Example 4 treats the same numbers as **five past returns** (SD 1.58%). Why do the SDs differ?`,
         choices: [R`Example 4 weights each return equally and divides by \(T - 1\); Example 3 weights by the probabilities`, 'One of the two lecture calculations is wrong', 'Example 4 ignores the mean', 'Example 3 uses returns in percent and Example 4 uses decimals'], answer: 0,
         why: R`Example 3 puts 40% weight on the middle return, so extreme returns count less. Example 4 counts every year equally and divides by \(T - 1 = 4\).` },
-      { id: 'w9-q18', topic: 'hist', kind: 'num', level: 2, section: 'B', formula: 'var-sample', src: 'Lecture W9 Practice',
+      { id: 'w9-q18', topic: 'hist', kind: 'num', level: 2, section: 'B', formulas: ['mean', 'var-sample', 'sd'], formula: 'var-sample', src: 'Lecture W9 Practice',
         q: R`An investment returned 19%, 20%, −30% and 26% in years 1 to 4. What is the **standard deviation** of its returns (a sample)?`,
         table: { head: ['Year', 'Return'], rows: PRAC.map((x, k) => [k + 1, tp(x)]) },
         answer: P(FIN.sdS(PRAC)), unit: '%', dp: 2,
@@ -1003,7 +1068,7 @@
         calc: `[C ALL] · 0.19 [Σ+] · 0.20 [Σ+] · 0.30 [+/−] [Σ+] · 0.26 [Σ+] · [x̄,ȳ] → 0.0875 · [Sx,Sy] → ${T.numT(FIN.sdS(PRAC), 4)}`,
         ti: [sto(PRAC, 'r'), TI.line('mean(r)', { note: 'The mean return: 8.75%.' }), TI.line('stDevSamp(r)', PCT(FIN.sdS(PRAC)))],
         why: R`The one bad year (\(-30\%\)) is far from the mean of \(8.75\%\), so the SD is large.` },
-      { id: 'w9-q19', topic: 'hist', kind: 'num', level: 2, section: 'B', formula: 'var-sample', src: 'Tutorial W9 Q2(a)',
+      { id: 'w9-q19', topic: 'hist', kind: 'num', level: 2, section: 'B', formulas: ['mean', 'var-sample', 'sd'], formula: 'var-sample', src: 'Tutorial W9 Q2(a)',
         q: R`The table shows six monthly returns for two share indexes (a sample). What is the monthly **standard deviation** of the **Nikkei**?`,
         table: NIK_TABLE,
         answer: P(FIN.sdS(NIK)), unit: '%', dp: 2,
@@ -1020,8 +1085,9 @@
         ],
         calc: `[C ALL] · 0.08 [Σ+] · 0.15 [Σ+] · 0.12 [+/−] [Σ+] · 0.11 [Σ+] · 0.09 [Σ+] · 0.06 [+/−] [Σ+] · [x̄,ȳ] → ${T.numT(FIN.mean(NIK), 4)} · [Sx,Sy] → ${T.numT(FIN.sdS(NIK), 4)}`,
         ti: [sto(NIK, 'x', { note: 'The Nikkei returns.' }), TI.line('mean(x)', { note: R`The mean monthly return: \(${pc(FIN.mean(NIK))}\).` }), TI.line('stDevSamp(x)', PCT(FIN.sdS(NIK)))],
+        xl: xlSample(NIK, 'Month', 'Nikkei'),
         why: R`Use the sample formula: divide by \(T - 1\), then take the square root.` },
-      { id: 'w9-q20', topic: 'corr', kind: 'num', level: 2, section: 'B', formula: 'cov-sample', src: 'Tutorial W9 Q2(b)',
+      { id: 'w9-q20', topic: 'corr', kind: 'num', level: 2, section: 'B', formulas: ['mean', 'cov-sample'], formula: 'cov-sample', src: 'Tutorial W9 Q2(b)',
         q: R`Using the six monthly returns below (a sample), what is the **covariance** between the Nikkei and the Russell 2000? Give a decimal to 6 places.`,
         table: NIK_TABLE,
         answer: covNR, unit: '', dp: 6,
@@ -1037,7 +1103,7 @@
         calc: `[C ALL] · 0.08 [INPUT] 0.12 [Σ+] · 0.15 [INPUT] 0.09 [Σ+] · 0.12 [+/−] [INPUT] 0.07 [+/−] [Σ+] · 0.11 [INPUT] 0.13 [Σ+] · 0.09 [INPUT] 0.04 [Σ+] · 0.06 [+/−] [INPUT] 0.14 [+/−] [Σ+] · [x̂,r] [SWAP] → r · Cov = r × Sx × Sy`,
         ti: [sto(NIK, 'x', { note: 'The Nikkei returns.' }), sto(RUS, 'y', { note: 'The Russell 2000 returns.' }), TI.line(COV_XY, { note: R`\(\text{dim}(x) = 6\) counts the months, so this divides by \(6 - 1 = 5\).` })],
         why: 'A positive covariance: the two indexes tend to rise and fall together.' },
-      { id: 'w9-q21', topic: 'corr', kind: 'num', level: 3, section: 'B', formula: 'corr', src: 'Tutorial W9 Q2(c)', boss: true,
+      { id: 'w9-q21', topic: 'corr', kind: 'num', level: 3, section: 'B', formulas: ['mean', 'cov-sample', 'var-sample', 'sd', 'corr'], formula: 'corr', src: 'Tutorial W9 Q2(c)', boss: true,
         q: R`Using the same six months of data, what is the **correlation coefficient** between the Nikkei and the Russell 2000? (4 decimal places)`,
         table: NIK_TABLE,
         answer: FIN.corrS(NIK, RUS), unit: '', dp: 4, tol: 0.0006,
@@ -1052,6 +1118,17 @@
         ],
         calc: `[C ALL] · 0.08 [INPUT] 0.12 [Σ+] · 0.15 [INPUT] 0.09 [Σ+] · 0.12 [+/−] [INPUT] 0.07 [+/−] [Σ+] · 0.11 [INPUT] 0.13 [Σ+] · 0.09 [INPUT] 0.04 [Σ+] · 0.06 [+/−] [INPUT] 0.14 [+/−] [Σ+] · [x̂,r] [SWAP] → ${T.numT(FIN.corrS(NIK, RUS), 4)}`,
         ti: [sto(NIK, 'x', { note: 'The Nikkei returns.' }), sto(RUS, 'y', { note: 'The Russell 2000 returns.' }), TI.line(`${COV_XY}→c`, { note: 'The sample covariance, stored in c.' }), TI.line('c/(stDevSamp(x)*stDevSamp(y))')],
+        xl: { title: 'Covariance and correlation from past data',
+          rows: [['Month', 'Nikkei', 'Russell 2000'], ...NIK.map((x, k) => [k + 1, x, RUS[k]]),
+            ['Mean', '=AVERAGE(B2:B7)', '=AVERAGE(C2:C7)'], ['SD (sample)', '=STDEV.S(B2:B7)', '=STDEV.S(C2:C7)'],
+            ['Covariance (sample)', '=COVARIANCE.S(B2:B7,C2:C7)'], ['Correlation', '=B10/(B9*C9)'], ['Check: CORREL', '=CORREL(B2:B7,C2:C7)']],
+          fmt: { 'B2:C9': '%', 'B11:B12': '0.0000' }, bold: ['A1:C1', 'A11:B11'], answer: 'B11',
+          steps: [
+            { t: 'One index per column, one month per row, as decimals.', cells: 'B2:C7' },
+            { t: 'Each sample SD: =STDEV.S(B2:B7), copied across.', cells: 'B9:C9' },
+            { t: 'The sample covariance: =COVARIANCE.S(B2:B7,C2:C7). The .S divides by N − 1, like the SDs.', cells: 'B10' },
+            { t: 'The correlation: =B10/(B9*C9). =CORREL(B2:B7,C2:C7) gives the same number in one step.', cells: 'B11:B12' },
+          ] },
         why: 'A strong positive correlation: the two markets usually move together.' },
 
       /* ----- risk attitudes and the risk-return trade-off ----- */
@@ -1086,7 +1163,7 @@
         why: 'The Australian government is very unlikely to default, so its bond is less risky. Investors accept a lower expected return for lower risk.' },
 
       /* ----- CV and Sharpe ratio ----- */
-      { id: 'w9-q29', topic: 'cv', kind: 'mcq', level: 2, section: 'B', formula: 'cv', src: 'Lecture W9 Example 5',
+      { id: 'w9-q29', topic: 'cv', kind: 'mcq', level: 2, section: 'B', formulas: ['cv'], formula: 'cv', src: 'Lecture W9 Example 5',
         q: R`You are a **risk-averse** investor. Using the coefficient of variation, which asset should you prefer?`,
         table: EX5_TABLE,
         choices: ['Alpha', 'Beta', 'Gamma', 'Delta'], answer: 0,
@@ -1097,7 +1174,7 @@
         q: R`The **coefficient of variation** (CV) measures…`,
         choices: ['Risk per unit of expected return', 'Return per unit of risk', 'The average of past returns', 'How two assets move together'], answer: 0,
         why: R`\(CV = \frac{\sigma}{E(R)}\). A risk-averse investor prefers the lowest CV.` },
-      { id: 'w9-q31', topic: 'cv', kind: 'mcq', level: 2, section: 'B', formula: 'cv', src: 'Tutorial W9 Q3',
+      { id: 'w9-q31', topic: 'cv', kind: 'mcq', level: 2, section: 'B', formulas: ['mean', 'var-sample', 'sd', 'cv'], formula: 'cv', src: 'Tutorial W9 Q3',
         q: R`Annual returns for four shares (2011–2015) are below. If you could invest in only **one** share, which would a risk-averse investor choose?`,
         table: SH_TABLE,
         choices: ['Share B', 'Share A', 'Share C', 'Share D'], answer: 0,
@@ -1106,13 +1183,13 @@
       { id: 'w9-q32', topic: 'cv', kind: 'tf', level: 1, section: 'A',
         q: R`If two securities have the same expected return, a risk-averse investor prefers the one with the lower standard deviation.`,
         answer: true, why: 'Same return, less risk: an easy choice. The CV is only needed when both return and risk differ.' },
-      { id: 'w9-q33', topic: 'cv', kind: 'mcq', level: 3, section: 'B', formula: 'sharpe', src: 'Lecture W9 Example 3(d)', boss: true,
+      { id: 'w9-q33', topic: 'cv', kind: 'mcq', level: 3, section: 'B', formulas: ['sharpe'], formula: 'sharpe', src: 'Lecture W9 Example 3(d)', boss: true,
         q: R`Portfolio B: \(E(R) = 9.68\%\), \(\sigma = 10.00\%\). Portfolio C: \(E(R) = 9.44\%\), \(\sigma = 8.08\%\). The risk-free rate is 8%. Using the **Sharpe ratio**, which portfolio is better?`,
         choices: ['Portfolio C', 'Portfolio B', 'Neither: their Sharpe ratios are equal', 'You cannot tell without their betas'], answer: 0,
         steps: [R`\[S_B = \frac{0.0968 - 0.08}{0.1000} = ${nt(FIN.sharpe(ePB, MX.rf, sPB), 4)}\]`, R`\[S_C = \frac{0.0944 - 0.08}{0.0808} = ${nt(FIN.sharpe(0.0944, 0.08, 0.0808), 4)}\]`],
         ti: [TI.line('(0.0968-0.08)/0.1', { note: 'Portfolio B’s Sharpe ratio.' }), TI.line('(0.0944-0.08)/0.0808', { note: 'Portfolio C’s Sharpe ratio: higher, so C is better.' })],
         why: R`C earns more excess return per unit of risk (\(0.178 > 0.168\)). Its CV is lower too: \(0.856\) vs \(1.033\).` },
-      { id: 'w9-q34', topic: 'cv', kind: 'num', level: 2, section: 'B', formula: 'sharpe', src: 'Lecture W9 Example 3(d)',
+      { id: 'w9-q34', topic: 'cv', kind: 'num', level: 2, section: 'B', formulas: ['sharpe'], formula: 'sharpe', src: 'Lecture W9 Example 3(d)',
         q: R`Portfolio C has an expected return of 9.44% and a standard deviation of 8.08%. The risk-free rate is 8%. What is its **Sharpe ratio**? (4 decimal places)`,
         givens: [['E[R_P]', R`9.44\%`], ['\\sigma_P', R`8.08\%`], ['r_f', R`8\%`]],
         answer: FIN.sharpe(0.0944, 0.08, 0.0808), unit: '', dp: 4, tol: 0.0006,
@@ -1146,7 +1223,7 @@
         q: R`Which equation links covariance and correlation?`,
         choices: [R`\(Cov(R_i,R_j) = \rho_{ij}\,\sigma_i\,\sigma_j\)`, R`\(Cov(R_i,R_j) = \frac{\rho_{ij}}{\sigma_i\,\sigma_j}\)`, R`\(Cov(R_i,R_j) = \rho_{ij} + \sigma_i + \sigma_j\)`, R`\(Cov(R_i,R_j) = \sigma_i^2\,\sigma_j^2\)`], answer: 0,
         why: R`\(\rho_{ij} = \frac{Cov(R_i,R_j)}{\sigma_i\sigma_j}\), so \(Cov(R_i,R_j) = \rho_{ij}\sigma_i\sigma_j\). The lecture stresses you must know this link.` },
-      { id: 'w9-q40', topic: 'corr', kind: 'num', level: 2, section: 'B', formula: 'cov-sample', src: 'Lecture W9 Example 6(a)',
+      { id: 'w9-q40', topic: 'corr', kind: 'num', level: 2, section: 'B', formulas: ['cov-sample'], formula: 'cov-sample', src: 'Lecture W9 Example 6(a)',
         q: R`Monthly returns for two US indexes are below (a sample). The means are 0.02667 (DJIA) and 0.01667 (S&P 500). What is the **covariance** between them? Give a decimal to 6 places.`,
         table: DJ_TABLE,
         answer: covDS, unit: '', dp: 6,
@@ -1161,7 +1238,7 @@
         ],
         ti: [sto(DJ, 'x', { note: 'The DJIA returns.' }), sto(SPX, 'y', { note: 'The S&P 500 returns.' }), TI.line(COV_XY, { note: R`\(\text{dim}(x) = 3\), so this divides by \(3 - 1 = 2\).` })],
         why: R`Multiply the paired deviations, add them, and divide by \(N - 1\).` },
-      { id: 'w9-q41', topic: 'corr', kind: 'num', level: 2, section: 'B', formula: 'corr', src: 'Lecture W9 Example 6(b)',
+      { id: 'w9-q41', topic: 'corr', kind: 'num', level: 2, section: 'B', formulas: ['corr'], formula: 'corr', src: 'Lecture W9 Example 6(b)',
         q: R`For the DJIA and S&P 500: \(Cov = 0.012383\), \(\sigma_{DJIA} = 0.1305\) and \(\sigma_{S\&P} = 0.1021\). What is the **correlation coefficient**? (4 decimal places)`,
         answer: 0.012383 / (0.1305 * 0.1021), unit: '', dp: 4, tol: 0.0006,
         mistakes: [
@@ -1181,7 +1258,7 @@
         q: R`Which statement about a portfolio is correct?`,
         choices: ['Its return is a weighted average of the assets’ returns, but its risk is not', 'Its return and its risk are both weighted averages', 'Its risk is a weighted average, but its return is not', 'Its return is always the highest of the assets’ returns'], answer: 0,
         why: R`Portfolio SD depends on how the assets move together. It equals the weighted average of the SDs only when \(\rho = +1\).` },
-      { id: 'w9-q44', topic: 'port', kind: 'num', level: 1, section: 'B', formula: 'port-ret', src: 'Tutorial W9 Q4',
+      { id: 'w9-q44', topic: 'port', kind: 'num', level: 1, section: 'B', formulas: ['weights'], formula: 'port-ret', src: 'Tutorial W9 Q4',
         q: R`A portfolio has 135 shares of Stock A at $47 each and 105 shares of Stock B at $41 each. What is the portfolio **weight of Stock A**?`,
         givens: [['V_A', R`135 \times \$47 = \$6{,}345`], ['V_B', R`105 \times \$41 = \$4{,}305`]],
         answer: P(6345 / 10650), unit: '%', dp: 2,
@@ -1193,7 +1270,7 @@
         steps: [R`\[V = \$6{,}345 + \$4{,}305 = \$10{,}650\]`, R`\[w_A = \frac{\$6{,}345}{\$10{,}650} = ${pc(6345 / 10650)} \qquad w_B = \frac{\$4{,}305}{\$10{,}650} = ${pc(4305 / 10650)}\]`],
         ti: [TI.line('135*47/(135*47+105*41)', PCT(6345 / 10650))],
         why: 'Each weight is the value held in that asset divided by the total value. The weights add up to 100%.' },
-      { id: 'w9-q45', topic: 'port', kind: 'num', level: 1, section: 'B', formula: 'port-ret', src: 'Lecture W9 Example 7',
+      { id: 'w9-q45', topic: 'port', kind: 'num', level: 1, section: 'B', formulas: ['port-ret'], formula: 'port-ret', src: 'Lecture W9 Example 7',
         q: R`60% of a portfolio is in Security 1 (expected return 8%) and 40% is in Security 2 (expected return 12%). What is the portfolio’s **expected return**?`,
         answer: P(FIN.portRet([0.6, 0.4], [0.08, 0.12])), unit: '%', dp: 2,
         mistakes: [
@@ -1203,7 +1280,7 @@
         steps: [R`\[E(R_P) = w_1E(R_1) + w_2E(R_2) = (0.60)(0.08) + (0.40)(0.12) = 0.096 = 9.60\%\]`],
         ti: [TI.line('0.6*0.08+0.4*0.12', PCT(0.096))],
         why: 'Portfolio return is a weighted average of the assets’ expected returns.' },
-      { id: 'w9-q46', topic: 'port', kind: 'num', level: 2, section: 'B', formula: 'port-var', src: 'Lecture W9 Example 8',
+      { id: 'w9-q46', topic: 'port', kind: 'num', level: 2, section: 'B', formulas: ['weights', 'port-var', 'sd'], formula: 'port-var', src: 'Lecture W9 Example 8',
         q: R`You invest $14,000 in Cheaters Anonymous Ltd and $6,000 in Tricky Dicky Ltd. Their correlation is 0.9336. What is the **standard deviation** of your portfolio?`,
         table: { head: ['', 'Cheaters Anonymous', 'Tricky Dicky'], rows: [['Amount invested', '$14,000', '$6,000'], ['Expected return', '6%', '6.25%'], ['Standard deviation', '6.32%', '12.42%']] },
         answer: P(FIN.portSD2(0.7, 0.0632, 0.3, 0.1242, 0.9336)), unit: '%', dp: 2,
@@ -1220,7 +1297,7 @@
         ],
         ti: [TI.line('0.7^2*0.0632^2+0.3^2*0.1242^2+2*0.7*0.3*0.9336*0.0632*0.1242', { note: 'The portfolio variance.' }), TI.line('sqrt(ans)', PCT(FIN.portSD2(0.7, 0.0632, 0.3, 0.1242, 0.9336)))],
         why: 'The expected returns are extra information here. Risk needs the weights, the SDs and the correlation.' },
-      { id: 'w9-q47', topic: 'port', kind: 'num', level: 3, section: 'B', formula: 'port-var', src: 'Lecture W9 Example 8 (follow-up)', boss: true,
+      { id: 'w9-q47', topic: 'port', kind: 'num', level: 3, section: 'B', formulas: ['weights', 'port-var', 'sd'], formula: 'port-var', src: 'Lecture W9 Example 8 (follow-up)', boss: true,
         q: R`Same portfolio: $14,000 in Cheaters Anonymous (SD 6.32%) and $6,000 in Tricky Dicky (SD 12.42%). What is the portfolio SD if the correlation is now **−0.9336**?`,
         answer: P(FIN.portSD2(0.7, 0.0632, 0.3, 0.1242, -0.9336)), unit: '%', dp: 2,
         mistakes: [
@@ -1235,7 +1312,7 @@
         ],
         ti: [TI.line('0.7^2*0.0632^2+0.3^2*0.1242^2+2*0.7*0.3*(-0.9336)*0.0632*0.1242', { note: 'The portfolio variance. The negative correlation makes the last term subtract.' }), TI.line('sqrt(ans)', PCT(FIN.portSD2(0.7, 0.0632, 0.3, 0.1242, -0.9336)))],
         why: 'A strongly negative correlation makes the covariance term subtract, so the risk falls from 8.01% to about 1.64%.' },
-      { id: 'w9-q48', topic: 'port', kind: 'num', level: 2, section: 'B', formula: 'port-var', src: 'Tutorial W9 Q5(b)',
+      { id: 'w9-q48', topic: 'port', kind: 'num', level: 2, section: 'B', formulas: ['port-var', 'sd'], formula: 'port-var', src: 'Tutorial W9 Q5(b)',
         q: R`Portfolio 1 holds 40% in asset A and 60% in asset B. The correlation between A and B is 0.20. What is the **standard deviation** of Portfolio 1?`,
         table: { head: ['Asset', 'Expected return', 'Standard deviation'], rows: [['A', '12.5%', '40%'], ['B', '16%', '45%'], ['Risk-free F', '8%', '0%']] },
         answer: P(sdQ5), unit: '%', dp: 2,
@@ -1252,7 +1329,7 @@
         ],
         ti: [TI.line('0.4^2*0.4^2+0.6^2*0.45^2+2*0.4*0.6*0.2*0.4*0.45', { note: 'The portfolio variance.' }), TI.line('sqrt(ans)', PCT(sdQ5))],
         why: 'Combining A and B (correlation only 0.2) gives an SD well below the weighted average of 43%.' },
-      { id: 'w9-q49', topic: 'port', kind: 'num', level: 2, section: 'B', formula: 'port-var', src: 'Tutorial W9 Q5(b)',
+      { id: 'w9-q49', topic: 'port', kind: 'num', level: 2, section: 'B', formulas: ['port-var', 'sd'], formula: 'port-var', src: 'Tutorial W9 Q5(b)',
         q: R`Portfolio 2 holds 40% in asset A (SD 40%) and 60% in the risk-free asset F (return 8%). What is the **standard deviation** of Portfolio 2?`,
         answer: 16, unit: '%', dp: 2,
         mistakes: [
@@ -1268,7 +1345,7 @@
         ],
         ti: [TI.line('0.4*0.4', { pct: true, note: R`\(\sigma_p = w_A\sigma_A\): that is \(16\%\).` })],
         why: R`With a risk-free asset, \(\sigma_p = w \times \sigma\) of the risky part: \(0.4 \times 40\% = 16\%\).` },
-      { id: 'w9-q50', topic: 'port', kind: 'mcq', level: 3, section: 'B', formula: 'sharpe', src: 'Tutorial W9 Q5(b)', boss: true,
+      { id: 'w9-q50', topic: 'port', kind: 'mcq', level: 3, section: 'B', formulas: ['sharpe'], formula: 'sharpe', src: 'Tutorial W9 Q5(b)', boss: true,
         q: R`Portfolio 1: \(E(R) = 14.6\%\), \(\sigma = 34.03\%\). Portfolio 2: \(E(R) = 9.8\%\), \(\sigma = 16\%\). The risk-free rate is 8%. Using the Sharpe ratio, which portfolio gives the better reward for its risk?`,
         choices: ['Portfolio 1', 'Portfolio 2, because it has lower risk', 'They are exactly equal', 'Portfolio 2, because it holds the risk-free asset'], answer: 0,
         steps: [R`\[S_1 = \frac{0.146 - 0.08}{${nt(sdQ5, 4)}} = ${nt(FIN.sharpe(0.146, 0.08, sdQ5), 4)}\]`, R`\[S_2 = \frac{0.098 - 0.08}{0.16} = ${nt(FIN.sharpe(0.098, 0.08, 0.16), 4)}\]`],
@@ -1279,7 +1356,7 @@
         table: MX_TABLE,
         choices: ['Each asset’s variance', 'Each asset’s standard deviation', 'The covariances between pairs of assets', 'The correlations between pairs of assets'], answer: 0,
         why: 'The diagonal holds variances (an asset’s covariance with itself), for example 0.0221 for SSBB. The other cells hold covariances, for example 0.0011 for SSBB and WW.' },
-      { id: 'w9-q52', topic: 'port', kind: 'num', level: 3, section: 'B', formula: 'port-var', src: 'Lecture W9 Example 3(b)', boss: true,
+      { id: 'w9-q52', topic: 'port', kind: 'num', level: 3, section: 'B', formulas: ['port-var', 'corr', 'sd'], formula: 'port-var', src: 'Lecture W9 Example 3(b)', boss: true,
         q: R`Use the matrix. Portfolio B holds 40% in SSBB and 60% in WW. What is the **standard deviation** of Portfolio B?`,
         table: MX_TABLE,
         answer: P(sPB), unit: '%', dp: 2,
@@ -1296,7 +1373,7 @@
         ],
         ti: [TI.line('0.4^2*0.0221+0.6^2*0.0165+2*0.4*0.6*0.0011', { note: 'Variances from the diagonal, the covariance from the off-diagonal cell.' }), TI.line('sqrt(ans)', PCT(sPB))],
         why: R`Its expected return is \(0.4(10.4\%) + 0.6(9.2\%) = 9.68\%\).` },
-      { id: 'w9-q53', topic: 'port', kind: 'num', level: 3, section: 'B', formula: 'port-var', src: 'Lecture W9 Example 3(c)', boss: true,
+      { id: 'w9-q53', topic: 'port', kind: 'num', level: 3, section: 'B', formulas: ['weights', 'port-var', 'corr', 'sd'], formula: 'port-var', src: 'Lecture W9 Example 3(c)', boss: true,
         q: R`Your manager gives {NAME} $500,000 to invest: $200,000 in SSBB, $200,000 in WW and $100,000 in the risk-free asset. Use the matrix. What is the **standard deviation** of this portfolio (Portfolio C)?`,
         table: MX_TABLE,
         answer: P(sPC), unit: '%', dp: 2,
@@ -1357,7 +1434,7 @@
       { id: 'w9-q64', topic: 'beta', kind: 'tf', level: 1, section: 'A', formula: 'beta',
         q: R`The market portfolio has a beta of exactly 1.`,
         answer: true, why: R`\(\beta_M = \frac{Cov(R_M,R_M)}{\sigma_M^2} = \frac{\sigma_M^2}{\sigma_M^2} = 1\).` },
-      { id: 'w9-q65', topic: 'beta', kind: 'num', level: 2, section: 'B', formula: 'beta', src: 'Lecture W9 Example 3(a)',
+      { id: 'w9-q65', topic: 'beta', kind: 'num', level: 2, section: 'B', formulas: ['beta'], formula: 'beta', src: 'Lecture W9 Example 3(a)',
         q: R`Use the variance–covariance matrix. What is the **beta** of SSBB?`,
         table: MX_TABLE,
         answer: bSS, unit: '', dp: 2,
@@ -1369,7 +1446,7 @@
         steps: [R`\[\beta_{SSBB} = \frac{Cov(R_{SSBB},R_M)}{\sigma_M^2} = \frac{0.0040}{0.0100} = 0.4\]`, R`Likewise \(\beta_{WW} = \frac{0.0020}{0.0100} = 0.2\).`],
         ti: [TI.line('0.0040/0.0100', { note: 'Covariance with the market over the market’s variance.' })],
         why: 'Read the covariance with the market from the bottom row, and the market variance from the diagonal.' },
-      { id: 'w9-q66', topic: 'beta', kind: 'num', level: 1, section: 'B', formula: 'port-beta', src: 'Tutorial W9 Q7(c)',
+      { id: 'w9-q66', topic: 'beta', kind: 'num', level: 1, section: 'B', formulas: ['port-beta'], formula: 'port-beta', src: 'Tutorial W9 Q7(c)',
         q: R`Suppose News Corporation shares have a beta of 1.7 and CBA shares have a beta of 1.0. What is the beta of a portfolio with 60% in News Corporation and 40% in CBA?`,
         answer: FIN.portBeta([0.6, 0.4], [1.7, 1.0]), unit: '', dp: 2,
         mistakes: [
@@ -1379,7 +1456,7 @@
         steps: [R`\[\beta_p = w_1\beta_1 + w_2\beta_2 = 0.6(1.7) + 0.4(1.0) = 1.02 + 0.40 = 1.42\]`],
         ti: [TI.line('0.6*1.7+0.4*1.0')],
         why: 'Portfolio beta is a weighted average of the betas.' },
-      { id: 'w9-q67', topic: 'beta', kind: 'num', level: 2, section: 'B', formula: 'port-beta', src: 'Lecture W9 SML Example 2(a)',
+      { id: 'w9-q67', topic: 'beta', kind: 'num', level: 2, section: 'B', formulas: ['port-beta'], formula: 'port-beta', src: 'Lecture W9 SML Example 2(a)',
         q: R`A portfolio holds 40% in share 1 (beta 1.00), 25% in share 2 (beta 0.75) and 35% in share 3 (beta 1.30). What is the **portfolio beta**?`,
         answer: FIN.portBeta([0.4, 0.25, 0.35], [1, 0.75, 1.3]), unit: '', dp: 2,
         mistakes: [
@@ -1391,7 +1468,7 @@
         why: 'A beta just above 1: the portfolio is slightly riskier than the market.' },
 
       /* ----- CAPM and the SML ----- */
-      { id: 'w9-q68', topic: 'capm', kind: 'num', level: 1, section: 'B', formula: 'capm', src: 'Tutorial W9 Q6',
+      { id: 'w9-q68', topic: 'capm', kind: 'num', level: 1, section: 'B', formulas: ['capm'], formula: 'capm', src: 'Tutorial W9 Q6',
         q: R`A stock has a beta of 1.5. The expected return on the market is 11% and the risk-free rate is 5%. Using CAPM, what must the stock’s expected return be?`,
         givens: [['\\beta', '1.5'], ['E[R_M]', R`11\%`], ['r_f', R`5\%`]],
         answer: P(FIN.capm(0.05, 1.5, 0.11)), unit: '%', dp: 2,
@@ -1403,7 +1480,7 @@
         steps: [R`\[E[R_i] = r_f + \beta_i(E[R_M] - r_f) = 5\% + 1.5(11\% - 5\%) = 5\% + 9\% = 14\%\]`],
         ti: [TI.line('0.05+1.5*(0.11-0.05)', PCT(0.14))],
         why: 'Risk-free rate plus beta times the market risk premium.' },
-      { id: 'w9-q69', topic: 'capm', kind: 'num', level: 1, section: 'B', formula: 'capm', src: 'Tutorial W9 Q7(a)',
+      { id: 'w9-q69', topic: 'capm', kind: 'num', level: 1, section: 'B', formulas: ['capm'], formula: 'capm', src: 'Tutorial W9 Q7(a)',
         q: R`Suppose News Corporation shares have a beta of 1.7. The risk-free rate is 4% and the expected market return is 10%. Using CAPM, what is the expected return on News Corporation shares?`,
         answer: P(FIN.capm(0.04, 1.7, 0.10)), unit: '%', dp: 2,
         mistakes: [
@@ -1414,7 +1491,7 @@
         steps: [R`\[E[R] = 4\% + 1.7(10\% - 4\%) = 4\% + 10.2\% = 14.2\%\]`, R`For CBA (\(\beta = 1\)): \(4\% + 1(6\%) = 10\%\), the same as the market.`],
         ti: [TI.line('0.04+1.7*(0.10-0.04)', PCT(0.142))],
         why: 'A beta of 1.7 earns 1.7 times the market risk premium on top of the risk-free rate.' },
-      { id: 'w9-q70', topic: 'capm', kind: 'num', level: 2, section: 'B', formula: 'port-beta', src: 'Tutorial W9 Q7(d)',
+      { id: 'w9-q70', topic: 'capm', kind: 'num', level: 2, section: 'B', formulas: ['port-ret', 'port-beta', 'capm'], formula: 'port-beta', src: 'Tutorial W9 Q7(d)',
         q: R`Suppose a portfolio holds 60% News Corporation shares (expected return 14.2%, beta 1.7) and 40% CBA shares (expected return 10%, beta 1.0). The risk-free rate is 4% and the market return is 10%. What is the portfolio’s expected return?`,
         answer: P(FIN.capm(0.04, 1.42, 0.10)), unit: '%', dp: 2,
         mistakes: [
@@ -1428,7 +1505,7 @@
         ],
         ti: [TI.line('0.6*0.142+0.4*0.10', PCT(0.1252))],
         why: 'Both ways agree, because CAPM is a straight line in beta.' },
-      { id: 'w9-q71', topic: 'capm', kind: 'mcq', level: 2, section: 'B', formula: 'capm', src: 'Lecture W9 SML Example 2(b)',
+      { id: 'w9-q71', topic: 'capm', kind: 'mcq', level: 2, section: 'B', formulas: ['capm', 'alpha'], formula: 'capm', src: 'Lecture W9 SML Example 2(b)',
         q: R`The risk-free rate is 8% and the market return is 12%. Share 1 (beta 1.00) is expected to earn 12%, share 2 (beta 0.75) 11% and share 3 (beta 1.30) 15%. Which share is **undervalued**?`,
         chart: { type: 'sml', rf: 0.08, rm: 0.12, points: [{ name: 'Share 1', beta: 1.0, er: 0.12 }, { name: 'Share 2', beta: 0.75, er: 0.11 }, { name: 'Share 3', beta: 1.3, er: 0.15 }] },
         choices: ['Share 3: it plots above the SML', 'Share 1: it has a beta of 1', 'Share 2: it has the lowest beta', 'Shares 1, 2 and 3 are all fairly priced'], answer: 0,
@@ -1462,7 +1539,7 @@
         q: R`In equilibrium, where should every fairly priced security plot?`,
         choices: ['On the Security Market Line', 'Above the Security Market Line', 'Below the Security Market Line', 'On the horizontal axis'], answer: 0,
         why: 'In equilibrium, every security is priced so that its expected return equals its CAPM required return: it sits on the SML.' },
-      { id: 'w9-q78', topic: 'capm', kind: 'num', level: 2, section: 'B', formula: 'capm', src: 'Lecture W9 Example 3(a)',
+      { id: 'w9-q78', topic: 'capm', kind: 'num', level: 2, section: 'B', formulas: ['beta', 'capm'], formula: 'capm', src: 'Lecture W9 Example 3(a)',
         q: R`Use the matrix: \(\beta_{WW} = 0.2\). The risk-free rate is 8% and the expected market return is 14%. Using CAPM, what is the expected return on WW?`,
         table: MX_TABLE,
         answer: P(eWW), unit: '%', dp: 2,
@@ -1478,7 +1555,7 @@
 
     generators: [
       /* ---------- realised return ---------- */
-      { id: 'w9-g-realised', topic: 'ret', level: 1, section: 'B', formula: 'realised', src: 'Lecture W9 Example 1',
+      { id: 'w9-g-realised', topic: 'ret', level: 1, section: 'B', formulas: ['realised'], formula: 'realised', src: 'Lecture W9 Example 1',
         make(rng) {
           const co = rng.company();
           const n = rng.pick([100, 200, 250, 500, 1000]);
@@ -1511,7 +1588,7 @@
           };
         } },
       /* ---------- multi-period HPR and annualising ---------- */
-      { id: 'w9-g-hpr', topic: 'ret', level: 2, section: 'B', formula: 'hpr', src: 'Lecture W9 Example 2',
+      { id: 'w9-g-hpr', topic: 'ret', level: 2, section: 'B', formulas: ['hpr'], formula: 'hpr', src: 'Lecture W9 Example 2',
         make(rng) {
           const n = rng.int(3, 5);
           let rs = Array.from({ length: n }, () => rng.step(-0.15, 0.25, 0.01));
@@ -1555,7 +1632,7 @@
           };
         } },
       /* ---------- expected return from probabilities ---------- */
-      { id: 'w9-g-exp-prob', topic: 'prob', level: 1, section: 'B', formula: 'exp-ret', src: 'Tutorial W9 Q1(a)',
+      { id: 'w9-g-exp-prob', topic: 'prob', level: 1, section: 'B', formulas: ['exp-ret'], formula: 'exp-ret', src: 'Tutorial W9 Q1(a)',
         make(rng) {
           let ps, rs, e;
           for (let t = 0; t < 50; t++) {
@@ -1580,7 +1657,7 @@
           };
         } },
       /* ---------- SD from probabilities ---------- */
-      { id: 'w9-g-sd-prob', topic: 'prob', level: 2, section: 'B', formula: 'var-prob', src: 'Tutorial W9 Q1(b)',
+      { id: 'w9-g-sd-prob', topic: 'prob', level: 2, section: 'B', formulas: ['exp-ret', 'var-prob', 'sd'], formula: 'var-prob', src: 'Tutorial W9 Q1(b)',
         make(rng) {
           const ps = rng.pick(PROBS);
           const rs = [rng.step(-0.15, 0.03, 0.01), rng.step(0.04, 0.14, 0.01), rng.step(0.15, 0.35, 0.01)];
@@ -1600,11 +1677,12 @@
               R`\[\sigma = \sqrt{${nt(v, 6)}} = ${nt(s, 4)} = ${pc(s)}\]`,
             ],
             ti: tiSdProb(ps, rs),
+            xl: xlProb(ps, rs),
             why: 'Expected return first, then probability-weighted squared deviations, then the square root.',
           };
         } },
       /* ---------- SD from past data ---------- */
-      { id: 'w9-g-sd-hist', topic: 'hist', level: 2, section: 'B', formula: 'var-sample', src: 'Lecture W9 Example 4',
+      { id: 'w9-g-sd-hist', topic: 'hist', level: 2, section: 'B', formulas: ['mean', 'var-sample', 'sd'], formula: 'var-sample', src: 'Lecture W9 Example 4',
         make(rng) {
           const n = rng.int(4, 6);
           let rs = Array.from({ length: n }, () => rng.step(-0.25, 0.35, 0.01));
@@ -1627,11 +1705,12 @@
             ],
             calc: `[C ALL] · ${rs.map((x) => `${hp(x)} [Σ+]`).join(' · ')} · [x̄,ȳ] → ${T.numT(m, 4)} · [Sx,Sy] → ${T.numT(s, 4)}`,
             ti: [sto(rs, 'r', { note: 'The past returns, as decimals.' }), TI.line('stDevSamp(r)', Object.assign(PCT(s), { note: R`\(\text{stDevSamp}\) divides by \(T - 1\) for you. That is \(${pc(s)}\).` }))],
+            xl: xlSample(rs, 'Year', 'Return'),
             why: R`For past data: find the mean, square the deviations, divide by \(T - 1\), then take the square root.`,
           };
         } },
       /* ---------- coefficient of variation ---------- */
-      { id: 'w9-g-cv', topic: 'cv', level: 1, section: 'B', formula: 'cv', src: 'Lecture W9 Example 5',
+      { id: 'w9-g-cv', topic: 'cv', level: 1, section: 'B', formulas: ['cv'], formula: 'cv', src: 'Lecture W9 Example 5',
         make(rng) {
           const e = rng.step(0.05, 0.2, 0.001);
           let s = rng.step(0.05, 0.35, 0.001);
@@ -1652,7 +1731,7 @@
           };
         } },
       /* ---------- choosing by CV ---------- */
-      { id: 'w9-g-cv-choose', topic: 'cv', level: 2, section: 'B', formula: 'cv', src: 'Tutorial W9 Q3',
+      { id: 'w9-g-cv-choose', topic: 'cv', level: 2, section: 'B', formulas: ['cv'], formula: 'cv', src: 'Tutorial W9 Q3',
         make(rng) {
           const names = cos(rng, 4);
           for (let tries = 0; tries < 60; tries++) {
@@ -1675,7 +1754,7 @@
           return null;
         } },
       /* ---------- Sharpe ratio ---------- */
-      { id: 'w9-g-sharpe', topic: 'cv', level: 1, section: 'B', formula: 'sharpe', src: 'Lecture W9 Example 3(d)',
+      { id: 'w9-g-sharpe', topic: 'cv', level: 1, section: 'B', formulas: ['sharpe'], formula: 'sharpe', src: 'Lecture W9 Example 3(d)',
         make(rng) {
           const rf = rng.step(0.02, 0.06, 0.005), e = +(rf + rng.step(0.02, 0.1, 0.001)).toFixed(4), s = rng.step(0.06, 0.3, 0.001);
           const sh = FIN.sharpe(e, rf, s);
@@ -1694,7 +1773,7 @@
           };
         } },
       /* ---------- correlation <-> covariance ---------- */
-      { id: 'w9-g-corr', topic: 'corr', level: 1, section: 'B', formula: 'corr', src: 'Lecture W9 Example 6(b)',
+      { id: 'w9-g-corr', topic: 'corr', level: 1, section: 'B', formulas: ['corr'], formula: 'corr', src: 'Lecture W9 Example 6(b)',
         make(rng) {
           const [a, b] = two(rng);
           const si = rng.step(0.08, 0.4, 0.005), sj = rng.step(0.08, 0.4, 0.005);
@@ -1733,7 +1812,7 @@
           };
         } },
       /* ---------- sample covariance ---------- */
-      { id: 'w9-g-cov-hist', topic: 'corr', level: 2, section: 'B', formula: 'cov-sample', src: 'Lecture W9 Example 6(a)',
+      { id: 'w9-g-cov-hist', topic: 'corr', level: 2, section: 'B', formulas: ['mean', 'cov-sample'], formula: 'cov-sample', src: 'Lecture W9 Example 6(a)',
         make(rng) {
           const [a, b] = two(rng);
           const n = rng.int(3, 4);
@@ -1767,7 +1846,7 @@
           };
         } },
       /* ---------- portfolio weights ---------- */
-      { id: 'w9-g-weights', topic: 'port', level: 1, section: 'B', formula: 'port-ret', src: 'Tutorial W9 Q4',
+      { id: 'w9-g-weights', topic: 'port', level: 1, section: 'B', formulas: ['weights'], formula: 'port-ret', src: 'Tutorial W9 Q4',
         make(rng) {
           const [a, b] = two(rng);
           let nA, pA, nB, pB;
@@ -1795,7 +1874,7 @@
           };
         } },
       /* ---------- portfolio expected return ---------- */
-      { id: 'w9-g-port-ret', topic: 'port', level: 1, section: 'B', formula: 'port-ret', src: 'Lecture W9 Example 7',
+      { id: 'w9-g-port-ret', topic: 'port', level: 1, section: 'B', formulas: ['weights', 'port-ret'], formula: 'port-ret', src: 'Lecture W9 Example 7',
         make(rng) {
           const k = rng.chance(0.6) ? 2 : 3;
           const names = cos(rng, k);
@@ -1819,7 +1898,7 @@
           };
         } },
       /* ---------- two-asset portfolio SD ---------- */
-      { id: 'w9-g-port-sd', topic: 'port', level: 2, section: 'B', formula: 'port-var', src: 'Lecture W9 Example 8',
+      { id: 'w9-g-port-sd', topic: 'port', level: 2, section: 'B', formulas: ['weights', 'port-var', 'sd'], formula: 'port-var', src: 'Lecture W9 Example 8',
         make(rng) {
           const [a, b] = two(rng);
           const tot = rng.step(10000, 100000, 1000);
@@ -1851,7 +1930,7 @@
           };
         } },
       /* ---------- portfolio with the risk-free asset ---------- */
-      { id: 'w9-g-rf-port', topic: 'port', level: 2, section: 'B', formula: 'port-var', src: 'Tutorial W9 Q5(b)',
+      { id: 'w9-g-rf-port', topic: 'port', level: 2, section: 'B', formulas: ['port-var', 'sd'], formula: 'port-var', src: 'Tutorial W9 Q5(b)',
         make(rng) {
           const co = rng.company();
           const e = rng.step(0.08, 0.18, 0.005), s = rng.step(0.12, 0.45, 0.01), rf = rng.step(0.02, 0.06, 0.005);
@@ -1862,7 +1941,7 @@
             const sp = w * s;
             return {
               q: R`${base} What is the **standard deviation** of your portfolio?`,
-              givens, answer: P(sp), unit: '%', dp: 2,
+              givens, answer: P(sp), unit: '%', dp: 2, formulas: ['port-var', 'sd'],
               mistakes: [
                 { v: P(w * s + (1 - w) * rf), why: R`The risk-free asset has zero SD. Its \(r_f\) is a return, not a risk.` },
                 { v: P(s), why: R`Moving money into the risk-free asset scales risk down: \(\sigma_p = w\sigma\).` },
@@ -1876,7 +1955,7 @@
           const ep = w * e + (1 - w) * rf;
           return {
             q: R`${base} What is the **expected return** of your portfolio?`,
-            givens, answer: P(ep), unit: '%', dp: 2,
+            givens, answer: P(ep), unit: '%', dp: 2, formulas: ['port-ret'],
             mistakes: [
               { v: P(w * e), why: R`The money in the risk-free asset still earns \(r_f\). Add \((1 - w)r_f\).` },
               { v: P((e + rf) / 2), why: 'Weight each return by the fraction invested, not 50/50.' },
@@ -1888,7 +1967,7 @@
           };
         } },
       /* ---------- beta from covariance ---------- */
-      { id: 'w9-g-beta', topic: 'beta', level: 1, section: 'B', formula: 'beta', src: 'Lecture W9 Example 3(a)',
+      { id: 'w9-g-beta', topic: 'beta', level: 1, section: 'B', formulas: ['beta'], formula: 'beta', src: 'Lecture W9 Example 3(a)',
         make(rng) {
           const co = rng.company();
           const sM = rng.step(0.1, 0.22, 0.01), b0 = rng.step(0.3, 2, 0.05);
@@ -1912,7 +1991,7 @@
           };
         } },
       /* ---------- portfolio beta ---------- */
-      { id: 'w9-g-port-beta', topic: 'beta', level: 1, section: 'B', formula: 'port-beta', src: 'Lecture W9 SML Example 2(a)',
+      { id: 'w9-g-port-beta', topic: 'beta', level: 1, section: 'B', formulas: ['weights', 'port-beta'], formula: 'port-beta', src: 'Lecture W9 SML Example 2(a)',
         make(rng) {
           const names = cos(rng, 3);
           const withRf = rng.chance(0.3);
@@ -1943,7 +2022,7 @@
           };
         } },
       /* ---------- CAPM ---------- */
-      { id: 'w9-g-capm', topic: 'capm', level: 1, section: 'B', formula: 'capm', src: 'Tutorial W9 Q6',
+      { id: 'w9-g-capm', topic: 'capm', level: 1, section: 'B', formulas: ['capm'], formula: 'capm', src: 'Tutorial W9 Q6',
         make(rng) {
           const co = rng.company();
           const rf = rng.step(0.02, 0.06, 0.005), mrp = rng.step(0.04, 0.09, 0.005), b = rng.step(0.4, 2.2, 0.05);
@@ -1972,7 +2051,7 @@
           };
         } },
       /* ---------- CAPM for a two-share portfolio ---------- */
-      { id: 'w9-g-capm-port', topic: 'capm', level: 2, section: 'B', formula: 'port-beta', src: 'Tutorial W9 Q7',
+      { id: 'w9-g-capm-port', topic: 'capm', level: 2, section: 'B', formulas: ['port-beta', 'capm'], formula: 'port-beta', src: 'Tutorial W9 Q7',
         make(rng) {
           const [a, b] = two(rng);
           const rf = rng.step(0.02, 0.06, 0.005), rm = rf + rng.step(0.04, 0.08, 0.005);
@@ -1999,7 +2078,7 @@
           };
         } },
       /* ---------- SML: under or overvalued ---------- */
-      { id: 'w9-g-sml', topic: 'capm', level: 2, section: 'B', formula: 'capm', src: 'Lecture W9 SML Example 2(b)',
+      { id: 'w9-g-sml', topic: 'capm', level: 2, section: 'B', formulas: ['capm', 'alpha'], formula: 'capm', src: 'Lecture W9 SML Example 2(b)',
         make(rng) {
           const co = rng.company();
           const rf = rng.step(0.02, 0.06, 0.005), rm = rf + rng.step(0.04, 0.08, 0.005), b = rng.step(0.5, 2, 0.05);
@@ -2021,7 +2100,7 @@
           };
         } },
       /* ---------- SML shifts ---------- */
-      { id: 'w9-g-sml-shift', topic: 'capm', level: 2, section: 'B', formula: 'capm', src: 'Lecture W9 SML and inflation / risk',
+      { id: 'w9-g-sml-shift', topic: 'capm', level: 2, section: 'B', formulas: ['capm'], formula: 'capm', src: 'Lecture W9 SML and inflation / risk',
         make(rng) {
           const co = rng.company();
           const rf = rng.step(0.02, 0.05, 0.005), mrp = rng.step(0.04, 0.08, 0.005);
@@ -2061,7 +2140,7 @@
         } },
 
       /* ---------- boss: correlation from a probability table ---------- */
-      { id: 'w9-g-prob-corr', topic: 'corr', level: 3, section: 'B', formula: 'corr', src: 'Tutorial W9 Q1', boss: true,
+      { id: 'w9-g-prob-corr', topic: 'corr', level: 3, section: 'B', formulas: ['exp-ret', 'var-prob', 'sd', 'cov-prob', 'corr'], formula: 'corr', src: 'Tutorial W9 Q1', boss: true,
         make(rng) {
           const [a, b] = two(rng);
           for (let t = 0; t < 60; t++) {
@@ -2101,7 +2180,7 @@
           return null;
         } },
       /* ---------- boss: correlation from past data ---------- */
-      { id: 'w9-g-hist-corr', topic: 'corr', level: 3, section: 'B', formula: 'corr', src: 'Tutorial W9 Q2', boss: true,
+      { id: 'w9-g-hist-corr', topic: 'corr', level: 3, section: 'B', formulas: ['mean', 'cov-sample', 'var-sample', 'sd', 'corr'], formula: 'corr', src: 'Tutorial W9 Q2', boss: true,
         make(rng) {
           const [a, b] = two(rng);
           const n = rng.int(4, 6);
@@ -2135,7 +2214,7 @@
           return null;
         } },
       /* ---------- boss: variance-covariance matrix portfolio ---------- */
-      { id: 'w9-g-matrix', topic: 'port', level: 3, section: 'B', formula: 'port-var', src: 'Lecture W9 Example 3 (portfolio theory)', boss: true,
+      { id: 'w9-g-matrix', topic: 'port', level: 3, section: 'B', formulas: ['weights', 'port-var', 'corr', 'sd'], formula: 'port-var', src: 'Lecture W9 Example 3 (portfolio theory)', boss: true,
         make(rng) {
           const [nX, nY] = two(rng);
           for (let t = 0; t < 300; t++) {
@@ -2184,7 +2263,7 @@
               mistakes.push({ v: P(vP), why: 'That is the variance. Take the square root.' });
               return {
                 q: R`${intro} What is the **standard deviation** of your portfolio?`,
-                table, answer: P(sP), unit: '%', dp: 2, mistakes,
+                table, answer: P(sP), unit: '%', dp: 2, mistakes, formulas: ['weights', 'port-var', 'corr', 'sd'],
                 steps: [R`The diagonal holds variances; the other cells hold covariances.`, wStep, varStep, sdStep],
                 ti: [TI.line(tiVar, { note: withRf ? 'The portfolio variance. The risk-free asset adds nothing to it.' : 'The portfolio variance.' }), TI.line('sqrt(ans)', PCT(sP))],
                 why: 'Read the variances from the diagonal and the X–Y covariance from the off-diagonal cell. The market row is not needed for risk.',
@@ -2199,7 +2278,7 @@
               else mistakes.push({ v: P((eX + eY) / 2), why: 'Weight each return by the fraction of money invested.' });
               return {
                 q: R`${intro} Using CAPM for each share, what is the **expected return** of your portfolio?`,
-                table, answer: P(eP), unit: '%', dp: 2, mistakes,
+                table, answer: P(eP), unit: '%', dp: 2, mistakes, formulas: ['beta', 'capm', 'weights', 'port-ret'],
                 steps: [betaStep, capmStep, wStep, erStep],
                 ti: [tiCapm(cXM, 'a'), tiCapm(cYM, 'b'), TI.line(`${tn(wX)}*a+${tn(wY)}*b${withRf ? `+${tn(wF)}*${tn(rf)}` : ''}`, PCT(eP))],
                 why: 'Betas from the matrix, CAPM for each share, then a weighted average.',
@@ -2207,7 +2286,7 @@
             }
             return {
               q: R`${intro} Using CAPM for the expected returns, what is the **Sharpe ratio** of your portfolio? (4 decimal places)`,
-              table, answer: sh, unit: '', dp: 4, tol: Math.max(0.0006, Math.abs(sh) * 0.001),
+              table, answer: sh, unit: '', dp: 4, tol: Math.max(0.0006, Math.abs(sh) * 0.001), formulas: ['beta', 'capm', 'weights', 'port-ret', 'port-var', 'corr', 'sd', 'sharpe'],
               mistakes: [
                 { v: eP / sP, why: R`Subtract \(r_f\) first. The Sharpe ratio uses the excess return.` },
                 { v: (eP - rf) / vP, why: 'Divide by the standard deviation, not the variance.' },
@@ -2222,7 +2301,7 @@
           return null;
         } },
       /* ---------- boss: beta from correlation, then CAPM ---------- */
-      { id: 'w9-g-beta-rho', topic: 'beta', level: 3, section: 'B', formula: 'capm', boss: true,
+      { id: 'w9-g-beta-rho', topic: 'beta', level: 3, section: 'B', formulas: ['corr', 'beta', 'beta-rho', 'capm'], formula: 'capm', boss: true,
         make(rng) {
           const co = rng.company();
           const sM = rng.step(0.1, 0.2, 0.01), rho = rng.step(0.2, 0.9, 0.05);
@@ -2249,7 +2328,7 @@
           };
         } },
       /* ---------- boss: weights for a target return ---------- */
-      { id: 'w9-g-target', topic: 'capm', level: 3, section: 'B', formula: 'port-beta', boss: true,
+      { id: 'w9-g-target', topic: 'capm', level: 3, section: 'B', formulas: ['capm', 'port-beta'], formula: 'port-beta', boss: true,
         make(rng) {
           for (let t = 0; t < 60; t++) {
             const rf = rng.step(0.02, 0.05, 0.005), mrp = rng.step(0.04, 0.08, 0.005);

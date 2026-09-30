@@ -81,6 +81,7 @@
         enemy: { name: 'The Procrastinator', title: 'Pays you back… eventually', body: 'round', color: '#a58fd6', acc: ['cap'], mouth: 'flat', item: '⏰',
           lines: { intro: 'Why pay today when you can pay… eventually?', hit: ['Zzz… wait, how did you solve for n so fast?', 'You found the rate? Already?'],
             taunt: ['See? Waiting costs nothing. Totally nothing.', 'Take your time. Literally.'], win: 'I will… be defeated… tomorrow.', lose: 'No rush. I will wait for you forever.' } } },
+      { id: 'w1-W1', kind: 'case', name: 'Written round: the graduation gift', case: 'w1-C1' },
       { id: 'w1-m2', kind: 'mini', name: 'Rule of 72 Rush', mini: 'rule72' },
       { id: 'w1-L6', kind: 'lesson', name: 'APR and EAR', lesson: 'w1-L6' },
       { id: 'w1-L7', kind: 'lesson', name: 'Continuous compounding', lesson: 'w1-L7' },
@@ -88,6 +89,7 @@
         enemy: { name: 'The APR Impostor', title: 'Quotes low, compounds often', body: 'spiky', color: '#ef7b45', acc: ['tophat', 'monocle'], mouth: 'smirk', item: '📜',
           lines: { intro: 'My APR is lower, darling. Do not ask how often I compound.', hit: ['You converted to EAR? How rude!', 'Curses, an effective rate!'],
             taunt: ['Ha! You compared APRs!', 'Sign here, here and here.'], win: 'Exposed by an effective annual rate…', lose: 'Your loan is approved. Mwahaha.' } } },
+      { id: 'w1-W2', kind: 'case', name: 'Written round: two savings accounts', case: 'w1-C2' },
       { id: 'w1-boss', kind: 'boss', name: 'Chronos', topics: '*', n: 10,
         enemy: { name: 'Chronos', title: 'Keeper of Compounding', body: 'tall', color: '#4a67b0', acc: ['crown'], eyes: 3, mouth: 'fangs', item: '⏳',
           lines: { intro: 'I am Time itself. Every dollar bends to my (1 + r) to the n!', hit: ['Impossible! A mortal who understands discounting!', 'You bend time like a CFO!'],
@@ -430,6 +432,81 @@
       },
     },
 
+    /* ---------- written rounds (exam-style scenarios with parts a, b, c …) ---------- */
+    cases: {
+      'w1-C1': {
+        title: 'The graduation gift',
+        topics: ['tvm', 'fv', 'pv', 'simple'],
+        story: R`Mele has just turned 18. Her grandmother offers her a choice of gift: \(\$10{,}000\) today, or \(\$13{,}000\) in 4 years.\n\nMele can put money in a term deposit that pays \(6\%\) p.a., compounded annually. A credit union offers \(6.5\%\) p.a. **simple** interest instead.`,
+        tl: { n: 4, at: { 0: '$10,000 now', 4: 'or $13,000' }, unit: 'Year', hi: [0, 4] },
+        parts: [
+          { kind: 'calc', marks: 2, ask: R`Mele takes the \(\$10{,}000\) today and puts it in the term deposit. How much will she have in 4 years?`,
+            formulas: ['fv-lump'],
+            answer: 10000 * 1.06 ** 4, unit: '$', dp: 2,
+            model: ['FVn = PV*(1 + r)^n', '= 10000*(1 + 0.06)^4', '= $12,624.77'],
+            meaning: R`In 4 years the \(\$10{,}000\) would grow to \(\$12{,}624.77\).` },
+          { kind: 'calc', marks: 2, ask: R`What is the \(\$13{,}000\) gift worth today, at \(6\%\) p.a.?`,
+            formulas: ['pv-lump'],
+            answer: 13000 / 1.06 ** 4, unit: '$', dp: 2,
+            model: ['PV = FVn/(1 + r)^n', '= 13000/(1 + 0.06)^4', '= $10,297.22'],
+            meaning: R`The \(\$13{,}000\) gift is worth \(\$10{,}297.22\) today.`,
+            hint: R`Money moves back 4 years, so discount: divide by \((1 + 0.06)^{4}\).` },
+          { kind: 'theory', marks: 2, ask: R`Which gift should Mele choose? Explain, using your answers to (a) and (b).`,
+            points: [
+              { t: R`Compare the gifts at the **same date**, because money has a time value: a dollar today can earn interest.`, ok: true },
+              { t: R`The \(\$13{,}000\) is worth \(\$10{,}297.22\) today, which is more than \(\$10{,}000\). So Mele should wait for it.`, ok: true },
+              { t: R`Take the \(\$10{,}000\): money today is always worth more than money later.`, ok: false, why: R`A dollar today beats a dollar later, but \(\$13{,}000\) is more than the \(\$10{,}000\) could grow to at \(6\%\).` },
+              { t: R`Take the \(\$13{,}000\) because it is the bigger number.`, ok: false, why: R`Right choice, wrong reason. Dollars at different dates must be moved to the same date before you compare them.` },
+              { t: R`The gifts are worth the same, because \(6\%\) is a fair rate.`, ok: false, why: R`At \(6\%\) their values today differ: \(\$10{,}000\) against \(\$10{,}297.22\).` },
+            ],
+            model: R`Mele should choose the \(\$13{,}000\) in 4 years. Money has a **time value**, because \(\$10{,}000\) today could earn \(6\%\) a year, so the gifts must be compared at the same date. At \(6\%\) the later gift is worth \(\$10{,}297.22\) today, which is more than \(\$10{,}000\). In the same way, the \(\$10{,}000\) would grow to only \(\$12{,}624.77\) by year 4, less than \(\$13{,}000\).`,
+            keys: [['same date', 'same time', 'today', 'present value'], ['time value', 'interest', 'invest'], ['13,000', '13000', 'wait', 'later gift']] },
+          { kind: 'calc', marks: 2, ask: R`How much would the \(\$10{,}000\) grow to in 4 years at the credit union's \(6.5\%\) **simple** interest?`,
+            formulas: ['simple-int'], pick: ['simple-int', 'fv-lump', 'pv-lump', 'ear'],
+            answer: 10000 * (1 + 0.065 * 4), unit: '$', dp: 2,
+            model: ['Balance = P + P*r*t', '= 10000 + 10000*0.065*4', '= $12,600.00'],
+            meaning: R`Simple interest adds the same \(\$650\) every year, so Mele would have \(\$12{,}600.00\).`,
+            hint: R`Simple interest is paid on the \(\$10{,}000\) only: \(\text{Interest} = P \times r \times t\). Then add the \(\$10{,}000\) back.` },
+          { kind: 'blanks', marks: 1, ask: R`Choose the right words.`,
+            text: R`The term deposit ends with more (\(\$12{,}624.77\)) than the credit union (\(\$12{,}600.00\)), even though its rate is {{lower|higher}}. This is because compound interest also earns interest on {{earlier interest|the first deposit only|nothing}}.`,
+            why: R`Simple interest pays \(6.5\%\) of the same \(\$10{,}000\) every year. Compound interest pays \(6\%\) of a balance that keeps growing.` },
+        ],
+      },
+      'w1-C2': {
+        title: 'Two savings accounts',
+        topics: ['ear'],
+        story: R`Kofi has \(\$8{,}000\) to save for 3 years. Two banks quote him a rate.\n\n**Bank A** pays \(5.85\%\) p.a., compounded monthly. **Bank B** pays \(5.90\%\) p.a., compounded annually.`,
+        table: { head: ['Bank', 'Quoted rate (APR)', 'Interest added'], rows: [['Bank A', '5.85% p.a.', 'Every month'], ['Bank B', '5.90% p.a.', 'Once a year']] },
+        parts: [
+          { kind: 'calc', marks: 2, ask: R`Calculate the effective annual rate (EAR) of Bank A.`,
+            formulas: ['ear'],
+            answer: P(FIN.ear(0.0585, 12)), unit: '%', dp: 2,
+            model: ['EAR = (1 + APR/m)^m - 1', '= (1 + 0.0585/12)^12 - 1', '= 6.01%'],
+            meaning: R`Money in Bank A grows by \(6.01\%\) a year.`,
+            hint: R`Monthly compounding means \(m = 12\). Write the APR as a decimal: \(0.0585\).` },
+          { kind: 'calc', marks: 2, ask: R`How much will Kofi have after 3 years with Bank A? Use the monthly rate and the number of months.`,
+            formulas: ['fv-lump', 'fv-m'], pick: ['fv-lump', 'fv-m', 'ear', 'pv-lump', 'simple-int'],
+            answer: 8000 * (1 + 0.0585 / 12) ** 36, unit: '$', dp: 2,
+            model: ['FV = PV*(1 + APR/m)^(m*n)', '= 8000*(1 + 0.0585/12)^(12*3)', '= $9,530.67'],
+            meaning: R`Kofi would have \(\$9{,}530.67\) with Bank A. Bank B would give \(8{,}000 \times 1.059^{3} = \$9{,}501.19\).`,
+            hint: R`The rate per month is \(\frac{0.0585}{12}\). There are \(12 \times 3 = 36\) months.` },
+          { kind: 'theory', marks: 2, ask: R`Bank A quotes the lower rate. Explain why Kofi should still choose Bank A.`,
+            points: [
+              { t: R`Rates with different compounding must be compared as **EARs**, not as APRs.`, ok: true },
+              { t: R`Bank A's EAR (\(6.01\%\)) is higher than Bank B's (\(5.90\%\)), and a saver wants the highest EAR.`, ok: true },
+              { t: R`Bank B is better, because \(5.90\%\) is more than \(5.85\%\).`, ok: false, why: R`That compares APRs. Bank B adds interest only once a year, so its EAR is just \(5.90\%\).` },
+              { t: R`Monthly compounding means Kofi pays a fee every month.`, ok: false, why: R`No fee is mentioned. Compounding means interest is added to the balance.` },
+              { t: R`The EAR and the APR are always the same.`, ok: false, why: R`They are equal only when interest is added once a year (\(m = 1\)).` },
+            ],
+            model: R`Kofi should choose Bank A, because offers with different compounding must be compared using the **EAR**, not the quoted APR. Bank A adds interest every month, so interest earns interest during the year: its EAR is \(6.01\%\). Bank B adds interest once a year, so its EAR is only \(5.90\%\). A saver wants the higher EAR, so Bank A pays more (\(\$9{,}530.67\) after 3 years) even though its APR is lower.`,
+            keys: [['EAR', 'effective'], ['compound', 'compounding', 'monthly'], ['6.01', 'higher']] },
+          { kind: 'blanks', marks: 1, ask: R`Choose the right words.`,
+            text: R`For the same APR, compounding more often gives a {{higher|lower|the same}} EAR. The EAR equals the APR only when interest is compounded {{once a year|monthly|daily}}.`,
+            why: R`With \(m = 1\), \(EAR = (1 + APR) - 1 = APR\). Each extra compounding period adds interest on interest.` },
+        ],
+      },
+    },
+
     questions: [
       /* ----- goals and decisions ----- */
       { id: 'w1-q01', topic: 'corp', kind: 'mcq', level: 1, section: 'A',
@@ -467,14 +544,14 @@
         choices: ['The end of period 1, which is also the start of period 2', 'The start of period 1', 'Today', 'One day from now'], answer: 0,
         tl: { n: 3, at: { 0: 'today', 1: 'end of yr 1' }, unit: 'Year', hi: [1] },
         why: R`Tick marks sit at the ends of periods. \(t = 0\) is today, and \(t = 1\) is the end of the first period.` },
-      { id: 'w1-q09', topic: 'tvm', kind: 'tf', level: 1, section: 'A',
+      { id: 'w1-q09', topic: 'tvm', kind: 'tf', level: 1, section: 'A', formulas: ['fv-lump'],
         q: R`Holding the interest rate fixed, the future value factor \((1+r)^{n}\) gets larger as \(n\) increases.`,
         answer: true, why: R`More periods means more compounding, so \((1+r)^{n}\) grows with \(n\) whenever \(r > 0\).` },
-      { id: 'w1-q10', topic: 'tvm', kind: 'mcq', level: 1, section: 'A',
+      { id: 'w1-q10', topic: 'tvm', kind: 'mcq', level: 1, section: 'A', formulas: ['pv-lump'],
         q: R`What happens to the present value of a fixed future amount when the discount rate rises?`,
         choices: ['It falls', 'It rises', 'It stays the same', 'It doubles'], answer: 0,
         why: R`\(PV = \frac{FV}{(1+r)^{n}}\). A bigger \(r\) makes the denominator bigger, so the PV falls.` },
-      { id: 'w1-q11', topic: 'tvm', kind: 'mcq', level: 2, section: 'A', src: 'MST 2026 Q3',
+      { id: 'w1-q11', topic: 'tvm', kind: 'mcq', level: 2, section: 'A', src: 'MST 2026 Q3', formulas: ['pv-lump'],
         q: R`You will receive $1,000 at Year 1 and another $1,000 at Year 5. If the discount rate rises, what happens to the **gap** between their present values?`,
         choices: ['The gap gets bigger', 'The gap gets smaller', 'The gap stays the same', 'The Year 5 amount becomes worth more'], answer: 0,
         tl: { n: 5, at: { 1: '$1,000', 5: '$1,000' }, unit: 'Year' },
@@ -487,10 +564,10 @@
         q: R`Which of these is **not** one of the four cash flow patterns in this unit?`,
         choices: ['An amortising swap', 'A lump sum', 'An annuity', 'A perpetuity'], answer: 0,
         why: R`The four patterns are a lump sum, a mixed stream, an annuity and a perpetuity.` },
-      { id: 'w1-q14', topic: 'pv', kind: 'tf', level: 1, section: 'A',
+      { id: 'w1-q14', topic: 'pv', kind: 'tf', level: 1, section: 'A', formulas: ['pv-lump'],
         q: R`When \(r > 0\) and \(n > 0\), the present value factor \(\frac{1}{(1+r)^{n}}\) is always less than 1.`,
         answer: true, why: R`\((1+r)^{n} > 1\), so one divided by it is below 1. A future dollar is worth less than a dollar today.` },
-      { id: 'w1-q15', topic: 'fv', kind: 'mcq', level: 2, section: 'A',
+      { id: 'w1-q15', topic: 'fv', kind: 'mcq', level: 2, section: 'A', formulas: ['fv-lump'],
         q: R`A table gives the factor for 6% and 5 years as 1.338. Using it, $1,000 grows to $1,338.00, but a calculator says $1,338.23. Why?`,
         choices: ['The table factor is rounded', 'The table assumes simple interest', 'The calculator uses monthly compounding', 'The calculator adds a fee'], answer: 0,
         why: R`The exact factor is \((1.06)^{5} = 1.3382256\). Tables round to three decimals, so small rounding errors appear.` },
@@ -523,7 +600,7 @@
         why: R`Divide by \(PV\), then raise both sides to the power \(\frac{1}{n}\), then subtract 1.` },
 
       /* ----- APR, EAR, compounding ----- */
-      { id: 'w1-q22', topic: 'ear', kind: 'mcq', level: 1, section: 'A',
+      { id: 'w1-q22', topic: 'ear', kind: 'mcq', level: 1, section: 'A', formulas: ['ear'],
         q: R`A bank charges 1% per month on a car loan. What is the nominal annual rate (APR)?`,
         choices: ['12%', '12.68%', '1%', '11.36%'], answer: 0,
         why: R`APR = rate per period \(\times\) periods per year \(= 1\% \times 12 = 12\%\). The EAR would be \((1.01)^{12} - 1 = 12.68\%\).` },
@@ -538,7 +615,7 @@
         q: R`When is the EAR equal to the APR?`,
         choices: ['When interest compounds once a year', 'When interest compounds daily', 'When interest compounds continuously', 'Never'], answer: 0, formula: 'ear',
         why: R`With \(m = 1\), \(EAR = (1 + APR) - 1 = APR\).` },
-      { id: 'w1-q26', topic: 'ear', kind: 'mcq', level: 2, section: 'A', src: 'Lecture W1 Example 7',
+      { id: 'w1-q26', topic: 'ear', kind: 'mcq', level: 2, section: 'A', src: 'Lecture W1 Example 7', formulas: ['ear', 'cont'],
         q: R`You are **saving** $10,000 for one year. Which account pays the most?`,
         choices: ['5.95% compounded daily', '6.00% compounded annually', '5.90% compounded monthly', '5.80% compounded continuously'], answer: 0, formula: 'ear',
         why: R`Compare EARs: daily \(\to 6.13\%\), annual \(\to 6.00\%\), monthly \(\to 6.06\%\), continuous \(\to e^{0.058} - 1 = 5.97\%\).` },
@@ -563,7 +640,7 @@
 
     generators: [
       /* ---------- future value ---------- */
-      { id: 'w1-g-fv', topic: 'fv', level: 1, section: 'B', formula: 'fv-lump',
+      { id: 'w1-g-fv', topic: 'fv', level: 1, section: 'B', formula: 'fv-lump', formulas: ['fv-lump'],
         make(rng) {
           const who = rng.person();
           const pv = rng.step(1000, 25000, 500), r = rng.step(0.03, 0.11, 0.005), n = rng.int(3, 20);
@@ -588,7 +665,7 @@
           };
         } },
       /* ---------- present value ---------- */
-      { id: 'w1-g-pv', topic: 'pv', level: 1, section: 'B', formula: 'pv-lump',
+      { id: 'w1-g-pv', topic: 'pv', level: 1, section: 'B', formula: 'pv-lump', formulas: ['pv-lump'],
         make(rng) {
           const who = rng.person();
           const fv = rng.step(5000, 100000, 1000), r = rng.step(0.03, 0.12, 0.005), n = rng.int(2, 25);
@@ -614,7 +691,7 @@
           };
         } },
       /* ---------- present value vs a future amount (choice) ---------- */
-      { id: 'w1-g-choose', topic: 'pv', level: 2, section: 'B', formula: 'pv-lump',
+      { id: 'w1-g-choose', topic: 'pv', level: 2, section: 'B', formula: 'pv-lump', formulas: ['pv-lump'],
         make(rng) {
           const r = rng.step(0.04, 0.12, 0.01), n = rng.int(2, 8);
           const a = rng.step(5000, 20000, 500);
@@ -632,7 +709,7 @@
             ti: [TI.cmd('tvmPV', [n, P(r), 0, b, 1, 1], { note: R`Ignore the minus sign: the later prize is worth \(${L.money(pvb)}\) today.` })],
           };
         } },
-      { id: 'w1-g-pv-date', topic: 'pv', level: 2, section: 'B', formula: 'pv-lump', src: 'Tutorial W1 Q3',
+      { id: 'w1-g-pv-date', topic: 'pv', level: 2, section: 'B', formula: 'pv-lump', formulas: ['pv-lump'], src: 'Tutorial W1 Q3',
         make(rng) {
           const y0 = rng.int(2026, 2030), gap = rng.int(4, 7), dep = rng.int(1, 2);
           const fv = rng.step(8000, 40000, 1000), r = rng.step(0.04, 0.10, 0.005);
@@ -655,7 +732,7 @@
           };
         } },
       /* ---------- simple interest ---------- */
-      { id: 'w1-g-simple', topic: 'simple', level: 1, section: 'B', formula: 'simple-int', src: 'Lecture W1 Example 1',
+      { id: 'w1-g-simple', topic: 'simple', level: 1, section: 'B', formula: 'simple-int', formulas: ['simple-int'], src: 'Lecture W1 Example 1',
         make(rng) {
           const p = rng.step(10000, 80000, 5000), r = rng.step(0.04, 0.10, 0.005), d = rng.pick([30, 60, 90, 120, 180, 270]);
           const repay = p * (1 + r * d / 365);
@@ -673,7 +750,7 @@
             why: 'Simple interest: principal × rate × time, then add the principal back.',
           };
         } },
-      { id: 'w1-g-simple-vs', topic: 'simple', level: 2, section: 'B', formula: 'fv-lump',
+      { id: 'w1-g-simple-vs', topic: 'simple', level: 2, section: 'B', formula: 'fv-lump', formulas: ['fv-lump', 'simple-int'],
         make(rng) {
           const p = rng.step(2000, 20000, 1000), r = rng.step(0.04, 0.12, 0.01), n = rng.int(5, 20);
           const diff = p * (FIN.fvif(r, n) - (1 + r * n));
@@ -692,7 +769,7 @@
           };
         } },
       /* ---------- solving for n ---------- */
-      { id: 'w1-g-n', topic: 'solve', level: 2, section: 'B', formula: 'n-solve', src: 'Lecture W1 Example 4',
+      { id: 'w1-g-n', topic: 'solve', level: 2, section: 'B', formula: 'n-solve', formulas: ['fv-lump', 'n-solve'], src: 'Lecture W1 Example 4',
         make(rng) {
           const pv = rng.step(2000, 20000, 1000), mult = rng.pick([1.5, 2, 2.5, 3, 4]), r = rng.step(0.04, 0.12, 0.005);
           const fv = pv * mult;
@@ -717,7 +794,7 @@
             why: 'Take logs to bring the power n down.',
           };
         } },
-      { id: 'w1-g-double', topic: 'solve', level: 2, section: 'B', formula: 'n-solve', src: 'Tutorial W1 Q2',
+      { id: 'w1-g-double', topic: 'solve', level: 2, section: 'B', formula: 'n-solve', formulas: ['fv-lump', 'n-solve'], src: 'Tutorial W1 Q2',
         make(rng) {
           const r = rng.step(0.03, 0.12, 0.01), k = rng.pick([2, 3, 4]);
           const word = { 2: 'double', 3: 'triple', 4: 'quadruple' }[k];
@@ -737,7 +814,7 @@
             why: `Any starting amount works, so use PV = 1 and FV = ${k}.`,
           };
         } },
-      { id: 'w1-g-72', topic: 'solve', level: 1, section: 'B', formula: 'rule72',
+      { id: 'w1-g-72', topic: 'solve', level: 1, section: 'B', formula: 'rule72', formulas: ['rule72'],
         make(rng) {
           const r = rng.pick([2, 3, 4, 4.5, 6, 8, 9, 12]);
           const a = 72 / r;
@@ -756,7 +833,7 @@
           };
         } },
       /* ---------- solving for r ---------- */
-      { id: 'w1-g-r', topic: 'solve', level: 2, section: 'B', formula: 'r-solve', src: 'Lecture W1 Example 5',
+      { id: 'w1-g-r', topic: 'solve', level: 2, section: 'B', formula: 'r-solve', formulas: ['fv-lump', 'r-solve'], src: 'Lecture W1 Example 5',
         make(rng) {
           const pv = rng.step(1000, 20000, 500), n = rng.int(3, 25), r = rng.step(0.03, 0.16, 0.0025);
           const fv = Math.round(FIN.fv(pv, r, n) / 100) * 100;
@@ -777,7 +854,7 @@
             why: 'Divide, take the n-th root, subtract 1.',
           };
         } },
-      { id: 'w1-g-r-date', topic: 'solve', level: 2, section: 'B', formula: 'r-solve', src: 'Tutorial W1 Q3',
+      { id: 'w1-g-r-date', topic: 'solve', level: 2, section: 'B', formula: 'r-solve', formulas: ['fv-lump', 'r-solve'], src: 'Tutorial W1 Q3',
         make(rng) {
           const y0 = rng.int(2026, 2030), gap = rng.int(4, 8), rec = 1;
           const n = gap - rec;
@@ -800,7 +877,7 @@
           };
         } },
       /* ---------- compounding frequency, APR and EAR ---------- */
-      { id: 'w1-g-fvm', topic: 'ear', level: 2, section: 'B', formula: 'fv-m', src: 'Lecture W1 Example 6',
+      { id: 'w1-g-fvm', topic: 'ear', level: 2, section: 'B', formula: 'fv-m', formulas: ['fv-lump', 'fv-m'], src: 'Lecture W1 Example 6',
         make(rng) {
           const f = rng.pick(FREQ.slice(0, 3));
           const pv = rng.step(500, 50000, 500), apr = rng.step(0.03, 0.12, 0.005), yrs = rng.int(2, 15);
@@ -820,7 +897,7 @@
             why: `Rate per period = APR ÷ ${f.m}; number of periods = ${f.m} × ${yrs}.`,
           };
         } },
-      { id: 'w1-g-ear', topic: 'ear', level: 1, section: 'B', formula: 'ear', src: 'Tutorial W1 Q4',
+      { id: 'w1-g-ear', topic: 'ear', level: 1, section: 'B', formula: 'ear', formulas: ['ear'], src: 'Tutorial W1 Q4',
         make(rng) {
           const f = rng.pick(FREQ), apr = rng.step(0.03, 0.20, 0.0025);
           const ear = FIN.ear(apr, f.m);
@@ -839,7 +916,7 @@
             why: 'EAR is the true yearly rate once compounding is counted.',
           };
         } },
-      { id: 'w1-g-card', topic: 'ear', level: 1, section: 'B', formula: 'ear',
+      { id: 'w1-g-card', topic: 'ear', level: 1, section: 'B', formula: 'ear', formulas: ['ear'],
         make(rng) {
           const monthly = rng.step(0.008, 0.025, 0.001);
           const askEar = rng.chance(0.5);
@@ -856,7 +933,7 @@
             why: 'APR = rate per period × periods per year. EAR compounds it.',
           };
         } },
-      { id: 'w1-g-compare', topic: 'ear', level: 2, section: 'B', formula: 'ear', src: 'MST 2026 Q11',
+      { id: 'w1-g-compare', topic: 'ear', level: 2, section: 'B', formula: 'ear', formulas: ['ear'], src: 'MST 2026 Q11',
         make(rng) {
           for (let k = 0; k < 50; k++) {
             const fa = rng.pick(FREQ), fb = rng.pick(FREQ.concat([{ m: 1, word: 'annually' }]));
@@ -880,7 +957,7 @@
           return null;
         } },
       /* ---------- continuous ---------- */
-      { id: 'w1-g-cont', topic: 'cont', level: 2, section: 'B', formula: 'cont', src: 'Lecture W1 Examples 8–9',
+      { id: 'w1-g-cont', topic: 'cont', level: 2, section: 'B', formula: 'cont', formulas: ['cont'], src: 'Lecture W1 Examples 8–9',
         make(rng) {
           const c = rng.step(1000, 20000, 500), r = rng.step(0.03, 0.12, 0.005), n = rng.int(2, 15);
           if (rng.chance(0.5)) {
@@ -906,7 +983,7 @@
             why: 'Continuous discounting divides by e^(rn).',
           };
         } },
-      { id: 'w1-g-earcont', topic: 'cont', level: 2, section: 'B', formula: 'cont',
+      { id: 'w1-g-earcont', topic: 'cont', level: 2, section: 'B', formula: 'cont', formulas: ['cont'],
         make(rng) {
           const apr = rng.step(0.03, 0.15, 0.005);
           const ear = Math.exp(apr) - 1;
@@ -921,7 +998,7 @@
           };
         } },
       /* ---------- boss-level multi-step ---------- */
-      { id: 'w1-g-equiv', topic: 'ear', level: 3, section: 'B', formula: 'ear', boss: true,
+      { id: 'w1-g-equiv', topic: 'ear', level: 3, section: 'B', formula: 'ear', formulas: ['ear', 'apr-from-ear'], boss: true,
         make(rng) {
           const pair = rng.pick([[2, 4], [2, 12], [4, 12], [12, 4], [12, 2], [4, 2]]);
           const f1 = FREQ.find((f) => f.m === pair[0]), f2 = FREQ.find((f) => f.m === pair[1]);
@@ -938,7 +1015,7 @@
             why: 'Go through the EAR: it is the common currency of interest rates.',
           };
         } },
-      { id: 'w1-g-t6', topic: 'ear', level: 3, section: 'B', formula: 'ear', boss: true, src: 'Tutorial W1 Q6',
+      { id: 'w1-g-t6', topic: 'ear', level: 3, section: 'B', formula: 'ear', formulas: ['ear', 'apr-from-ear', 'fv-lump'], boss: true, src: 'Tutorial W1 Q6',
         make(rng) {
           const p = rng.step(2000, 20000, 1000), apr = rng.step(0.02, 0.08, 0.005);
           const ear = FIN.ear(apr, 2);

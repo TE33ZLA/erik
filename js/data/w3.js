@@ -853,7 +853,7 @@
         q: R`A zero-coupon bond always sells **below** its face value when its yield is above 0%.`,
         answer: true,
         why: R`It pays nothing until maturity, so \(P = \frac{FV}{(1+i)^{n}}\), which is less than \(FV\) whenever \(i > 0\). It is a pure **discount** bond.` },
-      { id: 'w3-q08', topic: 'zero', kind: 'num', level: 1, section: 'B', src: 'Lecture W3 Example 1', formula: 'zero-bond',
+      { id: 'w3-q08', topic: 'zero', kind: 'num', level: 1, section: 'B', src: 'Lecture W3 Example 1', formula: 'zero-bond', formulas: ['zero-bond'],
         q: R`Find the value of a 30-year zero-coupon bond with a $1,000 par value and a required return of 6% p.a.`,
         answer: FIN.zeroPrice(1000, 0.06, 30), unit: '$', dp: 2,
         mistakes: [
@@ -879,7 +879,7 @@
         q: R`The bond formula \(P = \frac{C}{i}\left(1 - \frac{1}{(1+i)^{n}}\right) + \frac{FV}{(1+i)^{n}}\) has two parts. What are they?`,
         choices: ['The PV of the coupons (an annuity) plus the PV of the face value (a lump sum)', 'The PV of the coupons plus the PV of the dividends', 'The face value plus all the coupons, not discounted', 'The PV of a perpetuity plus the face value'], answer: 0,
         why: R`Coupons are equal payments for \(n\) periods: an ordinary annuity. The face value is one payment at maturity: a lump sum.` },
-      { id: 'w3-q12', topic: 'bondprice', kind: 'num', level: 1, section: 'B', src: 'Lecture W3 Examples 2–4', formula: 'bond-price',
+      { id: 'w3-q12', topic: 'bondprice', kind: 'num', level: 1, section: 'B', src: 'Lecture W3 Examples 2–4', formula: 'bond-price', formulas: ['bond-price'],
         q: R`A bond has a face value of $1,000, a 5% coupon rate (paid annually) and 10 years to maturity. What is its price if the discount rate is 6%?`,
         answer: EX3.p, unit: '$', dp: 2,
         mistakes: [
@@ -895,7 +895,7 @@
         calc: `10 [N] · 6 [I/YR] · 50 [PMT] · 1000 [FV] · [PV] → −${T.money(EX3.p)}`,
         ti: [TI.solver({ N: 10, I: 6, Pmt: 50, FV: 1000, PpY: 1, CpY: 1 }, 'PV', { note: R`The coupon goes in \(Pmt\) and the face value in \(FV\). The minus sign means it is the price you pay: \(${L.money(EX3.p)}\).` })],
         why: 'Price = PV of the coupons + PV of the face value, both at the market rate.' },
-      { id: 'w3-q13', topic: 'bondprice', kind: 'num', level: 1, section: 'B', src: 'Tutorial W3 Q1', formula: 'bond-price',
+      { id: 'w3-q13', topic: 'bondprice', kind: 'num', level: 1, section: 'B', src: 'Tutorial W3 Q1', formula: 'bond-price', formulas: ['bond-price'],
         q: R`Lahey Industries has a $1,000 par value bond with an 8% coupon, paid annually, and 12 years to maturity. What is the bond worth if its yield to maturity is 7%?`,
         answer: FIN.bondPrice(1000, 0.08, 0.07, 12), unit: '$', dp: 2,
         mistakes: [
@@ -910,7 +910,7 @@
         calc: `12 [N] · 7 [I/YR] · 80 [PMT] · 1000 [FV] · [PV] → −${T.money(FIN.bondPrice(1000, 0.08, 0.07, 12))}`,
         ti: [TI.solver({ N: 12, I: 7, Pmt: 80, FV: 1000, PpY: 1, CpY: 1 }, 'PV', { note: R`The minus sign means it is the price you pay: \(${L.money(FIN.bondPrice(1000, 0.08, 0.07, 12))}\).` })],
         why: 'The 8% coupon is above the 7% yield, so the bond sells at a premium.' },
-      { id: 'w3-q14', topic: 'bondprice', kind: 'num', level: 2, section: 'B', src: 'Mock MST Q29', formula: 'bond-price',
+      { id: 'w3-q14', topic: 'bondprice', kind: 'num', level: 2, section: 'B', src: 'Mock MST Q29', formula: 'bond-price', formulas: ['bond-price'],
         q: R`A bond has a par value of $1,000, a 10% annual coupon and 8 years left to maturity. What would its price be at a theoretical discount rate of **0%**?`,
         answer: 1800, unit: '$', dp: 2,
         mistakes: [
@@ -930,18 +930,18 @@
         q: R`A bond pays its coupons **semi-annually**. How do you adjust the bond formula?`,
         choices: ['Halve the coupon, halve the yield and double the number of periods', 'Halve the coupon only', 'Double the coupon and halve the number of periods', 'Nothing changes: use the annual values'], answer: 0,
         why: R`Work in half-years: coupon per period \(= \frac{\text{annual coupon}}{2}\), yield per period \(= \frac{y}{2}\), and \(n = \text{years} \times 2\).` },
-      { id: 'w3-q16', topic: 'semi', kind: 'mcq', level: 2, section: 'A', src: 'Tutorial W3 concept check Q2',
+      { id: 'w3-q16', topic: 'semi', kind: 'mcq', level: 2, section: 'A', formulas: ['bond-price'], src: 'Tutorial W3 concept check Q2',
         q: R`The Chadstone Company has a $1,000 bond with 15 years to maturity. Its coupon rate is 8%, paid semi-annually. The YTM is 7.5%. How will this bond trade?`,
         choices: ['At a premium', 'At par', 'At a discount', 'You cannot tell without calculating the price'], answer: 0,
         why: R`The coupon rate (8%) is above the YTM (7.5%), so the price is above face value. (It works out at ${T.money(FIN.bondPrice(1000, 0.08, 0.075, 15, 2))}.)`,
         ti: [TI.solver({ N: 30, I: 7.5, Pmt: 40, FV: 1000, PpY: 2, CpY: 2 }, 'PV', { note: 'The price is above the $1,000 face value: a premium.' })] },
-      { id: 'w3-q17', topic: 'semi', kind: 'mcq', level: 2, section: 'A', src: 'Mock MST Q30 feedback', formula: 'eay',
+      { id: 'w3-q17', topic: 'semi', kind: 'mcq', level: 2, section: 'A', src: 'Mock MST Q30 feedback', formula: 'eay', formulas: ['ear', 'eay'],
         q: R`You find that a semi-annual bond’s yield is 6.0245% **per half-year**. What is its effective annual yield?`,
         choices: [R`\((1.060245)^{2} - 1 = ${L.pct(1.060245 ** 2 - 1)}\)`, R`\(\left(1 + \frac{0.060245}{2}\right)^{2} - 1 = ${L.pct((1 + 0.060245 / 2) ** 2 - 1)}\)`, R`\(2 \times 6.0245\% = ${L.pct(2 * 0.060245)}\)`, R`\(6.02\%\)`], answer: 0,
         wrong: { 1: 'That halves a yield that is already per half-year.', 2: 'That is the nominal annual yield (APR), not the effective yield.' },
         why: R`6.0245% is **already** the half-year yield. Do not halve it again. Compound it for two half-years: \(EAY = (1 + 0.060245)^{2} - 1\).`,
         ti: [TI.line('(1+0.060245)^2-1', { pct: true, note: R`Or: the nominal yield is \(2 \times 6.0245 = 12.049\%\), and \(\text{eff}(12.049, 2)\) gives the same EAY.` })] },
-      { id: 'w3-q18', topic: 'semi', kind: 'num', level: 2, section: 'B', src: 'Lecture W3 Example 5', formula: 'bond-price',
+      { id: 'w3-q18', topic: 'semi', kind: 'num', level: 2, section: 'B', src: 'Lecture W3 Example 5', formula: 'bond-price', formulas: ['bond-price'],
         q: R`A bond has a face value of $1,000, a 6% coupon rate and 10 years to maturity. Coupons are paid **semi-annually**. What is its price if the discount rate is 10% p.a.?`,
         answer: EX5.p, unit: '$', dp: 2,
         mistakes: [
@@ -956,7 +956,7 @@
         calc: `20 [N] · 5 [I/YR] · 30 [PMT] · 1000 [FV] · [PV] → −${T.money(EX5.p)}`,
         ti: [TI.solver({ N: 20, I: 10, Pmt: 30, FV: 1000, PpY: 2, CpY: 2 }, 'PV', { note: R`\(N = 10 \times 2 = 20\), \(Pmt = 30\) (half of the $60 coupon), \(I(\%) = 10\) (the yearly yield) and \(PpY = CpY = 2\). The minus sign means it is the price you pay.` })],
         why: 'Semi-annual: halve the coupon, halve the rate, double the periods.' },
-      { id: 'w3-q19', topic: 'semi', kind: 'num', level: 2, section: 'B', src: 'Tutorial W3 Q2', formula: 'bond-price',
+      { id: 'w3-q19', topic: 'semi', kind: 'num', level: 2, section: 'B', src: 'Tutorial W3 Q2', formula: 'bond-price', formulas: ['bond-price'],
         q: R`Tohey Industries has a $1,000 par value bond with an 8% coupon, paid **semi-annually**, and 12 years to maturity. What is it worth if the required return is 10% p.a.?`,
         answer: FIN.bondPrice(1000, 0.08, 0.10, 12, 2), unit: '$', dp: 2,
         mistakes: [
@@ -971,7 +971,7 @@
         calc: `24 [N] · 5 [I/YR] · 40 [PMT] · 1000 [FV] · [PV] → −${T.money(FIN.bondPrice(1000, 0.08, 0.10, 12, 2))}`,
         ti: [TI.solver({ N: 24, I: 10, Pmt: 40, FV: 1000, PpY: 2, CpY: 2 }, 'PV', { note: R`\(N = 24\) half-years, \(Pmt = 40\), \(I(\%) = 10\), \(PpY = CpY = 2\). The minus sign means it is the price you pay.` })],
         why: 'The 8% coupon is below the 10% yield, so the bond sells at a discount.' },
-      { id: 'w3-q20', topic: 'semi', kind: 'num', level: 2, section: 'B', src: 'MST 2026 Q16', formula: 'bond-price',
+      { id: 'w3-q20', topic: 'semi', kind: 'num', level: 2, section: 'B', src: 'MST 2026 Q16', formula: 'bond-price', formulas: ['bond-price'],
         q: R`A $1,000 bond has a 9% coupon rate, paid semi-annually, and 10 years to maturity. Its YTM is 7% p.a. What is its price?`,
         answer: FIN.bondPrice(1000, 0.09, 0.07, 10, 2), unit: '$', dp: 2,
         mistakes: [
@@ -986,7 +986,7 @@
         calc: `20 [N] · 3.5 [I/YR] · 45 [PMT] · 1000 [FV] · [PV] → −${T.money(FIN.bondPrice(1000, 0.09, 0.07, 10, 2))}`,
         ti: [TI.solver({ N: 20, I: 7, Pmt: 45, FV: 1000, PpY: 2, CpY: 2 }, 'PV', { note: R`\(N = 20\) half-years, \(Pmt = 45\), \(I(\%) = 7\), \(PpY = CpY = 2\). The minus sign means it is the price you pay.` })],
         why: 'The 9% coupon is above the 7% yield, so the bond sells at a premium.' },
-      { id: 'w3-q21', topic: 'semi', kind: 'num', level: 1, section: 'B', src: 'Lecture W3 EAY example', formula: 'eay',
+      { id: 'w3-q21', topic: 'semi', kind: 'num', level: 1, section: 'B', src: 'Lecture W3 EAY example', formula: 'eay', formulas: ['ear', 'eay'],
         q: R`A semi-annual bond has a yield to maturity of 10% p.a. (compounded semi-annually). What is its **effective annual yield**?`,
         answer: P(1.05 ** 2 - 1), unit: '%', dp: 2,
         mistakes: [
@@ -998,7 +998,7 @@
         calc: '10 [NOM%] · 2 [P/YR] · [EFF%] → 10.25 (then set P/YR back to 1)',
         ti: [TI.cmd('eff', [10, 2])],
         why: 'Interest earned in the first half-year also earns interest in the second.' },
-      { id: 'w3-q22', topic: 'semi', kind: 'mcq', level: 2, section: 'A', src: 'Tutorial W3 Q6(a)', formula: 'eay',
+      { id: 'w3-q22', topic: 'semi', kind: 'mcq', level: 2, section: 'A', src: 'Tutorial W3 Q6(a)', formula: 'eay', formulas: ['ear', 'eay'],
         q: R`A bond was sold at par ($1,000) with a 12% coupon, paid semi-annually. What was its yield to maturity when it was sold?`,
         choices: [R`12% p.a. nominal, which is an effective \(1.06^{2} - 1 = 12.36\%\)`, R`6% p.a.`, R`24% p.a.`, R`12.36% nominal, which is 12% effective`], answer: 0,
         why: R`At par, the YTM equals the coupon rate: 6% per half-year, or 12% p.a. nominal. The effective annual yield is \(1.06^{2} - 1 = 12.36\%\).`,
@@ -1017,7 +1017,7 @@
         q: R`A bond trades at a **discount** to its face value. What can you say about its YTM?`,
         choices: ['It is above the coupon rate', 'It is below the coupon rate', 'It equals the coupon rate', 'It must be zero'], answer: 0,
         why: R`The market wants more than the coupons alone provide. The extra return comes from the price rising to face value by maturity, so YTM \(>\) coupon rate.` },
-      { id: 'w3-q26', topic: 'yield', kind: 'num', level: 2, section: 'B', src: 'Tutorial W3 Q6(c)', formula: 'eay',
+      { id: 'w3-q26', topic: 'yield', kind: 'num', level: 2, section: 'B', src: 'Tutorial W3 Q6(c)', formula: 'eay', formulas: ['bond-price', 'ear', 'eay'],
         q: R`A $1,000 bond has 19 half-years left. It pays a $60 coupon every six months and is expected to sell for $896.64. What is its **effective annual** yield to maturity?`,
         answer: P((1 + T6C) ** 2 - 1), unit: '%', dp: 2,
         mistakes: [
@@ -1035,7 +1035,7 @@
           TI.line('eff(ans,2)', { note: 'Turn the nominal yield into the effective annual yield.' }),
         ],
         why: R`The half-year yield is 7%. Compound it for two half-years: \((1 + 0.07)^{2} - 1\).` },
-      { id: 'w3-q27', topic: 'yield', kind: 'num', level: 2, section: 'B', src: 'Mock MST Q30', formula: 'eay',
+      { id: 'w3-q27', topic: 'yield', kind: 'num', level: 2, section: 'B', src: 'Mock MST Q30', formula: 'eay', formulas: ['bond-price', 'ear', 'eay'],
         q: R`A $1,000 bond has 8 years to maturity and a 10% coupon rate, paid **semi-annually**. It is priced at $896.64. What is its **effective** yield to maturity?`,
         answer: P((1 + M30) ** 2 - 1), unit: '%', dp: 2,
         mistakes: [
@@ -1053,7 +1053,7 @@
           TI.line('eff(ans,2)', { note: 'The effective annual yield.' }),
         ],
         why: 'Solve for the half-year yield, then compound it for two half-years.' },
-      { id: 'w3-q28', topic: 'yield', kind: 'num', level: 3, section: 'B', src: 'Mock MST Q01', formula: 'eay',
+      { id: 'w3-q28', topic: 'yield', kind: 'num', level: 3, section: 'B', src: 'Mock MST Q01', formula: 'eay', formulas: ['bond-price', 'ear', 'eay'],
         q: R`Ten years ago, {NAME} paid $980 for a 15-year, $1,000 bond with a 10% coupon paid semi-annually. Today the bond is priced at $1,054.36. If {NAME} sells it today, what is the **realised yield** (effective annual)?`,
         answer: P((1 + M01) ** 2 - 1), unit: '%', dp: 2,
         mistakes: [
@@ -1105,7 +1105,7 @@
         choices: ['The risk that bond prices change because market interest rates change unexpectedly', 'The risk that the issuer misses a coupon payment', 'The risk that inflation rises', 'The risk that the issuer changes the coupon rate'], answer: 0,
         wrong: { 1: 'That is default (credit) risk.' },
         why: R`It comes from unexpected rate changes. It is greater for longer maturities and lower coupons.` },
-      { id: 'w3-q36', topic: 'raterisk', kind: 'num', level: 2, section: 'B', src: 'Mock MST Q02', formula: 'bond-price',
+      { id: 'w3-q36', topic: 'raterisk', kind: 'num', level: 2, section: 'B', src: 'Mock MST Q02', formula: 'bond-price', formulas: ['bond-price'],
         q: R`A 10-year, $1,000 bond pays a 5% coupon semi-annually. Its YTM today is 4% p.a. In 5 years its YTM is expected to rise to 6% p.a. What will the bond be worth at year 5?`,
         answer: FIN.bondPrice(1000, 0.05, 0.06, 5, 2), unit: '$', dp: 2,
         mistakes: [
@@ -1121,7 +1121,7 @@
         calc: `10 [N] · 3 [I/YR] · 25 [PMT] · 1000 [FV] · [PV] → −${T.money(FIN.bondPrice(1000, 0.05, 0.06, 5, 2))}`,
         ti: [TI.solver({ N: 10, I: 6, Pmt: 25, FV: 1000, PpY: 2, CpY: 2 }, 'PV', { note: R`At year 5: \(N = 10\) half-years left and the new yield, \(I(\%) = 6\). The minus sign means it is the price you pay.` })],
         why: 'Price it with the time left and the new yield.' },
-      { id: 'w3-q37', topic: 'raterisk', kind: 'num', level: 2, section: 'B', src: 'Tutorial W3 Q6(b)', formula: 'bond-price',
+      { id: 'w3-q37', topic: 'raterisk', kind: 'num', level: 2, section: 'B', src: 'Tutorial W3 Q6(b)', formula: 'bond-price', formulas: ['bond-price'],
         q: R`A 30-year, $1,000 bond with a 12% coupon (paid semi-annually) was issued at par on 1 January 1992. On 1 January 1997, market rates have fallen to 10% p.a. What is the bond’s price then?`,
         answer: FIN.bondPrice(1000, 0.12, 0.10, 25, 2), unit: '$', dp: 2,
         mistakes: [
@@ -1143,7 +1143,7 @@
         q: R`A **preference share** pays a fixed dividend every year with no end date. Which formula values it?`,
         choices: [R`\(P_0 = \frac{D}{r}\), a perpetuity`, R`\(P_0 = \frac{D_1}{r - g}\) with \(g > 0\)`, 'The bond formula with a face value', R`\(P_0 = D \times r\)`], answer: 0,
         why: R`A fixed dividend forever is a level perpetuity. It is the zero-growth case of the dividend discount model.` },
-      { id: 'w3-q39', topic: 'pref', kind: 'num', level: 1, section: 'B', src: 'Tutorial W3 Q4', formula: 'share-zero',
+      { id: 'w3-q39', topic: 'pref', kind: 'num', level: 1, section: 'B', src: 'Tutorial W3 Q4', formula: 'share-zero', formulas: ['share-zero'],
         q: R`Purcell Corporation’s preference share pays an annual dividend of $3. The required return is 8%. What is the share worth today?`,
         answer: 3 / 0.08, unit: '$', dp: 2,
         mistakes: [
@@ -1191,7 +1191,7 @@
         q: R`The constant-growth model \(P_0 = \frac{D_1}{r_E - g}\) still works when \(g\) is greater than \(r_E\).`,
         answer: false,
         why: R`It needs \(r_E > g\). Otherwise the denominator is zero or negative and the price makes no sense. Growth above \(r_E\) can only last for a limited time.` },
-      { id: 'w3-q48', topic: 'ddm', kind: 'num', level: 1, section: 'B', src: 'Lecture W3 Example 7', formula: 'share-ddm',
+      { id: 'w3-q48', topic: 'ddm', kind: 'num', level: 1, section: 'B', src: 'Lecture W3 Example 7', formula: 'share-ddm', formulas: ['share-ddm'],
         q: R`Alpha, Inc. has **just paid** an annual dividend of 15 cents per share. Dividends are expected to grow at 5% a year, forever. The required return is 10%. What should you pay for the share?`,
         answer: FIN.ddmConst(0.15 * 1.05, 0.10, 0.05), unit: '$', dp: 2,
         mistakes: [
@@ -1206,7 +1206,7 @@
         ],
         ti: [TI.line('0.15*1.05/(0.10-0.05)', { note: R`\(D_1 = 0.15 \times 1.05\) goes on top.` })],
         why: R`Grow the dividend just paid by one year, then divide by \((r - g)\).` },
-      { id: 'w3-q49', topic: 'ddm', kind: 'num', level: 2, section: 'B', src: 'Mock MST Q17', formula: 'share-ddm',
+      { id: 'w3-q49', topic: 'ddm', kind: 'num', level: 2, section: 'B', src: 'Mock MST Q17', formula: 'share-ddm', formulas: ['share-ddm'],
         q: R`Trusty Gets’ Lucky Ltd has **just paid** a dividend of $2.00. Dividends will grow at 6% a year forever. The discount rate is 16%. What is the share’s expected price in **one year**?`,
         answer: FIN.ddmConst(2 * 1.06 ** 2, 0.16, 0.06), unit: '$', dp: 2, tol: 0.035, // also accept the mock solution's $22.50
         mistakes: [
@@ -1221,7 +1221,7 @@
         ],
         ti: [TI.line('2*1.06^2/(0.16-0.06)', { note: R`\(D_2 = 2 \times 1.06^{2}\) goes on top, because \(P_1\) values the dividends from year 2 on.` })],
         why: R`The price in one year values the dividends from year 2 onwards. (The mock solution rounds \(D_2\) to $2.25 and gets $22.50.)` },
-      { id: 'w3-q50', topic: 'ddm', kind: 'num', level: 2, section: 'B', src: 'Tutorial W3 Q5', formula: 'share-ddm',
+      { id: 'w3-q50', topic: 'ddm', kind: 'num', level: 2, section: 'B', src: 'Tutorial W3 Q5', formula: 'share-ddm', formulas: ['fv-lump', 'share-ddm'],
         q: R`Brig Company has **just paid** a dividend of $0.20. Dividends grow at 8% a year forever, and investors require 16%. Today’s price is $2.70. What will the share be worth in **five years**?`,
         answer: FIN.ddmConst(0.2 * 1.08 ** 6, 0.16, 0.08), unit: '$', dp: 2,
         mistakes: [
@@ -1253,7 +1253,7 @@
         q: R`A shareholder’s total return can be negative.`,
         answer: true,
         why: R`Total return \(= \frac{D_1 + P_1 - P_0}{P_0}\). If the price falls by more than the dividend, the return is negative.` },
-      { id: 'w3-q55', topic: 'returns', kind: 'num', level: 1, section: 'B', src: 'Tutorial W3 Q3', formula: 'total-return',
+      { id: 'w3-q55', topic: 'returns', kind: 'num', level: 1, section: 'B', src: 'Tutorial W3 Q3', formula: 'total-return', formulas: ['total-return', 'realised'],
         q: R`Tinto Metals trades at $30. It is expected to pay a $1.20 dividend in one year, and its price just after that dividend is expected to be $33. What is your **total return** if you buy today and sell in one year?`,
         answer: 14, unit: '%', dp: 2,
         mistakes: [
@@ -1268,7 +1268,7 @@
         ],
         ti: [TI.line('(1.20+33-30)/30', { pct: true, note: R`(Dividend \(+\) price rise) \(\div\) the price you pay. Multiply by 100 for %.` })],
         why: 'Total return = dividend yield + capital gains yield.' },
-      { id: 'w3-q56', topic: 'returns', kind: 'num', level: 1, section: 'B', src: 'Mock MST Q05', formula: 'total-return',
+      { id: 'w3-q56', topic: 'returns', kind: 'num', level: 1, section: 'B', src: 'Mock MST Q05', formula: 'total-return', formulas: ['total-return', 'realised'],
         q: R`A share is bought for $22.00 and sold one year later for $26.00, just after it pays a $1.50 dividend. What is the **capital gains yield**?`,
         answer: P(4 / 22), unit: '%', dp: 2,
         mistakes: [
@@ -1279,7 +1279,7 @@
         steps: [R`\[\text{Capital gains yield} = \frac{P_1 - P_0}{P_0} = \frac{26 - 22}{22} = ${L.pct(4 / 22)}\]`],
         ti: [TI.line('(26-22)/22', { pct: true, note: 'Multiply by 100 for %.' })],
         why: R`With constant growth this would also be the growth rate \(g\).` },
-      { id: 'w3-q57', topic: 'returns', kind: 'num', level: 2, section: 'B', src: 'Mock MST Q15', formula: 'total-return',
+      { id: 'w3-q57', topic: 'returns', kind: 'num', level: 2, section: 'B', src: 'Mock MST Q15', formula: 'total-return', formulas: ['share-general', 'total-return'],
         q: R`You would pay $30 today for a share you expect to sell for $32 in one year. You require a 12% return. What dividend must you expect at the end of year 1?`,
         answer: 30 * 1.12 - 32, unit: '$', dp: 2,
         mistakes: [
@@ -1313,7 +1313,7 @@
         q: R`Successful young firms often have high earnings growth at first. As they mature, growth slows to a stable rate.`,
         answer: true,
         why: R`That is why the variable-growth model has a high-growth phase followed by constant growth.` },
-      { id: 'w3-q62', topic: 'vargrowth', kind: 'num', level: 2, section: 'B', src: 'Lecture W3 Example 8', formula: 'share-general',
+      { id: 'w3-q62', topic: 'vargrowth', kind: 'num', level: 2, section: 'B', src: 'Lecture W3 Example 8', formula: 'share-general', formulas: ['share-general', 'share-ddm'],
         q: R`A company has **just paid** a dividend of 15 cents. Dividends will grow at 20% a year for 3 years, then at 5% a year forever. The required return is 10%. What is the share worth today?`,
         answer: EX8.price, unit: '$', dp: 2,
         mistakes: [
@@ -1332,7 +1332,7 @@
           TI.line(`npv(10,0,{${EX8.divs.map((d, k) => tn(d) + (k === 2 ? '+ans' : '')).join(',')}})`, { note: R`Steps 2 and 4 in one line: year 3 holds \(D_3 + P_3\).` }),
         ],
         why: 'Four steps: dividends, their PVs, the terminal price, then discount and add.' },
-      { id: 'w3-q63', topic: 'vargrowth', kind: 'num', level: 3, section: 'B', src: 'Tutorial W3 Q7', formula: 'share-general',
+      { id: 'w3-q63', topic: 'vargrowth', kind: 'num', level: 3, section: 'B', src: 'Tutorial W3 Q7', formula: 'share-general', formulas: ['share-general', 'share-ddm'],
         q: R`Networks Ltd has **just paid** a dividend of $0.115. Dividends will grow at 18% for the next two years, 15% in the third year, then 6% a year forever. The required return is 12%. What is the share worth today?`,
         answer: T7.price, unit: '$', dp: 2,
         mistakes: [
@@ -1350,7 +1350,7 @@
           TI.line(`npv(12,0,{${T7.divs.map((d, k) => tn(d) + (k === 2 ? '+ans' : '')).join(',')}})`, { note: R`Year 3 holds \(D_3 + P_3\).` }),
         ],
         why: 'Grow the dividend year by year with the right rate, then add the PV of the terminal price.' },
-      { id: 'w3-q64', topic: 'vargrowth', kind: 'num', level: 3, section: 'B', src: 'Tutorial W3 Q8(a)', formula: 'share-general',
+      { id: 'w3-q64', topic: 'vargrowth', kind: 'num', level: 3, section: 'B', src: 'Tutorial W3 Q8(a)', formula: 'share-general', formulas: ['share-general', 'share-ddm'],
         q: R`Buyonline Ltd has **just paid** $0.85 per share. Dividend growth will be 25% next year, then fall by 5 percentage points a year until it reaches 5%, where it stays forever. The market requires 16%. What is the share worth today?`,
         answer: T8.price, unit: '$', dp: 2,
         mistakes: [
@@ -1368,7 +1368,7 @@
           TI.line(`npv(16,0,{${T8.divs.map((d, k) => tn(d) + (k === 3 ? '+ans' : '')).join(',')}})`, { note: R`Year 4 holds \(D_4 + P_4\).` }),
         ],
         why: 'Constant growth starts in year 5, so the terminal price sits at year 4.' },
-      { id: 'w3-q65', topic: 'vargrowth', kind: 'num', level: 2, section: 'B', src: 'Tutorial W3 Q8(b)', formula: 'share-general',
+      { id: 'w3-q65', topic: 'vargrowth', kind: 'num', level: 2, section: 'B', src: 'Tutorial W3 Q8(b)', formula: 'share-general', formulas: ['share-general'],
         q: R`Buyonline Ltd is worth $12.20 per share when its $0.85 dividend has just been paid. What is it worth if that $0.85 dividend will instead be paid **tomorrow**?`,
         answer: r2(T8.price) + 0.85, unit: '$', dp: 2,
         mistakes: [
@@ -1382,7 +1382,7 @@
         ],
         ti: [TI.line('12.20+0.85')],
         why: 'A dividend about to be paid belongs to today’s owner, so it is part of today’s price.' },
-      { id: 'w3-q66', topic: 'vargrowth', kind: 'num', level: 2, section: 'B', src: 'MST 2026 Q17', formula: 'share-general',
+      { id: 'w3-q66', topic: 'vargrowth', kind: 'num', level: 2, section: 'B', src: 'MST 2026 Q17', formula: 'share-general', formulas: ['share-general', 'pv-annuity', 'fv-lump'],
         q: R`A share costs $25.56 today. It will pay a $5.00 dividend at the end of each of the next 6 years. Investors require 12% p.a. What price must they expect at the end of year 6, just after the last dividend?`,
         answer: M17.pn, unit: '$', dp: 2,
         mistakes: [
@@ -1400,7 +1400,7 @@
         why: 'Treat it like a bond: the dividends are the coupons and the future price is the face value.' },
 
       /* ----- more course examples ----- */
-      { id: 'w3-q69', topic: 'pref', kind: 'num', level: 1, section: 'B', src: 'Lecture W3 Example 6', formula: 'share-zero',
+      { id: 'w3-q69', topic: 'pref', kind: 'num', level: 1, section: 'B', src: 'Lecture W3 Example 6', formula: 'share-zero', formulas: ['share-zero'],
         q: R`Wave Industries is expected to pay a constant dividend of $3 per share a year, forever. The discount rate is 15%. What is the share worth?`,
         answer: FIN.ddmZero(3, 0.15), unit: '$', dp: 2,
         mistakes: [
@@ -1411,7 +1411,7 @@
         steps: [R`A constant dividend forever is a perpetuity: \[P_0 = \frac{D}{r_E} = \frac{3}{0.15} = \$20.00\]`],
         ti: [TI.line('3/0.15')],
         why: R`Zero growth: the share is a perpetuity, \(\frac{D}{r}\).` },
-      { id: 'w3-q70', topic: 'ddm', kind: 'num', level: 1, section: 'B', src: 'Mock MST Q14', formula: 'share-ddm',
+      { id: 'w3-q70', topic: 'ddm', kind: 'num', level: 1, section: 'B', src: 'Mock MST Q14', formula: 'share-ddm', formulas: ['share-ddm'],
         q: R`Spacefood Products will pay a dividend of $2.40 per share **at the end of this year**. The dividend is expected to grow by 3% a year, forever. The equity cost of capital is 10%. What is one share worth today?`,
         answer: FIN.ddmConst(2.4, 0.10, 0.03), unit: '$', dp: 2,
         mistakes: [
@@ -1422,7 +1422,7 @@
         steps: [R`\[P_0 = \frac{D_1}{r_E - g} = \frac{2.40}{0.10 - 0.03} = ${L.money(FIN.ddmConst(2.4, 0.10, 0.03))}\]`],
         ti: [TI.line('2.40/(0.10-0.03)')],
         why: R`The dividend at the end of this year is \(D_1\), so it goes straight on top.` },
-      { id: 'w3-q71', topic: 'ddm', kind: 'num', level: 1, section: 'B', src: 'Mock MST Q16', formula: 'share-ddm',
+      { id: 'w3-q71', topic: 'ddm', kind: 'num', level: 1, section: 'B', src: 'Mock MST Q16', formula: 'share-ddm', formulas: ['share-ddm'],
         q: R`Trusty Gets’ Lucky Ltd has **just paid** a dividend of $2.00 per share. It plans to increase dividends by 6% a year, indefinitely. The discount rate is 16%. What is the share price today?`,
         answer: FIN.ddmConst(2 * 1.06, 0.16, 0.06), unit: '$', dp: 2,
         mistakes: [
@@ -1439,7 +1439,7 @@
         why: R`Just paid means \(D_0\). Grow it one year to get \(D_1\), then use the constant-growth model.` },
 
       /* ----- boss-level static ----- */
-      { id: 'w3-q67', topic: 'vargrowth', kind: 'num', level: 3, section: 'B', src: 'MST 2026 Q18', formula: 'pv-grow-annuity', boss: true,
+      { id: 'w3-q67', topic: 'vargrowth', kind: 'num', level: 3, section: 'B', src: 'MST 2026 Q18', formula: 'pv-grow-annuity', formulas: ['pv-grow-annuity', 'share-ddm', 'pv-lump'], boss: true,
         q: R`A company has **just paid** a $2.00 dividend. Dividends will grow at 6.5% a year for the next 6 years, then at 3.5% a year forever. The required return is 9%. What is the share worth today?`,
         answer: Q18.p0, unit: '$', dp: 2,
         mistakes: [
@@ -1457,7 +1457,7 @@
           TI.line('2.13/(0.09-0.065)*(1-(1.065/1.09)^6)+ans/1.09^6', { note: R`The growing annuity (years 1 to 6) plus \(P_6\) discounted 6 years.` }),
         ],
         why: 'Two growth phases: a growing annuity for 6 years, then a growing perpetuity valued at year 6.' },
-      { id: 'w3-q68', topic: 'bondprice', kind: 'num', level: 3, section: 'B', src: 'Mock MST Q12', formula: 'bond-price', boss: true,
+      { id: 'w3-q68', topic: 'bondprice', kind: 'num', level: 3, section: 'B', src: 'Mock MST Q12', formula: 'bond-price', formulas: ['pv-annuity', 'deferred', 'pv-lump'], boss: true,
         q: R`PDI Ltd’s bond has 8 years left and a 10% coupon, paid semi-annually. After a restructure, it pays **no coupons for the next 5 years**. Normal coupons then resume. At maturity it pays the $1,000 face value **plus** all the skipped coupons. The required return is 15% p.a. What is the bond worth?`,
         tl: { n: 16, at: { 1: '$0', 10: '$0', 11: '$50', 15: '$50', 16: '$1,550' }, unit: 'Half-year', hi: [16] },
         answer: M12.p, unit: '$', dp: 2,
@@ -1478,7 +1478,7 @@
 
     generators: [
       /* ---------- bond basics ---------- */
-      { id: 'w3-g-cpn', topic: 'bondbasics', level: 1, section: 'B', formula: 'bond-price',
+      { id: 'w3-g-cpn', topic: 'bondbasics', level: 1, section: 'B', formula: 'bond-price', formulas: ['bond-price'],
         make(rng) {
           const face = rng.pick([1000, 1000, 5000, 10000, 100000]), c = rng.step(0.02, 0.12, 0.0025);
           const f = rng.pick([{ m: 1, w: 'annually' }, { m: 2, w: 'semi-annually' }, { m: 4, w: 'quarterly' }]);
@@ -1503,7 +1503,7 @@
         } },
 
       /* ---------- zero-coupon ---------- */
-      { id: 'w3-g-zero', topic: 'zero', level: 1, section: 'B', formula: 'zero-bond', src: 'Lecture W3 Example 1',
+      { id: 'w3-g-zero', topic: 'zero', level: 1, section: 'B', formula: 'zero-bond', formulas: ['zero-bond'], src: 'Lecture W3 Example 1',
         make(rng) {
           const face = rng.pick([1000, 1000, 1000, 5000, 10000]), y = rng.step(0.02, 0.10, 0.0025), n = rng.int(2, 30);
           const semi = rng.chance(0.3), m = semi ? 2 : 1;
@@ -1533,7 +1533,7 @@
         } },
 
       /* ---------- coupon bonds ---------- */
-      { id: 'w3-g-annual', topic: 'bondprice', level: 1, section: 'B', formula: 'bond-price', src: 'Lecture W3 Examples 2–4; Tutorial W3 Q1',
+      { id: 'w3-g-annual', topic: 'bondprice', level: 1, section: 'B', formula: 'bond-price', formulas: ['bond-price'], src: 'Lecture W3 Examples 2–4; Tutorial W3 Q1',
         make(rng) {
           const co = rng.company();
           const face = 1000, c = rng.step(0.02, 0.12, 0.005), n = rng.int(3, 30);
@@ -1586,7 +1586,7 @@
             ti: [TI.solver({ N: yrs * (semi ? 2 : 1), I: P(y), Pmt: (1000 * c) / (semi ? 2 : 1), FV: 1000, PpY: semi ? 2 : 1, CpY: semi ? 2 : 1 }, 'PV', { note: 'Compare the price (ignore the minus sign) with the $1,000 face value.' })],
           };
         } },
-      { id: 'w3-g-skip', topic: 'bondprice', level: 3, section: 'B', formula: 'bond-price', boss: true, src: 'Mock MST Q12',
+      { id: 'w3-g-skip', topic: 'bondprice', level: 3, section: 'B', formula: 'bond-price', formulas: ['pv-annuity', 'deferred', 'pv-lump'], boss: true, src: 'Mock MST Q12',
         make(rng) {
           const N = rng.int(6, 10), k = rng.int(2, N - 2), c = rng.step(0.06, 0.12, 0.01), y = rng.step(0.08, 0.16, 0.01);
           const cp = (1000 * c) / 2, i = y / 2, n = 2 * N, s = 2 * k;
@@ -1622,7 +1622,7 @@
         } },
 
       /* ---------- semi-annual and EAY ---------- */
-      { id: 'w3-g-semi', topic: 'semi', level: 2, section: 'B', formula: 'bond-price', src: 'Lecture W3 Example 5; Tutorial W3 Q2; MST 2026 Q16',
+      { id: 'w3-g-semi', topic: 'semi', level: 2, section: 'B', formula: 'bond-price', formulas: ['bond-price'], src: 'Lecture W3 Example 5; Tutorial W3 Q2; MST 2026 Q16',
         make(rng) {
           const face = rng.pick([1000, 1000, 1000, 10000, 30000]), c = rng.step(0.03, 0.12, 0.005), yrs = rng.int(3, 25);
           const y = cl(Math.max(0.01, c + rng.pick([-0.03, -0.02, -0.015, -0.01, 0.01, 0.015, 0.02, 0.03, 0.04])));
@@ -1648,7 +1648,7 @@
             why: 'Semi-annual coupons: halve the coupon, halve the yield, double the periods.',
           };
         } },
-      { id: 'w3-g-eay', topic: 'semi', level: 1, section: 'B', formula: 'eay', src: 'Lecture W3 EAY example; Mock MST Q01 and Q30',
+      { id: 'w3-g-eay', topic: 'semi', level: 1, section: 'B', formula: 'eay', formulas: ['ear', 'eay'], src: 'Lecture W3 EAY example; Mock MST Q01 and Q30',
         make(rng) {
           if (rng.chance(0.5)) {
             const y = rng.step(0.02, 0.16, 0.0025), eay = Math.pow(1 + y / 2, 2) - 1;
@@ -1684,7 +1684,7 @@
         } },
 
       /* ---------- yields ---------- */
-      { id: 'w3-g-ytm', topic: 'yield', level: 2, section: 'B', formula: 'bond-price', src: 'Lecture W3 bond yields',
+      { id: 'w3-g-ytm', topic: 'yield', level: 2, section: 'B', formula: 'bond-price', formulas: ['bond-price'], src: 'Lecture W3 bond yields',
         make(rng) {
           for (let k = 0; k < 30; k++) {
             const c = rng.step(0.03, 0.12, 0.005), n = rng.int(3, 20);
@@ -1717,7 +1717,7 @@
           }
           return null;
         } },
-      { id: 'w3-g-ytmsemi', topic: 'yield', level: 2, section: 'B', formula: 'eay', src: 'Tutorial W3 Q6(c); Mock MST Q30',
+      { id: 'w3-g-ytmsemi', topic: 'yield', level: 2, section: 'B', formula: 'eay', formulas: ['bond-price', 'ear', 'eay'], src: 'Tutorial W3 Q6(c); Mock MST Q30',
         make(rng) {
           for (let k = 0; k < 30; k++) {
             const c = rng.step(0.04, 0.14, 0.01), yrs = rng.int(3, 20) + (rng.chance(0.3) ? 0.5 : 0);
@@ -1752,7 +1752,7 @@
           }
           return null;
         } },
-      { id: 'w3-g-realised', topic: 'yield', level: 3, section: 'B', formula: 'eay', boss: true, src: 'Mock MST Q01',
+      { id: 'w3-g-realised', topic: 'yield', level: 3, section: 'B', formula: 'eay', formulas: ['bond-price', 'ear', 'eay'], boss: true, src: 'Mock MST Q01',
         make(rng) {
           for (let tries = 0; tries < 30; tries++) {
             const N = rng.pick([10, 12, 15, 20]), k = rng.int(3, N - 2), c = rng.step(0.04, 0.12, 0.01);
@@ -1790,7 +1790,7 @@
         } },
 
       /* ---------- interest-rate risk ---------- */
-      { id: 'w3-g-later', topic: 'raterisk', level: 2, section: 'B', formula: 'bond-price', src: 'Mock MST Q02; Tutorial W3 Q6(b)',
+      { id: 'w3-g-later', topic: 'raterisk', level: 2, section: 'B', formula: 'bond-price', formulas: ['bond-price'], src: 'Mock MST Q02; Tutorial W3 Q6(b)',
         make(rng) {
           const N = rng.int(8, 30), k = rng.int(2, N - 3), c = rng.step(0.03, 0.12, 0.005);
           const semi = rng.chance(0.6), m = semi ? 2 : 1;
@@ -1821,7 +1821,7 @@
             why: 'A future price uses the time left at that date and the yield at that date.',
           };
         } },
-      { id: 'w3-g-sens', topic: 'raterisk', level: 2, section: 'B', formula: 'bond-price', src: 'Lecture W3 interest rate risk; MST 2026 Q4',
+      { id: 'w3-g-sens', topic: 'raterisk', level: 2, section: 'B', formula: 'bond-price', formulas: ['bond-price'], src: 'Lecture W3 interest rate risk; MST 2026 Q4',
         make(rng) {
           for (let k = 0; k < 40; k++) {
             const byMat = rng.chance(0.5);
@@ -1853,7 +1853,7 @@
         } },
 
       /* ---------- preference shares ---------- */
-      { id: 'w3-g-pref', topic: 'pref', level: 1, section: 'B', formula: 'share-zero', src: 'Lecture W3 Example 6; Tutorial W3 Q4',
+      { id: 'w3-g-pref', topic: 'pref', level: 1, section: 'B', formula: 'share-zero', formulas: ['share-zero'], src: 'Lecture W3 Example 6; Tutorial W3 Q4',
         make(rng) {
           const co = rng.company();
           if (rng.chance(0.7)) {
@@ -1899,7 +1899,7 @@
         } },
 
       /* ---------- constant growth ---------- */
-      { id: 'w3-g-ddm', topic: 'ddm', level: 1, section: 'B', formula: 'share-ddm', src: 'Lecture W3 Example 7; Mock MST Q14 and Q16',
+      { id: 'w3-g-ddm', topic: 'ddm', level: 1, section: 'B', formula: 'share-ddm', formulas: ['share-ddm'], src: 'Lecture W3 Example 7; Mock MST Q14 and Q16',
         make(rng) {
           const co = rng.company();
           const g = rng.step(0.01, 0.07, 0.005), r = cl(g + rng.step(0.03, 0.10, 0.005));
@@ -1939,7 +1939,7 @@
             why: R`Constant growth forever: next dividend divided by \((r - g)\).`,
           };
         } },
-      { id: 'w3-g-ddmfut', topic: 'ddm', level: 2, section: 'B', formula: 'share-ddm', src: 'Tutorial W3 Q5; Mock MST Q17',
+      { id: 'w3-g-ddmfut', topic: 'ddm', level: 2, section: 'B', formula: 'share-ddm', formulas: ['share-ddm', 'fv-lump'], src: 'Tutorial W3 Q5; Mock MST Q17',
         make(rng) {
           const co = rng.company();
           const d0 = rng.step(0.10, 4.00, 0.05), g = rng.step(0.02, 0.08, 0.005), r = cl(g + rng.step(0.03, 0.10, 0.005)), k = rng.int(1, 10);
@@ -1964,7 +1964,7 @@
         } },
 
       /* ---------- returns ---------- */
-      { id: 'w3-g-req', topic: 'returns', level: 1, section: 'B', formula: 'total-return', src: 'Lecture W3 components of required return',
+      { id: 'w3-g-req', topic: 'returns', level: 1, section: 'B', formula: 'total-return', formulas: ['share-ddm', 'total-return'], src: 'Lecture W3 components of required return',
         make(rng) {
           const co = rng.company();
           const g = rng.step(0.01, 0.08, 0.005), justPaid = rng.chance(0.5), d = rng.step(0.20, 4.00, 0.05);
@@ -1990,7 +1990,7 @@
             why: 'Required return = dividend yield + capital gains yield (g).',
           };
         } },
-      { id: 'w3-g-yields', topic: 'returns', level: 1, section: 'B', formula: 'total-return', src: 'Tutorial W3 Q3; Mock MST Q05',
+      { id: 'w3-g-yields', topic: 'returns', level: 1, section: 'B', formula: 'total-return', formulas: ['total-return', 'realised'], src: 'Tutorial W3 Q3; Mock MST Q05',
         make(rng) {
           for (let k = 0; k < 40; k++) {
             const co = rng.company();
@@ -2023,7 +2023,7 @@
           }
           return null;
         } },
-      { id: 'w3-g-d1', topic: 'returns', level: 2, section: 'B', formula: 'total-return', src: 'Mock MST Q15',
+      { id: 'w3-g-d1', topic: 'returns', level: 2, section: 'B', formula: 'total-return', formulas: ['share-general', 'total-return'], src: 'Mock MST Q15',
         make(rng) {
           let p0, r, p1, d1;
           for (let k = 0; k < 20; k++) {
@@ -2052,7 +2052,7 @@
         } },
 
       /* ---------- variable growth ---------- */
-      { id: 'w3-g-var', topic: 'vargrowth', level: 2, section: 'B', formula: 'share-general', src: 'Lecture W3 Example 8; Tutorial W3 Q7',
+      { id: 'w3-g-var', topic: 'vargrowth', level: 2, section: 'B', formula: 'share-general', formulas: ['share-general', 'share-ddm'], src: 'Lecture W3 Example 8; Tutorial W3 Q7',
         make(rng) {
           const co = rng.company();
           const d0 = rng.step(0.10, 3.00, 0.05), T0 = rng.int(2, 4);
@@ -2088,7 +2088,7 @@
             why: 'Four steps: dividends, their PVs, the terminal price, then discount and add.',
           };
         } },
-      { id: 'w3-g-varstep', topic: 'vargrowth', level: 3, section: 'B', formula: 'share-general', boss: true, src: 'Tutorial W3 Q8',
+      { id: 'w3-g-varstep', topic: 'vargrowth', level: 3, section: 'B', formula: 'share-general', formulas: ['share-general', 'share-ddm'], boss: true, src: 'Tutorial W3 Q8',
         make(rng) {
           const co = rng.company();
           const T0 = rng.int(2, 4), step = rng.pick([0.02, 0.03, 0.04, 0.05]), gL = rng.pick([0.03, 0.04, 0.05, 0.06]);
@@ -2130,7 +2130,7 @@
             why: 'Follow the growth path year by year, find the terminal price where growth becomes constant, then discount everything.',
           };
         } },
-      { id: 'w3-g-twostage', topic: 'vargrowth', level: 3, section: 'B', formula: 'pv-grow-annuity', boss: true, src: 'MST 2026 Q18',
+      { id: 'w3-g-twostage', topic: 'vargrowth', level: 3, section: 'B', formula: 'pv-grow-annuity', formulas: ['pv-grow-annuity', 'share-ddm', 'pv-lump'], boss: true, src: 'MST 2026 Q18',
         make(rng) {
           const co = rng.company();
           const d0 = rng.step(0.50, 4.00, 0.05), n = rng.int(3, 8);
@@ -2161,7 +2161,7 @@
             why: 'Two phases: a growing annuity for the first n years, then a growing perpetuity valued at year n.',
           };
         } },
-      { id: 'w3-g-pn', topic: 'vargrowth', level: 2, section: 'B', formula: 'share-general', src: 'MST 2026 Q17',
+      { id: 'w3-g-pn', topic: 'vargrowth', level: 2, section: 'B', formula: 'share-general', formulas: ['share-general', 'pv-annuity', 'fv-lump'], src: 'MST 2026 Q17',
         make(rng) {
           const d = rng.step(0.50, 6.00, 0.25), n = rng.int(3, 8), r = rng.step(0.06, 0.15, 0.005);
           const pnTrue = rng.step(5, 60, 0.5);

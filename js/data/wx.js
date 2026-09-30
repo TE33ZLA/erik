@@ -565,7 +565,7 @@
         q: R`Which two methods from earlier weeks can estimate a firm’s **cost of equity**?`,
         choices: ['CAPM (Week 9) and the dividend growth model (Week 3)', 'The payback period and the IRR', 'The yield to maturity and the coupon rate', 'The Sharpe ratio and the coefficient of variation'], answer: 0,
         why: R`CAPM: \(r_E = r_f + \beta_E(E[R_M] - r_f)\). Dividend growth model: \(r_E = \frac{D_1}{P_0} + g\).` },
-      { id: 'wx-q02', topic: 'equity', kind: 'num', level: 1, section: 'B', formula: 'capm', src: 'Formula sheet: Risk and Return',
+      { id: 'wx-q02', topic: 'equity', kind: 'num', level: 1, section: 'B', formulas: ['capm'], formula: 'capm', src: 'Formula sheet: Risk and Return',
         q: R`A firm’s shares have a beta of 1.2. The risk-free rate is 4% and the expected market return is 10%. Using CAPM, what is its **cost of equity**?`,
         givens: [['\\beta_E', '1.2'], ['r_f', R`4\%`], ['E[R_M]', R`10\%`]],
         answer: P(FIN.capm(0.04, 1.2, 0.10)), unit: '%', dp: 2,
@@ -577,7 +577,7 @@
         steps: [R`\[r_E = r_f + \beta_E(E[R_M] - r_f) = 4\% + 1.2(10\% - 4\%) = 4\% + 7.2\% = 11.2\%\]`],
         ti: [TI.line('0.04+1.2*(0.10-0.04)', PCT(FIN.capm(0.04, 1.2, 0.10)))],
         why: 'The cost of equity is the return shareholders require for the systematic risk they bear.' },
-      { id: 'wx-q03', topic: 'equity', kind: 'num', level: 2, section: 'B', formula: 'total-return', src: 'Lecture W3 (required return) + formula sheet',
+      { id: 'wx-q03', topic: 'equity', kind: 'num', level: 2, section: 'B', formulas: ['share-ddm', 'total-return'], formula: 'total-return', src: 'Lecture W3 (required return) + formula sheet',
         q: R`A share has just paid a dividend of $1.50. Dividends are expected to grow at 4% a year forever. The share price is $26.00. Using the dividend growth model, what is the **cost of equity**?`,
         givens: [['D_0', R`\$1.50`], ['g', R`4\%`], ['P_0', R`\$26.00`]],
         answer: P((1.5 * 1.04) / 26 + 0.04), unit: '%', dp: 2,
@@ -602,7 +602,7 @@
         q: R`Why does the WACC use the **after-tax** cost of debt?`,
         choices: [R`Interest is tax deductible, so each dollar of interest saves \(T_c\) dollars of tax`, 'Lenders pay the company’s tax for it', 'Debt is riskier than equity', 'Dividends are tax deductible too'], answer: 0,
         why: R`The firm’s true cost per dollar of debt is \(r_d(1 - T_c)\), because the interest lowers its tax bill.` },
-      { id: 'wx-q07', topic: 'debtpref', kind: 'num', level: 1, section: 'B', formula: 'cost-pref', src: 'Formula sheet: Cost of Capital',
+      { id: 'wx-q07', topic: 'debtpref', kind: 'num', level: 1, section: 'B', formulas: ['cost-pref'], formula: 'cost-pref', src: 'Formula sheet: Cost of Capital',
         q: R`Preference shares have a par value of $60 and pay a fixed dividend of 7% of par each year. They trade at $56.00. The company tax rate is 30%. What is the **cost of preference shares**?`,
         givens: [['DIV_p', R`7\% \times \$60 = \$4.20`], ['P_p', R`\$56.00`]],
         answer: P(FIN.costPref(4.2, 56)), unit: '%', dp: 2,
@@ -613,7 +613,7 @@
         steps: [R`\[R_p = \frac{DIV_p}{P_p} = \frac{\$4.20}{\$56.00} = 0.075 = 7.5\%\]`],
         ti: [TI.line('0.07*60/56', Object.assign(PCT(FIN.costPref(4.2, 56)), { note: R`\(0.07 \times 60\) is the dividend, \(\$4.20\). That is \(7.50\%\).` }))],
         why: 'A preference share is a perpetuity, so its cost is the dividend over today’s price. The tax rate is a distraction here.' },
-      { id: 'wx-q08', topic: 'debtpref', kind: 'num', level: 1, section: 'B', formula: 'wacc', src: 'Formula sheet: Cost of Capital',
+      { id: 'wx-q08', topic: 'debtpref', kind: 'num', level: 1, section: 'B', formulas: ['wacc'], formula: 'wacc', src: 'Formula sheet: Cost of Capital',
         q: R`A firm’s bonds have a yield to maturity of 6.5%. The company tax rate is 30%. What is its **after-tax cost of debt**?`,
         givens: [['r_d', R`6.5\%`], ['T_c', R`30\%`]],
         answer: P(0.065 * 0.7), unit: '%', dp: 2,
@@ -638,7 +638,7 @@
         q: R`The weights in the WACC should be based on…`,
         choices: ['Market values of equity, preference shares and debt', 'Book values from the balance sheet', 'The number of shares and bonds on issue', 'Equal weights for each source'], answer: 0,
         why: 'Market values show what investors would pay for each claim today. Book values are historical accounting numbers.' },
-      { id: 'wx-q12', topic: 'wacc', kind: 'num', level: 2, section: 'B', formula: 'wacc', src: 'Formula sheet: Cost of Capital',
+      { id: 'wx-q12', topic: 'wacc', kind: 'num', level: 2, section: 'B', formulas: ['wacc'], formula: 'wacc', src: 'Formula sheet: Cost of Capital',
         q: R`The CFO asks {NAME} to work out the firm’s WACC. The firm’s capital is shown below. The company tax rate is 30%. What is its **WACC**?`,
         table: { head: ['Source', 'Market value', 'Book value', 'Cost'], rows: [['Equity', '$600m', '$250m', '12%'], ['Preference shares', '$100m', '$100m', '8%'], ['Debt', '$300m', '$320m', '6% (pre-tax)']] },
         answer: P(FIN.wacc({ E: 600, P: 100, D: 300, re: 0.12, rp: 0.08, rd: 0.06, tc: 0.3 })), unit: '%', dp: 2,
@@ -680,7 +680,7 @@
         q: R`No taxes. As a firm’s debt-to-equity ratio rises, its cost of equity…`,
         choices: ['Rises, because shareholders bear more financial risk', 'Falls, because debt is cheaper', 'Stays the same', 'Falls to the cost of debt'], answer: 0,
         why: R`Proposition II: \(r_E = r_U + \frac{D}{E}(r_U - r_D)\). With \(r_U > r_D\), a bigger \(\frac{D}{E}\) means a bigger \(r_E\).` },
-      { id: 'wx-q19', topic: 'mmnt', kind: 'num', level: 2, section: 'B', formula: 'mm-nt-re', src: 'Formula sheet: Capital Structure – No Tax World',
+      { id: 'wx-q19', topic: 'mmnt', kind: 'num', level: 2, section: 'B', formulas: ['mm-nt-re'], formula: 'mm-nt-re', src: 'Formula sheet: Capital Structure – No Tax World',
         q: R`No taxes. A firm’s unlevered cost of capital is 10% and its debt costs 6%. Its debt-to-equity ratio is 0.5. What is its **cost of equity**?`,
         givens: [['r_U', R`10\%`], ['r_D', R`6\%`], ['D/E', '0.5']],
         answer: P(FIN.rELevNoTax(0.10, 0.06, 0.5, 1)), unit: '%', dp: 2,
@@ -692,7 +692,7 @@
         steps: [R`\[r_E = r_U + \frac{D}{E}(r_U - r_D) = 10\% + 0.5(10\% - 6\%) = 10\% + 2\% = 12\%\]`],
         ti: [TI.line('0.10+0.5*(0.10-0.06)', PCT(FIN.rELevNoTax(0.10, 0.06, 0.5, 1)))],
         why: 'Shareholders earn the asset return plus a premium for the financial risk that debt adds.' },
-      { id: 'wx-q20', topic: 'mmnt', kind: 'num', level: 2, section: 'B', formula: 'mm-nt-ru', src: 'Formula sheet: Capital Structure – No Tax World',
+      { id: 'wx-q20', topic: 'mmnt', kind: 'num', level: 2, section: 'B', formulas: ['mm-nt-ru'], formula: 'mm-nt-ru', src: 'Formula sheet: Capital Structure – No Tax World',
         q: R`No taxes. A firm has equity worth $600m (cost 14%) and debt worth $400m (cost 6%). What is its **unlevered cost of capital** \(r_U\)?`,
         givens: [['E', R`\$600\text{m}`], ['D', R`\$400\text{m}`], ['r_E', R`14\%`], ['r_D', R`6\%`]],
         answer: P(FIN.rUnlevered(0.14, 0.06, 600, 400)), unit: '%', dp: 2,
@@ -719,7 +719,7 @@
         q: R`MM’s no-tax results assume a **perfect capital market**. Which condition is part of it?`,
         choices: ['No taxes and no transaction or issue costs, and financing does not change the cash flows from the assets', 'Firms pay tax but investors do not', 'Only firms can borrow, not investors', 'Share prices are set by the government'], answer: 0,
         why: 'In a perfect market, financing only splits the same cash flows in different ways. Real frictions such as taxes are what make capital structure matter.' },
-      { id: 'wx-q25', topic: 'mmnt', kind: 'num', level: 2, section: 'B', formula: 'mm-nt-ru', src: 'Formula sheet: Capital Structure – No Tax World',
+      { id: 'wx-q25', topic: 'mmnt', kind: 'num', level: 2, section: 'B', formulas: ['mm-nt-ru'], formula: 'mm-nt-ru', src: 'Formula sheet: Capital Structure – No Tax World',
         q: R`No taxes. A firm has \(r_E = 12\%\) and \(r_D = 6\%\), and its debt-to-equity ratio is 0.5. What is its **WACC**?`,
         givens: [['r_E', R`12\%`], ['r_D', R`6\%`], ['D/E', '0.5']],
         answer: P(0.12 * (2 / 3) + 0.06 * (1 / 3)), unit: '%', dp: 2,
@@ -733,7 +733,7 @@
         why: R`With no taxes the WACC equals \(r_U\). Here \(r_U = 10\%\), which matches Proposition II: \(10\% + 0.5(10\% - 6\%) = 12\% = r_E\).` },
 
       /* ----- MM: tax world ----- */
-      { id: 'wx-q26', topic: 'mmt', kind: 'num', level: 1, section: 'B', formula: 'its', src: 'Formula sheet: Capital Structure – Tax World',
+      { id: 'wx-q26', topic: 'mmt', kind: 'num', level: 1, section: 'B', formulas: ['s-its'], formula: 'its', src: 'Formula sheet: Capital Structure – Tax World',
         q: R`A firm pays $8m of interest a year. The company tax rate is 30%. What is its **interest tax shield** each year?`,
         givens: [['\\text{Interest}', R`\$8\text{m}`], ['T_c', R`30\%`]],
         answer: FIN.interestTaxShield(8, 0.3), unit: '$m', dp: 2,
@@ -744,7 +744,7 @@
         steps: [R`\[\text{Interest tax shield} = \text{Interest} \times T_c = \$8\text{m} \times 0.30 = \$2.4\text{m}\]`],
         ti: [TI.line('8*0.3', { note: 'In $m: the firm pays $2.4m less tax each year.' })],
         why: 'Because interest is tax deductible, the firm pays $2.4m less tax each year.' },
-      { id: 'wx-q27', topic: 'mmt', kind: 'num', level: 2, section: 'B', formula: 'its', src: 'Formula sheet: Capital Structure – Tax World',
+      { id: 'wx-q27', topic: 'mmt', kind: 'num', level: 2, section: 'B', formulas: ['its'], formula: 'its', src: 'Formula sheet: Capital Structure – Tax World',
         q: R`A firm has $50m of permanent debt at an interest rate of 6%. The company tax rate is 30%. What is the **present value of its interest tax shield**?`,
         givens: [['D', R`\$50\text{m}`], ['r_D', R`6\%`], ['T_c', R`30\%`]],
         answer: FIN.pvTaxShieldPerm(50, 0.3), unit: '$m', dp: 2,
@@ -756,7 +756,7 @@
         steps: [R`Each year: \(\$50\text{m} \times 6\% \times 0.30 = \$0.9\text{m}\), forever.`, R`\[PV = \frac{\$0.9\text{m}}{0.06} = T_c \times D = 0.30 \times \$50\text{m} = \$15\text{m}\]`],
         ti: [TI.line('0.3*50', { note: R`\(T_c \times D\), in $m.` })],
         why: 'The shield is a perpetuity with the same risk as the debt, so the interest rate cancels out.' },
-      { id: 'wx-q28', topic: 'mmt', kind: 'num', level: 2, section: 'B', formula: 'mm-t-value', src: 'Formula sheet: Capital Structure – Tax World',
+      { id: 'wx-q28', topic: 'mmt', kind: 'num', level: 2, section: 'B', formulas: ['s-pvits', 'mm-t-value'], formula: 'mm-t-value', src: 'Formula sheet: Capital Structure – Tax World',
         q: R`An all-equity firm is worth $200m. It borrows $80m of permanent debt. The company tax rate is 30%. Using MM with taxes, what is the value of the **levered** firm?`,
         givens: [['V_U', R`\$200\text{m}`], ['D', R`\$80\text{m}`], ['T_c', R`30\%`]],
         answer: 200 + FIN.pvTaxShieldPerm(80, 0.3), unit: '$m', dp: 2,
@@ -772,7 +772,7 @@
         q: R`With corporate taxes, where does the extra value of a levered firm come from?`,
         choices: ['The government collects less tax, because interest is tax deductible', 'Lenders accept a lower interest rate', 'Shareholders stop requiring a return', 'The firm’s assets produce more cash'], answer: 0,
         why: R`The assets are the same. More of their cash flow goes to investors and less to tax: \(V_L = V_U + PV(\text{interest tax shield})\).` },
-      { id: 'wx-q30', topic: 'mmt', kind: 'num', level: 3, section: 'B', formula: 'mm-t-re', src: 'Formula sheet: Capital Structure – Tax World', boss: true,
+      { id: 'wx-q30', topic: 'mmt', kind: 'num', level: 3, section: 'B', formulas: ['mm-t-re'], formula: 'mm-t-re', src: 'Formula sheet: Capital Structure – Tax World', boss: true,
         q: R`With taxes: \(r_U = 10\%\), \(r_D = 6\%\), the debt-to-equity ratio is 0.5 and the tax rate is 30%. What is the **cost of equity**?`,
         givens: [['r_U', R`10\%`], ['r_D', R`6\%`], ['D/E', '0.5'], ['T_c', R`30\%`]],
         answer: P(FIN.rELevTax(0.10, 0.06, 0.5, 1, 0.3)), unit: '%', dp: 2,
@@ -784,7 +784,7 @@
         steps: [R`\[r_E = r_U + \frac{D}{E}(r_U - r_D)(1 - T_c) = 10\% + 0.5(10\% - 6\%)(1 - 0.30)\]`, R`\[r_E = 10\% + 0.5 \times 4\% \times 0.7 = 10\% + 1.4\% = 11.4\%\]`],
         ti: [TI.line('0.10+0.5*(0.10-0.06)*(1-0.3)', PCT(FIN.rELevTax(0.10, 0.06, 0.5, 1, 0.3)))],
         why: 'With taxes, the cost of equity still rises with debt, but more slowly (11.4% instead of 12%).' },
-      { id: 'wx-q31', topic: 'mmt', kind: 'num', level: 3, section: 'B', formula: 'mm-t-wacc', src: 'Formula sheet: Capital Structure – Tax World', boss: true,
+      { id: 'wx-q31', topic: 'mmt', kind: 'num', level: 3, section: 'B', formulas: ['mm-t-wacc'], formula: 'mm-t-wacc', src: 'Formula sheet: Capital Structure – Tax World', boss: true,
         q: R`With taxes: equity is worth $400m with \(r_E = 11.4\%\), and debt is worth $200m with \(r_D = 6\%\). The tax rate is 30%. What is the **WACC**?`,
         givens: [['E', R`\$400\text{m}`], ['D', R`\$200\text{m}`], ['r_E', R`11.4\%`], ['r_D', R`6\%`], ['T_c', R`30\%`]],
         answer: P(FIN.wacc({ E: 400, D: 200, re: 0.114, rd: 0.06, tc: 0.3 })), unit: '%', dp: 2,
@@ -811,7 +811,7 @@
 
     generators: [
       /* ---------- cost of preference shares ---------- */
-      { id: 'wx-g-pref', topic: 'debtpref', level: 1, section: 'B', formula: 'cost-pref', src: 'Formula sheet: Cost of Capital',
+      { id: 'wx-g-pref', topic: 'debtpref', level: 1, section: 'B', formulas: ['cost-pref'], formula: 'cost-pref', src: 'Formula sheet: Cost of Capital',
         make(rng) {
           const co = rng.company();
           const par = rng.pick([20, 40, 50, 60, 100]), rate = rng.step(0.05, 0.1, 0.005);
@@ -834,7 +834,7 @@
           };
         } },
       /* ---------- after-tax cost of debt ---------- */
-      { id: 'wx-g-kd', topic: 'debtpref', level: 1, section: 'B', formula: 'wacc', src: 'Formula sheet: Cost of Capital',
+      { id: 'wx-g-kd', topic: 'debtpref', level: 1, section: 'B', formulas: ['wacc'], formula: 'wacc', src: 'Formula sheet: Cost of Capital',
         make(rng) {
           const co = rng.company();
           const ytm = rng.step(0.04, 0.1, 0.0025);
@@ -856,7 +856,7 @@
           };
         } },
       /* ---------- cost of equity: CAPM ---------- */
-      { id: 'wx-g-ke-capm', topic: 'equity', level: 1, section: 'B', formula: 'capm', src: 'Formula sheet: Risk and Return',
+      { id: 'wx-g-ke-capm', topic: 'equity', level: 1, section: 'B', formulas: ['capm'], formula: 'capm', src: 'Formula sheet: Risk and Return',
         make(rng) {
           const co = rng.company();
           const rf = rng.step(0.02, 0.05, 0.005), mrp = rng.step(0.04, 0.08, 0.005), b = rng.step(0.5, 2, 0.05);
@@ -876,7 +876,7 @@
           };
         } },
       /* ---------- cost of equity: dividend growth model ---------- */
-      { id: 'wx-g-ke-ddm', topic: 'equity', level: 2, section: 'B', formula: 'total-return', src: 'Lecture W3 (required return) + formula sheet',
+      { id: 'wx-g-ke-ddm', topic: 'equity', level: 2, section: 'B', formulas: ['share-ddm', 'total-return'], formula: 'total-return', src: 'Lecture W3 (required return) + formula sheet',
         make(rng) {
           const co = rng.company();
           let d0, g, p0, d1, re;
@@ -900,7 +900,7 @@
           };
         } },
       /* ---------- WACC with market values ---------- */
-      { id: 'wx-g-wacc', topic: 'wacc', level: 2, section: 'B', formula: 'wacc', src: 'Formula sheet: Cost of Capital',
+      { id: 'wx-g-wacc', topic: 'wacc', level: 2, section: 'B', formulas: ['wacc'], formula: 'wacc', src: 'Formula sheet: Cost of Capital',
         make(rng) {
           const co = rng.company();
           const nSh = rng.step(20, 150, 5), px = rng.step(3, 25, 0.1);
@@ -937,7 +937,7 @@
           };
         } },
       /* ---------- cost of debt from a bond price ---------- */
-      { id: 'wx-g-kd-ytm', topic: 'debtpref', level: 2, section: 'B', formula: 'bond-price', src: 'Lecture W3 (bond yields) + formula sheet',
+      { id: 'wx-g-kd-ytm', topic: 'debtpref', level: 2, section: 'B', formulas: ['bond-price', 'wacc'], formula: 'bond-price', src: 'Lecture W3 (bond yields) + formula sheet',
         make(rng) {
           const co = rng.company();
           const n = rng.int(3, 12);
@@ -966,7 +966,7 @@
           };
         } },
       /* ---------- MM no tax: unlevered cost of capital ---------- */
-      { id: 'wx-g-ru', topic: 'mmnt', level: 1, section: 'B', formula: 'mm-nt-ru', src: 'Formula sheet: Capital Structure – No Tax World',
+      { id: 'wx-g-ru', topic: 'mmnt', level: 1, section: 'B', formulas: ['mm-nt-ru'], formula: 'mm-nt-ru', src: 'Formula sheet: Capital Structure – No Tax World',
         make(rng) {
           const co = rng.company();
           const rU = rng.step(0.08, 0.14, 0.005), rD = rng.step(0.03, +(rU - 0.02).toFixed(3), 0.005), de = rng.pick(DE_SET);
@@ -988,7 +988,7 @@
           };
         } },
       /* ---------- MM no tax: Proposition II ---------- */
-      { id: 'wx-g-re-nt', topic: 'mmnt', level: 2, section: 'B', formula: 'mm-nt-re', src: 'Formula sheet: Capital Structure – No Tax World',
+      { id: 'wx-g-re-nt', topic: 'mmnt', level: 2, section: 'B', formulas: ['mm-nt-re'], formula: 'mm-nt-re', src: 'Formula sheet: Capital Structure – No Tax World',
         make(rng) {
           const co = rng.company();
           const rU = rng.step(0.08, 0.14, 0.005), rD = rng.step(0.03, +(rU - 0.02).toFixed(3), 0.005), de = rng.pick(DE_SET);
@@ -1010,7 +1010,7 @@
           };
         } },
       /* ---------- interest tax shield ---------- */
-      { id: 'wx-g-its', topic: 'mmt', level: 1, section: 'B', formula: 'its', src: 'Formula sheet: Capital Structure – Tax World',
+      { id: 'wx-g-its', topic: 'mmt', level: 1, section: 'B', formulas: ['its'], formula: 'its', src: 'Formula sheet: Capital Structure – Tax World',
         make(rng) {
           const co = rng.company();
           const D = rng.step(20, 500, 10), rD = rng.step(0.04, 0.08, 0.005), tc = rng.pick([0.25, 0.3]);
@@ -1021,7 +1021,7 @@
             return {
               q: R`${base} What is the **interest tax shield** each year?`,
               givens: [['D', mL(D)], ['r_D', pcT(rD)], ['T_c', pcT(tc)]],
-              answer: its, unit: '$m', dp: 2,
+              answer: its, unit: '$m', dp: 2, formulas: ['s-its'],
               mistakes: [
                 { v: interest, why: R`That is the interest itself. The shield is the tax saved: \(\text{Interest} \times T_c\).` },
                 { v: interest * (1 - tc), why: 'That is the after-tax interest cost, not the tax saved.' },
@@ -1037,7 +1037,7 @@
             return {
               q: R`${base} Its unlevered cost of capital is ${tp(rU, 1)}. What is the **present value of its interest tax shield**?`,
               givens: [['D', mL(D)], ['r_D', pcT(rD)], ['T_c', pcT(tc)], ['r_U', pcT(rU)]],
-              answer: pv, unit: '$m', dp: 2,
+              answer: pv, unit: '$m', dp: 2, formulas: ['its'],
               mistakes: [
                 { v: its, why: R`That is one year’s shield. For permanent debt, \(PV = T_c \times D\).` },
                 { v: D * (1 - tc), why: R`That is \(D(1 - T_c)\). The PV of the shield is \(T_c \times D\).` },
@@ -1053,7 +1053,7 @@
           return {
             q: R`${base} Without debt, the firm would be worth ${mT(VU)}. Using MM with taxes, what is the value of the **levered** firm?`,
             givens: [['V_U', mL(VU)], ['D', mL(D)], ['T_c', pcT(tc)]],
-            answer: VL, unit: '$m', dp: 2,
+            answer: VL, unit: '$m', dp: 2, formulas: ['s-pvits', 'mm-t-value'],
             mistakes: [
               { v: VU, why: 'That ignores the tax shield. With taxes, debt adds value.' },
               { v: VU + D, why: R`Borrowing does not add the whole loan to firm value. Only \(PV(\text{ITS}) = T_c D\) is added.` },
@@ -1065,7 +1065,7 @@
           };
         } },
       /* ---------- MM with tax: Proposition II ---------- */
-      { id: 'wx-g-re-t', topic: 'mmt', level: 2, section: 'B', formula: 'mm-t-re', src: 'Formula sheet: Capital Structure – Tax World',
+      { id: 'wx-g-re-t', topic: 'mmt', level: 2, section: 'B', formulas: ['mm-t-re'], formula: 'mm-t-re', src: 'Formula sheet: Capital Structure – Tax World',
         make(rng) {
           const co = rng.company();
           const rU = rng.step(0.08, 0.14, 0.005), rD = rng.step(0.03, +(rU - 0.02).toFixed(3), 0.005), de = rng.pick(DE_SET), tc = rng.pick([0.25, 0.3]);
@@ -1086,7 +1086,7 @@
           };
         } },
       /* ---------- accept or reject using the WACC ---------- */
-      { id: 'wx-g-accept', topic: 'wacc', level: 2, section: 'B', formula: 'wacc',
+      { id: 'wx-g-accept', topic: 'wacc', level: 2, section: 'B', formulas: ['wacc'], formula: 'wacc',
         make(rng) {
           const co = rng.company();
           for (let t = 0; t < 60; t++) {
@@ -1111,7 +1111,7 @@
         } },
 
       /* ---------- boss: WACC with taxes (two steps) ---------- */
-      { id: 'wx-g-wacc-t', topic: 'mmt', level: 3, section: 'B', formula: 'mm-t-wacc', src: 'Formula sheet: Capital Structure – Tax World', boss: true,
+      { id: 'wx-g-wacc-t', topic: 'mmt', level: 3, section: 'B', formulas: ['mm-t-re', 'mm-t-wacc'], formula: 'mm-t-wacc', src: 'Formula sheet: Capital Structure – Tax World', boss: true,
         make(rng) {
           const co = rng.company();
           const rU = rng.step(0.08, 0.14, 0.005), rD = rng.step(0.03, +(rU - 0.02).toFixed(3), 0.005), de = rng.pick(DE_SET), tc = rng.pick([0.25, 0.3]);
@@ -1139,7 +1139,7 @@
           };
         } },
       /* ---------- boss: leveraged buyback with taxes ---------- */
-      { id: 'wx-g-vl', topic: 'mmt', level: 3, section: 'B', formula: 'mm-t-value', src: 'Formula sheet: Capital Structure – Tax World', boss: true,
+      { id: 'wx-g-vl', topic: 'mmt', level: 3, section: 'B', formulas: ['s-pvits', 'mm-t-value', 'share-price-eq', 'mm-t-re'], formula: 'mm-t-value', src: 'Formula sheet: Capital Structure – Tax World', boss: true,
         make(rng) {
           const co = rng.company();
           const VU = rng.step(200, 1500, 50), share = rng.pick([0.2, 0.25, 0.3, 0.4, 0.5]);
@@ -1167,7 +1167,7 @@
           };
         } },
       /* ---------- boss: re-leveraging with no taxes ---------- */
-      { id: 'wx-g-recap', topic: 'mmnt', level: 3, section: 'B', formula: 'mm-nt-re', src: 'Formula sheet: Capital Structure – No Tax World', boss: true,
+      { id: 'wx-g-recap', topic: 'mmnt', level: 3, section: 'B', formulas: ['mm-nt-ru', 'mm-nt-re'], formula: 'mm-nt-re', src: 'Formula sheet: Capital Structure – No Tax World', boss: true,
         make(rng) {
           const co = rng.company();
           const rU = rng.step(0.08, 0.14, 0.005), rD = rng.step(0.03, +(rU - 0.02).toFixed(3), 0.005);

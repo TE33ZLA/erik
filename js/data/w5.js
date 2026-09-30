@@ -125,6 +125,250 @@
   WW.term = WW.ocf + WW.nwc + FIN.afterTaxSalvage(WW.salv, 0, WW.tc);
   WW.cfs = [WW.init].concat(Array(WW.n - 1).fill(WW.ocf)).concat([WW.term]);
 
+  /* ---------- Excel tables: inputs in labelled cells, years across, formulas that point at the inputs ---------- */
+  const COL = (t) => String.fromCharCode(66 + t); // year t sits in column B + t (B = year 0)
+  /** one sheet row: a label, then one cell for each year 0..n (f(t) gives a number, a '=formula' or null) */
+  const xrow = (label, n, f) => [label].concat(Array.from({ length: n + 1 }, (_, t) => { const v = f(t); return v === undefined ? null : v; }));
+  const NPV_TRAP = 'Excel’s NPV( ) treats the first cell of its range as one year away. So year 0 goes outside the brackets. Put it inside and it is discounted one year too many.';
+
+  /** the bottling line (lesson 7) as an Excel table */
+  const LINE_XL = {
+    title: 'Koala Kombucha: the bottling line',
+    rows: [
+      ['Tax rate', LINE.tc], ['Cost of capital', LINE.k], ['Equipment cost', LINE.price], ['Life (years)', LINE.n], ['Salvage in year 5', LINE.sv], ['NWC needed today', LINE.nwc],
+      [],
+      xrow('Year', 5, (t) => t),
+      xrow('Sales', 5, (t) => (t ? LINE.rev : null)),
+      xrow('Costs', 5, (t) => (t ? -LINE.cost : null)),
+      xrow('Depreciation', 5, (t) => (t ? '=-$B$3/$B$4' : null)),
+      xrow('EBIT', 5, (t) => (t ? `=SUM(${COL(t)}9:${COL(t)}11)` : null)),
+      xrow('Tax', 5, (t) => (t ? `=-${COL(t)}12*$B$1` : null)),
+      xrow('Add back depreciation', 5, (t) => (t ? `=-${COL(t)}11` : null)),
+      xrow('Equipment, then salvage after tax', 5, (t) => (t === 0 ? '=-B3' : t === 5 ? '=B5-(B5-0)*B1' : null)),
+      xrow('Change in NWC', 5, (t) => (t === 0 ? '=B6' : t === 5 ? '=-B6' : 0)),
+      xrow('Free cash flow', 5, (t) => `=SUM(${COL(t)}12:${COL(t)}15)-${COL(t)}16`),
+      ['NPV', '=NPV(B2,C17:G17)+B17'],
+    ],
+    fmt: { 'B1:B2': '%', B3: '$', B4: '0', 'B5:B6': '$', 'B8:G8': '0', 'B9:G17': '$', B18: '$' },
+    bold: ['A8:G8', 'A17:G17', 'A18:B18'],
+    answer: 'B18',
+    steps: [
+      { t: 'Inputs first, each in its own labelled cell.', cells: 'A1:B6' },
+      { t: 'Years 0 to 5 across row 8. Sales and costs under years 1 to 5 (costs are negative).', cells: 'A8:G10' },
+      { t: 'Depreciation: =-$B$3/$B$4. The $ signs keep the input cells fixed when you copy the formula across.', cells: 'C11:G11' },
+      { t: 'EBIT adds the three rows above it. Tax: =-C12*$B$1. Then add depreciation back: =-C11.', cells: 'C12:G14' },
+      { t: 'Year 0: the equipment, =-B3. Year 5: the after-tax salvage, =B5-(B5-0)*B1 (book value 0).', cells: ['B15', 'G15'] },
+      { t: 'NWC: an increase of $50,000 today, and a decrease of $50,000 (recovered) in year 5.', cells: 'B16:G16' },
+      { t: 'Free cash flow: =SUM(B12:B15)-B16, copied across.', cells: 'B17:G17' },
+      { t: 'NPV: =NPV(B2,C17:G17)+B17. ' + NPV_TRAP, cells: 'B18' },
+    ],
+  };
+
+  /* ---------- written round 1: Lyrebird Pastries, a new line built in Excel ---------- */
+  const PASTRY = { cost: 450000, n: 5, sv: 50000, costPct: 0.5, nwcPct: 0.1, tc: 0.3, k: 0.1, rev: [300000, 360000, 420000, 420000, 300000] };
+  PASTRY.dep = PASTRY.cost / PASTRY.n;
+  PASTRY.lv = PASTRY.rev.map((r) => r * PASTRY.nwcPct).concat([0]); // NWC at the end of years 0..5: 10% of the next year's revenue
+  PASTRY.ats = FIN.afterTaxSalvage(PASTRY.sv, 0, PASTRY.tc);
+  PASTRY.cfs = [-PASTRY.cost - PASTRY.lv[0]].concat(PASTRY.rev.map((r, i) => FIN.fcf(r, r * PASTRY.costPct, PASTRY.dep, PASTRY.tc, 0, PASTRY.lv[i + 1] - PASTRY.lv[i]) + (i + 1 === PASTRY.n ? PASTRY.ats : 0)));
+  PASTRY.npv = FIN.npv(PASTRY.k, PASTRY.cfs);
+  const PASTRY_XL = {
+    title: 'Lyrebird Pastries: free cash flow table',
+    rows: [
+      ['Tax rate', PASTRY.tc], ['Cost of capital', PASTRY.k], ['Equipment cost', PASTRY.cost], ['Life (years)', PASTRY.n], ['Salvage in year 5', PASTRY.sv],
+      ['Costs (% of revenue)', PASTRY.costPct], ['NWC (% of next year’s revenue)', PASTRY.nwcPct],
+      [],
+      xrow('Year', 5, (t) => t),
+      xrow('Revenue', 5, (t) => (t ? PASTRY.rev[t - 1] : null)),
+      xrow('Costs', 5, (t) => (t ? `=-$B$6*${COL(t)}10` : null)),
+      xrow('Depreciation', 5, (t) => (t ? '=-$B$3/$B$4' : null)),
+      xrow('EBIT', 5, (t) => (t ? `=SUM(${COL(t)}10:${COL(t)}12)` : null)),
+      xrow('Tax', 5, (t) => (t ? `=-${COL(t)}13*$B$1` : null)),
+      xrow('Add back depreciation', 5, (t) => (t ? `=-${COL(t)}12` : null)),
+      xrow('Equipment (CapEx)', 5, (t) => (t === 0 ? '=-B3' : null)),
+      xrow('After-tax salvage', 5, (t) => (t === 5 ? '=B5-(B5-0)*B1' : null)),
+      xrow('NWC level (end of year)', 5, (t) => (t < 5 ? `=$B$7*${COL(t + 1)}10` : 0)),
+      xrow('Change in NWC', 5, (t) => (t === 0 ? '=B18' : `=${COL(t)}18-${COL(t - 1)}18`)),
+      xrow('Free cash flow', 5, (t) => `=SUM(${COL(t)}13:${COL(t)}17)-${COL(t)}19`),
+      ['NPV', '=NPV(B2,C20:G20)+B20'],
+    ],
+    fmt: { 'B1:B2': '%', B3: '$', B4: '0', B5: '$', 'B6:B7': '%', 'B9:G9': '0', 'B10:G20': '$', B21: '$' },
+    bold: ['A9:G9', 'A20:G20', 'A21:B21'],
+    answer: 'B21',
+    steps: [
+      { t: 'Inputs first, each in its own labelled cell (B1 to B7).', cells: 'A1:B7' },
+      { t: 'Years 0 to 5 across row 9, then the revenue for years 1 to 5.', cells: 'A9:G10' },
+      { t: 'Costs: =-$B$6*C10. Depreciation: =-$B$3/$B$4. The $ signs keep the input cells fixed when you copy across.', cells: 'C11:G12' },
+      { t: 'EBIT adds the three rows above it. Tax: =-C13*$B$1. Then add depreciation back: =-C12.', cells: 'C13:G15' },
+      { t: 'Year 0: the equipment, =-B3. Year 5: the after-tax salvage, =B5-(B5-0)*B1 (book value 0).', cells: ['B16', 'G17'] },
+      { t: 'NWC level: 10% of next year’s revenue (=$B$7*C10 in B18), and 0 at the end of year 5. Change in NWC: this year’s level minus last year’s (=C18-B18).', cells: 'B18:G19' },
+      { t: 'Free cash flow: =SUM(B13:B17)-B19. Subtracting the change makes a rise in NWC an outflow, and the fall at the end an inflow.', cells: 'B20:G20' },
+      { t: 'NPV: =NPV(B2,C20:G20)+B20. ' + NPV_TRAP, cells: 'B21' },
+    ],
+  };
+
+  /* ---------- written round 2: Currawong Creamery, relevant cash flows and a fading value ---------- */
+  const CREAM = { study: 45000, bdep: 20000, rent: 36000, sales: 420000, costs: 210000, lost: 50000, interest: 15000, tc: 0.3, k: 0.11, n: 4, g: -0.05 };
+  CREAM.fcf = FIN.fcf(CREAM.sales, CREAM.costs + CREAM.lost + CREAM.rent, 0, CREAM.tc);
+  CREAM.lvl = FIN.pvAnnuity(CREAM.fcf, CREAM.k, CREAM.n);
+  CREAM.tvn = FIN.pvGrowPerp(CREAM.fcf * (1 + CREAM.g), CREAM.k, CREAM.g); // the fading years, valued at year n
+  CREAM.tv0 = FIN.pv(CREAM.tvn, CREAM.k, CREAM.n);
+  CREAM.value = CREAM.lvl + CREAM.tv0;
+  const CREAM_XL = {
+    title: 'Currawong Creamery: level, then fading',
+    rows: [
+      ['FCF each year, years 1 to 4', CREAM.fcf], ['Cost of capital', CREAM.k], ['Level years (n)', CREAM.n], ['Growth from year 5 (g)', CREAM.g],
+      ['Years 1 to 4, valued today', '=PV(B2,B3,-B1)'],
+      ['First fading FCF (year 5)', '=B1*(1+B4)'],
+      ['Years 5 on, valued at year 4', '=B6/(B2-B4)'],
+      ['Years 5 on, valued today', '=B7/(1+B2)^B3'],
+      ['Value today', '=B5+B8'],
+    ],
+    fmt: { B1: '$', B2: '%', B3: '0', B4: '%', 'B5:B9': '$' },
+    bold: ['A9:B9'],
+    answer: 'B9',
+    steps: [
+      { t: 'The level years are an annuity: =PV(B2,B3,-B1). The minus sign makes the value positive.', cells: 'B5' },
+      { t: 'The first fading cash flow is 5% smaller: =B1*(1+B4), with g = -5% in B4.', cells: 'B6' },
+      { t: 'A growing perpetuity with a negative g: =B6/(B2-B4). Its value lands at year 4.', cells: 'B7' },
+      { t: 'Discount it 4 years: =B7/(1+B2)^B3. Then add the two pieces.', cells: 'B8:B9' },
+    ],
+  };
+
+  /* ---------- written round 3: Bandicoot Print Co, a replacement decision ---------- */
+  const PRESS = { oldCost: 80000, oldLife: 8, age: 3, sale: 30000, price: 150000, inst: 10000, life: 4, n: 5, salv: 20000, save: 40000, overhaul: 25000, tc: 0.3, k: 0.1 };
+  PRESS.dOld = PRESS.oldCost / PRESS.oldLife;
+  PRESS.bv = PRESS.oldCost - PRESS.age * PRESS.dOld;
+  PRESS.dNew = (PRESS.price + PRESS.inst) / PRESS.life;
+  PRESS.dInc = (t) => (t <= PRESS.life ? PRESS.dNew : 0) - PRESS.dOld; // new minus old; the new press is fully depreciated after year 4
+  PRESS.cfs = [-(PRESS.price + PRESS.inst) + FIN.afterTaxSalvage(PRESS.sale, PRESS.bv, PRESS.tc)].concat([1, 2, 3, 4, 5].map((t) =>
+    FIN.ocf(PRESS.save + (t === 2 ? PRESS.overhaul : 0), 0, PRESS.dInc(t), PRESS.tc) + (t === PRESS.n ? FIN.afterTaxSalvage(PRESS.salv, 0, PRESS.tc) : 0)));
+  PRESS.npv = FIN.npv(PRESS.k, PRESS.cfs);
+  const PRESS_XL = {
+    title: 'Bandicoot Print Co: incremental cash flows',
+    rows: [
+      ['Tax rate', PRESS.tc], ['Required return', PRESS.k],
+      ['New press: price + installation', PRESS.price + PRESS.inst], ['New press: tax life (years)', PRESS.life], ['New press: sale price in year 5', PRESS.salv],
+      ['Old press: cost', PRESS.oldCost], ['Old press: tax life (years)', PRESS.oldLife], ['Old press: age (years)', PRESS.age], ['Old press: sale price today', PRESS.sale],
+      ['Cost savings a year', PRESS.save], ['Overhaul avoided in year 2', PRESS.overhaul],
+      ['Old press: depreciation a year', '=B6/B7'], ['Old press: book value today', '=B6-B8*B12'],
+      [],
+      xrow('Year', 5, (t) => t),
+      xrow('Cost savings', 5, (t) => (t ? '=$B$10' : null)),
+      xrow('Overhaul avoided', 5, (t) => (t === 2 ? '=B11' : null)),
+      xrow('Incremental depreciation', 5, (t) => (t ? (t <= PRESS.life ? '=-($B$3/$B$4-$B$12)' : '=-(0-$B$12)') : null)),
+      xrow('EBIT', 5, (t) => (t ? `=SUM(${COL(t)}16:${COL(t)}18)` : null)),
+      xrow('Tax', 5, (t) => (t ? `=-${COL(t)}19*$B$1` : null)),
+      xrow('Add back depreciation', 5, (t) => (t ? `=-${COL(t)}18` : null)),
+      xrow('New press', 5, (t) => (t === 0 ? '=-B3' : null)),
+      xrow('Old press sold, after tax', 5, (t) => (t === 0 ? '=B9-(B9-B13)*B1' : null)),
+      xrow('New press sold, after tax', 5, (t) => (t === 5 ? '=B5-(B5-0)*B1' : null)),
+      xrow('Incremental cash flow', 5, (t) => `=SUM(${COL(t)}19:${COL(t)}24)`),
+      ['NPV', '=NPV(B2,C25:G25)+B25'],
+    ],
+    fmt: { 'B1:B2': '%', B3: '$', B4: '0', 'B5:B6': '$', 'B7:B8': '0', 'B9:B13': '$', 'B15:G15': '0', 'B16:G25': '$', B26: '$' },
+    bold: ['A15:G15', 'A25:G25', 'A26:B26'],
+    answer: 'B26',
+    steps: [
+      { t: 'Inputs in labelled cells. Then the old press’s depreciation (=B6/B7) and its book value today (=B6-B8*B12).', cells: 'A1:B13' },
+      { t: 'Years 0 to 5 across row 15.', cells: 'A15:G15' },
+      { t: 'The savings every year, and the avoided overhaul in year 2 (a saving too).', cells: 'C16:G17' },
+      { t: 'Incremental depreciation, new minus old: =-($B$3/$B$4-$B$12) in years 1 to 4. In year 5 the new press has none left: =-(0-$B$12).', cells: 'C18:G18' },
+      { t: 'EBIT, tax at 30%, then depreciation added back.', cells: 'C19:G21' },
+      { t: 'Year 0: the new press, and the old press sold after tax (below book value, so tax is saved). Year 5: the new press sold after tax.', cells: ['B22:B23', 'G24'] },
+      { t: 'Cash flow: =SUM(B19:B24). NPV: =NPV(B2,C25:G25)+B25, with year 0 outside the brackets.', cells: 'B25:G26' },
+    ],
+  };
+
+  /** a replacement decision as an Excel table (Nutson Bolz and the boss generator). p: tc, r, oldCost, oldLife, age, sale,
+   *  price, ship, n (new tax life = years), salv, save, saveF (optional formula for the savings cell), nwc */
+  function replaceXL(p) {
+    const n = p.n, L = COL(n);
+    return {
+      title: p.title || 'Replacement: incremental cash flows',
+      rows: [
+        ['Tax rate', p.tc], ['Required return', p.r],
+        ['Old machine: cost', p.oldCost], ['Old machine: tax life (years)', p.oldLife], ['Old machine: age (years)', p.age], ['Old machine: sale price today', p.sale],
+        ['New machine: price', p.price], ['Shipping and installation', p.ship], ['New machine: tax life (years)', n], [`New machine: sale price in year ${n}`, p.salv],
+        ['Cost savings a year', p.saveF || p.save], ['Increase in inventory (NWC) now', p.nwc],
+        ['Old machine: depreciation a year', '=B3/B4'], ['Old machine: book value today', '=B3-B5*B13'], ['Incremental depreciation a year', '=(B7+B8)/B9-B13'],
+        [],
+        xrow('Year', n, (t) => t),
+        xrow('Cost savings', n, (t) => (t ? '=$B$11' : null)),
+        xrow('Incremental depreciation', n, (t) => (t ? '=-$B$15' : null)),
+        xrow('EBIT', n, (t) => (t ? `=SUM(${COL(t)}18:${COL(t)}19)` : null)),
+        xrow('Tax', n, (t) => (t ? `=-${COL(t)}20*$B$1` : null)),
+        xrow('Add back depreciation', n, (t) => (t ? `=-${COL(t)}19` : null)),
+        xrow('New machine', n, (t) => (t === 0 ? '=-(B7+B8)' : null)),
+        xrow('Old machine sold, after tax', n, (t) => (t === 0 ? '=B6-(B6-B14)*B1' : null)),
+        xrow('New machine sold, after tax', n, (t) => (t === n ? '=B10-(B10-0)*B1' : null)),
+        xrow('NWC', n, (t) => (t === 0 ? '=-B12' : t === n ? '=B12' : null)),
+        xrow('Cash flow', n, (t) => `=SUM(${COL(t)}20:${COL(t)}26)`),
+        ['NPV', `=NPV(B2,C27:${L}27)+B27`],
+      ],
+      fmt: { 'B1:B2': '%', B3: '$', 'B4:B5': '0', 'B6:B8': '$', B9: '0', 'B10:B15': '$', [`B17:${L}17`]: '0', [`B18:${L}27`]: '$', B28: '$' },
+      bold: [`A17:${L}17`, `A27:${L}27`, 'A28:B28'],
+      answer: { init: 'B27', ocf: 'C27', term: `${L}27`, npv: 'B28' }[p.part || 'npv'],
+      steps: [
+        { t: `Inputs in labelled cells. ${p.left || ''}`.trim(), cells: 'A1:B12' },
+        { t: 'The old machine’s depreciation (=B3/B4) and book value today (=B3-B5*B13). Incremental depreciation: new minus old, =(B7+B8)/B9-B13.', cells: 'A13:B15' },
+        { t: `Years 0 to ${n} across row 17. Savings and incremental depreciation give EBIT; tax at the tax rate; then add the depreciation back.`, cells: `C18:${L}22` },
+        { t: 'Year 0: the new machine, the old machine sold after tax (=B6-(B6-B14)*B1), and the NWC.', cells: 'B23:B26' },
+        { t: `Year ${n}: the new machine sold after tax (book value 0) and the NWC back.`, cells: `${L}25:${L}26` },
+        { t: `Cash flow: =SUM(B20:B26), copied across. NPV: =NPV(B2,C27:${L}27)+B27, with year 0 outside the brackets.`, cells: `B27:${L}28` },
+      ],
+    };
+  }
+
+  /** a project read from a consultant's report, in $ millions (Monash Fibre and the boss generator). p: tc, r, K, n, W, R0, C, Sinc */
+  function reportXL(p) {
+    const n = p.n, L = COL(n);
+    return {
+      title: p.title || 'Project free cash flows ($ millions)',
+      rows: [
+        ['Tax rate', p.tc], ['Cost of capital', p.r], ['Equipment ($m)', p.K], ['Life (years)', n], ['Working capital ($m)', p.W],
+        ['Sales ($m a year)', p.R0], ['Cost of goods sold ($m a year)', p.C], ['Incremental SG&A ($m a year)', p.Sinc],
+        [],
+        xrow('Year', n, (t) => t),
+        xrow('Sales', n, (t) => (t ? '=$B$6' : null)),
+        xrow('Cost of goods sold', n, (t) => (t ? '=-$B$7' : null)),
+        xrow('Incremental SG&A', n, (t) => (t ? '=-$B$8' : null)),
+        xrow('Depreciation', n, (t) => (t ? '=-$B$3/$B$4' : null)),
+        xrow('EBIT', n, (t) => (t ? `=SUM(${COL(t)}11:${COL(t)}14)` : null)),
+        xrow('Tax', n, (t) => (t ? `=-${COL(t)}15*$B$1` : null)),
+        xrow('Add back depreciation', n, (t) => (t ? `=-${COL(t)}14` : null)),
+        xrow('Equipment', n, (t) => (t === 0 ? '=-B3' : null)),
+        xrow('Working capital', n, (t) => (t === 0 ? '=-B5' : t === n ? '=B5' : null)),
+        xrow('Free cash flow', n, (t) => `=SUM(${COL(t)}15:${COL(t)}19)`),
+        ['NPV ($m)', `=NPV(B2,C20:${L}20)+B20`],
+      ],
+      fmt: { 'B1:B2': '%', B3: 'x', B4: '0', 'B5:B8': 'x', [`B10:${L}10`]: '0', [`B11:${L}20`]: 'x', B21: 'x' },
+      bold: [`A10:${L}10`, `A20:${L}20`, 'A21:B21'],
+      answer: p.part === 'fcf' ? 'C20' : 'B21',
+      steps: [
+        { t: `Inputs in labelled cells. ${p.left || ''}`.trim(), cells: 'A1:B8' },
+        { t: `Years 0 to ${n} across row 10. Sales, cost of goods sold, the incremental SG&A only, and depreciation (=-$B$3/$B$4).`, cells: `C11:${L}14` },
+        { t: 'EBIT, tax, then depreciation added back.', cells: `C15:${L}17` },
+        { t: `Year 0: the equipment and the working capital. Year ${n}: the working capital comes back.`, cells: ['B18:B19', `${L}19`] },
+        { t: `Free cash flow: =SUM(B15:B19). NPV: =NPV(B2,C20:${L}20)+B20, with year 0 outside the brackets.`, cells: `B20:${L}21` },
+      ],
+    };
+  }
+
+  /* ---------- lessons: earnings are not cash, and cash flows that fade away ---------- */
+  const TILES = { earn: 60000, dep: 25000, capex: 40000, ar: 8000 };
+  TILES.fcf = TILES.earn + TILES.dep - TILES.capex - TILES.ar;
+  /** value of C a year for years 1..n, then falling (g < 0) or growing at g forever: the two-stage card */
+  function fade(C, r, n, g) {
+    const lvl = FIN.pvAnnuity(C, r, n), c1 = C * (1 + g), tvn = FIN.pvGrowPerp(c1, r, g), tv0 = FIN.pv(tvn, r, n);
+    return { C, r, n, g, lvl, c1, tvn, tv0, value: lvl + tv0 };
+  }
+  const FERRY = fade(200000, 0.09, 5, -0.04);
+  const FADE2 = fade(120000, 0.10, 3, -0.02);
+  const RIDE = fade(350000, 0.10, 6, -0.04);
+  const FILM = fade(450000, 0.12, 5, -0.10);
+  FILM.cost = 2400000;
+  FILM.npv = FILM.value - FILM.cost;
+
   root.registerPack({
     id: 'w5', floor: 5, week: 'Week 5',
     title: 'The Cash Flow Factory',
