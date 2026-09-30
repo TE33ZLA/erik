@@ -85,6 +85,15 @@
   LS.yR = FIN.bondYieldPeriodic(1000, 1040, 40, 6);             // realised, per half-year
   LS.skip = FIN.npv(0.08, [0, 0, 0, 60, 1180]);
 
+  /* ---------- written rounds (cases): every answer computed ---------- */
+  const WC = {
+    b0: FIN.bondPrice(1000, 0.07, 0.06, 10, 2),            // C1 (a): Kestrel's 7% semi-annual bond at a 6% yield
+    b1: FIN.bondPrice(1000, 0.07, 0.08, 9, 2),             // C1 (c): one year later, 9 years left, yield 8%
+    yi: FIN.bondYieldPeriodic(945, 1000, 25, 16),          // C2: yield per half-year of Orchard's 5% bond at $945
+    p0: FIN.ddmConst(1.2 * 1.04, 0.11, 0.04),              // C3 (a): constant growth at 4%
+    sh: FIN.ddmMulti(1.2, [0.09, 0.09, 0.09], 0.04, 0.11), // C3 (b), (c): 9% for 3 years, then 4% forever
+  };
+
   /** Drop distractors that sit too close to the answer: they make unfair options and over-strict typed answers. */
   function tidy(q) {
     if (!q || !Array.isArray(q.mistakes) || !Number.isFinite(q.answer)) return q;
@@ -179,7 +188,9 @@
         enemy: { name: 'The Premium Pirate', title: 'Sails above par when rates fall', body: 'round', color: '#2e6f8e', acc: ['pirate'], mouth: 'grin', item: '⚓',
           lines: { intro: 'Arr! Rates be fallin’, so me bonds sell above par!', hit: ['Blimey, ye know the inverse relationship!', 'Ye halved the rate AND doubled n. Arr!'],
             taunt: ['Ye halved the yield twice, landlubber!', 'Rates up, prices up? Walk the plank!'], win: 'Me treasure… trades at a discount now…', lose: 'Yo ho ho, the yield be mine!' } } },
+      { id: 'w3-W1', kind: 'case', name: 'Written round: the port bond', case: 'w3-C1' },
       { id: 'w3-m1', kind: 'mini', name: 'Bond Surfer', mini: 'bond-surfer' },
+      { id: 'w3-W2', kind: 'case', name: 'Written round: reading a yield', case: 'w3-C2' },
       { id: 'w3-L6', kind: 'lesson', name: 'Shares with steady dividends', lesson: 'w3-L6' },
       { id: 'w3-L7', kind: 'lesson', name: 'Where a share’s return comes from', lesson: 'w3-L7' },
       { id: 'w3-3', kind: 'battle', name: 'Dividend Market', topics: ['pref', 'ddm', 'returns'], n: 6,
@@ -192,6 +203,7 @@
           lines: { intro: 'Twenty-five percent growth! Then twenty! Then… oh no, five.', hit: ['You found my terminal price!', 'Four steps and I am slain?!'],
             taunt: ['You discounted my terminal price one year too far!', 'Your terminal price used the wrong dividend!'], win: 'My growth… is now… constant…', lose: 'Supernormal! Unstoppable!' } } },
       { id: 'w3-m2', kind: 'mini', name: 'Model Matcher', mini: 'model-match' },
+      { id: 'w3-W3', kind: 'case', name: 'Written round: a share with two growth stages', case: 'w3-C3' },
       { id: 'w3-boss', kind: 'boss', name: 'Mister Market', topics: '*', n: 10,
         enemy: { name: 'Mister Market', title: 'Sets every price in the bazaar', body: 'tall', color: '#3a3f8f', acc: ['crown', 'mustache'], eyes: 2, mouth: 'smirk', item: '📈',
           lines: { intro: 'Bonds, shares, preference shares… I price them ALL. Can you?', hit: ['A fair price! How rare in my bazaar.', 'You discounted every cash flow. Impressive.'],
@@ -820,6 +832,117 @@
       },
     },
 
+    /* ---------- written rounds: exam-style scenarios with parts a, b, c … ---------- */
+    cases: {
+      'w3-C1': {
+        title: 'The port bond',
+        topics: ['bondprice', 'semi', 'raterisk'],
+        story: R`Kestrel Ports Ltd sells a new bond. Its face value is \(\$1{,}000\) and it matures in 10 years.\n\nThe coupon rate is \(7\%\) a year, paid **semi-annually**. Investors require a yield of \(6\%\) a year, compounded semi-annually.`,
+        parts: [
+          { kind: 'calc', marks: 2, ask: R`Calculate the price of the bond today.`,
+            formulas: ['bond-price'], pick: ['bond-price', 'zero-bond', 'share-zero', 'pv-perp'],
+            answer: WC.b0, unit: '$', dp: 2,
+            model: ['PBond = C/i*(1 - 1/(1 + i)^n) + FVn/(1 + i)^n', '= 35/0.03*(1 - 1/(1 + 0.03)^20) + 1000/(1 + 0.03)^20', '= $1,074.39'],
+            meaning: R`So the bond sells for \(${L.money(WC.b0)}\), above its \(\$1{,}000\) face value.`,
+            hint: R`Work in half-years: \(C = \frac{70}{2} = \$35\), \(i = \frac{6\%}{2} = 3\%\) and \(n = 10 \times 2 = 20\).` },
+          { kind: 'blanks', marks: 1, ask: R`Choose the right words.`,
+            text: R`The bond trades at a {{premium|discount|par}}, because its coupon rate is {{above|below|equal to}} the yield investors require.`,
+            why: R`The \(7\%\) coupon rate is above the \(6\%\) yield. The coupons are generous, so buyers pay more than \(\$1{,}000\).` },
+          { kind: 'calc', marks: 2, ask: R`One year later, just after a coupon is paid, market yields have risen to \(8\%\) a year. What is the bond worth now?`,
+            formulas: ['bond-price'], pick: ['bond-price', 'zero-bond', 'share-zero', 'pv-perp'],
+            answer: WC.b1, unit: '$', dp: 2,
+            model: ['PBond = C/i*(1 - 1/(1 + i)^n) + FVn/(1 + i)^n', '= 35/0.04*(1 - 1/(1 + 0.04)^18) + 1000/(1 + 0.04)^18', '= $936.70'],
+            meaning: R`The price has fallen to \(${L.money(WC.b1)}\). The bond now trades at a **discount**.`,
+            hint: R`9 years are left, so \(n = 18\) half-years. Use the new yield: \(i = \frac{8\%}{2} = 4\%\). The coupon is still \(\$35\).` },
+          { kind: 'theory', marks: 3, ask: R`Explain why the bond’s price fell when market yields rose.`,
+            points: [
+              { t: R`The price is the present value of fixed cash flows. A higher yield discounts them more, so their present value falls.`, ok: true },
+              { t: R`New bonds now pay \(8\%\). Buyers will only take Kestrel’s \(7\%\) coupons if they pay less than face value.`, ok: true },
+              { t: R`The coupons and the face value stay the same. Only the price changes.`, ok: true },
+              { t: R`Kestrel cut its coupon when yields rose.`, ok: false, why: R`The coupon is fixed by the bond contract. It stays \(\$35\) every half-year.` },
+              { t: R`The face value falls to match the new yield.`, ok: false, why: R`The face value is fixed at \(\$1{,}000\). It is repaid in full at maturity.` },
+              { t: R`Bond prices and yields move in the same direction.`, ok: false, why: R`They move in opposite directions: a higher discount rate gives a lower present value.` },
+            ],
+            model: R`Bond prices and yields move in opposite directions. Kestrel’s coupons and face value are fixed, so a higher yield discounts the same cash flows more and their present value falls. Buyers can get \(8\%\) on new bonds, so they will only pay less than face value for a \(7\%\) coupon. So the price fell from \(${L.money(WC.b0)}\) to \(${L.money(WC.b1)}\): the bond now trades at a discount.`,
+            keys: [['opposite', 'inverse'], ['fixed'], ['present value', 'discounted', 'discount rate'], ['new bonds', '8%', 'market']] },
+        ],
+      },
+      'w3-C2': {
+        title: 'Reading a yield',
+        topics: ['yield', 'semi'],
+        story: R`Orchard Energy has a bond with a face value of \(\$1{,}000\) and 8 years to maturity. Its coupon rate is \(5\%\) a year, paid **semi-annually**.\n\nThe bond trades at \(\$945\) today.`,
+        parts: [
+          { kind: 'calc', marks: 1, ask: R`Calculate the bond’s current yield.`,
+            formulas: ['current-yield'], pick: ['current-yield', 'bond-price', 'eay', 'share-zero'],
+            answer: P(50 / 945), unit: '%', dp: 2,
+            model: ['Current yield = Annual coupon/Price', '= 50/945', '= 5.29%'],
+            meaning: R`The coupons alone pay \(${L.pct(50 / 945)}\) a year on the \(\$945\) price.`,
+            hint: R`The annual coupon is \(5\% \times \$1{,}000 = \$50\).` },
+          { kind: 'calc', marks: 2, ask: R`Calculate the bond’s yield to maturity (YTM), as a yearly rate compounded semi-annually.`,
+            formulas: ['bond-price'], pick: ['bond-price', 'zero-bond', 'current-yield', 'ear'],
+            answer: P(2 * WC.yi), unit: '%', dp: 2,
+            model: ['PBond = C/i*(1 - 1/(1 + i)^n) + FVn/(1 + i)^n', '945 = 25/i*(1 - 1/(1 + i)^16) + 1000/(1 + i)^16', 'YTM = 2*i = 2*2.935710% = 5.87%'],
+            meaning: R`The YTM is \(${L.pct(2 * WC.yi)}\) a year, compounded semi-annually: \(${L.pct(WC.yi, 4)}\) every half-year.`,
+            hint: R`Solve for the yield per half-year, \(i\): \(N = 16\), \(PV = -945\), \(Pmt = 25\), \(FV = 1000\). Then double it.` },
+          { kind: 'calc', marks: 2, ask: R`Use your answer to (b) to find the effective annual yield (EAY).`,
+            formulas: ['ear', 'eay'], pick: ['ear', 'eay', 'fv-lump', 'current-yield', 'bond-price'],
+            answer: P((1 + WC.yi) ** 2 - 1), unit: '%', dp: 2,
+            model: ['EAY = (1 + i)^m - 1', '= (1 + 0.02935710)^2 - 1', '= 5.96%'],
+            meaning: R`Earning \(${L.pct(WC.yi, 4)}\) every half-year is worth \(${L.pct((1 + WC.yi) ** 2 - 1)}\) over a full year.`,
+            hint: R`Compound the half-year yield for two half-years. Do not halve it again.` },
+          { kind: 'theory', marks: 3, ask: R`Explain what the YTM of \(${L.pct(2 * WC.yi)}\) means for someone who buys the bond today. Why is it higher than the \(5\%\) coupon rate?`,
+            points: [
+              { t: R`The YTM is the average yearly return from buying at \(\$945\) and holding to maturity, if every payment is made.`, ok: true },
+              { t: R`The coupon rate is fixed. It only sets the size of the coupons: \(5\% \times \$1{,}000 = \$50\) a year.`, ok: true },
+              { t: R`The bond trades at a discount, so the YTM also counts the gain from \(\$945\) up to the \(\$1{,}000\) face value.`, ok: true },
+              { t: R`The YTM is higher because the coupons will rise over time.`, ok: false, why: R`The coupons are fixed at \(\$25\) every half-year.` },
+              { t: R`The coupon rate is the rate used to discount the bond’s cash flows.`, ok: false, why: R`The cash flows are discounted at the yield (the YTM), never at the coupon rate.` },
+              { t: R`The current yield of \(${L.pct(50 / 945)}\) is the full return from holding the bond to maturity.`, ok: false, why: R`The current yield counts only the coupons. It leaves out the gain from \(\$945\) to \(\$1{,}000\).` },
+            ],
+            model: R`The YTM of \(${L.pct(2 * WC.yi)}\) is the average yearly return from buying Orchard’s bond at \(\$945\) and holding it to maturity, if every payment is made. The \(5\%\) coupon rate is different: it is fixed and only sets the \(\$50\) of coupons each year. The YTM is higher because the bond trades at a discount, so the buyer also gains \(\$55\) as the price rises to the \(\$1{,}000\) face value. So the YTM, not the coupon rate, is the return the market requires today.`,
+            keys: [['hold', 'maturity'], ['fixed', 'coupon rate'], ['discount', 'gain'], ['face value', '1,000', '1000']] },
+        ],
+      },
+      'w3-C3': {
+        title: 'A share with two growth stages',
+        topics: ['ddm', 'vargrowth'],
+        story: R`Saltbush Foods has **just paid** a dividend of \(\$1.20\) per share. Its shareholders require a return of \(11\%\) a year.`,
+        parts: [
+          { kind: 'calc', marks: 2, ask: R`Analysts expect dividends to grow at \(4\%\) a year, forever. What is a share worth today?`,
+            formulas: ['share-ddm'], pick: ['share-ddm', 'share-zero', 'share-general', 'pv-perp'],
+            answer: WC.p0, unit: '$', dp: 2,
+            model: ['P0 = D1/(rE - g)', '= 1.20*(1 + 0.04)/(0.11 - 0.04)', '= $17.83'],
+            meaning: R`With steady \(4\%\) growth, a share is worth \(${L.money(WC.p0)}\).`,
+            hint: R`The dividend was just paid, so grow it one year first: \(D_1 = D_0(1 + g)\).` },
+          { kind: 'calc', marks: 2, ask: R`Saltbush now plans faster growth: \(9\%\) a year for the next 3 years, then \(4\%\) a year forever. What will a share be worth at the end of year 3, \(P_3\)?`,
+            formulas: ['share-ddm'], pick: ['share-ddm', 'share-zero', 'share-general', 'zero-bond'],
+            answer: WC.sh.PT, unit: '$', dp: 2,
+            model: ['P3 = D4/(rE - g)', '= 1.20*1.09^3*1.04/(0.11 - 0.04)', '= $23.09'],
+            meaning: R`At the end of year 3, all the dividends from year 4 onwards are worth \(${L.money(WC.sh.PT)}\).`,
+            hint: R`\(D_4 = D_0 \times 1.09^{3} \times 1.04\): three years at \(9\%\), then one year at \(4\%\).` },
+          { kind: 'calc', marks: 2, ask: R`Use your answer to (b) to find what a share is worth today under the new plan.`,
+            formulas: ['share-general'], pick: ['share-general', 'pv-grow-annuity', 'share-zero', 'npv'],
+            answer: WC.sh.price, unit: '$', dp: 2,
+            model: ['P0 = D1/(1 + rE) + D2/(1 + rE)^2 + (D3 + P3)/(1 + rE)^3', '= 1.308/1.11 + 1.42572/1.11^2 + (1.5540348 + 23.088517)/1.11^3', '= $20.35'],
+            meaning: R`Faster growth lifts the value of a share from \(${L.money(WC.p0)}\) to \(${L.money(WC.sh.price)}\).`,
+            hint: R`\(D_1 = 1.308\), \(D_2 = 1.42572\) and \(D_3 = 1.5540348\). \(P_3\) sits at year 3, next to \(D_3\).` },
+          { kind: 'theory', marks: 2, ask: R`Explain why Saltbush’s dividends are discounted at \(r_E = 11\%\).`,
+            points: [
+              { t: R`\(r_E\) is the return shareholders require: what they could earn elsewhere on an investment with the same risk.`, ok: true },
+              { t: R`Dividends are not promised, so the rate must reward shareholders for that risk. A riskier share needs a higher \(r_E\).`, ok: true },
+              { t: R`Because \(r_E\) is the rate at which the dividends grow.`, ok: false, why: R`That is \(g\). The growth rate sets the size of the dividends, not the discount rate.` },
+              { t: R`Because Saltbush pays \(11\%\) interest on its bank loans.`, ok: false, why: R`The interest rate on debt is not the return shareholders require.` },
+              { t: R`Because \(11\%\) is the dividend yield.`, ok: false, why: R`The dividend yield is only part of the required return: \(r_E = \frac{D_1}{P_0} + g\).` },
+            ],
+            model: R`Saltbush’s dividends are discounted at \(r_E = 11\%\) because that is the return its shareholders require. It is their opportunity cost: the return they could earn elsewhere at the same risk. Dividends are not promised, so the rate includes a reward for that risk. A riskier share needs a higher \(r_E\), which gives a lower price.`,
+            keys: [['require', 'required return'], ['opportunity cost', 'elsewhere'], ['risk']] },
+          { kind: 'blanks', marks: 1, ask: R`Choose the right words.`,
+            text: R`If shareholders saw Saltbush as riskier and required \(12\%\), the share price would {{fall|rise|stay the same}}, because every dividend would be discounted at a {{higher|lower}} rate.`,
+            why: R`A higher required return shrinks the present value of every dividend, so the price falls.` },
+        ],
+      },
+    },
+
     questions: [
       /* ----- bond features ----- */
       { id: 'w3-q01', topic: 'bondbasics', kind: 'mcq', level: 1, section: 'A', src: 'Tutorial W3 concept check Q1',
@@ -910,7 +1033,7 @@
         calc: `12 [N] · 7 [I/YR] · 80 [PMT] · 1000 [FV] · [PV] → −${T.money(FIN.bondPrice(1000, 0.08, 0.07, 12))}`,
         ti: [TI.solver({ N: 12, I: 7, Pmt: 80, FV: 1000, PpY: 1, CpY: 1 }, 'PV', { note: R`The minus sign means it is the price you pay: \(${L.money(FIN.bondPrice(1000, 0.08, 0.07, 12))}\).` })],
         why: 'The 8% coupon is above the 7% yield, so the bond sells at a premium.' },
-      { id: 'w3-q14', topic: 'bondprice', kind: 'num', level: 2, section: 'B', src: 'Mock MST Q29', formula: 'bond-price', formulas: ['bond-price'],
+      { id: 'w3-q14', topic: 'bondprice', kind: 'num', level: 2, section: 'B', src: 'Mock MST Q29', formula: 'bond-price', formulas: ['bond-price', 'pv-lump'],
         q: R`A bond has a par value of $1,000, a 10% annual coupon and 8 years left to maturity. What would its price be at a theoretical discount rate of **0%**?`,
         answer: 1800, unit: '$', dp: 2,
         mistakes: [
