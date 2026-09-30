@@ -1646,6 +1646,7 @@
           return {
             q: R`${co} has sales of ${mil(sales)} and COGS of ${mil(cogs)}. It ${kind === 'ap' ? 'negotiates longer credit, so its' : 'manages its working capital better, so its'} ${word} ${kind === 'ap' ? 'rise' : 'fall'} from ${from} to ${to}. How much cash does this free up (in $m)?`,
             givens: [['Sales', milL(sales)], ['COGS', milL(cogs)], [R`\Delta\text{days}`, String(cut)]],
+            formulas: [{ ar: 'ar-days', inv: 'inv-days', ap: 'ap-days' }[kind], 'cash-freed'],
             answer: freed, unit: '$m', dp: 3,
             mistakes: uniq(freed, [
               { v: (cut * (kind === 'ar' ? cogs : sales)) / 365, why: kind === 'ar' ? 'Receivables are measured in sales dollars. Use daily sales.' : 'Inventory and payables are measured at cost. Use daily COGS.' },
