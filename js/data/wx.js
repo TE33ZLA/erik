@@ -36,6 +36,81 @@
   TG.rE = FIN.rELevTax(TG.rU, TG.rD, TG.D, TG.E, TG.tc); TG.w = FIN.wacc({ E: TG.E, D: TG.D, re: TG.rE, rd: TG.rD, tc: TG.tc });
   const Q12 = FIN.wacc({ E: 600, P: 100, D: 300, re: 0.12, rp: 0.08, rd: 0.06, tc: 0.3 }); // the WACC of wx-q12
 
+  /* ---------- firm value from cash flows, debt-financed buybacks, financial distress (every number computed here) ---------- */
+  const VUX = { ebit: 12, tc: 0.3, rU: 0.105 };                            // L6 example: V_U from EBIT
+  VUX.cf = VUX.ebit * (1 - VUX.tc); VUX.VU = FIN.pvPerp(VUX.cf, VUX.rU);
+  /** A debt-financed buyback in MM with taxes: firm value, equity and share price. $m and millions of shares. */
+  const buyback = (o) => {
+    const r = Object.assign({}, o);
+    r.cf = o.ebit * (1 - o.tc); r.VU = FIN.pvPerp(r.cf, o.rU); r.its = FIN.pvTaxShieldPerm(o.D, o.tc); r.VL = r.VU + r.its;
+    r.E = r.VL - o.D; r.left = o.N - o.n; r.P = r.E / r.left; r.P0 = r.VU / o.N; r.Pbuy = o.D / o.n;
+    return r;
+  };
+  const BBX = buyback({ ebit: 9, tc: 0.25, rU: 0.125, N: 10, D: 24, n: 4 });   // L6 worked example
+  const Q36 = { ebit: 15, tc: 0.25, rU: 0.09 };
+  Q36.VU = FIN.pvPerp(Q36.ebit * (1 - Q36.tc), Q36.rU);
+  const Q37 = buyback({ ebit: 10, tc: 0.3, rU: 0.08, N: 14, D: 35, n: 5 });
+  const Q40 = { fcf: 9, fcfD: 8.4, rU: 0.105, tc: 0.3, D: 40, N: 6.5 };        // distress costs cut the expected cash flow
+  Q40.VU = FIN.pvPerp(Q40.fcfD, Q40.rU); Q40.VL = Q40.VU + FIN.pvTaxShieldPerm(Q40.D, Q40.tc); Q40.E = Q40.VL - Q40.D; Q40.P = Q40.E / Q40.N;
+  /** Buybacks where every price is a whole number of cents and the shares bought back are a round number (for wx-g-buyback). */
+  const BUYBACKS = (() => {
+    const out = [];
+    const round = (x, dp) => Math.abs(x * 10 ** dp - Math.round(x * 10 ** dp)) < 1e-7;
+    [6, 8, 9, 10, 11, 12, 14, 15, 16, 18, 20, 24].forEach((ebit) => [0.25, 0.3].forEach((tc) => {
+      for (let k = 0; k <= 14; k++) {
+        const rU = +(0.08 + 0.005 * k).toFixed(3);
+        const VU = FIN.pvPerp(ebit * (1 - tc), rU);
+        if (!round(VU, 1)) continue;
+        [10, 12, 15, 16, 20, 24, 25, 30, 35, 36, 40, 45, 48, 50].forEach((D) => {
+          if (D > 0.6 * VU) return;
+          const VL = VU + FIN.pvTaxShieldPerm(D, tc);
+          for (let N = 4; N <= 40; N++) {
+            const n = D / (VL / N);
+            if (round(VL / N, 2) && round(VU / N, 2) && round(n, 1) && n < 0.6 * N) out.push(buyback({ ebit, tc, rU, N, D, n: +n.toFixed(1) }));
+          }
+        });
+      }
+    }));
+    return out;
+  })();
+  // L7 picture: firm value against debt (shape only): V_U, plus the tax shield T_c D, minus made-up distress costs 0.004 D^2
+  const TO = { VU: 100, tc: 0.3, k: 0.004 };
+  const toPts = (f) => Array.from({ length: 16 }, (_, i) => i * 5).map((d) => [d, f(d)]);
+  TO.best = TO.tc / (2 * TO.k); TO.top = TO.VU + TO.tc * TO.best - TO.k * TO.best ** 2;
+
+  /* ---------- written rounds ---------- */
+  // C1: Bellbird Breweries' WACC (market values in $m)
+  const WC1 = { nE: 12, pE: 5, rf: 0.04, beta: 1.1, mrp: 0.08, d1: 0.39, g: 0.05, nP: 1.5, pP: 16, divP: 1.2, face: 40, pct: 0.95, cpn: 0.06, ytm: 0.07, tc: 0.3,
+    irr: [['Hops', 0.114], ['Malt', 0.091], ['Yeast', 0.096], ['Cask', 0.082]] };
+  WC1.E = WC1.nE * WC1.pE; WC1.P = WC1.nP * WC1.pP; WC1.D = WC1.face * WC1.pct; WC1.V = WC1.E + WC1.P + WC1.D;
+  WC1.re = FIN.capm(WC1.rf, WC1.beta, WC1.rf + WC1.mrp); WC1.reDDM = WC1.d1 / WC1.pE + WC1.g;
+  WC1.rp = FIN.costPref(WC1.divP, WC1.pP); WC1.kd = WC1.ytm * (1 - WC1.tc);
+  WC1.w = FIN.wacc({ E: WC1.E, P: WC1.P, D: WC1.D, re: WC1.re, rp: WC1.rp, rd: WC1.ytm, tc: WC1.tc });
+  // C2: two identical quarries, one with debt (MM with taxes)
+  const WC2 = { ebit: 1.2, VU: 6, tc: 0.3, rD: 0.08, de: 0.5 };
+  WC2.rU = (WC2.ebit * (1 - WC2.tc)) / WC2.VU; WC2.rE = FIN.rELevTax(WC2.rU, WC2.rD, WC2.de, 1, WC2.tc);
+  WC2.w = FIN.wacc({ E: 1, D: WC2.de, re: WC2.rE, rd: WC2.rD, tc: WC2.tc });
+  // C3: a debt-financed buyback
+  const WC3 = buyback({ ebit: 11, tc: 0.3, rU: 0.10, N: 10, D: 35, n: 4 });
+  /** A WACC table in Excel: market values, weights =B2/B$5, costs, after-tax costs, weight × cost, =SUM (the answer). */
+  const xlWacc = (vals, costs, tc, costNotes) => ({
+    title: 'WACC table',
+    rows: [['Source', 'Market value ($m)', 'Weight', 'Cost', 'After-tax cost', 'Weight × cost'],
+      ['Equity', vals[0], '=B2/B$5', costs[0], '=D2', '=C2*E2'],
+      ['Preference shares', vals[1], '=B3/B$5', costs[1], '=D3', '=C3*E3'],
+      ['Debt', vals[2], '=B4/B$5', costs[2], '=D4*(1-$B$7)', '=C4*E4'],
+      ['Total', '=SUM(B2:B4)', '=SUM(C2:C4)', null, 'WACC', '=SUM(F2:F4)'],
+      [],
+      ['Tax rate', tc]],
+    fmt: { 'B2:B5': '0.00', 'C2:F5': '%', 'B7': '%' }, bold: ['A1:F1', 'E5:F5'], answer: 'F5',
+    steps: [
+      { t: `Market values in column B (${costNotes || 'shares × price, bonds at their market price'}), added in B5: that is V.`, cells: 'B2:B5' },
+      { t: 'Each weight: =B2/B$5, copied down. The $ keeps row 5 fixed. The weights add up to 100%.', cells: 'C2:C5' },
+      { t: 'The costs in column D. Only debt is cut for tax: =D4*(1-$B$7).', cells: 'D2:E4' },
+      { t: 'Weight × cost in column F. The WACC is their sum: =SUM(F2:F4).', cells: 'F2:F5' },
+    ],
+  });
+
   /* ---------- picture data (viz): every number is computed from the same inputs as the cards ---------- */
   // one colour per source of capital in every picture: equity 1 (blue), debt 2 (orange), preference shares 4 (yellow)
   const SRC_C = { E: 1, D: 2, P: 4 };
@@ -132,6 +207,7 @@
         enemy: { name: 'WACC-a-Mole', title: 'Pops up at the weighted average', body: 'round', color: '#8d6e63', acc: ['hardhat'], mouth: 'grin', item: '🔨',
           lines: { intro: 'Pop! I appear at the weighted average. Can you hit me?', hit: ['Bonk! Market-value weights!', 'You remembered the tax on debt! Ouch!'],
             taunt: ['Book values? Pop! Missed me!', 'Pre-tax debt? I am still up here!'], win: 'Whacked… at exactly the WACC…', lose: 'Pop! Your discount rate is all wrong!' } } },
+      { id: 'wx-W1', kind: 'case', name: 'Written round: Bellbird’s cost of capital', case: 'wx-C1' },
       { id: 'wx-L5', kind: 'lesson', name: 'Capital structure with no taxes', lesson: 'wx-L5' },
       { id: 'wx-2', kind: 'battle', name: 'The Leverage Ledge', topics: ['mmnt', 'wacc'], n: 6,
         enemy: { name: 'The Leverage Yak', title: 'Thinks debt makes the pie bigger', body: 'blob', color: '#a1887f', acc: ['horns'], mouth: 'o', item: '🥧',
@@ -139,11 +215,13 @@
             taunt: ['Yak yak! Debt is cheap, so the WACC must fall!', 'D over V, D over E… same thing, yak!'], win: 'The pie… is the same size… however I slice it…', lose: 'Yak-yak! Leverage for everyone!' } } },
       { id: 'wx-L6', kind: 'lesson', name: 'Taxes and the interest tax shield', lesson: 'wx-L6' },
       { id: 'wx-L7', kind: 'lesson', name: 'Cost of equity and WACC with taxes', lesson: 'wx-L7' },
+      { id: 'wx-W2', kind: 'case', name: 'Written round: two quarries', case: 'wx-C2' },
       { id: 'wx-m1', kind: 'mini', name: 'Up, Down or Same?', mini: 'up-down' },
       { id: 'wx-3', kind: 'battle', name: 'Tax Shield Pass', topics: ['mmt', 'debtpref'], n: 6,
         enemy: { name: 'The Tax Shield Sherpa', title: 'Carries your interest past the taxman', body: 'tall', color: '#607d8b', acc: ['cap'], mouth: 'smirk', item: '🛡️',
           lines: { intro: 'I carry your interest past the taxman. For a small fee, of course.', hit: ['Tax rate times debt. You know this trail.', 'The shield is yours, climber.'],
             taunt: ['You forgot to multiply by the tax rate!', 'That is the interest, not the shield!'], win: 'You crossed the pass… without me…', lose: 'The taxman takes his share!' } } },
+      { id: 'wx-W3', kind: 'case', name: 'Written round: the buyback', case: 'wx-C3' },
       { id: 'wx-boss', kind: 'boss', name: 'The Summit', topics: '*', n: 10,
         enemy: { name: 'The Abominable Debt-Man', title: 'Borrows, and borrows, and borrows', body: 'spiky', color: '#90a4ae', acc: ['horns'], eyes: 3, mouth: 'fangs', item: '❄️',
           lines: { intro: 'ROAR! I am the Abominable Debt-Man. I borrow, and borrow, and BORROW!', hit: ['Your WACC… is correct?!', 'You levered and unlevered like a pro!'],
@@ -371,6 +449,13 @@
               series: [{ name: 'Rate it needs', c: 1, pts: [[0, 4], [10, 16]] }, { name: 'WACC', c: 2, dash: true, pts: [[0, 10], [10, 10]] }],
               shade: [{ x1: 5, x2: 10, c: 'bad', label: 'WACC too low' }], marks: [{ x: 8, y: 12, c: 'bad' }] } },
           { kind: 'check', ref: 'wx-q14' },
+          { kind: 'learn', title: 'Two conditions for using the WACC',
+            body: R`Use the firm’s WACC to discount a new project only when **both** of these are true.\n\n**1. Same risk.** The project has the same **systematic risk** as the firm’s average project.\n\n**2. Same financing.** The firm keeps the same mix of debt and equity while it funds the project, so the weights \(\frac{E}{V}\), \(\frac{P}{V}\) and \(\frac{D}{V}\) stay the same.`,
+            tip: 'If either one fails, the WACC is the wrong rate. For example, a riskier project needs a higher rate.',
+            viz: { type: 'flow', cap: 'Two yes answers, and the WACC is the right discount rate.',
+              steps: [{ icon: '⚖️', t: 'Same systematic risk?', s: 'as the firm’s average project', c: 1 }, { icon: '🥧', t: 'Same mix of debt and equity?', s: 'the weights stay the same', c: 2 }, { icon: '✅', t: 'Use the WACC', s: 'as the discount rate', c: 'good' }],
+              links: ['yes', 'yes'] } },
+          { kind: 'check', ref: 'wx-q35' },
           { kind: 'recap', title: 'Remember', points: [
             R`\(r_{WACC} = r_e\frac{E}{V} + r_p\frac{P}{V} + r_d(1 - T_c)\frac{D}{V}\), with \(V = E + P + D\).`,
             R`Weights use **market values**: shares \(\times\) price, and bonds at their market price.`,
@@ -470,6 +555,18 @@
             body: R`If the debt is **permanent** (it is never repaid), the shield arrives every year, forever: a **perpetuity**. Each year it is \(T_c \times r_D \times D\). It is as risky as the debt, so discount it at \(r_D\):\n\n\[PV = \frac{T_c\,r_D\,D}{r_D} = T_c \times D\]\n\nThe interest rate cancels out.`,
             viz: { type: 'flow', op: true, cap: R`A perpetuity is the yearly amount divided by the rate. The \(r_D\) on top and below cancel.`,
               steps: [{ t: R`\(T_c\,r_D\,D\)`, s: 'the shield each year, forever', c: 'good' }, { t: R`\(r_D\)`, s: 'the rate', c: 'grey' }, { t: R`\(T_c \times D\)`, s: 'its value today', c: 3 }], links: [R`\(\div\)`, R`\(=\)`] } },
+          { kind: 'learn', title: 'What is the firm worth with no debt?',
+            body: R`Picture an all-equity firm that earns the same **EBIT** (earnings before interest and tax) every year, forever. It pays tax, so its owners get \(EBIT(1 - T_c)\) a year.\n\nThat is a **perpetuity** (Week 2). Its value is the yearly cash flow divided by the unlevered cost of capital:\n\n\[V_U = \frac{EBIT(1 - T_c)}{r_U}\]`,
+            formula: 'vu-cf',
+            tip: R`Turn it around to find the rate: \(r_U = \frac{EBIT(1 - T_c)}{V_U}\). Neither form is printed on the sheet. Both are the sheet’s \(PV = \frac{C}{r}\).`,
+            viz: { type: 'flow', op: true, cap: R`A perpetuity: the yearly after-tax cash flow divided by \(r_U\). Here \(\$${nt(VUX.ebit, 2)}\text{m} \times (1 - ${nt(VUX.tc, 2)})\) at \(${pc(VUX.rU, 1)}\).`,
+              steps: [{ t: R`\(\$${nt(VUX.cf, 2)}\text{m}\)`, s: R`\(EBIT(1 - T_c)\), every year`, c: 1 }, { t: R`\(${pc(VUX.rU, 1)}\)`, s: R`\(r_U\)`, c: 'grey' }, { t: R`\(\$${nt(VUX.VU, 2)}\text{m}\)`, s: R`\(V_U\), the firm with no debt`, c: 3 }],
+              links: [R`\(\div\)`, R`\(=\)`] } },
+          { kind: 'example', title: 'Worked example: a firm’s value from its cash flows', q: R`Brolga Bricks has no debt. It expects EBIT of $12m a year, forever. The tax rate is 30% and its unlevered cost of capital is 10.5%. What is the firm worth?`,
+            steps: [R`After-tax cash flow each year: \(EBIT(1 - T_c) = \$12\text{m} \times (1 - 0.30) = \$${nt(VUX.cf, 2)}\text{m}\).`, R`\(V_U = \frac{\$${nt(VUX.cf, 2)}\text{m}}{0.105} = \$${nt(VUX.VU, 2)}\text{m}\).`],
+            answer: R`Brolga Bricks is worth \(\$${nt(VUX.VU, 2)}\text{m}\) with no debt.`,
+            ti: [TI.line('12*(1-0.3)/0.105', { note: 'In $m.' })] },
+          { kind: 'check', gen: 'wx-g-vu' },
           { kind: 'learn', title: 'MM with taxes: debt adds value',
             body: R`\[V_L = V_U + PV(\text{interest tax shield})\]\n\nFor permanent debt, \(V_L = V_U + T_c D\). The levered firm is worth more than the unlevered one, because the government collects less tax.`,
             formula: 'mm-t-value',
@@ -493,11 +590,28 @@
             answer: R`\(V_L = \$500\text{m} + \$${nt(SG.pv, 2)}\text{m} = \$${nt(SG.VU + SG.pv, 2)}\text{m}\).`,
             ti: [TI.line('500+0.3*150', { note: 'In $m.' })] },
           { kind: 'check', gen: 'wx-g-its' },
+          { kind: 'learn', title: 'The shareholders get the tax shield',
+            body: R`Say an all-equity firm borrows **permanent debt** \(D\) and uses all of it to **buy back** some of its shares. With taxes, the firm is now worth \(V_L = V_U + T_c D\).\n\nThe lenders own \(D\). The shareholders own the rest: \(E = V_L - D\). Divide \(E\) by the shares still on issue to get the **share price**.`,
+            formula: 'share-price-eq',
+            viz: { type: 'bars', cap: R`Borrowing \(\$${nt(BBX.D, 2)}\text{m}\) forever adds the tax shield, \(${nt(BBX.tc, 2)} \times \$${nt(BBX.D, 2)}\text{m} = \$${nt(BBX.its, 2)}\text{m}\). The lenders own \(\$${nt(BBX.D, 2)}\text{m}\); the shareholders own the rest.`,
+              bars: [{ label: 'No debt', note: `${T.moneyT(BBX.VU)}m`, parts: [{ v: BBX.VU, c: SRC_C.E }] }, { label: 'After the buyback', note: `${T.moneyT(BBX.VL)}m`, parts: [{ v: BBX.E, c: SRC_C.E }, { v: BBX.D, c: SRC_C.D }] }],
+              keys: [{ c: SRC_C.E, label: R`Equity \(E\)` }, { c: SRC_C.D, label: R`Debt \(D\)` }] } },
+          { kind: 'example', title: 'Worked example: a debt-financed buyback', q: R`Jabiru Joinery has no debt and 10 million shares. It expects EBIT of $9m a year, forever. The tax rate is 25% and its unlevered cost of capital is 12.5%. It borrows $24m of permanent debt and uses it to buy back 4 million shares. What is the share price after the buyback?`,
+            steps: [
+              R`\(V_U = \frac{EBIT(1 - T_c)}{r_U} = \frac{\$9\text{m} \times 0.75}{0.125} = \$${nt(BBX.VU, 2)}\text{m}\): \(\$${nt(BBX.P0, 2)}\) a share before the plan.`,
+              R`\(V_L = V_U + T_c D = \$${nt(BBX.VU, 2)}\text{m} + 0.25 \times \$24\text{m} = \$${nt(BBX.VL, 2)}\text{m}\).`,
+              R`\(E = V_L - D = \$${nt(BBX.VL, 2)}\text{m} - \$24\text{m} = \$${nt(BBX.E, 2)}\text{m}\).`,
+              R`Shares left: \(10\text{m} - 4\text{m} = 6\text{m}\). Price \(= \frac{\$${nt(BBX.E, 2)}\text{m}}{6\text{m}} = \$${L.num(BBX.P, 2)}\).`,
+            ],
+            answer: R`The price rises from \(\$${L.num(BBX.P0, 2)}\) to \(\$${L.num(BBX.P, 2)}\): the \(\$${nt(BBX.its, 2)}\text{m}\) tax shield goes to the shareholders. The 4 million shares were bought at \(\frac{\$24\text{m}}{4\text{m}} = \$${L.num(BBX.Pbuy, 2)}\), the new price.`,
+            ti: [TI.line('9*(1-0.25)/0.125+0.25*24', { note: R`\(V_L\), in $m.` }), TI.line('(ans-24)/(10-4)', { note: 'The share price, in $.' })] },
+          { kind: 'check', ref: 'wx-q37' },
           { kind: 'recap', title: 'Remember', points: [
             R`Interest is tax deductible, so debt saves tax: \(\text{Interest tax shield} = \text{Interest} \times T_c\).`,
             R`For permanent debt: \(PV(\text{interest tax shield}) = T_c \times D\).`,
             R`MM with taxes: \(V_L = V_U + PV(\text{interest tax shield})\). Debt adds value.`,
             R`Exam trap: add only the tax shield \(T_c D\) to \(V_U\), never the whole loan \(D\).`,
+            R`A firm with level cash flows forever: \(V_U = \frac{EBIT(1 - T_c)}{r_U}\). After a debt-financed buyback, \(E = V_L - D\), and the price is \(E\) over the shares left.`,
           ], formula: 'its' },
         ],
       },
@@ -549,12 +663,157 @@
               mmChart('With taxes', TW.tc, R`With taxes: \(r_E\) rises more slowly, the WACC falls, and firm value rises by \(T_c D\).`)] },
           { kind: 'check', ref: 'wx-q32' },
           { kind: 'check', ref: 'wx-q33' },
+          { kind: 'learn', title: 'The best mix of debt and equity',
+            body: R`What mix of debt and equity makes a firm worth the most? MM give two answers.\n\n**No taxes:** every mix gives the same value (\(E + D = U = A\)). Capital structure is **irrelevant**.\n\n**With taxes:** each dollar of permanent debt adds \(T_c\) dollars of value (\(V_L = V_U + T_c D\)). So in theory, the more debt the better.`,
+            viz: { type: 'compare', cap: 'No taxes: the mix does not matter. With taxes: more debt, more value.',
+              items: [{ icon: '🥧', title: 'No taxes', big: R`\(V_L = V_U\)`, points: ['Every mix gives the same value', 'Capital structure is irrelevant'], c: 'grey' },
+                { icon: '🛡️', title: 'With taxes', big: R`\(V_L = V_U + T_c D\)`, points: ['Each dollar of debt adds value', 'In theory: as much debt as possible'], c: 1 }] } },
+          { kind: 'learn', title: 'Too much debt: financial distress',
+            body: R`Real firms do not borrow 100%. More debt raises the chance of **financial distress**: struggling to pay the lenders.\n\nDistress is costly even before any bankruptcy. These costs **lower the firm’s expected cash flows**, so they lower its value today.`,
+            tip: 'This comes from the textbook (Berk, DeMarzo and Harford), not the formula sheet. Check it against your Week 11 lecture.',
+            viz: { type: 'cards', cap: 'Four costs of financial distress. Each one cuts the cash the firm can expect.',
+              items: [{ icon: '🚶', t: 'Customers leave', s: 'They fear lost warranties and service', c: 2 }, { icon: '📦', t: 'Suppliers push back', s: 'They want cash up front', c: 2 },
+                { icon: '🏷️', t: 'Fire sales', s: 'Assets sold cheaply to raise cash', c: 2 }, { icon: '⚖️', t: 'Legal fees', s: 'Lawyers and administrators are paid', c: 2 }] } },
+          { kind: 'learn', title: 'The trade-off theory',
+            body: R`The **trade-off theory** puts the two effects together:\n\n\[V_L = V_U + PV(\text{Interest tax shield}) - PV(\text{Financial distress costs})\]\n\nAdd debt while the extra tax shield is worth more than the extra distress costs. Stop where they balance: that is the **optimal capital structure**.`,
+            formula: 'tradeoff',
+            tip: 'The first two parts are on the formula sheet. The distress costs come from the textbook.',
+            viz: { type: 'lines', w: 360, cap: 'The tax shield lifts firm value. Distress costs grow fast at high debt. Value peaks in between: the best debt level.',
+              x: { label: 'Debt', ticks: [] }, y: { label: 'Firm value', ticks: [] },
+              series: [{ name: 'V_U: no debt', c: 'grey', dash: true, pts: toPts(() => TO.VU) }, { name: 'V_U + T_c D', c: 1, pts: toPts((d) => TO.VU + TO.tc * d) },
+                { name: 'Minus distress costs', c: 3, pts: toPts((d) => TO.VU + TO.tc * d - TO.k * d * d) }],
+              marks: [{ x: TO.best, y: TO.top, label: 'Best debt level', c: 3 }] } },
+          { kind: 'check', ref: 'wx-q38' },
           { kind: 'recap', title: 'Remember', points: [
             R`With taxes: \(r_E = r_U + \frac{D}{E}(r_U - r_D)(1 - T_c)\). It rises more slowly than with no taxes.`,
             R`\(r_{WACC} = r_E\frac{E}{E+D} + r_D\frac{D}{E+D}(1 - T_c)\). It falls as debt rises.`,
             R`No taxes: firm value and the WACC stay the same. With taxes: value rises and the WACC falls.`,
             R`Exam trap: check which world the question is in. With taxes, put \((1 - T_c)\) into both formulas.`,
+            R`Trade-off theory (textbook): \(V_L = V_U + PV(\text{ITS}) - PV(\text{distress costs})\). Borrow until the extra tax shield equals the extra distress costs.`,
           ], formula: 'mm-t-wacc' },
+        ],
+      },
+    },
+
+    /* ---------- written rounds: a scenario with parts, answered as in the exam's written section ---------- */
+    cases: {
+      'wx-C1': {
+        title: 'Bellbird Breweries’ cost of capital',
+        topics: ['debtpref', 'equity', 'wacc'],
+        story: R`Bellbird Breweries has three sources of capital (below). The company tax rate is 30%.\n\nIts equity beta is 1.1. The risk-free rate is 4% and the market risk premium is 8%. Next year’s dividend is expected to be $0.39 a share, growing at 5% a year forever.\n\nBellbird can invest in four projects with the **same risk** as its existing business. Their IRRs are: Hops 11.4%, Malt 9.1%, Yeast 9.6% and Cask 8.2%.`,
+        table: { head: ['Source', 'Market data', 'Other facts'], rows: [
+          ['Ordinary shares', '12 million shares at $5.00', 'Beta 1.1'],
+          ['Preference shares', '1.5 million shares at $16.00', 'Fixed dividend of $1.20 a year'],
+          ['Bonds', 'Face value $40 million, trading at 95% of face', 'Coupon rate 6%, yield to maturity 7%']] },
+        parts: [
+          { kind: 'calc', marks: 1, ask: R`What is Bellbird’s after-tax cost of debt?`,
+            formulas: ['wacc'], answer: P(WC1.kd), unit: '%', dp: 2,
+            model: ['After-tax cost of debt = rd*(1 - Tc)', '= 0.07*(1 - 0.30)', '= 4.90%'],
+            meaning: R`The cost of debt is the yield to maturity (\(7\%\)), not the \(6\%\) coupon rate. Interest saves tax, so debt costs Bellbird only \(${pc(WC1.kd)}\).` },
+          { kind: 'calc', marks: 1, ask: R`What is the cost of the preference shares?`,
+            formulas: ['cost-pref'], answer: P(WC1.rp), unit: '%', dp: 2,
+            model: ['Rp = DIVp/Pp', '= 1.20/16.00', '= 7.50%'],
+            meaning: R`Preference dividends are not tax deductible, so there is no \((1 - T_c)\).` },
+          { kind: 'calc', marks: 1, ask: R`Use CAPM to find the cost of equity.`,
+            formulas: ['capm'], answer: P(WC1.re), unit: '%', dp: 2,
+            model: ['E[Ri] = rf + Beta(i)*(E[RM] - rf)', '= 0.04 + 1.1*0.08', '= 12.80%'],
+            meaning: R`Check with the dividend growth model: \(r_E = \frac{D_1}{P_0} + g = \frac{0.39}{5.00} + 0.05 = ${pc(WC1.reDDM)}\). The two methods agree.` },
+          { kind: 'calc', marks: 3, ask: R`Calculate Bellbird’s WACC with market-value weights.`,
+            formulas: ['wacc'], answer: P(WC1.w), unit: '%', dp: 2,
+            model: ['rWACC = re*E/V + rp*P/V + rd*(1 - Tc)*D/V', 'E = 12*5.00 = 60', 'P = 1.5*16.00 = 24', 'D = 0.95*40 = 38', 'V = 60 + 24 + 38 = 122',
+              '= 0.128*60/122 + 0.075*24/122 + 0.07*(1 - 0.30)*38/122', '= 9.30%'],
+            meaning: R`All values are in $ millions. The bonds count at their market value, \(95\%\) of face.`,
+            hint: R`Market values: shares \(\times\) price, and the bonds at \(95\%\) of their face value.`,
+            xl: xlWacc([WC1.E, WC1.P, WC1.D], [WC1.re, WC1.rp, WC1.ytm], WC1.tc) },
+          { kind: 'theory', marks: 2, ask: R`Which projects should Bellbird accept? Why?`,
+            points: [
+              { t: R`Accept Hops (\(11.4\%\)) and Yeast (\(9.6\%\)): their IRRs are above the WACC of \(${pc(WC1.w)}\).`, ok: true },
+              { t: R`Reject Malt (\(9.1\%\)) and Cask (\(8.2\%\)): they earn less than the cost of the money, so their NPVs at the WACC are negative.`, ok: true },
+              { t: R`Accept every project with an IRR above the after-tax cost of debt (\(${pc(WC1.kd)}\)), because debt is the cheapest money.`, ok: false, why: 'Bellbird is funded by debt, preference shares and equity together. The hurdle is the blended cost: the WACC.' },
+              { t: R`Accept only Hops, because it has the highest IRR.`, ok: false, why: 'No limit on capital is mentioned, so accept every project whose IRR beats the WACC.' },
+              { t: R`Use the cost of equity (\(${pc(WC1.re)}\)) as the hurdle, because the shareholders own the projects.`, ok: false, why: 'All of Bellbird’s investors fund the projects. For average-risk projects the hurdle is the WACC.' },
+            ],
+            model: R`Bellbird should accept Hops (\(11.4\%\)) and Yeast (\(9.6\%\)), and reject Malt (\(9.1\%\)) and Cask (\(8.2\%\)). The projects have the same risk as the firm, so the right hurdle rate is the WACC of \(${pc(WC1.w)}\). A project whose IRR is above the WACC earns more than its investors require: it has a positive NPV and adds value.`,
+            keys: [['Hops'], ['Yeast'], ['WACC', 'cost of capital'], ['IRR', 'NPV']] },
+          { kind: 'theory', marks: 2, ask: R`Bellbird wants to use its WACC for these projects. What two conditions must hold?`,
+            points: [
+              { t: R`Each project has the same **systematic risk** as Bellbird’s average project.`, ok: true },
+              { t: R`Bellbird keeps the same **mix of debt and equity** (the same weights) while it funds the projects.`, ok: true },
+              { t: R`Each project must be funded entirely with new debt.`, ok: false, why: 'The WACC assumes the firm keeps its usual mix, not that a project is all debt.' },
+              { t: R`Each project must last forever.`, ok: false, why: 'The WACC can discount cash flows of any length.' },
+            ],
+            model: R`First, each project must have the same systematic risk as Bellbird’s existing business; the question says this holds. Second, Bellbird must keep its mix of debt, preference shares and equity, so the weights in the WACC stay the same. If either fails, for example a much riskier project, the WACC is the wrong rate and a higher rate is needed.`,
+            keys: [['systematic risk', 'same risk', 'risk'], ['mix', 'financing', 'proportion', 'weights', 'capital structure']] },
+        ],
+      },
+      'wx-C2': {
+        title: 'Two quarries, one with debt',
+        topics: ['mmt', 'mmnt'],
+        story: R`Two quarries are identical except for their financing. Each expects EBIT of $1.2 million a year, forever. The company tax rate is 30%.\n\nGranite Co has no debt and is worth $6 million. Basalt Co has permanent debt that costs 8% a year, and its debt-to-equity ratio is 0.5. Assume MM with taxes.`,
+        parts: [
+          { kind: 'calc', marks: 2, ask: R`Use Granite Co’s value to find the unlevered cost of capital, \(r_U\).`,
+            formulas: ['pv-perp', 'vu-cf'], answer: P(WC2.rU), unit: '%', dp: 2,
+            model: ['rU = EBIT*(1 - Tc)/VU', '= 1200000*(1 - 0.30)/6000000', '= 14.00%'],
+            meaning: R`Granite has no debt, so \(${pc(WC2.rU)}\) is both its cost of equity and its WACC.`,
+            hint: R`Granite is a perpetuity: \(V_U = \frac{EBIT(1 - T_c)}{r_U}\). Solve it for \(r_U\).` },
+          { kind: 'calc', marks: 2, ask: R`Calculate Basalt Co’s cost of equity.`,
+            formulas: ['mm-t-re'], answer: P(WC2.rE), unit: '%', dp: 2,
+            model: ['rE = rU + D/E*(rU - rD)*(1 - Tc)', '= 0.14 + 0.5*(0.14 - 0.08)*(1 - 0.30)', '= 16.10%'] },
+          { kind: 'calc', marks: 2, ask: R`Calculate the WACC of each firm. End with Basalt Co’s WACC.`,
+            formulas: ['mm-t-wacc'], answer: P(WC2.w), unit: '%', dp: 2,
+            model: ['WACC of Granite = rU = 14%', 'rWACC = rE*E/(E + D) + rD*D/(E + D)*(1 - Tc)', '= 0.161*1/1.5 + 0.08*0.5/1.5*(1 - 0.30)', '= 12.60%'],
+            meaning: R`With \(\frac{D}{E} = 0.5\), take \(E = 1\) and \(D = 0.5\): the weights are \(\frac{1}{1.5}\) and \(\frac{0.5}{1.5}\). Basalt’s WACC (\(${pc(WC2.w)}\)) is below Granite’s (\(${pc(WC2.rU)}\)).` },
+          { kind: 'theory', marks: 2, ask: R`Why is Basalt’s cost of equity higher than Granite’s, but its WACC lower?`,
+            points: [
+              { t: R`Basalt’s shareholders are paid after its lenders, so the debt makes their returns riskier. They require more: \(${pc(WC2.rE)}\) against \(${pc(WC2.rU)}\).`, ok: true },
+              { t: R`Interest is tax deductible, so Basalt’s debt costs only \(8\% \times (1 - 0.30) = ${pc(WC2.rD * (1 - WC2.tc), 1)}\) after tax.`, ok: true },
+              { t: R`With taxes, the higher cost of equity does not fully offset the cheap after-tax debt, so the WACC falls. The saving is the interest tax shield.`, ok: true },
+              { t: R`Basalt’s assets are riskier than Granite’s.`, ok: false, why: 'The two firms are identical apart from their financing, so their assets have the same risk.' },
+              { t: R`Basalt’s WACC is lower only because debt is cheaper than equity.`, ok: false, why: 'With no taxes, the higher cost of equity would cancel the cheap debt exactly. The tax deduction on interest is what lowers the WACC.' },
+            ],
+            model: R`Basalt’s cost of equity is higher (\(${pc(WC2.rE)}\) against \(${pc(WC2.rU)}\)) because its shareholders are paid after the lenders, so the debt adds financial risk to their returns. Its WACC is lower (\(${pc(WC2.w)}\) against \(${pc(WC2.rU)}\)) because interest is tax deductible: the debt costs only \(${pc(WC2.rD * (1 - WC2.tc), 1)}\) after tax. With taxes, the higher cost of equity does not fully offset the cheap debt, and the difference is the value of the interest tax shield.`,
+            keys: [['risk', 'riskier'], ['tax', 'deductible', 'tax shield'], ['cheaper', 'cheap', 'lower']] },
+          { kind: 'theory', marks: 2, ask: R`What is the optimal capital structure in an MM world without taxes? And with corporate taxes?`,
+            points: [
+              { t: R`Without taxes, capital structure is **irrelevant**: every mix of debt and equity gives the same firm value (\(E + D = U = A\)).`, ok: true },
+              { t: R`With corporate taxes, each dollar of permanent debt adds \(T_c\) of value (\(V_L = V_U + T_c D\)), so MM’s answer is as much debt as possible.`, ok: true },
+              { t: R`Without taxes, the best mix is half debt and half equity.`, ok: false, why: 'With no taxes, every mix gives the same value. No mix is better than another.' },
+              { t: R`With taxes, the firm should use no debt, because debt makes equity riskier.`, ok: false, why: 'The higher cost of equity is already in Proposition II. With taxes, debt still adds value through the tax shield.' },
+            ],
+            model: R`In an MM world without taxes, capital structure is irrelevant: \(E + D = U = A\), so every mix of debt and equity gives the same firm value. With corporate taxes, interest is tax deductible, so each dollar of permanent debt adds \(T_c\) dollars of value (\(V_L = V_U + T_c D\)). MM’s answer is then as much debt as possible. In practice, financial distress costs stop firms from going that far (the textbook’s trade-off theory).`,
+            keys: [['irrelevant', 'does not matter', 'same value'], ['tax shield', 'deductible', 'Tc'], ['100', 'as much debt', 'all debt', 'maximum']] },
+        ],
+      },
+      'wx-C3': {
+        title: 'Currawong Cables borrows to buy back shares',
+        topics: ['mmt'],
+        story: R`Currawong Cables has no debt and 10 million shares. It expects EBIT of $11 million a year, forever. The company tax rate is 30% and its unlevered cost of capital is 10%.\n\nThe board plans to borrow $35 million of permanent debt and use all of it to buy back 4 million shares. Assume MM with taxes.`,
+        parts: [
+          { kind: 'calc', marks: 2, ask: R`What is Currawong worth with no debt, in $ millions?`,
+            formulas: ['pv-perp', 'vu-cf'], answer: WC3.VU, unit: '$m', dp: 2,
+            model: ['VU = EBIT*(1 - Tc)/rU', '= 11*(1 - 0.30)/0.10', '= 77.00'],
+            meaning: R`That is \(\frac{\$${nt(WC3.VU, 2)}\text{m}}{10\text{m}} = ${L.money(WC3.P0)}\) a share before the plan.` },
+          { kind: 'calc', marks: 2, ask: R`What will Currawong be worth once it has the debt, in $ millions?`,
+            formulas: ['s-pvits', 'mm-t-value'], answer: WC3.VL, unit: '$m', dp: 2,
+            model: ['VL = VU + Tc*D', '= 77 + 0.30*35', '= 87.50'],
+            meaning: R`The debt adds only the tax shield, \(0.30 \times \$35\text{m} = \$${nt(WC3.its, 2)}\text{m}\), not the whole loan.` },
+          { kind: 'calc', marks: 2, ask: R`What is the share price after the buyback?`,
+            formulas: ['share-price-eq'], answer: WC3.P, unit: '$', dp: 2,
+            model: ['E = VL - D = 87.5 - 35 = 52.5', 'Price = E/Shares left', '= 52.5/(10 - 4)', '= $8.75'],
+            meaning: R`The price rises from \(${L.money(WC3.P0)}\) to \(${L.money(WC3.P)}\): the shareholders get the tax shield. The 4 million shares are bought at \(\frac{\$35\text{m}}{4\text{m}} = ${L.money(WC3.Pbuy)}\), the new price.` },
+          { kind: 'theory', marks: 2, ask: R`The CFO says: “Debt adds value, so let’s borrow even more.” Use the trade-off theory to advise the board. (This part uses the textbook, not the formula sheet.)`,
+            points: [
+              { t: R`More debt raises the chance of **financial distress**: struggling to pay the lenders.`, ok: true },
+              { t: R`Distress costs (lost customers and suppliers, assets sold cheaply, legal fees) lower the expected cash flows, and so the value of the firm.`, ok: true },
+              { t: R`The best level of debt balances the extra tax shield against the extra distress costs: \(V_L = V_U + PV(\text{ITS}) - PV(\text{distress costs})\).`, ok: true },
+              { t: R`Distress costs only matter once the firm is bankrupt, so they do not affect its value today.`, ok: false, why: 'Investors expect these costs in advance, so they lower the value today.' },
+              { t: R`The tax shield grows with every dollar of debt, so borrowing 100% is always best.`, ok: false, why: 'That is MM with taxes only. Distress costs grow fast at high debt, so value eventually falls.' },
+            ],
+            model: R`Borrowing more adds a bigger tax shield (\(T_c \times D\)), but it also raises the chance of financial distress. Distress costs, such as lost customers, assets sold cheaply and legal fees, lower Currawong’s expected cash flows and so its value: \(V_L = V_U + PV(\text{ITS}) - PV(\text{distress costs})\). So the board should borrow only while the extra tax shield is worth more than the extra expected distress costs, and stop there.`,
+            keys: [['distress', 'bankrupt'], ['tax shield', 'tax'], ['balance', 'trade-off', 'trade off', 'optimal']] },
+          { kind: 'blanks', marks: 1, ask: R`Choose the right words.`,
+            text: R`If the extra debt scared customers away and cut the expected EBIT, \(V_U\) would {{fall|rise|stay the same}} and the share price would {{fall|rise|stay the same}}.`,
+            why: R`Lower expected cash flows mean a lower value: \(V_U = \frac{EBIT(1 - T_c)}{r_U}\). That is how distress costs cut the value of the shares.` },
         ],
       },
     },
@@ -654,6 +913,7 @@
           R`\[r_{WACC} = 7.2\% + 0.8\% + 1.26\% = 9.26\%\]`,
         ],
         ti: [TI.line('(0.12*600+0.08*100+0.06*(1-0.3)*300)/(600+100+300)', Object.assign(PCT(FIN.wacc({ E: 600, P: 100, D: 300, re: 0.12, rp: 0.08, rd: 0.06, tc: 0.3 })), { note: R`Market values only, and only debt gets \((1 - 0.3)\). That is \(9.26\%\).` }))],
+        xl: xlWacc([600, 100, 300], [0.12, 0.08, 0.06], 0.3, 'the market values from the table; ignore the book values'),
         why: 'Market-value weights, and only debt is adjusted for tax.' },
       { id: 'wx-q13', topic: 'wacc', kind: 'mcq', level: 2, section: 'A', formula: 'wacc',
         q: R`When is the WACC the right discount rate for a new project?`,
@@ -807,6 +1067,79 @@
         q: R`Why is the PV of the interest tax shield on **permanent** debt equal to \(T_c \times D\)?`,
         choices: [R`Each year’s shield is \(T_c r_D D\). As a perpetuity discounted at \(r_D\), it is worth \(\frac{T_c r_D D}{r_D} = T_c D\)`, 'Because the debt is repaid after one year', 'Because tax shields are discounted at the WACC', 'Because interest is not tax deductible'], answer: 0,
         why: R`The shield is as risky as the debt, so it is discounted at \(r_D\), and \(r_D\) cancels.` },
+
+      /* ----- when to use the WACC; firm value from cash flows; buybacks; financial distress (textbook) ----- */
+      { id: 'wx-q35', topic: 'wacc', kind: 'mcq', level: 2, section: 'A', formulas: ['wacc'],
+        q: R`A firm wants to discount a new project’s cash flows at its WACC. Which conditions must hold?`,
+        choices: ['The project has the same systematic risk as the firm’s average project, and the firm keeps its mix of debt and equity',
+          'Only the risk matters: the firm can change its mix of debt and equity as much as it likes',
+          'Only the financing matters: the project can be much riskier than the firm’s other projects',
+          'The project only has to earn more than the after-tax cost of debt'], answer: 0,
+        wrong: { 1: 'If the mix changes, the weights in the WACC change, so the old WACC is out of date.', 2: 'A riskier project needs a higher rate. At the WACC its NPV looks too good.', 3: 'The hurdle is the WACC, the blended cost of all the firm’s capital, not the cost of debt alone.' },
+        why: R`The WACC is the return investors require on the firm’s **average** assets, with its **current** mix of debt and equity. A project must match both. (These conditions come from the textbook, Berk, DeMarzo and Harford; the formula sheet only gives the WACC formula.)` },
+      { id: 'wx-q36', topic: 'mmt', kind: 'num', level: 1, section: 'B', formulas: ['pv-perp', 'vu-cf'], formula: 'vu-cf',
+        q: R`Heron Homewares has no debt. It expects EBIT of $15 million a year, forever. The company tax rate is 25% and its unlevered cost of capital is 9%. What is the firm worth, in $ millions?`,
+        givens: [['EBIT', R`\$15\text{m}`], ['T_c', R`25\%`], ['r_U', R`9\%`]],
+        answer: Q36.VU, unit: '$m', dp: 2,
+        mistakes: [
+          { v: FIN.pvPerp(Q36.ebit, Q36.rU), why: R`That ignores tax. The owners get only \(EBIT(1 - T_c)\) each year.` },
+          { v: Q36.ebit * (1 - Q36.tc), why: 'That is one year’s after-tax cash flow. The firm is worth the whole perpetuity.' },
+          { v: FIN.pvPerp(Q36.ebit * Q36.tc, Q36.rU), why: R`That values the tax, \(EBIT \times T_c\). Use \(EBIT(1 - T_c)\).` },
+        ],
+        steps: [R`\[EBIT(1 - T_c) = \$15\text{m} \times (1 - 0.25) = \$${nt(Q36.ebit * (1 - Q36.tc), 2)}\text{m a year}\]`, R`\[V_U = \frac{EBIT(1 - T_c)}{r_U} = \frac{\$${nt(Q36.ebit * (1 - Q36.tc), 2)}\text{m}}{0.09} = \$${nt(Q36.VU, 2)}\text{m}\]`],
+        ti: [TI.line('15*(1-0.25)/0.09', { note: 'In $m.' })],
+        why: R`An all-equity firm with a level cash flow forever is a perpetuity. This is not printed on the sheet: it is the sheet’s \(PV = \frac{C}{r}\) with \(C = EBIT(1 - T_c)\) and \(r = r_U\).` },
+      { id: 'wx-q37', topic: 'mmt', kind: 'num', level: 3, section: 'B', formulas: ['pv-perp', 'vu-cf', 's-pvits', 'mm-t-value', 'share-price-eq'], formula: 'share-price-eq',
+        q: R`Lyrebird Logistics has no debt and 14 million shares. It expects EBIT of $10 million a year, forever. The tax rate is 30% and its unlevered cost of capital is 8%. It borrows $35 million of permanent debt and uses it to buy back 5 million shares. Using MM with taxes, what is the share price after the buyback?`,
+        givens: [['EBIT', R`\$10\text{m}`], ['T_c', R`30\%`], ['r_U', R`8\%`], ['D', R`\$35\text{m}`], [R`\text{Shares left}`, R`14\text{m} - 5\text{m}`]],
+        answer: Q37.P, unit: '$', dp: 2,
+        mistakes: [
+          { v: Q37.P0, why: 'That is the price before the plan. With taxes the debt adds value for the shareholders.' },
+          { v: (Q37.VU - Q37.D) / Q37.left, why: R`With taxes the firm is worth \(V_U + T_c D\), not just \(V_U\).` },
+          { v: Q37.E / Q37.N, why: 'Divide by the shares left after the buyback: 14 million − 5 million = 9 million.' },
+          { v: (FIN.pvPerp(Q37.ebit, Q37.rU) + Q37.its - Q37.D) / Q37.left, why: R`The firm pays tax on its EBIT, so use \(EBIT(1 - T_c)\).` },
+        ],
+        steps: [
+          R`\[V_U = \frac{EBIT(1 - T_c)}{r_U} = \frac{\$10\text{m} \times 0.7}{0.08} = \$${nt(Q37.VU, 2)}\text{m}\]`,
+          R`\[V_L = V_U + T_c D = \$${nt(Q37.VU, 2)}\text{m} + 0.30 \times \$35\text{m} = \$${nt(Q37.VL, 2)}\text{m}\]`,
+          R`\[E = V_L - D = \$${nt(Q37.VL, 2)}\text{m} - \$35\text{m} = \$${nt(Q37.E, 2)}\text{m}\]`,
+          R`\[\text{Price} = \frac{E}{\text{shares left}} = \frac{\$${nt(Q37.E, 2)}\text{m}}{14\text{m} - 5\text{m}} = \$${L.num(Q37.P, 2)}\]`,
+        ],
+        ti: [TI.line('10*(1-0.3)/0.08+0.3*35', { note: R`\(V_L\), in $m.` }), TI.line('(ans-35)/(14-5)', { note: 'The share price, in $.' })],
+        why: R`Before the plan the price was \(\frac{\$${nt(Q37.VU, 2)}\text{m}}{14\text{m}} = \$${L.num(Q37.P0, 2)}\). The shareholders gain the tax shield. The 5 million shares were bought at \(\frac{\$35\text{m}}{5\text{m}} = \$${L.num(Q37.Pbuy, 2)}\), the new price.` },
+      { id: 'wx-q38', topic: 'mmt', kind: 'mcq', level: 2, section: 'A', formulas: ['tradeoff'], formula: 'tradeoff',
+        q: R`According to the **trade-off theory**, how much debt should a firm use?`,
+        choices: ['Add debt until the extra tax shield is just offset by the extra expected costs of financial distress',
+          'As much as possible, because every dollar of debt adds a tax shield',
+          'None, because debt makes the shares riskier',
+          'Any amount, because the mix of debt and equity never matters'], answer: 0,
+        wrong: { 1: 'That is MM with taxes, which leaves out the costs of financial distress.', 2: 'The higher cost of equity is already in MM Proposition II. With taxes, some debt adds value.', 3: 'That is MM with no taxes. With taxes and distress costs, the mix matters.' },
+        why: R`\(V_L = V_U + PV(\text{Interest tax shield}) - PV(\text{Financial distress costs})\). Value is highest where the extra benefit of debt equals its extra cost. (The distress costs part is from the textbook, not the formula sheet.)` },
+      { id: 'wx-q39', topic: 'mmt', kind: 'mcq', level: 1, section: 'A', formulas: ['tradeoff'],
+        q: R`A firm has borrowed heavily. Which of these is a **cost of financial distress**?`,
+        choices: ['Customers stop buying because they fear the firm will not be around to honour its warranties',
+          'The interest tax shield on the firm’s debt',
+          'The fixed dividend paid to preference shareholders',
+          'The firm’s normal yearly depreciation'], answer: 0,
+        wrong: { 1: 'The tax shield is the benefit of debt, not a cost.', 2: 'Preference dividends are paid whether or not the firm is in distress.', 3: 'Depreciation is a normal accounting expense.' },
+        why: R`Distress costs include lost customers and suppliers, assets sold cheaply, and legal fees. They lower the expected cash flows, so they lower the firm’s value even before any bankruptcy. (From the textbook, not the formula sheet.)` },
+      { id: 'wx-q40', topic: 'mmt', kind: 'num', level: 3, section: 'B', formulas: ['tradeoff', 'pv-perp', 'vu-cf', 's-pvits', 'mm-t-value', 'share-price-eq'], formula: 'tradeoff', boss: true,
+        q: R`Rosella Robotics will borrow $40 million of permanent debt to pay for a new plant. Without the debt it would expect free cash flow of $9 million a year, forever. But the debt worries some customers, so the expected free cash flow falls to $8.4 million a year. Rosella has 6.5 million shares and no other assets. Its unlevered cost of capital is 10.5% and the tax rate is 30%. What is the share price?`,
+        givens: [['FCF', R`\$8.4\text{m a year}`], ['r_U', R`10.5\%`], ['D', R`\$40\text{m}`], ['T_c', R`30\%`], [R`\text{Shares}`, R`6.5\text{m}`]],
+        answer: Q40.P, unit: '$', dp: 2,
+        mistakes: [
+          { v: (FIN.pvPerp(Q40.fcf, Q40.rU) + Q40.tc * Q40.D - Q40.D) / Q40.N, why: 'That uses $9 million. The distress costs lower the expected cash flow to $8.4 million.' },
+          { v: (Q40.VU - Q40.D) / Q40.N, why: R`With taxes, add the tax shield \(T_c \times D\).` },
+          { v: Q40.VL / Q40.N, why: R`The lenders own \(D\). The shareholders own \(E = V_L - D\).` },
+        ],
+        steps: [
+          R`The distress costs lower the expected free cash flow, so value the firm on \(\$8.4\text{m}\) a year.`,
+          R`\[V_U = \frac{FCF}{r_U} = \frac{\$8.4\text{m}}{0.105} = \$${nt(Q40.VU, 2)}\text{m}\]`,
+          R`\[V_L = V_U + T_c D = \$${nt(Q40.VU, 2)}\text{m} + 0.30 \times \$40\text{m} = \$${nt(Q40.VL, 2)}\text{m}\]`,
+          R`\[E = V_L - D = \$${nt(Q40.E, 2)}\text{m} \qquad \text{Price} = \frac{\$${nt(Q40.E, 2)}\text{m}}{6.5\text{m}} = \$${L.num(Q40.P, 2)}\]`,
+        ],
+        ti: [TI.line('8.4/0.105+0.3*40-40', { note: R`The equity, \(E = V_L - D\), in $m.` }), TI.line('ans/6.5', { note: 'The share price, in $.' })],
+        why: R`Trade-off theory (from the textbook, not the formula sheet): the debt adds a tax shield of \(\$${nt(Q40.tc * Q40.D, 2)}\text{m}\), but the distress costs take away \(\frac{\$${nt(Q40.fcf - Q40.fcfD, 2)}\text{m}}{0.105} = \$${nt((Q40.fcf - Q40.fcfD) / Q40.rU, 2)}\text{m}\) of value.` },
     ],
 
     generators: [
@@ -1110,6 +1443,89 @@
           return null;
         } },
 
+      /* ---------- a firm's value from its cash flows (or the rate from its value) ---------- */
+      { id: 'wx-g-vu', topic: 'mmt', level: 1, section: 'B', formulas: ['pv-perp', 'vu-cf'], formula: 'vu-cf',
+        make(rng) {
+          const co = rng.company();
+          const tc = rng.pick([0.25, 0.3]);
+          if (rng.chance(0.55)) {
+            const ebit = rng.step(2, 40, 0.5), rU = rng.step(0.08, 0.15, 0.005);
+            const cf = ebit * (1 - tc), VU = FIN.pvPerp(cf, rU);
+            return {
+              q: R`${co} has no debt. It expects EBIT of ${mT(ebit)} a year, forever. The company tax rate is ${tp(tc, 0)} and its unlevered cost of capital is ${tp(rU, 1)}. What is the firm worth, in $ millions?`,
+              givens: [['EBIT', mL(ebit)], ['T_c', pcT(tc)], ['r_U', pcT(rU)]],
+              answer: VU, unit: '$m', dp: 2,
+              mistakes: [
+                { v: FIN.pvPerp(ebit, rU), why: R`That ignores tax. The owners get only \(EBIT(1 - T_c)\) each year.` },
+                { v: cf, why: 'That is one year’s after-tax cash flow. The firm is worth the whole perpetuity.' },
+                { v: FIN.pvPerp(ebit * tc, rU), why: R`That values the tax, \(EBIT \times T_c\). Use \(EBIT(1 - T_c)\).` },
+              ],
+              steps: [R`\[EBIT(1 - T_c) = ${mL(ebit)} \times (1 - ${nt(tc, 2)}) = ${mL(cf)}\]`, R`\[V_U = \frac{EBIT(1 - T_c)}{r_U} = \frac{${mL(cf)}}{${nt(rU, 3)}} = ${mL(VU)}\]`],
+              ti: [TI.line(`${tn(ebit)}*(1-${tn(tc)})/${tn(rU)}`, { note: 'In $m.' })],
+              why: R`A level cash flow forever is a perpetuity: \(PV = \frac{C}{r}\), with \(C = EBIT(1 - T_c)\).`,
+            };
+          }
+          for (let t = 0; t < 60; t++) {
+            const ebit = rng.step(2, 40, 0.5), VU = rng.step(20, 400, 5);
+            const cf = ebit * (1 - tc), rU = cf / VU;
+            if (rU < 0.06 || rU > 0.18) continue;
+            return {
+              q: R`${co} has no debt and is worth ${mT(VU)}. It expects EBIT of ${mT(ebit)} a year, forever. The company tax rate is ${tp(tc, 0)}. What is its **unlevered cost of capital** \(r_U\)?`,
+              givens: [['V_U', mL(VU)], ['EBIT', mL(ebit)], ['T_c', pcT(tc)]],
+              answer: P(rU), unit: '%', dp: 2,
+              mistakes: [
+                { v: P(ebit / VU), why: R`That ignores tax. Use the after-tax cash flow, \(EBIT(1 - T_c)\).` },
+                { v: P((ebit * tc) / VU), why: R`That uses the tax, \(EBIT \times T_c\). Use \(EBIT(1 - T_c)\).` },
+              ],
+              steps: [R`\[EBIT(1 - T_c) = ${mL(ebit)} \times (1 - ${nt(tc, 2)}) = ${mL(cf)}\]`, R`\[r_U = \frac{EBIT(1 - T_c)}{V_U} = \frac{${mL(cf)}}{${mL(VU)}} = ${pc(rU)}\]`],
+              ti: [TI.line(`${tn(ebit)}*(1-${tn(tc)})/${tn(VU)}`, PCT(rU))],
+              why: R`Turn \(V_U = \frac{EBIT(1 - T_c)}{r_U}\) around: the rate is the yearly after-tax cash flow over the value.`,
+            };
+          }
+          return null;
+        } },
+      /* ---------- a debt-financed buyback: equity and the share price ---------- */
+      { id: 'wx-g-buyback', topic: 'mmt', level: 3, section: 'B', formulas: ['pv-perp', 'vu-cf', 's-pvits', 'mm-t-value', 'share-price-eq'], formula: 'share-price-eq',
+        make(rng) {
+          const co = rng.company();
+          const c = rng.pick(BUYBACKS);
+          const sh = (x) => `${T.numT(x, 1)} million`;
+          const base = R`${co} has no debt and ${sh(c.N)} shares. It expects EBIT of ${mT(c.ebit)} a year, forever. The tax rate is ${tp(c.tc, 0)} and its unlevered cost of capital is ${tp(c.rU, 1)}. It borrows ${mT(c.D)} of permanent debt and uses it to buy back ${sh(c.n)} shares.`;
+          const givens = [['EBIT', mL(c.ebit)], ['T_c', pcT(c.tc)], ['r_U', pcT(c.rU)], ['D', mL(c.D)], [R`\text{Shares}`, R`${nt(c.N, 1)}\text{m} - ${nt(c.n, 1)}\text{m}`]];
+          const stepsV = [
+            R`\[V_U = \frac{EBIT(1 - T_c)}{r_U} = \frac{${mL(c.ebit)} \times (1 - ${nt(c.tc, 2)})}{${nt(c.rU, 3)}} = ${mL(c.VU)}\]`,
+            R`\[V_L = V_U + T_c D = ${mL(c.VU)} + ${nt(c.tc, 2)} \times ${mL(c.D)} = ${mL(c.VL)}\]`,
+            R`\[E = V_L - D = ${mL(c.VL)} - ${mL(c.D)} = ${mL(c.E)}\]`,
+          ];
+          const tiVL = TI.line(`${tn(c.ebit)}*(1-${tn(c.tc)})/${tn(c.rU)}+${tn(c.tc)}*${tn(c.D)}`, { note: R`\(V_L\), in $m.` });
+          if (rng.chance(0.35)) {
+            return {
+              q: R`${base} Using MM with taxes, what is the value of the **equity** after the buyback, in $ millions?`,
+              givens, answer: c.E, unit: '$m', dp: 2, formulas: ['pv-perp', 'vu-cf', 's-pvits', 'mm-t-value', 'share-price-eq'],
+              mistakes: [
+                { v: c.VU - c.D, why: R`With taxes the firm is worth \(V_U + T_c D\), not just \(V_U\).` },
+                { v: c.VL, why: R`That is the whole firm. The lenders own \(D\), so \(E = V_L - D\).` },
+                { v: FIN.pvPerp(c.ebit, c.rU) + c.its - c.D, why: R`The firm pays tax on its EBIT, so use \(EBIT(1 - T_c)\).` },
+              ],
+              steps: stepsV,
+              ti: [tiVL, TI.line(`ans-${tn(c.D)}`, { note: R`\(E = V_L - D\), in $m.` })],
+              why: 'The lenders own the debt. The shareholders own everything else, including the tax shield.',
+            };
+          }
+          return {
+            q: R`${base} Using MM with taxes, what is the **share price** after the buyback?`,
+            givens, answer: c.P, unit: '$', dp: 2,
+            mistakes: [
+              { v: c.P0, why: 'That is the price before the plan. With taxes the debt adds value for the shareholders.' },
+              { v: (c.VU - c.D) / c.left, why: R`With taxes the firm is worth \(V_U + T_c D\), not just \(V_U\).` },
+              { v: c.E / c.N, why: `Divide by the shares left after the buyback: ${sh(c.left)}.` },
+              { v: (FIN.pvPerp(c.ebit, c.rU) + c.its - c.D) / c.left, why: R`The firm pays tax on its EBIT, so use \(EBIT(1 - T_c)\).` },
+            ],
+            steps: stepsV.concat([R`\[\text{Price} = \frac{E}{\text{shares left}} = \frac{${mL(c.E)}}{${nt(c.N, 1)}\text{m} - ${nt(c.n, 1)}\text{m}} = ${L.money(c.P)}\]`]),
+            ti: [tiVL, TI.line(`(ans-${tn(c.D)})/(${tn(c.N)}-${tn(c.n)})`, { note: 'The share price, in $.' })],
+            why: R`Before the plan the price was \(${L.money(c.P0)}\). The shares were bought back at \(\frac{${mL(c.D)}}{${nt(c.n, 1)}\text{m}} = ${L.money(c.Pbuy)}\), the new price: the tax shield goes to the shareholders.`,
+          };
+        } },
       /* ---------- boss: WACC with taxes (two steps) ---------- */
       { id: 'wx-g-wacc-t', topic: 'mmt', level: 3, section: 'B', formulas: ['mm-t-re', 'mm-t-wacc'], formula: 'mm-t-wacc', src: 'Formula sheet: Capital Structure – Tax World', boss: true,
         make(rng) {

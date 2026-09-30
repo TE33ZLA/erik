@@ -14,6 +14,7 @@
   const pct = (p) => T.pctT(p); // 0.15 -> "15%"
   const whole = (x) => Math.abs(x - Math.round(x)) < 0.005;
   const LM = (x, dp = 2) => (dp > 0 && whole(x) ? L.moneyT(Math.round(x)) : L.money(x, dp)); // money in working lines
+  const TM = (x) => (whole(x) ? T.moneyT(Math.round(x)) : T.money(x)); // money in prose: whole dollars without ".00"
   const mil = (x) => `${x < 0 ? '−' : ''}$${T.numT(Math.abs(x), 2)}m`; // plain-text $m amount
   const milL = (x) => R`${x < 0 ? '-' : ''}\$${L.numT(Math.abs(x), 2)}\text{m}`; // LaTeX $m amount, sign first
   const ear = (d, x, y, yr = 365) => FIN.tradeCreditEAR(d, x, y, yr); // cost of forgoing the discount
@@ -69,6 +70,28 @@
   const bikeTL = (extra) => Object.assign({ type: 'tl', n: 3, unit: 'Day', at: { 0: 'Buy bike', 1: 'Pay bill', 2: 'Sell it', 3: 'Cash in' },
     labels: { 0: String(BIKE.buy), 1: String(BIKE.pay), 2: String(BIKE.sell), 3: String(BIKE.cash) } }, extra);
 
+  /* ---------- collection float: cut the days for a fee (a perpetuity) ----------
+   * cash freed today = daily collections × days saved; a monthly fee uses the monthly rate, a yearly fee the yearly rate */
+  function floatNPV(daily, days, fee, perMonth, rate, isAPR) {
+    const monthly = isAPR ? rate / 12 : Math.pow(1 + rate, 1 / 12) - 1; // APR compounded monthly, or an EAR
+    const yearly = isAPR ? Math.pow(1 + rate / 12, 12) - 1 : rate;
+    const i = perMonth ? monthly : yearly;
+    const freed = daily * days, pvf = fee / i;
+    return { freed, i, monthly, yearly, pvf, npv: freed - pvf };
+  }
+  const FLOAT_PIC = floatNPV(50000, 2, 400, true, 0.06, true); // the lesson's balance picture: $100,000 freed, fees worth $80,000
+  const JACARANDA = floatNPV(36000, 3, 450, true, 0.06, true); // lesson worked example
+  const STRINGY = floatNPV(45000, 2, 600, true, 0.075, true); // static question: the fees cost more than the float saves
+
+  /* ---------- written rounds, computed once ---------- */
+  const CORAL = (() => {
+    const sales = 12.4, cogs = 8.3, inv = 1.62, ar = 1.95, ap = 0.94;
+    const iD = FIN.invDays(inv, cogs), aD = FIN.arDays(ar, sales), pD = FIN.apDays(ap, cogs);
+    return { iD, aD, pD, ccc: FIN.ccc(iD, aD, pD) };
+  })();
+  const REDGUM = { e45: FIN.tradeCreditEAR(0.02, 15, 45), e75: FIN.tradeCreditEAR(0.02, 15, 75) };
+  const LOCKBOX = floatNPV(84000, 3, 1350, true, 0.072, true);
+
   root.registerPack({
     id: 'w8', floor: 7, week: 'Week 8',
     title: 'The Working Capital Warehouse',
@@ -83,6 +106,7 @@
         R`Current liabilities: **accounts payable** (credit purchases owed to suppliers) and other short-term bills.`,
         R`Working capital ties up cash: \(FCF = \text{Net income} + Dep - CapEx - \Delta NWC\).`,
         R`A smaller increase in NWC means more FCF, and a higher firm value.`,
+        R`A transaction changes NWC only if it moves **one** side. A 6-month loan to buy stock raises both sides: NWC is unchanged. A 5-year loan to buy stock raises NWC. Paying a supplier or collecting from a customer leaves NWC unchanged, but cash moves.`,
       ] },
       { h: 'Why it matters: Emerald City Paints', points: [
         R`Next year: net income $20m, depreciation $5m, capital expenditure $5m, increase in working capital $1m. So \(FCF_1 = \$19\text{m}\), growing at 4% a year. \(r = 12\%\).`,
@@ -122,6 +146,12 @@
         R`Cash earns little or no interest. Firms hold it for **day-to-day needs**, a **precautionary balance** and a **compensating balance** (a bank requirement).`,
         R`Spare cash can go into short-term government debt or bank-accepted bills.`,
       ] },
+      { h: 'Collection float', points: [
+        R`**Collection float**: the time between a customer paying and the firm being able to use the cash (in the post, waiting to be banked, clearing). Keep it short.`,
+        R`**Disbursement float**: the time between the firm paying a supplier and the cash leaving its account. Paying late on purpose risks late fees, cash on delivery and a damaged reputation.`,
+        R`A lockbox or billing service cuts collection float for a fee. \(\text{Cash freed today} = \text{daily collections} \times \text{days saved}\), once.`,
+        R`A fee paid every month forever is a perpetuity: \(PV = \frac{\text{fee}}{i}\), with \(i = \frac{APR}{12}\) (or \((1 + EAR)^{1/12} - 1\)). \(NPV = \text{cash freed} - PV(\text{fees})\).`,
+      ] },
       { h: 'On your TI-Nspire CX CAS', points: [
         R`Day counts: \(420/(3257/365)\). Store each one with → (**ctrl var**), e.g. \(\ldots \to i\), then finish with \(i + a - \ldots\).`,
         R`Trade-credit EAR in one line: \((1 + 2/98)^{(365/(30 - 10))} - 1\). The answer is a decimal: multiply by 100 for a percentage.`,
@@ -139,6 +169,7 @@
       payables: 'Managing and stretching payables',
       receivables: 'Receivables and credit policy',
       invcash: 'Inventory and cash management',
+      float: 'Cash management: collection float',
     },
 
     nodes: [
@@ -154,6 +185,7 @@
         enemy: { name: 'Cash Cycle-ops', title: 'One eye on your inventory days', body: 'round', color: '#5b7fbf', acc: ['headset'], eyes: 1, mouth: 'o', item: '🔄',
           lines: { intro: 'I watch every day your cash is tied up. With my ONE big eye.', hit: ['Inventory days on COGS… correct!', 'You subtracted the A/P days. My eye waters.'],
             taunt: ['A/R days on COGS? My eye sees your mistake!', 'You ADDED the payables days! Round and round we go!'], win: 'My cycle… is broken…', lose: 'Round and round your cash goes, and I keep it!' } } },
+      { id: 'w8-W1', kind: 'case', name: 'Written round: the cash cycle', case: 'w8-C1' },
       { id: 'w8-L5', kind: 'lesson', name: 'Trade credit terms', lesson: 'w8-L5' },
       { id: 'w8-L6', kind: 'lesson', name: 'The cost of trade credit', lesson: 'w8-L6' },
       { id: 'w8-m1', kind: 'mini', name: 'Take the Discount?', mini: 'take-discount' },
@@ -162,12 +194,15 @@
           lines: { intro: 'Pay me within ten days… or I drink 44.6% a year from you!', hit: ['You used d over 1 minus d! Garlic!', 'Compounded properly… the sunlight burns!'],
             taunt: ['Only 2%? Just 2%? Mwahaha…', 'You forgot to compound. Delicious.'], win: 'Defeated… by an effective annual rate…', lose: 'Your discount is mine for eternity!' } } },
       { id: 'w8-L7', kind: 'lesson', name: 'Managing payables', lesson: 'w8-L7' },
+      { id: 'w8-W2', kind: 'case', name: 'Written round: supplier terms', case: 'w8-C2' },
       { id: 'w8-L8', kind: 'lesson', name: 'Receivables and credit', lesson: 'w8-L8' },
-      { id: 'w8-4', kind: 'battle', name: 'Accounts Alley', topics: ['payables', 'receivables', 'invcash'], n: 6,
+      { id: 'w8-L9', kind: 'lesson', name: 'Collection float', lesson: 'w8-L9' },
+      { id: 'w8-4', kind: 'battle', name: 'Accounts Alley', topics: ['payables', 'receivables', 'invcash', 'float'], n: 6,
         enemy: { name: 'The Due-Date Dodger', title: 'Pays late, chases early', body: 'spiky', color: '#6b8e23', acc: ['cap', 'shades'], mouth: 'smirk', item: '🧾',
           lines: { intro: 'Pay suppliers on day 18? Day 60? Who even reads the terms?', hit: ['You paid on the last day. Annoyingly correct.', 'An ageing schedule? You caught my late accounts!'],
             taunt: ['Pay on day 18: lose the discount AND the free credit!', 'Stretch it to day 90! What could go wrong?'], win: 'My payment… is finally… overdue…', lose: 'Cash on delivery for you, from now on!' } } },
       { id: 'w8-m2', kind: 'mini', name: 'Cycle Sort', mini: 'cycle-sort' },
+      { id: 'w8-W3', kind: 'case', name: 'Written round: the lockbox', case: 'w8-C3' },
       { id: 'w8-boss', kind: 'boss', name: 'The Cash Kraken', topics: '*', n: 10,
         enemy: { name: 'The Cash Kraken', title: 'Keeper of the cash conversion cycle', body: 'blob', color: '#2f5d62', acc: ['crown'], eyes: 3, mouth: 'fangs', item: '🐙',
           lines: { intro: 'Every day your cash sits in my warehouse, it earns nothing. And I keep it!', hit: ['You shortened my cycle!', 'You took the discount and borrowed cheaper. Clever!'],
@@ -255,6 +290,15 @@
             answer: R`A Ltd’s NWC is \(\$2.3\text{m}\).`,
             ti: [TI.line('1.6+4.2+3.0-1.8-4.7')] },
           { kind: 'check', gen: 'w8-g-nwc' },
+          { kind: 'learn', title: 'Which transactions change NWC?',
+            body: R`A transaction changes NWC only if it moves **one** side: current assets or current liabilities. If both sides move by the same amount, NWC stays the same, even when cash changes.\n\nA loan due within a year is a current liability. A 5-year loan is not.`,
+            viz: { type: 'table', head: ['Transaction', 'Current assets', 'Current liabilities', 'NWC', 'Cash'], rows: [
+              ['Buy stock with a 6-month loan', '↑ stock', '↑ loan', 'Same', 'Same'],
+              ['Buy stock with a 5-year loan', '↑ stock', 'Same', '↑', 'Same'],
+              ['Pay a supplier in cash', '↓ cash', '↓ A/P', 'Same', '↓'],
+              ['A customer pays a bill', '↑ cash, ↓ A/R', 'Same', 'Same', '↑']],
+              cap: R`When both sides move by the same amount, NWC stays the same. A 5-year loan moves only one side.` } },
+          { kind: 'check', ref: 'w8-q68' },
           { kind: 'learn', title: 'Working capital and free cash flow',
             body: R`Recall free cash flow from Floor 5:\n\n\[FCF = \text{Net income} + Dep - CapEx - \Delta NWC\]\n\nAn **increase** in NWC (more stock, more unpaid customer bills) uses up cash, so it is subtracted. Tie up less cash, and FCF goes up. Higher FCF means a higher firm value.`,
             viz: { type: 'seesaw', down: 'right', left: { icon: '📦', label: 'NWC' }, right: { icon: '💵', label: 'Free cash flow' },
@@ -773,6 +817,171 @@
           ] },
         ],
       },
+      'w8-L9': {
+        title: 'Collection float',
+        goal: R`Explain collection and disbursement float, and decide whether cutting the float is worth a fee.`,
+        topics: ['float'],
+        cards: [
+          { kind: 'learn', title: 'Paid, but not yet usable',
+            body: R`A customer posts a cheque to pay your bill. But you cannot spend that money yet. The cheque is in the post, then it waits to be banked, then the bank clears it.\n\nMoney that has been paid but cannot be used yet is **float**. The delay after a customer pays is the **collection float**.`,
+            viz: { type: 'flow', key: true, steps: [
+              { icon: '✉️', t: 'Customer pays', s: 'posts a cheque', c: 1 },
+              { icon: '📬', t: 'In the post', s: 'mail float', c: 2 },
+              { icon: '🏢', t: 'Waiting to be banked', s: 'processing float', c: 2 },
+              { icon: '🏦', t: 'The bank clears it', s: 'availability float', c: 2 },
+              { icon: '💵', t: 'Cash you can use', s: 'at last', c: 3 }],
+              cap: R`The three orange steps are the collection float. The customer has paid, but you still wait.` } },
+          { kind: 'learn', title: 'Two kinds of float',
+            body: R`**Collection float**: the time between a customer paying you and you being able to use the cash. You want it **short**.\n\n**Disbursement float**: the time between you paying a supplier and the cash leaving your account. It lets you keep your cash a little longer.`,
+            viz: { type: 'compare', items: [
+              { icon: '📥', title: 'Collection float', big: 'Cash coming in', points: ['The customer has paid', 'You cannot use it yet'], mark: 'bad', markText: 'Keep it short', c: 1 },
+              { icon: '📤', title: 'Disbursement float', big: 'Cash going out', points: ['You have paid', 'It has not left your account'], mark: 'good', markText: 'Works for you', c: 2 }],
+              cap: R`Collection float costs you days of cash. Disbursement float gives you a few days.` },
+            tip: R`Do not stretch disbursement float on purpose. Paying late can bring late fees, cash-on-delivery terms and a damaged reputation.` },
+          { kind: 'learn', title: 'Cutting the float frees cash once',
+            body: R`A bank **lockbox** (customers post their payments straight to the bank) or a **billing service** gets your cash to you sooner, for a fee.\n\nEach day cut from the float brings one more day of collections into the bank. That cash is freed **once**, today:\n\n\[\text{Cash freed today} = \text{daily collections} \times \text{days saved}\]`,
+            formula: 'float',
+            viz: { type: 'flow', op: true, steps: [
+              { t: '2 days', s: 'cut from the float', c: 2 },
+              { t: R`\(\$50{,}000\)`, s: 'collected each day', c: 1 },
+              { t: R`\(${L.moneyT(FLOAT_PIC.freed)}\)`, s: 'cash freed today', c: 3 }],
+              links: [R`\(\times\)`, R`\(=\)`],
+              cap: R`Cut 2 days at \(\$50{,}000\) a day, and \(${L.moneyT(FLOAT_PIC.freed)}\) more is in the bank today, once.` } },
+          { kind: 'learn', title: 'Is the fee worth it?',
+            body: R`The fee is paid every month, forever: a **perpetuity** (Floor 2). Value it with the **monthly** rate \(i\):\n\n\[PV(\text{fees}) = \frac{\text{monthly fee}}{i}\]\n\nAn APR compounded monthly gives \(i = \frac{APR}{12}\). An EAR gives \(i = (1 + EAR)^{1/12} - 1\). Then:\n\n\[NPV = \text{cash freed today} - PV(\text{fees})\]`,
+            viz: { type: 'balance', tilt: 'left', left: { icon: '💵', label: 'Cash freed today', sub: T.moneyT(FLOAT_PIC.freed), c: 'good' }, right: { icon: '🧾', label: 'PV of the fees', sub: T.moneyT(FLOAT_PIC.pvf), c: 'bad' },
+              note: R`A fee of \(\$400\) a month at \(\frac{6\%}{12} = 0.5\%\): \(\frac{400}{0.005} = ${L.moneyT(FLOAT_PIC.pvf)}\). \(NPV = ${L.moneyT(FLOAT_PIC.npv)}\).`,
+              cap: R`The cash freed outweighs the fees, so this service is worth taking.` } },
+          { kind: 'example', title: 'Worked example: a billing service',
+            q: R`**Jacaranda Traders** collects about $36,000 a day. A billing service would cut its collection float by 3 days, for $450 a month, forever. Its cost of money is 6% a year, compounded monthly (an APR). Should it sign up?`,
+            steps: [
+              R`Cash freed today: \(3 \times 36{,}000 = ${L.moneyT(JACARANDA.freed)}\).`,
+              R`Monthly rate: \(i = \frac{0.06}{12} = ${L.numT(JACARANDA.i, 4)}\).`,
+              R`The fees are a monthly perpetuity: \[PV(\text{fees}) = \frac{450}{${L.numT(JACARANDA.i, 4)}} = ${L.moneyT(JACARANDA.pvf)}\]`,
+              R`\[NPV = ${L.numT(JACARANDA.freed, 0)} - ${L.numT(JACARANDA.pvf, 0)} = ${L.moneyT(JACARANDA.npv)}\]`,
+            ],
+            answer: R`Sign up: the NPV is \(${L.moneyT(JACARANDA.npv)}\). The cash freed earns more than the fee costs.`,
+            ti: [TI.line('3*36000', { note: 'Cash freed today.' }), TI.line('ans-450/(0.06/12)', { note: 'Less the PV of the fees: a monthly perpetuity at 0.06/12.' })] },
+          { kind: 'check', gen: 'w8-g-float' },
+          { kind: 'check', ref: 'w8-q64' },
+          { kind: 'recap', title: 'Remember', points: [
+            R`**Collection float**: from the customer paying to you using the cash. Keep it short.`,
+            R`**Disbursement float**: from you paying a supplier to the cash leaving your account.`,
+            R`\(\text{Cash freed today} = \text{daily collections} \times \text{days saved}\). It is freed once.`,
+            R`A monthly fee forever: \(PV = \frac{\text{fee}}{i}\) with \(i = \frac{APR}{12}\). Take the service if \(NPV = \text{cash freed} - PV(\text{fees}) > 0\).`,
+            R`Exam trap: divide a monthly fee by the **monthly** rate, not the yearly rate.`,
+          ], formula: 'float' },
+        ],
+      },
+    },
+
+    /* ---------- written rounds (the exam's written section) ---------- */
+    cases: {
+      'w8-C1': {
+        title: 'Coral Coast’s cash cycle',
+        topics: ['ccc', 'cycle'],
+        story: R`**Coral Coast Outdoor** sells camping gear to shops on credit. The table shows its accounts for the year, in $m. Use a 365-day year.`,
+        table: { head: ['Item', 'Statement', '$m'], rows: [
+          ['Sales', 'Income statement', '12.40'],
+          ['Cost of goods sold (COGS)', 'Income statement', '8.30'],
+          ['Cash', 'Balance sheet', '0.40'],
+          ['Inventory', 'Balance sheet', '1.62'],
+          ['Accounts receivable', 'Balance sheet', '1.95'],
+          ['Property, plant and equipment', 'Balance sheet', '6.50'],
+          ['Accounts payable', 'Balance sheet', '0.94'],
+          ['Long-term debt', 'Balance sheet', '3.00'],
+        ] },
+        parts: [
+          { kind: 'calc', marks: 2, ask: R`Calculate Coral Coast’s inventory days.`,
+            formulas: ['inv-days'], answer: CORAL.iD, unit: 'days', dp: 2,
+            model: ['Inventory Days = Inventory/(COGS/365)', '= 1.62/(8.3/365)', `= ${T.num(CORAL.iD)}`],
+            meaning: R`Stock sits for about ${T.num(CORAL.iD)} days before it is sold.`,
+            hint: R`Inventory is held at cost, so divide by one day of COGS.` },
+          { kind: 'calc', marks: 2, ask: R`Calculate its accounts receivable (A/R) days.`,
+            formulas: ['ar-days'], answer: CORAL.aD, unit: 'days', dp: 2,
+            model: ['A/R Days = Accounts receivable/(Sales/365)', '= 1.95/(12.4/365)', `= ${T.num(CORAL.aD)}`],
+            meaning: R`Customers take about ${T.num(CORAL.aD)} days to pay.`,
+            hint: R`Receivables come from sales, so divide by one day of sales.` },
+          { kind: 'calc', marks: 2, ask: R`Calculate its cash conversion cycle (CCC). Use your answers to (a) and (b).`,
+            formulas: ['inv-days', 'ar-days', 'ap-days', 'ccc'], answer: CORAL.ccc, unit: 'days', dp: 2,
+            model: ['CCC = Inventory Days + A/R Days - A/P Days', '= 1.62/(8.3/365) + 1.95/(12.4/365) - 0.94/(8.3/365)', `= ${T.num(CORAL.ccc)}`],
+            meaning: R`A/P days are \(\frac{0.94}{8.3/365} = ${L.num(CORAL.pD)}\). So Coral Coast’s own cash is tied up for about ${T.num(CORAL.ccc)} days.`,
+            hint: R`A/P days use COGS. Add the inventory and A/R days, then subtract the A/P days.` },
+          { kind: 'theory', marks: 2, ask: R`Suggest how Coral Coast could shorten its cash conversion cycle, and explain the trade-off of each idea.`,
+            points: [
+              { t: R`Collect sooner (a small cash discount, tighter credit checks): fewer A/R days, but it may cost margin or customers.`, ok: true },
+              { t: R`Hold less stock (just-in-time ordering): fewer inventory days, but a higher risk of stock-outs and lost sales.`, ok: true },
+              { t: R`Pay suppliers later, within the terms: more A/P days, but it may mean giving up early-payment discounts.`, ok: true },
+              { t: R`Pay suppliers sooner, to build goodwill.`, ok: false, why: R`Fewer A/P days make the CCC longer, not shorter.` },
+              { t: R`Give customers 60 days to pay, to win more sales.`, ok: false, why: R`Longer credit raises A/R days, so the CCC gets longer.` },
+              { t: R`Buy a whole year of stock in bulk, to get a lower price.`, ok: false, why: R`More stock raises inventory days and ties up more cash.` },
+            ],
+            model: R`Coral Coast can shorten its ${T.num(CORAL.ccc)}-day CCC by collecting from customers sooner, holding less stock, or paying suppliers later within the terms. Each has a cost: a cash discount or tighter credit may cost margin or customers, just-in-time stock risks stock-outs, and paying later may mean losing early-payment discounts. A shorter CCC ties up less cash and raises free cash flow, so Coral Coast should cut days only while the cash freed is worth more than these costs.`,
+            keys: [['collect', 'receivable', 'A/R'], ['stock', 'inventory'], ['supplier', 'payable', 'A/P'], ['but', 'cost', 'risk', 'trade-off']] },
+        ],
+      },
+      'w8-C2': {
+        title: 'Redgum’s supplier terms',
+        topics: ['tcost', 'payables'],
+        story: R`**Redgum Timber** buys its timber on credit. Its supplier’s terms are **2/15, net 45**.\n\nRedgum’s bank will lend it short-term money at an EAR of 14%. Use a 365-day year.`,
+        tl: { n: 3, unit: 'Day', at: { 0: 'Invoice', 1: 'Pay $98', 2: 'Pay $100', 3: '$100, late' }, labels: { 0: '0', 1: '15', 2: '45', 3: '75' }, hi: [1, 2] },
+        parts: [
+          { kind: 'calc', marks: 2, ask: R`Calculate the effective annual cost (EAR) of skipping the discount and paying on day 45.`,
+            formulas: ['trade-credit'], answer: P(REDGUM.e45), unit: '%', dp: 2,
+            model: ['EAR = (1 + d/(1 - d))^(365/(net days - discount days)) - 1', '= (1 + 0.02/(1 - 0.02))^(365/(45 - 15)) - 1', `= ${T.num(P(REDGUM.e45))}%`],
+            meaning: R`Skipping the discount is a loan that costs ${T.num(P(REDGUM.e45))}% a year.`,
+            hint: R`On each $100 you borrow $98 for \(45 - 15 = 30\) days. The rate for one period is \(\frac{2}{98}\).` },
+          { kind: 'blanks', marks: 1, ask: R`Choose the right words.`,
+            text: R`Skipping the discount costs {{more|less}} than the bank’s 14%. So Redgum should {{take the discount|skip the discount}}, borrow from the bank, and pay the supplier on day {{15|45|30}}.`,
+            why: R`Trade credit at ${T.num(P(REDGUM.e45))}% is dearer than a 14% bank loan. Borrow the cheaper money and pay on the last discount day.` },
+          { kind: 'calc', marks: 2, ask: R`Redgum could stretch its payments to day 75. Calculate the EAR of skipping the discount if it pays on day 75.`,
+            formulas: ['trade-credit'], answer: P(REDGUM.e75), unit: '%', dp: 2,
+            model: ['EAR = (1 + d/(1 - d))^(365/(pay day - discount days)) - 1', '= (1 + 0.02/(1 - 0.02))^(365/(75 - 15)) - 1', `= ${T.num(P(REDGUM.e75))}%`],
+            meaning: R`Stretching to day 75 spreads the same 2% over 60 days, so the cost falls to ${T.num(P(REDGUM.e75))}% a year.` },
+          { kind: 'theory', marks: 2, ask: R`Should Redgum stretch its payables to day 75? Explain.`,
+            points: [
+              { t: R`On cost alone, stretching looks cheaper: ${T.num(P(REDGUM.e75))}% is below the bank’s 14%.`, ok: true },
+              { t: R`But paying 30 days after the due date breaks the terms: the supplier may demand cash on delivery or stop supplying.`, ok: true },
+              { t: R`Late payment can hurt Redgum’s credit rating, which makes other credit dearer.`, ok: true },
+              { t: R`Stretching is free, because the supplier charges no interest.`, ok: false, why: R`It still costs the 2% discount given up: ${T.num(P(REDGUM.e75))}% a year.` },
+              { t: R`Stretching makes Redgum’s cash conversion cycle longer.`, ok: false, why: R`Paying later raises A/P days, which makes the CCC shorter.` },
+              { t: R`The bank will charge a penalty for paying the supplier late.`, ok: false, why: R`The supplier is paid late, not the bank.` },
+            ],
+            model: R`On cost alone, stretching to day 75 looks best: ${T.num(P(REDGUM.e75))}% is below the bank’s 14%. But Redgum would pay 30 days after the due date, which breaks its deal with the supplier. The supplier may demand cash on delivery or stop supplying, and Redgum’s credit rating may suffer. So Redgum should only stretch if the supplier truly accepts it; otherwise it should borrow at 14% and take the discount.`,
+            keys: [['cheaper', 'below', 'lower'], ['supplier', 'cash on delivery', 'stop supplying'], ['credit rating', 'reputation']] },
+        ],
+      },
+      'w8-C3': {
+        title: 'The lockbox decision',
+        topics: ['float'],
+        story: R`**Harbourview Wholesale** collects about $84,000 a day from its customers. Many still pay by cheque, and it takes days before Harbourview can use the money.\n\nA bank offers a **lockbox**: customers post their payments to the bank, which banks them the same day. This would cut the **collection float** by 3 days.\n\nThe bank charges $1,350 a month, forever. The first fee is paid in one month. Harbourview’s cost of money is 7.2% a year (APR), compounded monthly.`,
+        parts: [
+          { kind: 'calc', marks: 2, ask: R`How much cash does the lockbox free up today?`,
+            formulas: ['float'], answer: LOCKBOX.freed, unit: '$', dp: 2,
+            model: ['Cash freed = daily collections*days saved', '= 84000*3', `= ${T.money(LOCKBOX.freed)}`],
+            meaning: R`The lockbox brings ${TM(LOCKBOX.freed)} into the bank once, today.` },
+          { kind: 'calc', marks: 2, ask: R`Calculate the present value of the lockbox fees.`,
+            formulas: ['pv-perp'], pick: ['pv-perp', 'pv-annuity', 'pv-grow-perp', 'fv-annuity'], answer: LOCKBOX.pvf, unit: '$', dp: 2,
+            model: ['PV = C/(APR/12)', '= 1350/(0.072/12)', `= ${T.money(LOCKBOX.pvf)}`],
+            meaning: R`The fees are a monthly perpetuity at \(\frac{7.2\%}{12} = 0.6\%\) a month, worth ${TM(LOCKBOX.pvf)} today.`,
+            hint: R`A monthly fee needs the monthly rate: \(\frac{APR}{12}\).` },
+          { kind: 'calc', marks: 2, ask: R`Calculate the NPV of the lockbox. Should Harbourview take it?`,
+            formulas: ['float', 'pv-perp'], answer: LOCKBOX.npv, unit: '$', dp: 2,
+            model: ['NPV = cash freed - PV(fees)', '= 84000*3 - 1350/(0.072/12)', `= ${T.money(LOCKBOX.npv)}`],
+            meaning: R`The NPV is positive, so Harbourview should take the lockbox. Check: the cash freed earns \(${L.numT(LOCKBOX.freed, 0)} \times 0.006 = ${L.moneyT(LOCKBOX.freed * LOCKBOX.i)}\) a month, more than the \(\$1{,}350\) fee.` },
+          { kind: 'theory', marks: 2, ask: R`Compare collection float and disbursement float. Which does Harbourview want to cut, and why?`,
+            points: [
+              { t: R`Collection float is the time between a customer paying and Harbourview being able to use the cash.`, ok: true },
+              { t: R`Disbursement float is the time between Harbourview paying a supplier and the cash leaving its account.`, ok: true },
+              { t: R`Harbourview wants a short collection float, because cash in transit earns nothing: the lockbox frees ${TM(LOCKBOX.freed)}.`, ok: true },
+              { t: R`A long collection float is good, because the cash is safe while it is in the post.`, ok: false, why: R`Cash in the post cannot be used or earn interest.` },
+              { t: R`Cutting collection float raises Harbourview’s sales.`, ok: false, why: R`It changes when the cash arrives, not how much is sold.` },
+              { t: R`Harbourview should also pay its suppliers late on purpose, to make its disbursement float as long as possible.`, ok: false, why: R`Paying late on purpose risks late fees, cash-on-delivery terms and a damaged reputation.` },
+            ],
+            model: R`Collection float is the time between a customer paying and Harbourview being able to use the money. Disbursement float is the time between Harbourview paying a supplier and the cash leaving its account. Harbourview wants its collection float short, because cash in transit earns nothing: the lockbox frees ${TM(LOCKBOX.freed)} once, which is worth more than the fees (NPV ${TM(LOCKBOX.npv)}). A longer disbursement float keeps cash in the firm, but paying late on purpose risks late fees, cash-on-delivery terms and a damaged reputation.`,
+            keys: [['collection float'], ['disbursement float'], ['short', 'cut', 'sooner'], ['late', 'supplier']] },
+        ],
+      },
     },
 
     questions: [
@@ -792,7 +1001,7 @@
         q: R`In \(FCF = \text{Net income} + Dep - CapEx - \Delta NWC\), what does an **increase** in NWC do?`,
         choices: ['It lowers FCF, because more cash is tied up in inventory and receivables', 'It raises FCF, because the firm owns more assets', 'Nothing, because NWC is not on the income statement', 'It lowers FCF only if the firm borrows to fund it'], answer: 0,
         why: R`Cash spent building up inventory or receivables is cash the firm cannot pay out. So an increase in NWC is subtracted.` },
-      { id: 'w8-q05', topic: 'nwc', kind: 'num', level: 2, section: 'B', src: 'Task sheet W8 (A Ltd)',
+      { id: 'w8-q05', topic: 'nwc', kind: 'num', level: 2, section: 'B', formulas: ['nwc'], src: 'Task sheet W8 (A Ltd)',
         q: R`**A Ltd** has cash $1.6m, accounts receivable $4.2m, inventory $3.0m, accounts payable $1.8m, accruals $4.7m and long-term debt $4.0m. What is its **net working capital** (in $m)?`,
         answer: 1.6 + 4.2 + 3.0 - 1.8 - 4.7, unit: '$m', dp: 2,
         mistakes: [
@@ -803,7 +1012,7 @@
         steps: [R`Current assets: \(1.6 + 4.2 + 3.0 = \$8.8\text{m}\)`, R`Current liabilities: \(1.8 + 4.7 = \$6.5\text{m}\)`, R`\[NWC = 8.8 - 6.5 = \$2.3\text{m}\]`],
         ti: [TI.line('1.6+4.2+3.0-1.8-4.7', { note: 'Current assets less current liabilities ($m). Long-term debt stays out.' })],
         why: R`Current assets less current liabilities. Long-term debt is not current, so it is left out.` },
-      { id: 'w8-q06', topic: 'nwc', kind: 'num', level: 2, section: 'B', src: 'Lecture W8 slides 12–14', formula: 'pv-grow-perp',
+      { id: 'w8-q06', topic: 'nwc', kind: 'num', level: 2, section: 'B', formulas: ['fcf', 'pv-grow-perp'], src: 'Lecture W8 slides 12–14', formula: 'pv-grow-perp',
         q: R`**Emerald City Paints** expects next year: net income $20m, depreciation $5m, capital expenditure $5m and an increase in working capital of $1m. Free cash flow grows 4% a year forever, and \(r = 12\%\). What is the firm worth (in $m)?`,
         table: { head: ['Next year ($ thousands)', 'Amount'], rows: [['Net income', '20,000'], ['+ Depreciation', '5,000'], ['− Capital expenditures', '5,000'], ['− Increase in working capital', '1,000'], ['= Free cash flow', '19,000']] },
         answer: EMERALD.v0 / 1e6, unit: '$m', dp: 2,
@@ -815,7 +1024,7 @@
         steps: [R`\[FCF_1 = 20{,}000 + 5{,}000 - 5{,}000 - 1{,}000 = \$19{,}000\text{k}\]`, R`\[V = \frac{FCF_1}{r - g} = \frac{19{,}000{,}000}{0.12 - 0.04} = \$237{,}500{,}000\]`],
         ti: [TI.line('(20+5-5-1)/(0.12-0.04)', { note: R`Next year’s FCF in $m, divided by \(r - g\).` })],
         why: R`A growing perpetuity: next year’s FCF divided by \(r - g\).` },
-      { id: 'w8-q07', topic: 'nwc', kind: 'num', level: 2, section: 'B', src: 'Lecture W8 slide 14', formula: 'pv-grow-perp',
+      { id: 'w8-q07', topic: 'nwc', kind: 'num', level: 2, section: 'B', formulas: ['fcf', 'pv-grow-perp'], src: 'Lecture W8 slide 14', formula: 'pv-grow-perp',
         q: R`Emerald City Paints cuts its yearly increase in working capital by 20%, from $1m to $0.8m. Everything else is unchanged (FCF growth 4%, \(r = 12\%\)). What is the firm worth now (in $m)?`,
         answer: EMERALD.v1 / 1e6, unit: '$m', dp: 2,
         mistakes: [
@@ -855,7 +1064,7 @@
       { id: 'w8-q13', topic: 'cycle', kind: 'tf', level: 1, section: 'A', src: 'Tutorial W8 concept check Q3',
         q: R`The longer a firm’s cash cycle, the more working capital it has, and the more cash it needs to run its daily operations.`,
         answer: true, why: R`A long cycle means cash stays locked in inventory and receivables for longer.` },
-      { id: 'w8-q14', topic: 'cycle', kind: 'num', level: 1, section: 'B', src: 'Task sheet W8 (A Ltd)',
+      { id: 'w8-q14', topic: 'cycle', kind: 'num', level: 1, section: 'B', formulas: ['op-cycle'], src: 'Task sheet W8 (A Ltd)',
         q: R`A Ltd has inventory days of 54.75, A/R days of 43.8 and A/P days of 32.85. How long is its **operating cycle**?`,
         answer: COA.op, unit: 'days', dp: 2,
         mistakes: [
@@ -876,7 +1085,7 @@
         q: R`Which two ratios use **average daily COGS** as the denominator?`,
         choices: ['Inventory days and A/P days', 'Inventory days and A/R days', 'A/R days and A/P days', 'All three ratios'], answer: 0,
         why: R`Inventory and payables are recorded at **cost**, so they use COGS. Receivables use sales.` },
-      { id: 'w8-q17', topic: 'ccc', kind: 'num', level: 2, section: 'B', src: 'Lecture W8 slide 9', formula: 'ccc',
+      { id: 'w8-q17', topic: 'ccc', kind: 'num', level: 2, section: 'B', formulas: ['ccc'], src: 'Lecture W8 slide 9', formula: 'ccc',
         q: R`**Woolworths** (2012): inventory days 33.2, A/R days 1.4 and A/P days 46.0. What is its cash conversion cycle?`,
         answer: 33.2 + 1.4 - 46.0, unit: 'days', dp: 1,
         mistakes: [
@@ -893,7 +1102,7 @@
       { id: 'w8-q19', topic: 'ccc', kind: 'tf', level: 1, section: 'A', src: 'Lecture W8 slide 10',
         q: R`Airlines tend to have the lowest cash conversion cycles, while the construction sector sits at the other extreme.`,
         answer: true, why: R`Airline customers pay before they fly. Construction firms wait a long time to be paid for big projects.` },
-      { id: 'w8-q20', topic: 'ccc', kind: 'num', level: 2, section: 'B', src: 'Tutorial W8 Q1', formula: 'ccc',
+      { id: 'w8-q20', topic: 'ccc', kind: 'num', level: 2, section: 'B', formulas: ['inv-days', 'ar-days', 'ap-days', 'ccc'], src: 'Tutorial W8 Q1', formula: 'ccc',
         q: R`**Sifty Sasha’s Exporters** had 2015 sales of $3,635 and COGS of $3,257. Use the **end-of-2015** balances in the table (as the tutorial solution does) and a 365-day year. What is the cash conversion cycle?`,
         table: { head: ['Balance', 'Start 2015', 'End 2015'], rows: [['Inventory', '390', '420'], ['Accounts receivable', '403', '432'], ['Accounts payable', '249', '272']] },
         answer: SIFTY.ccc, unit: 'days', dp: 2,
@@ -916,7 +1125,7 @@
           TI.line('i+a-272/(3257/365)', { note: 'Subtract the A/P days (payables divided by daily COGS).' }),
         ],
         why: R`Inventory days and A/P days on daily COGS, A/R days on daily sales. Then add, add, subtract.` },
-      { id: 'w8-q21', topic: 'ccc', kind: 'num', level: 2, section: 'B', src: 'Task sheet W8 (A Ltd)', formula: 'ccc',
+      { id: 'w8-q21', topic: 'ccc', kind: 'num', level: 2, section: 'B', formulas: ['inv-days', 'ar-days', 'ap-days', 'ccc'], src: 'Task sheet W8 (A Ltd)', formula: 'ccc',
         q: R`**A Ltd** had sales of $35m and COGS of $20m in 2022. Year-end balances: accounts receivable $4.2m, inventory $3.0m, accounts payable $1.8m. Use a 365-day year. What is A Ltd’s **cash conversion cycle**?`,
         answer: COA.ccc, unit: 'days', dp: 2,
         mistakes: [
@@ -963,7 +1172,7 @@
         wrong: { 1: 'You only borrow the discounted price ($98), and only after the 10-day window.', 3: 'The credit costs you the $2 discount you give up.' } },
 
       /* ----- cost of trade credit ----- */
-      { id: 'w8-q28', topic: 'tcost', kind: 'num', level: 2, section: 'B', src: 'Lecture W8 slide 17', formula: 'trade-credit',
+      { id: 'w8-q28', topic: 'tcost', kind: 'num', level: 2, section: 'B', formulas: ['trade-credit'], src: 'Lecture W8 slide 17', formula: 'trade-credit',
         q: R`Terms are **2/10, net 30**. What is the effective annual cost of forgoing the discount? Use a 365-day year.`,
         answer: P(ear(0.02, 10, 30)), unit: '%', dp: 2,
         mistakes: [
@@ -975,7 +1184,7 @@
         calc: earCalc(0.02, 10, 30),
         ti: [earTI(0.02, 10, 30)],
         why: R`About 44.6% a year: far dearer than a bank loan. The lecture advises taking the discount.` },
-      { id: 'w8-q29', topic: 'tcost', kind: 'num', level: 2, section: 'B', src: 'Lecture W8 slide 18', formula: 'trade-credit',
+      { id: 'w8-q29', topic: 'tcost', kind: 'num', level: 2, section: 'B', formulas: ['trade-credit'], src: 'Lecture W8 slide 18', formula: 'trade-credit',
         q: R`What is the effective annual cost of forgoing the discount on terms of **3/10, net 40**? Use a 365-day year.`,
         answer: P(ear(0.03, 10, 40)), unit: '%', dp: 2,
         mistakes: [
@@ -987,7 +1196,7 @@
         calc: earCalc(0.03, 10, 40),
         ti: [earTI(0.03, 10, 40)],
         why: R`A bigger discount over a longer window still costs about 44.86% a year.` },
-      { id: 'w8-q30', topic: 'tcost', kind: 'num', level: 2, section: 'B', src: 'Tutorial W8 Q2(A)', formula: 'trade-credit',
+      { id: 'w8-q30', topic: 'tcost', kind: 'num', level: 2, section: 'B', formulas: ['trade-credit'], src: 'Tutorial W8 Q2(A)', formula: 'trade-credit',
         q: R`Your supplier, ABC Ltd, offers **2/20, net 60**. Assume a **360-day** year. What is the effective annual cost of giving up the discount?`,
         answer: P(ear(0.02, 20, 60, 360)), unit: '%', dp: 2,
         mistakes: [
@@ -1016,14 +1225,14 @@
         q: R`Forgoing a 2/10, net 30 discount costs 44.6% a year. The bank lends at 15%. The firm needs finance. What should it do?`,
         choices: ['Borrow from the bank and pay the supplier on day 10', 'Forgo the discount and pay on day 30', 'Forgo the discount and pay on day 20', 'Borrow from the bank and pay the supplier on day 30'], answer: 0,
         why: R`Trade credit (44.6%) is dearer than the bank (15%). So take the discount, funded by the cheaper bank loan, and pay on the last discount day.` },
-      { id: 'w8-q35', topic: 'payables', kind: 'mcq', level: 2, section: 'B', src: 'Tutorial W8 Q2(B)',
+      { id: 'w8-q35', topic: 'payables', kind: 'mcq', level: 2, section: 'B', formulas: ['trade-credit'], src: 'Tutorial W8 Q2(B)',
         q: R`ABC Ltd offers 2/20, net 60 (EAR 19.94% with a 360-day year). Your bank lends at 15%. You need short-term finance. What should you do?`,
         choices: ['Take the discount, pay on day 20, and borrow from the bank', 'Give up the discount and pay on day 60', 'Give up the discount and pay on day 40', 'Take the discount, but pay on day 60'], answer: 0,
         why: R`The trade credit costs 19.94%, more than the bank’s 15%. Borrow from the bank and take the discount.`,
         steps: [R`\[EAR = \left(1 + \frac{2}{98}\right)^{\frac{360}{60 - 20}} - 1 = ${L.pct(ear(0.02, 20, 60, 360), 2)}\]`, R`\(19.94\% > 15\%\): trade credit is the dearer loan. Take the discount, pay on day 20, and fund it with the bank loan.`],
         ti: [earTI(0.02, 20, 60, 360, R`That is \(${L.pct(ear(0.02, 20, 60, 360), 2)}\) a year: more than the bank’s 15%, so take the discount.`)],
         wrong: { 3: 'The discount is only available if you pay within 20 days.' } },
-      { id: 'w8-q36', topic: 'payables', kind: 'num', level: 2, section: 'B', src: 'Tutorial W8 Q2(C)', formula: 'trade-credit',
+      { id: 'w8-q36', topic: 'payables', kind: 'num', level: 2, section: 'B', formulas: ['trade-credit'], src: 'Tutorial W8 Q2(C)', formula: 'trade-credit',
         q: R`ABC Ltd offers 2/20, net 60, but you could stretch your payment by 20 days, to day 80. Using a **360-day** year, what is the effective annual cost of forgoing the discount now?`,
         answer: P(ear(0.02, 20, 80, 360)), unit: '%', dp: 2,
         mistakes: [
@@ -1039,7 +1248,7 @@
         q: R`Stretching ABC Ltd’s terms to day 80 cuts the cost of trade credit to 12.89%, below the bank’s 15%. What is the best description of the choice?`,
         choices: ['Forgo the discount and pay on day 80, but beware the risk of losing the supplier or your credit rating', 'Keep borrowing from the bank, because stretching is illegal', 'Pay on day 20, because stretching has no benefit', 'Stretching has no risks, so always pay as late as possible'], answer: 0,
         why: R`On cost alone, stretching wins. But the supplier may stop dealing with you, and a poor credit rating can make other credit dearer.` },
-      { id: 'w8-q38', topic: 'payables', kind: 'num', level: 2, section: 'B', src: 'Lecture W8 slides 25–26', formula: 'ap-days',
+      { id: 'w8-q38', topic: 'payables', kind: 'num', level: 2, section: 'B', formulas: ['ap-days'], src: 'Lecture W8 slides 25–26', formula: 'ap-days',
         q: R`**Uwe Company** has an average accounts payable balance of $250,000. Its daily COGS is $14,000. How many days does Uwe take to pay its suppliers?`,
         answer: UWE, unit: 'days', dp: 2,
         mistakes: [
@@ -1054,7 +1263,7 @@
         choices: ['It misses the 2% discount by 3 days, and it also gives up 22 more days of credit', 'Nothing: 18 days is inside the 40-day credit period', 'It pays too late, so the supplier will charge a penalty', 'It should pay on day 40 and still take the 2% discount'], answer: 0,
         why: R`Pay by day 15 to get the discount. If you skip the discount, wait until day 40. Paying on day 18 loses both.`,
         wrong: { 3: 'The discount is only available within the first 15 days.' } },
-      { id: 'w8-q40', topic: 'payables', kind: 'num', level: 1, section: 'B', src: 'Lecture W8 slide 28', formula: 'trade-credit',
+      { id: 'w8-q40', topic: 'payables', kind: 'num', level: 1, section: 'B', formulas: ['trade-credit'], src: 'Lecture W8 slide 28', formula: 'trade-credit',
         q: R`Terms are **1/15, net 40**. The firm pays on day 40. What is the effective annual cost of forgoing the discount? Use a 365-day year.`,
         answer: P(ear(0.01, 15, 40)), unit: '%', dp: 2,
         mistakes: [
@@ -1066,7 +1275,7 @@
         calc: earCalc(0.01, 15, 40),
         ti: [earTI(0.01, 15, 40)],
         why: R`Paying on day 40 costs about 15.80% a year.` },
-      { id: 'w8-q41', topic: 'payables', kind: 'num', level: 2, section: 'B', src: 'Lecture W8 slide 28', formula: 'trade-credit',
+      { id: 'w8-q41', topic: 'payables', kind: 'num', level: 2, section: 'B', formulas: ['trade-credit'], src: 'Lecture W8 slide 28', formula: 'trade-credit',
         q: R`Terms are **1/15, net 40**, but the firm **stretches** its payables and pays on day 60. What is the effective annual cost now? Use a 365-day year.`,
         answer: P(ear(0.01, 15, 60)), unit: '%', dp: 2,
         mistakes: [
@@ -1086,13 +1295,13 @@
         q: R`A firm has decided to **forgo** a trade discount. When should it pay the supplier?`,
         choices: ['On the last day of the net period', 'On the last day of the discount period', 'Halfway between the discount date and the due date', 'Straight away, to keep the supplier happy'], answer: 0,
         why: R`Once the discount is gone, extra days of credit are free. Use all of them: pay on the due date.` },
-      { id: 'w8-q44', topic: 'payables', kind: 'mcq', level: 2, section: 'B', src: 'Task sheet W8 Part 1 (Company A)',
+      { id: 'w8-q44', topic: 'payables', kind: 'mcq', level: 2, section: 'B', formulas: ['trade-credit'], src: 'Task sheet W8 Part 1 (Company A)',
         q: R`Company A buys from Supplier E on **1/20, net 40**. The bank lends to Company A at 15%. Using a 365-day year, what should Company A do?`,
         choices: [R`Take the discount: the EAR is \(${L.pct(ear(0.01, 20, 40), 2)}\), above 15%. Borrow from the bank and pay on day 20.`, R`Forgo the discount: the EAR is \(${L.pct(ear(0.01, 20, 40), 2)}\), so pay on day 40.`, R`Forgo the discount: the cost is only 1%, so pay on day 40.`, 'Pay on day 30 to balance the two costs.'], answer: 0,
         why: R`\(EAR = ${earTex(0.01, 20, 40)} = ${L.pct(ear(0.01, 20, 40), 2)}\) is above the 15% bank rate, so take the discount.`,
         steps: [R`Period rate: \(\frac{1}{99} = 1.0101\%\) for \(40 - 20 = 20\) days.`, R`\[EAR = ${earTex(0.01, 20, 40)} = ${L.pct(ear(0.01, 20, 40), 2)}\]`, R`\(${L.pct(ear(0.01, 20, 40), 2)} > 15\%\): borrow from the bank and pay Supplier E on day 20.`],
         ti: [earTI(0.01, 20, 40, 365, R`That is \(${L.pct(ear(0.01, 20, 40), 2)}\) a year: more than the bank’s 15%, so take the discount.`)] },
-      { id: 'w8-q45', topic: 'payables', kind: 'mcq', level: 2, section: 'B', src: 'Task sheet W8 Part 1 (Company D)',
+      { id: 'w8-q45', topic: 'payables', kind: 'mcq', level: 2, section: 'B', formulas: ['trade-credit'], src: 'Task sheet W8 Part 1 (Company D)',
         q: R`Company D buys from Supplier C on **2/10, net 60**. The bank lends to Company D at 20%. Using a 365-day year, what should Company D do?`,
         choices: [R`Forgo the discount and pay on day 60: the EAR is \(${L.pct(ear(0.02, 10, 60), 2)}\), below 20%`, R`Take the discount and borrow at 20%: 2% for 50 days is expensive`, R`Forgo the discount and pay on day 10`, R`Take the discount and pay on day 60`], answer: 0,
         why: R`\(EAR = ${earTex(0.02, 10, 60)} = ${L.pct(ear(0.02, 10, 60), 2)}\). That is cheaper than the bank, so use the trade credit fully.`,
@@ -1104,26 +1313,26 @@
         why: R`\(\frac{2.2}{24/365} = ${L.num(COC_AP)}\) days is past day 30. It should take the discount (bank-funded) or at least pay by day 30.`,
         ti: [TI.line('2.2/(24/365)', { note: 'A/P days: payables divided by daily COGS.' })] },
 
-      { id: 'w8-q60', topic: 'payables', kind: 'mcq', level: 2, section: 'B', src: 'Task sheet W8 Part 1 (Company B)',
+      { id: 'w8-q60', topic: 'payables', kind: 'mcq', level: 2, section: 'B', formulas: ['trade-credit'], src: 'Task sheet W8 Part 1 (Company B)',
         q: R`Company B buys from Supplier A on **1/10, net 55**. The bank lends to Company B at 15%. Using a 365-day year, what should Company B do?`,
         choices: [R`Forgo the discount and pay on day 55: the EAR is \(${L.pct(ear(0.01, 10, 55), 2)}\), below 15%`, R`Take the discount and borrow at 15%, paying on day 10`, R`Forgo the discount and pay on day 30`, R`Take the discount but pay on day 55`], answer: 0,
         why: R`\(EAR = ${earTex(0.01, 10, 55)} = ${L.pct(ear(0.01, 10, 55), 2)}\). The long 45-day window makes trade credit cheap, so use it fully.`,
         steps: [R`Period rate: \(\frac{1}{99} = 1.0101\%\) for \(55 - 10 = 45\) days.`, R`\[EAR = ${earTex(0.01, 10, 55)} = ${L.pct(ear(0.01, 10, 55), 2)}\]`, R`\(${L.pct(ear(0.01, 10, 55), 2)} < 15\%\): skip the discount and pay on day 55.`],
         ti: [earTI(0.01, 10, 55, 365, R`That is \(${L.pct(ear(0.01, 10, 55), 2)}\) a year: less than the bank’s 15%, so skip the discount and pay on day 55.`)] },
-      { id: 'w8-q61', topic: 'payables', kind: 'mcq', level: 2, section: 'B', src: 'Task sheet W8 Part 1 (Company C)',
+      { id: 'w8-q61', topic: 'payables', kind: 'mcq', level: 2, section: 'B', formulas: ['trade-credit'], src: 'Task sheet W8 Part 1 (Company C)',
         q: R`Company C buys from Supplier B on **2/10, net 30**. The bank lends to Company C at 20%. Using a 365-day year, what should Company C do?`,
         choices: [R`Take the discount: the EAR is \(${L.pct(ear(0.02, 10, 30), 2)}\), above 20%. Borrow and pay on day 10.`, R`Forgo the discount and pay on day 30, because 2% is less than 20%`, R`Forgo the discount and pay on day 20`, R`Take the discount but pay on day 30`], answer: 0,
         why: R`\(EAR = ${earTex(0.02, 10, 30)} = ${L.pct(ear(0.02, 10, 30), 2)}\), far above the 20% bank rate.`,
         steps: [R`\[EAR = ${earTex(0.02, 10, 30)} = ${L.pct(ear(0.02, 10, 30), 2)}\]`, R`\(${L.pct(ear(0.02, 10, 30), 2)} > 20\%\): borrow from the bank and pay on day 10.`],
         ti: [earTI(0.02, 10, 30, 365, R`That is \(${L.pct(ear(0.02, 10, 30), 2)}\) a year: far more than the bank’s 20%, so take the discount.`)],
         wrong: { 1: R`The 2% is for 20 days only. As a yearly rate it is about 44.6%.` } },
-      { id: 'w8-q62', topic: 'payables', kind: 'mcq', level: 2, section: 'B', src: 'Task sheet W8 Part 1 (Company E)',
+      { id: 'w8-q62', topic: 'payables', kind: 'mcq', level: 2, section: 'B', formulas: ['trade-credit'], src: 'Task sheet W8 Part 1 (Company E)',
         q: R`Company E buys from Supplier D on **2/15, net 35**. The bank lends to Company E at 18%. Using a 365-day year, what should Company E do?`,
         choices: [R`Take the discount: borrow at 18% and pay on day 15`, R`Forgo the discount and pay on day 35`, R`Forgo the discount and pay on day 25`, R`Take the discount but pay on day 35`], answer: 0,
         why: R`\(EAR = ${earTex(0.02, 15, 35)} = ${L.pct(ear(0.02, 15, 35), 2)}\), well above 18%. If E cannot pay by day 15, it should wait until day 35.`,
         steps: [R`\[EAR = ${earTex(0.02, 15, 35)} = ${L.pct(ear(0.02, 15, 35), 2)}\]`, R`\(${L.pct(ear(0.02, 15, 35), 2)} > 18\%\): take the discount and pay on day 15.`],
         ti: [earTI(0.02, 15, 35, 365, R`That is \(${L.pct(ear(0.02, 15, 35), 2)}\) a year: more than the bank’s 18%, so take the discount.`)] },
-      { id: 'w8-q63', topic: 'tcost', kind: 'mcq', level: 2, section: 'B', src: 'Task sheet W8 Part 1',
+      { id: 'w8-q63', topic: 'tcost', kind: 'mcq', level: 2, section: 'B', formulas: ['trade-credit'], src: 'Task sheet W8 Part 1',
         q: R`Five firms in one supply chain face the terms and bank rates in the table. Using a 365-day year, which firms should **forgo** the discount and pay on the last day?`,
         table: { head: ['Company', 'Terms from its supplier', 'Bank rate'], rows: [['A', '1/20, net 40', '15%'], ['B', '1/10, net 55', '15%'], ['C', '2/10, net 30', '20%'], ['D', '2/10, net 60', '20%'], ['E', '2/15, net 35', '18%']] },
         choices: ['B and D', 'A and C', 'A, C and E', 'Only D'], answer: 0,
@@ -1147,7 +1356,7 @@
         q: R`What do **accounts receivable days** measure?`,
         choices: ['The average number of days a firm takes to collect cash from its credit sales', 'The average number of days a firm takes to pay its suppliers', 'The number of days of stock the firm holds', 'The length of the operating cycle'], answer: 0,
         why: R`\(\text{A/R days} = \frac{\text{Accounts receivable}}{Sales/365}\): the average collection time.` },
-      { id: 'w8-q50', topic: 'receivables', kind: 'num', level: 3, section: 'B', src: 'Lecture W8 slides 19–21', boss: true,
+      { id: 'w8-q50', topic: 'receivables', kind: 'num', level: 3, section: 'B', formulas: ['credit-npv', 'pv-perp'], src: 'Lecture W8 slides 19–21', boss: true,
         q: R`Your product sells for $100 and costs $60 to make. You sell 500 units a month. Half of the customers pay cash now and take a 1% discount; the rest pay full price in 30 days. The required return is 1% per month, and the policy runs forever. What is the NPV of this **current policy**?`,
         answer: CREDIT.cur, unit: '$', dp: 2,
         mistakes: [
@@ -1163,7 +1372,7 @@
         ],
         ti: [TI.line('-500*60+250*99', { note: 'Month 0: pay the production costs, receive the cash sales.' }), TI.line('-5250+(250*100-5250)/0.01', { note: 'Month 0, plus the monthly perpetuity: credit sales in, less the next month’s net outflow.' })],
         why: R`Lay out one month’s cash flows, then value the repeating part as a monthly perpetuity at 1%.` },
-      { id: 'w8-q51', topic: 'receivables', kind: 'num', level: 3, section: 'B', src: 'Lecture W8 slides 19–21', boss: true,
+      { id: 'w8-q51', topic: 'receivables', kind: 'num', level: 3, section: 'B', formulas: ['credit-npv', 'pv-perp'], src: 'Lecture W8 slides 19–21', boss: true,
         q: R`Same firm (price $100, cost $60, 1% per month). If it **drops** the 1% cash discount, it sells 480 units a month and every customer pays in 30 days. The current policy is worth $1,969,750. What is the **NPV of switching** to the new policy?`,
         answer: CREDIT.sw, unit: '$', dp: 2,
         mistakes: [
@@ -1217,7 +1426,7 @@
 
     generators: [
       /* ---------- net working capital ---------- */
-      { id: 'w8-g-nwc', topic: 'nwc', level: 1, section: 'B', src: 'Task sheet W8',
+      { id: 'w8-g-nwc', topic: 'nwc', level: 1, section: 'B', formulas: ['nwc'], src: 'Task sheet W8',
         make(rng) {
           const co = rng.company();
           const cash = rng.step(0.5, 3, 0.1), ar = rng.step(2, 8, 0.1), inv = rng.step(1.5, 7, 0.1);
@@ -1242,7 +1451,7 @@
             why: R`Only current items count. PP&E and long-term debt are left out.`,
           };
         } },
-      { id: 'w8-g-value', topic: 'nwc', level: 2, section: 'B', formula: 'pv-grow-perp', src: 'Lecture W8 slides 12–13',
+      { id: 'w8-g-value', topic: 'nwc', level: 2, section: 'B', formulas: ['fcf', 'pv-grow-perp'], formula: 'pv-grow-perp', src: 'Lecture W8 slides 12–13',
         make(rng) {
           const co = rng.company();
           for (let k = 0; k < 60; k++) {
@@ -1271,7 +1480,7 @@
           }
           return null;
         } },
-      { id: 'w8-g-emerald', topic: 'nwc', level: 3, section: 'B', formula: 'pv-grow-perp', src: 'Lecture W8 slide 14', boss: true,
+      { id: 'w8-g-emerald', topic: 'nwc', level: 3, section: 'B', formulas: ['fcf', 'pv-grow-perp'], formula: 'pv-grow-perp', src: 'Lecture W8 slide 14', boss: true,
         make(rng) {
           const co = rng.company();
           for (let k = 0; k < 60; k++) {
@@ -1314,6 +1523,7 @@
           return {
             q: R`A firm has inventory days of ${K(inv, 1)}, A/R days of ${K(ar, 1)} and A/P days of ${K(ap, 1)}. How long is its **${askOp ? 'operating cycle' : 'cash cycle (cash conversion cycle)'}**?`,
             givens: [[R`\text{Inventory days}`, K(inv, 1)], [R`\text{A/R days}`, K(ar, 1)], [R`\text{A/P days}`, K(ap, 1)]],
+            formulas: askOp ? ['op-cycle'] : ['ccc'],
             answer: ans, unit: 'days', dp: 1,
             mistakes: uniq(ans, [
               askOp ? { v: cc, why: 'That subtracts the A/P days, which gives the cash cycle.' } : { v: op, why: 'That is the operating cycle. The cash cycle subtracts the A/P days.' },
@@ -1329,7 +1539,7 @@
         } },
 
       /* ---------- the three day ratios ---------- */
-      { id: 'w8-g-invdays', topic: 'ccc', level: 1, section: 'B', formula: 'inv-days',
+      { id: 'w8-g-invdays', topic: 'ccc', level: 1, section: 'B', formulas: ['inv-days'], formula: 'inv-days',
         make(rng) {
           const co = rng.company();
           const sales = rng.step(20, 90, 1), cogs = +(sales * rng.step(0.5, 0.75, 0.05)).toFixed(1);
@@ -1349,7 +1559,7 @@
             why: R`\(\text{Inventory days} = \frac{\text{Inventory}}{COGS/365}\): stock is held at cost, so use COGS.`,
           };
         } },
-      { id: 'w8-g-ardays', topic: 'receivables', level: 1, section: 'B', formula: 'ar-days',
+      { id: 'w8-g-ardays', topic: 'receivables', level: 1, section: 'B', formulas: ['ar-days'], formula: 'ar-days',
         make(rng) {
           const co = rng.company();
           const sales = rng.step(20, 90, 1), cogs = +(sales * rng.step(0.5, 0.75, 0.05)).toFixed(1);
@@ -1369,7 +1579,7 @@
             why: R`\(\text{A/R days} = \frac{\text{Accounts receivable}}{Sales/365}\): the average time customers take to pay.`,
           };
         } },
-      { id: 'w8-g-apdays', topic: 'payables', level: 1, section: 'B', formula: 'ap-days',
+      { id: 'w8-g-apdays', topic: 'payables', level: 1, section: 'B', formulas: ['ap-days'], formula: 'ap-days',
         make(rng) {
           const co = rng.company();
           const sales = rng.step(20, 90, 1), cogs = +(sales * rng.step(0.5, 0.75, 0.05)).toFixed(1);
@@ -1389,7 +1599,7 @@
             why: R`\(\text{A/P days} = \frac{\text{Accounts payable}}{COGS/365}\): the average time the firm takes to pay suppliers.`,
           };
         } },
-      { id: 'w8-g-ccc', topic: 'ccc', level: 2, section: 'B', formula: 'ccc', src: 'Tutorial W8 Q1',
+      { id: 'w8-g-ccc', topic: 'ccc', level: 2, section: 'B', formulas: ['inv-days', 'ar-days', 'ap-days', 'ccc'], formula: 'ccc', src: 'Tutorial W8 Q1',
         make(rng) {
           const co = rng.company();
           const sales = rng.step(20, 90, 1), cogs = +(sales * rng.step(0.5, 0.75, 0.05)).toFixed(1);
@@ -1450,7 +1660,7 @@
             why: kind === 'ap' ? R`Paying suppliers later (within the terms) keeps cash in the firm for longer.` : R`Fewer ${word} mean a smaller ${bal} balance, so cash is released.`,
           };
         } },
-      { id: 'w8-g-cccfix', topic: 'payables', level: 3, section: 'B', formula: 'ccc', src: 'Task sheet W8 Part 2', boss: true,
+      { id: 'w8-g-cccfix', topic: 'payables', level: 3, section: 'B', formulas: ['inv-days', 'ar-days', 'ap-days', 'ccc'], formula: 'ccc', src: 'Task sheet W8 Part 2', boss: true,
         make(rng) {
           const co = rng.company();
           for (let k = 0; k < 60; k++) {
@@ -1506,7 +1716,7 @@
             steps: [R`\(d = ${d}\%\): the discount for paying early.`, R`${x} days: the discount window.`, R`Net ${y}: the full amount is due by day ${y}.`],
           };
         } },
-      { id: 'w8-g-period', topic: 'tcost', level: 1, section: 'B', formula: 'trade-credit', src: 'Lecture W8 slide 16',
+      { id: 'w8-g-period', topic: 'tcost', level: 1, section: 'B', formulas: ['trade-credit'], formula: 'trade-credit', src: 'Lecture W8 slide 16',
         make(rng) {
           const d = rng.pick([1, 2, 3, 4]) / 100, x = rng.pick([10, 15, 20]), y = rng.pick([30, 40, 45, 60]);
           const per = d / (1 - d);
@@ -1524,7 +1734,7 @@
             why: R`The discount you give up is interest on the discounted price.`,
           };
         } },
-      { id: 'w8-g-tcear', topic: 'tcost', level: 2, section: 'B', formula: 'trade-credit', src: 'Lecture W8 slides 16–18',
+      { id: 'w8-g-tcear', topic: 'tcost', level: 2, section: 'B', formulas: ['trade-credit'], formula: 'trade-credit', src: 'Lecture W8 slides 16–18',
         make(rng) {
           const d = rng.pick([1, 1.5, 2, 2, 3]) / 100, x = rng.pick([10, 15, 20]);
           const y = rng.pick([30, 40, 45, 60, 90].filter((n) => n - x >= 15));
@@ -1549,7 +1759,7 @@
             why: R`Compound the period rate \(\frac{${yr}}{${y - x}}\) times a year.`,
           };
         } },
-      { id: 'w8-g-decide', topic: 'payables', level: 2, section: 'A', formula: 'trade-credit', src: 'Tutorial W8 Q2(B)',
+      { id: 'w8-g-decide', topic: 'payables', level: 2, section: 'A', formulas: ['trade-credit'], formula: 'trade-credit', src: 'Tutorial W8 Q2(B)',
         make(rng) {
           for (let k = 0; k < 60; k++) {
             const d = rng.pick([1, 2, 3]) / 100, x = rng.pick([10, 15, 20]), y = rng.pick([30, 40, 45, 60, 90]);
@@ -1575,7 +1785,7 @@
           }
           return null;
         } },
-      { id: 'w8-g-stretch', topic: 'payables', level: 2, section: 'B', formula: 'trade-credit', src: 'Lecture W8 slides 27–28',
+      { id: 'w8-g-stretch', topic: 'payables', level: 2, section: 'B', formulas: ['trade-credit'], formula: 'trade-credit', src: 'Lecture W8 slides 27–28',
         make(rng) {
           const d = rng.pick([1, 2, 3]) / 100, x = rng.pick([10, 15, 20]), y = rng.pick([30, 40, 45]);
           const S = y + rng.pick([10, 15, 20, 30, 40]);
@@ -1595,7 +1805,7 @@
             why: R`Stretching spreads the same discount over more days, so the annual cost falls.`,
           };
         } },
-      { id: 'w8-g-apcheck', topic: 'payables', level: 2, section: 'A', formula: 'ap-days', src: 'Lecture W8 slides 24–26',
+      { id: 'w8-g-apcheck', topic: 'payables', level: 2, section: 'A', formulas: ['ap-days'], formula: 'ap-days', src: 'Lecture W8 slides 24–26',
         make(rng) {
           const co = rng.company();
           const d = rng.pick([1, 2]) / 100, x = rng.pick([10, 15, 20]), y = rng.pick([30, 40, 45, 60]);
@@ -1618,7 +1828,7 @@
             ti: [TI.line(`${ap}/${daily}`, { note: 'A/P days: payables divided by daily COGS.' })],
           };
         } },
-      { id: 'w8-g-stretchdecide', topic: 'payables', level: 3, section: 'A', formula: 'trade-credit', src: 'Tutorial W8 Q2(C)', boss: true,
+      { id: 'w8-g-stretchdecide', topic: 'payables', level: 3, section: 'A', formulas: ['trade-credit'], formula: 'trade-credit', src: 'Tutorial W8 Q2(C)', boss: true,
         make(rng) {
           for (let k = 0; k < 80; k++) {
             const d = rng.pick([1, 2, 3]) / 100, x = rng.pick([10, 15, 20]), y = rng.pick([30, 40, 45, 60]);
@@ -1651,7 +1861,7 @@
         } },
 
       /* ---------- credit policy ---------- */
-      { id: 'w8-g-credit', topic: 'receivables', level: 3, section: 'B', src: 'Lecture W8 slides 19–21', boss: true,
+      { id: 'w8-g-credit', topic: 'receivables', level: 3, section: 'B', formulas: ['credit-npv', 'pv-perp'], src: 'Lecture W8 slides 19–21', boss: true,
         make(rng) {
           for (let k = 0; k < 80; k++) {
             const price = rng.pick([50, 80, 100, 120, 150, 200]);

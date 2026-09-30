@@ -115,6 +115,36 @@
     };
   })();
 
+  /* ---------- the option to wait: commit now, or wait and pay (more) later, only if it goes well ----------
+   * p = chance it goes well, V = what it is worth then (0 if it goes badly), c0 = cost now (paid today),
+   * cw = cost later (paid when you find out, only if it went well), m = months until you find out, r = an EAR. */
+  function waitPlan(V, p, c0, cw, m, r) {
+    const df = Math.pow(1 + r, m / 12), E = p * V;
+    const now = E / df - c0, wait = (p * (V - cw)) / df;
+    return { V, p, c0, cw, m, r, df, E, now, wait, gain: wait - now };
+  }
+  const NOVA = waitPlan(40000, 0.6, 12000, 18000, 6, 0.08); // lesson worked example: waiting wins
+  const RIG = waitPlan(500000, 0.7, 160000, 260000, 6, 0.09); // static question: committing now wins
+  const STALL = waitPlan(10000, 0.65, 4000, 6000, 9, 0.08); // written round: waiting wins
+
+  /* ---------- written rounds, computed once ---------- */
+  // break-even and sensitivity (no tax): machine $400,000, 5 years straight line, P $450, v $250, fixed costs $60,000, 1,500 a year, r 10%
+  const KAYAK = (() => {
+    const I = 400000, n = 5, r = 0.10, P = 450, v = 250, FC = 60000, Q = 1500;
+    const dep = I / n, AF = FIN.pvifa(r, n);
+    const npvAt = (p, vv, q, fc) => -I + ((p - vv) * q - fc) * AF;
+    return { dep, AF, ebitBE: (FC + dep) / (P - v), cfBE: I / AF, npvBE: (I / AF + FC) / (P - v), base: npvAt(P, v, Q, FC),
+      price: npvAt(405, v, Q, FC), sales: npvAt(P, v, 1350, FC), cost: npvAt(P, 275, Q, FC), fixed: npvAt(P, v, Q, 66000) };
+  })();
+  // the scooter tree (Excel round): launch $450,000; council 60% big zone; add scooters $250,000 at t = 1; payoffs at t = 2; r 10%
+  const SCOOT = (() => {
+    const r = 0.10;
+    const eAdd = 0.7 * 1200000 + 0.3 * 500000, eStay = 0.7 * 750000 + 0.3 * 450000, eSmall = 0.5 * 470000 + 0.5 * 300000;
+    const vAdd = -250000 + eAdd / (1 + r), vStay = eStay / (1 + r), best = Math.max(vAdd, vStay), vSmall = eSmall / (1 + r);
+    const council = 0.6 * best + 0.4 * vSmall, pv0 = council / (1 + r);
+    return { eAdd, eStay, eSmall, vAdd, vStay, best, vSmall, council, pv0, npv: pv0 - 450000 };
+  })();
+
   /* ---------- static decision trees ---------- */
   const TREE_ELEC = decide(R`\(t = 0\)`, [
     ['Research: −$500,000', chance(R`\(t = 1\)`, [
@@ -177,6 +207,90 @@
     ['70% approved', end('$30m a year, years 1–9')],
     ['30% banned', end(R`$30m in years 1–2, then sell for $10m at \(t = 2\)`)],
   ]);
+  const TREE_SCOOT = decide(R`\(t = 0\)`, [
+    ['Launch: −$450,000', chance(R`Council, \(t = 1\)`, [
+      ['60% big zone', decide(R`\(t = 1\)`, [
+        ['Add scooters: −$250,000', chance(R`\(t = 2\)`, [['70% busy', end('$1,200,000')], ['30% quiet', end('$500,000')]])],
+        ['Stay as it is', chance(R`\(t = 2\)`, [['70% busy', end('$750,000')], ['30% quiet', end('$450,000')]])],
+      ])],
+      ['40% small zone', chance(R`\(t = 2\)`, [['50% busy', end('$470,000')], ['50% quiet', end('$300,000')]])],
+    ])],
+    ['Do not launch', end('$0')],
+  ]);
+  const TREE_STALL = decide('Today', [
+    ['Book now: −$4,000', chance('In 9 months', [['65% goes ahead', end('Profit $10,000')], ['35% cancelled', end('$0 (fee lost)')]])],
+    ['Wait', chance('In 9 months', [['65% goes ahead', end('$10,000 − $6,000')], ['35% cancelled', end('Do not book: $0')]])],
+  ]);
+
+  /* ---------- decision trees laid out in Excel (hand-written sheets) ---------- */
+  // time runs left to right (row 1); chances in column B; each value sits in the column of its date; formulas fold back right to left
+  const XL_SCOOT = {
+    title: 'Bluegum’s tree, left to right',
+    rows: [
+      ['Time (years)', null, 0, 1, 2],
+      ['Discount rate r', 0.1],
+      ['Launch: cost', null, -450000],
+      ['Big zone: chance', 0.6],
+      ['Add scooters: cost', null, null, -250000],
+      ['Add, busy: chance, payoff', 0.7, null, null, 1200000],
+      ['Add, quiet: chance, payoff', 0.3, null, null, 500000],
+      ['Add: expected payoff (chance node)', null, null, null, '=B6*E6+B7*E7'],
+      ['Add: value at t = 1', null, null, '=D5+E8/(1+$B$2)'],
+      ['Stay, busy: chance, payoff', 0.7, null, null, 750000],
+      ['Stay, quiet: chance, payoff', 0.3, null, null, 450000],
+      ['Stay: expected payoff (chance node)', null, null, null, '=B10*E10+B11*E11'],
+      ['Stay: value at t = 1', null, null, '=E12/(1+$B$2)'],
+      ['Big zone: best choice (decision node)', null, null, '=MAX(D9,D13)'],
+      ['Small zone: chance', 0.4],
+      ['Small, busy: chance, payoff', 0.5, null, null, 470000],
+      ['Small, quiet: chance, payoff', 0.5, null, null, 300000],
+      ['Small: expected payoff (chance node)', null, null, null, '=B16*E16+B17*E17'],
+      ['Small: value at t = 1', null, null, '=E18/(1+$B$2)'],
+      ['Council at t = 1 (chance node)', null, null, '=B4*D14+B15*D19'],
+      ['Value today (t = 0)', null, '=D20/(1+$B$2)'],
+      ['NPV of launching', null, '=C3+C21'],
+      ['Decision at t = 0', null, '=IF(C22>0,"Launch","Do not launch")'],
+    ],
+    fmt: { B2: '%', 'C3:E22': '$' },
+    bold: ['A1:E1', 'A14:D14', 'A22:C23'],
+    answer: 'C22',
+    steps: [
+      { t: R`Time runs left to right: \(t = 0\), 1 and 2 across row 1. The rate is in B2. Each branch’s chance is in column B.`, cells: ['A1:E1', 'B2'] },
+      { t: R`Each cash flow sits in the column of its date: the launch cost under \(t = 0\), the cost of adding scooters under \(t = 1\), the payoffs under \(t = 2\).`, cells: ['C3', 'D5', 'E6:E7', 'E10:E11', 'E16:E17'] },
+      { t: R`Start at the right. Each chance node is an expected value: chance times payoff, added up, e.g. =B6*E6+B7*E7.`, cells: ['E8', 'E12', 'E18'] },
+      { t: R`Move each one year back to \(t = 1\) by dividing by \(1 + r\): =E12/(1+$B$2). Adding scooters also pays its cost: =D5+E8/(1+$B$2).`, cells: ['D9', 'D13', 'D19'] },
+      { t: R`A decision node keeps the best branch: =MAX(D9,D13). Adding scooters wins.`, cells: 'D14' },
+      { t: R`The council is a chance node at \(t = 1\): =B4*D14+B15*D19. Then one more year back to today.`, cells: ['D20', 'C21'] },
+      { t: R`NPV = the launch cost + the value today. IF writes the decision in words.`, cells: ['C22', 'C23'] },
+    ],
+  };
+  // ELEC (lecture Example 1) laid out in Excel, for the Decision trees lesson
+  const XL_ELEC = {
+    title: 'ELEC’s tree in a spreadsheet',
+    rows: [
+      ['Time (years)', null, 0, 1],
+      ['Discount rate r', 0.12],
+      ['Research: cost', null, -500000],
+      ['Success: cash a year, forever', null, null, 150000],
+      ['Success: chance, value at t = 1', 0.33, null, '=D4/B2'],
+      ['Failure: chance, value at t = 1', 0.67, null, 0],
+      ['Chance node at t = 1 (expected value)', null, null, '=B5*D5+B6*D6'],
+      ['Value today (t = 0)', null, '=D7/(1+B2)'],
+      ['NPV of research', null, '=C3+C8'],
+      ['Decision node: research or $0', null, '=MAX(C9,0)'],
+      ['Decision', null, '=IF(C9>0,"Research","Do not research")'],
+    ],
+    fmt: { B2: '%', 'C3:D10': '$' },
+    bold: ['A1:D1', 'A9:C11'],
+    answer: 'C9',
+    steps: [
+      { t: R`Row 1 is the time line: \(t = 0\) and \(t = 1\). The rate goes in B2, and each branch’s chance in column B.`, cells: ['A1:D1', 'B2'] },
+      { t: R`Success is a perpetuity, valued at \(t = 1\): =D4/B2.`, cells: 'D5' },
+      { t: R`The chance node is an expected value: =B5*D5+B6*D6.`, cells: 'D7' },
+      { t: R`Discount it one year to today: =D7/(1+B2). Then add the research cost: =C3+C8.`, cells: ['C8', 'C9'] },
+      { t: R`The decision node keeps the better of research and doing nothing ($0): =MAX(C9,0).`, cells: ['C10', 'C11'] },
+    ],
+  };
 
   root.registerPack({
     id: 'w7', floor: 6, week: 'Week 7',
@@ -227,6 +341,8 @@
         R`You only use an option when it adds value, so an option can never lower the NPV.`,
         R`Chip machines: after high demand, upgrading B is worth \(\$0.412\text{m}\) against \(\$1.971\text{m}\) for not upgrading. So do not upgrade. Buy A: \(\$0.506\text{m} > -\$0.462\text{m}\).`,
         R`Unter: a quarter of the fleet (\(\$41.86\text{m}\)) beats the entire fleet (\(\$39.04\text{m}\)), because it can upgrade after the regulator approves.`,
+        R`**Option to wait**: commit now at a lower price, or wait until you know and pay more, only if it goes well. \(NPV_{now} = \frac{p \times V}{(1 + r)^{t}} - \text{cost now}\) and \(NPV_{wait} = \frac{p \times (V - \text{cost later})}{(1 + r)^{t}}\). Keep the higher one.`,
+        R`With an EAR and a wait of some months, discount with \((1 + r)^{\text{months}/12}\).`,
       ] },
       { h: 'On your TI-Nspire CX CAS', points: [
         R`Break-even and scenario NPVs: type the formula as one line, e.g. \((80 - 60) \times 6000 / 0.1 - 500000\).`,
@@ -245,6 +361,7 @@
       ev: 'Expected values in decision trees',
       prob: 'Joint and conditional probabilities',
       option: 'Real options: upgrade and abandon',
+      wait: 'Real options: act now or wait',
     },
 
     nodes: [
@@ -260,6 +377,7 @@
         enemy: { name: 'The What-If Wizard', title: 'Twists one dial, then all of them', body: 'tall', color: '#8a6fd1', acc: ['wizard'], mouth: 'smirk', item: '🔮',
           lines: { intro: 'What if sales fall? What if costs rise? What if… everything?', hit: ['One input at a time… you understand sensitivity!', 'A full scenario? My crystal ball cracks!'],
             taunt: ['You changed every dial. That is a scenario, apprentice!', 'Sensitivity, scenario… they look the same to you, hmm?'], win: 'What if… I lose? Oh. I did.', lose: 'In every scenario, I win!' } } },
+      { id: 'w7-W1', kind: 'case', name: 'Written round: break-even', case: 'w7-C1' },
       { id: 'w7-L5', kind: 'lesson', name: 'Expected values', lesson: 'w7-L5' },
       { id: 'w7-L6', kind: 'lesson', name: 'Decision trees', lesson: 'w7-L6' },
       { id: 'w7-m1', kind: 'mini', name: 'Which Tool?', mini: 'which-tool' },
@@ -268,12 +386,14 @@
         enemy: { name: 'The Probabili-Tree', title: 'Grows a branch for every maybe', body: 'tall', color: '#4f8a3a', acc: ['leaf'], mouth: 'grin', item: '🍃',
           lines: { intro: 'Square or circle, choice or chance… can you climb me backwards?', hit: ['Solved from the leaves back to the root!', 'A proper expected value. My branches tremble!'],
             taunt: ['You climbed forwards! Trees are solved backwards!', 'That was a joint probability, not a conditional one!'], win: 'Timber…', lose: 'Lost in my branches forever!' } } },
+      { id: 'w7-W2', kind: 'case', name: 'Written round: a tree in Excel', case: 'w7-C2' },
       { id: 'w7-L8', kind: 'lesson', name: 'Real options', lesson: 'w7-L8' },
-      { id: 'w7-4', kind: 'battle', name: 'The Options Exchange', topics: ['option', 'ev', 'prob'], n: 6,
+      { id: 'w7-4', kind: 'battle', name: 'The Options Exchange', topics: ['option', 'wait', 'ev', 'prob'], n: 6,
         enemy: { name: 'Captain Abandon', title: 'Sells the ship at the first storm', body: 'blob', color: '#d0643a', acc: ['pirate'], mouth: 'fangs', item: '⚓',
           lines: { intro: 'Arr! Low demand? Sell the balloon! Abandon everything!', hit: ['Ye compared keeping and selling properly. Blast!', 'Ye only use the option when it pays. Clever!'],
             taunt: ['Ye forgot the salvage value, landlubber!', 'Ye kept a sinking ship when selling was worth more!'], win: 'Abandon… ship…', lose: 'Yer NPV walks the plank!' } } },
       { id: 'w7-m2', kind: 'mini', name: 'Branch Sprint', mini: 'branch-sprint' },
+      { id: 'w7-W3', kind: 'case', name: 'Written round: now or wait?', case: 'w7-C3' },
       { id: 'w7-boss', kind: 'boss', name: 'The Real Oak-tion', topics: '*', n: 10,
         enemy: { name: 'The Real Oak-tion', title: 'Ancient oak of real options', body: 'tall', color: '#3f6b2a', acc: ['crown', 'leaf'], eyes: 3, mouth: 'fangs', item: '🌳',
           lines: { intro: 'I hold every option: upgrade, expand, abandon. Solve my branches backwards… if you can!', hit: ['You valued my option to upgrade!', 'Backwards through every node… impressive!'],
@@ -733,6 +853,10 @@
             ],
             answer: R`Do not research. Its NPV is \(${LM(ELEC.npv)}\).`,
             ti: [TI.line('0.33*150000/0.12', { note: R`The expected payoff at \(t = 1\).` }), TI.line('-500000+ans/1.12', { note: 'Discount one year, then subtract the cost.' })] },
+          { kind: 'excel', title: 'The same tree in Excel',
+            body: R`In the exam you may have to build a tree in **Excel**. Lay it out left to right, like the drawing: time runs across row 1, each node gets its own labelled row, and each value sits in the column of its date.\n\nThen fold it back from right to left with formulas. Tap a cell to see what is typed in it.`,
+            xl: XL_ELEC, answer: ELEC.npv, unit: '$', dp: 2,
+            points: [R`Chance node: chance times value, added up: =B5*D5+B6*D6.`, R`One year back: divide by \(1 + r\): =D7/(1+B2).`, R`Decision node: keep the best branch: =MAX(C9,0).`] },
           { kind: 'check', gen: 'w7-g-decnode' },
           { kind: 'guided', title: 'Your turn: Grocer’s advertising', q: R`Grocer can spend $250,000 on advertising. Net cash flow then rises by $100,000 a year for 5 years (40% chance), or by only $50,000 a year (60% chance). The discount rate is 12%.`,
             tree: TREE_GROCER,
@@ -824,7 +948,7 @@
       'w7-L8': {
         title: 'Real options',
         goal: R`Value an option to abandon, expand or wait inside a decision tree, and explain why an option never lowers the NPV.`,
-        topics: ['option'],
+        topics: ['option', 'wait'],
         cards: [
           { kind: 'learn', title: 'Flexibility is valuable',
             body: R`A new restaurant has a bad first year. The owner is not stuck. She can close it and sell the kitchen equipment.\n\nThat right to change course later is a **real option**. It is a right, not a duty. You use it only after you see how things turn out.`,
@@ -887,13 +1011,167 @@
             viz: { type: 'bars', hi: [0], bars: [{ label: 'Quarter first', v: UNTER.quarter, c: 3 }, { label: 'Whole fleet', v: UNTER.entire, c: 1 }].map((b) => Object.assign(b, { note: `$${T.numT(b.v, 2)}m` })),
               cap: R`Waiting for the regulator’s news before spending the \(\$70\text{m}\) is worth about \(${mL(UNTER.quarter - UNTER.entire, 2)}\) more.` },
             tree: TREE_UNTER_Q },
+          { kind: 'learn', title: 'Act now or wait?',
+            body: R`Some choices are about **timing**. You can commit **now**, at a lower price, before you know how things turn out. Or you can **wait** until you know, and pay more, but only if things go well.\n\nThe right to decide later is the **option to wait**, a timing option.`,
+            viz: { type: 'compare', items: [
+              { icon: '⚡', title: 'Act now', big: 'Lower price', points: ['You pay today, for sure', 'Lost if things go badly'], c: 1 },
+              { icon: '⏳', title: 'Wait and see', big: 'Higher price', points: ['You pay later', 'Only if things go well'], c: 2 }],
+              cap: R`Acting now costs less. Waiting lets you skip the cost when things go badly.` } },
+          { kind: 'learn', title: 'Two NPVs to compare',
+            body: R`Work out the NPV of each plan and keep the higher one. \(p\) is the chance things go well, and \(V\) is what you get then.\n\n\[NPV_{now} = \frac{p \times V}{(1 + r)^{t}} - \text{cost now}\]\n\n\[NPV_{wait} = \frac{p \times (V - \text{cost later})}{(1 + r)^{t}}\]\n\nIf you wait, nothing is paid today. When \(r\) is an EAR and you find out in some months, use \(t = \frac{\text{months}}{12}\).`,
+            formula: 'option-wait',
+            viz: { type: 'tl', n: 1, unit: 't', labels: { 0: 'Today', 1: 'You find out' }, at: { 0: 'Cost now', 1: 'p × V' }, hi: [0, 1],
+              moves: [{ from: 1, to: 0, label: '÷ (1 + r)^t', c: 2 }],
+              cap: R`What you get, and any cost paid later, come when you find out. Divide by \((1 + r)^{t}\) to bring them to today.` } },
+          { kind: 'example', title: 'Worked example: book the lab now?',
+            q: R`**Nova Labs** can book lab time **now** for $12,000. It needs the lab in 6 months, but only if its grant is approved (a 60% chance). Then the lab work is worth $40,000 to it. Or it can **wait** for the grant decision and book then for $18,000. The EAR is 8%. Book now or wait?`,
+            steps: [
+              R`Nova finds out in 6 months: \(t = \frac{6}{12} = 0.5\) years.`,
+              R`Book now: \[NPV_{now} = \frac{0.6 \times 40{,}000}{1.08^{0.5}} - 12{,}000 = ${L.money(NOVA.now)}\]`,
+              R`Wait: nothing is paid today, and the \(\$18{,}000\) is paid only if the grant comes. \[NPV_{wait} = \frac{0.6 \times (40{,}000 - 18{,}000)}{1.08^{0.5}} = ${L.money(NOVA.wait)}\]`,
+              R`Waiting has the higher NPV, by \(${L.money(NOVA.gain)}\).`,
+            ],
+            answer: R`Wait. Nova only pays for the lab if the grant comes through.`,
+            ti: [TI.line('0.6*40000/1.08^(6/12)-12000→k', { note: 'Book now, stored in k.' }), TI.line('0.6*(40000-18000)/1.08^(6/12)', { note: 'Wait. This is bigger than k, so wait.' })] },
+          { kind: 'check', gen: 'w7-g-wait' },
+          { kind: 'learn', title: 'Why waiting has value',
+            body: R`Waiting swaps a **sure cost today** for a cost you pay **later, and only if things go well**. When things go badly, you pay nothing.\n\nThe option to wait is worth more when the outcome is **more uncertain** and when waiting costs **little extra**. If you already knew the outcome, waiting would add nothing.`,
+            viz: { type: 'balance', tilt: 'level', left: { icon: '🛡️', label: 'No cost if it fails', sub: 'what waiting saves', c: 'good' }, right: { icon: '💸', label: 'A higher price later', sub: 'what waiting costs', c: 'bad' },
+              note: R`Wait if \(NPV_{wait} > NPV_{now}\).`,
+              cap: R`Weigh what waiting saves against what it costs. The higher NPV decides.` } },
           { kind: 'recap', title: 'Remember', points: [
             R`A **real option** is a right, not a duty: to abandon, expand or wait.`,
             R`In a tree it is a decision node after a chance node. Compare the branches and keep the best.`,
             R`Compare at the same date. Discount the “keep” branch to the decision date. A sale made on that date is not discounted.`,
             R`An option never lowers the NPV, because you only use it when it pays.`,
+            R`**Act now or wait**: compare \(NPV_{now} = \frac{pV}{(1 + r)^{t}} - \text{cost now}\) with \(NPV_{wait} = \frac{p(V - \text{cost later})}{(1 + r)^{t}}\). With an EAR, \(t = \frac{\text{months}}{12}\).`,
             R`Exam trap: include the sale (salvage) value on the abandon branch, and use conditional probabilities after year 1.`,
           ] },
+        ],
+      },
+    },
+
+    /* ---------- written rounds (the exam's written section) ---------- */
+    cases: {
+      'w7-C1': {
+        title: 'Tideline’s sea kayak',
+        topics: ['breakeven', 'sens'],
+        story: R`**Tideline Kayaks** plans a new sea kayak. The machine costs $400,000 today. It lasts 5 years and is depreciated straight-line to zero.\n\nEach kayak sells for $450 and costs $250 to make. Fixed costs (SG&A) are $60,000 a year. Tideline expects to sell 1,500 kayaks a year. The cost of capital is 10%. Ignore tax.\n\nThe base-case NPV is ${TM(KAYAK.base)}. The table shows the NPV when one input is 10% worse than expected, with every other input at base.`,
+        table: { head: ['Input 10% worse', 'New value', 'NPV'], rows: [
+          ['Unit sales', '1,350 kayaks', T.money(KAYAK.sales)],
+          ['Cost per kayak', '$275', T.money(KAYAK.cost)],
+          ['Fixed costs', '$66,000', T.money(KAYAK.fixed)],
+          ['Price', '$405', 'You find it in (c)'],
+        ] },
+        parts: [
+          { kind: 'calc', marks: 2, ask: R`Calculate the accounting (EBIT) break-even number of kayaks a year.`,
+            formulas: ['dep-sl', 'breakeven'], answer: KAYAK.ebitBE, unit: 'units', dp: 0,
+            model: ['Units = (FC + Dep)/(P - v)', '= (60000 + 400000/5)/(450 - 250)', '= 700'],
+            meaning: R`At 700 kayaks a year, the margins just cover the fixed costs and depreciation: EBIT is zero.`,
+            hint: R`Depreciation is \(\frac{400{,}000}{5}\) a year. Divide by the margin per kayak, \(P - v\).` },
+          { kind: 'calc', marks: 2, ask: R`Calculate the NPV break-even number of kayaks a year. Round to a whole kayak.`,
+            formulas: ['npv', 'pv-annuity', 'npv-breakeven'], answer: KAYAK.npvBE, unit: 'units', dp: 0,
+            model: ['Q = (I/(1/r*(1 - 1/(1 + r)^n)) + FC)/(P - v)', '= (400000/(1/0.1*(1 - 1/(1 + 0.1)^5)) + 60000)/(450 - 250)', `= ${T.num(KAYAK.npvBE, 0)}`],
+            meaning: R`Tideline needs about ${T.num(KAYAK.npvBE, 0)} kayaks a year for the NPV to reach zero. Each year the margins must repay ${TM(KAYAK.cfBE)} of the machine (with a 10% return) plus the $60,000 of fixed costs.`,
+            hint: R`With no tax, each year’s cash flow is \((P - v)Q - FC\). Set \(NPV = 0\): the cash flow must equal \(\frac{I}{\text{annuity factor}}\).` },
+          { kind: 'calc', marks: 2, ask: R`The price might be 10% lower, at $405. Calculate the NPV at that price, with every other input at its base value.`,
+            formulas: ['npv', 'pv-annuity'], answer: KAYAK.price, unit: '$', dp: 2,
+            model: ['NPV = -I + ((P - v)*Q - FC)*(1/r*(1 - 1/(1 + r)^n))', '= -400000 + ((405 - 250)*1500 - 60000)*(1/0.1*(1 - 1/(1 + 0.1)^5))', `= ${T.money(KAYAK.price)}`],
+            meaning: R`A 10% lower price cuts the NPV from ${TM(KAYAK.base)} to ${TM(KAYAK.price)}.` },
+          { kind: 'blanks', marks: 1, ask: R`Use the table and your answer to (c). Choose the right words.`,
+            text: R`A 10% change in {{the price|unit sales|the cost per kayak|the fixed costs}} moves the NPV the most, so the NPV is most sensitive to it. Tideline should forecast that input {{most carefully|least carefully}}. Changing one input at a time like this is {{sensitivity|scenario}} analysis.`,
+            why: R`The lower price takes ${TM(KAYAK.base - KAYAK.price)} off the NPV, more than any other input in the table. Each test changes one input and keeps the rest at base: that is sensitivity analysis.` },
+          { kind: 'theory', marks: 2, ask: R`Compare your two break-evens. Why is the NPV break-even higher, and which one should Tideline use?`,
+            points: [
+              { t: R`The EBIT break-even only covers depreciation: the $400,000 spread evenly over 5 years, with no return on it.`, ok: true },
+              { t: R`The NPV break-even must also earn the 10% cost of capital on the money tied up in the machine.`, ok: true },
+              { t: R`Tideline should use the NPV break-even: between 700 and ${T.num(KAYAK.npvBE, 0)} kayaks, EBIT is positive but the NPV is negative.`, ok: true },
+              { t: R`The NPV break-even is higher because it includes tax.`, ok: false, why: R`Tax is ignored here. The gap comes from the cost of capital.` },
+              { t: R`The EBIT break-even is the better guide, because accounting profit is what creates value.`, ok: false, why: R`Value comes from cash flows and the cost of capital, not accounting profit.` },
+              { t: R`The two break-evens differ only because of rounding.`, ok: false, why: R`The gap is real: ${TM(KAYAK.cfBE)} a year (the cost with a 10% return) against $80,000 of depreciation.` },
+            ],
+            model: R`The NPV break-even (${T.num(KAYAK.npvBE, 0)} kayaks) is higher than the EBIT break-even (700 kayaks). This is because the EBIT break-even only recovers $80,000 of depreciation a year, with no return on the $400,000. The NPV break-even must recover ${TM(KAYAK.cfBE)} a year, which includes the 10% cost of capital (the opportunity cost of the money). So Tideline should use the NPV break-even: selling between 700 and ${T.num(KAYAK.npvBE, 0)} kayaks gives a positive EBIT but destroys value.`,
+            keys: [['cost of capital', 'required return', 'opportunity cost', '10%'], ['depreciation'], ['NPV break-even', 'npv']] },
+        ],
+      },
+      'w7-C2': {
+        title: 'Bluegum’s scooter tree (Excel)',
+        topics: ['tree', 'ev'],
+        story: R`**Bluegum Scooters** can launch e-scooter hire in a city. Launching costs $450,000 today (\(t = 0\)).\n\nAt \(t = 1\) the council sets the zone: a **big zone** (60% chance) or a **small zone** (40%). After a big zone, Bluegum chooses: **add scooters** for $250,000 at \(t = 1\), or stay as it is. After a small zone there is no choice.\n\nAt \(t = 2\) the year is busy or quiet, and the scheme pays off once (the year’s cash plus the scooters’ resale value). The tree shows the payoffs and their chances. The discount rate is 10% a year.`,
+        tree: TREE_SCOOT,
+        parts: [
+          { kind: 'calc', marks: 2, ask: R`Calculate the expected payoff at \(t = 2\) if Bluegum adds scooters.`,
+            formulas: ['expected'], answer: SCOOT.eAdd, unit: '$', dp: 2,
+            model: ['E(payoff) = p1*X1 + p2*X2', '= 0.7*1200000 + 0.3*500000', `= ${T.money(SCOOT.eAdd)}`],
+            meaning: R`The chance node after adding scooters is worth ${TM(SCOOT.eAdd)} at \(t = 2\).` },
+          { kind: 'calc', marks: 2, ask: R`After a big zone, should Bluegum add scooters or stay as it is? Calculate the value of this decision node at \(t = 1\). Use your answer to (a).`,
+            formulas: ['expected', 'pv-lump'], answer: SCOOT.best, unit: '$', dp: 2,
+            model: ['V1 = max(E(add)/(1 + r) - cost, E(stay)/(1 + r))', '= max(990000/(1 + 0.1) - 250000, (0.7*750000 + 0.3*450000)/(1 + 0.1))', `= ${T.money(SCOOT.best)}`],
+            meaning: R`Adding scooters (${TM(SCOOT.vAdd)}) beats staying as it is (${TM(SCOOT.vStay)}), so the decision node is worth ${TM(SCOOT.best)}.`,
+            hint: R`Discount each expected payoff one year to \(t = 1\). Take the $250,000 off the “add” branch. A decision node keeps the higher value.` },
+          { kind: 'excel', marks: 4, ask: R`In Excel, lay out the whole tree and find the NPV of launching. Then make the decision at \(t = 0\).`,
+            build: [
+              R`Row 1: type the times 0, 1 and 2 in C1 to E1. Put the rate (10%) in B2.`,
+              R`Give every branch its own labelled row. Put its chance in column B and its cash flow in the column of its date.`,
+              R`Start at the right. Each chance node is an expected value, e.g. =B6*E6+B7*E7.`,
+              R`Move each value one year back with =E12/(1+$B$2). On the “add” branch, also add the cost at \(t = 1\): =D5+E8/(1+$B$2).`,
+              R`At the decision node after a big zone, keep the best branch: =MAX(D9,D13).`,
+              R`Fold back to \(t = 0\): the council’s chance node, one more year of discounting, then the launch cost. Finish with =IF(C22>0,"Launch","Do not launch").`,
+            ],
+            result: R`What NPV does your sheet give for launching?`, answer: SCOOT.npv, unit: '$', dp: 2, xl: XL_SCOOT,
+            meaning: R`The NPV of launching is ${TM(SCOOT.npv)}. It is positive, so Bluegum should launch, and add scooters if the council gives it a big zone.` },
+          { kind: 'theory', marks: 2, ask: R`Explain why Bluegum must solve this tree from right to left (backwards).`,
+            points: [
+              { t: R`The value of launching today depends on what Bluegum will do later, at the \(t = 1\) decision.`, ok: true },
+              { t: R`That decision can only be made once the \(t = 2\) chance nodes are valued, so the end of the tree comes first.`, ok: true },
+              { t: R`The payoffs at \(t = 2\) are certain, so they are the easiest place to start.`, ok: false, why: R`They are not certain: each payoff has a chance of a busy or a quiet year.` },
+              { t: R`Working backwards means the values do not need discounting.`, ok: false, why: R`Every value is still discounted back, one step at a time, to \(t = 0\).` },
+              { t: R`Excel formulas can only point to cells on their right.`, ok: false, why: 'Excel can point anywhere. The order comes from the decisions, not from Excel.' },
+            ],
+            model: R`A decision tree is solved from right to left because a decision today depends on the best choices made later. Bluegum cannot value launching until it knows whether it would add scooters after a big zone, and that choice needs the expected \(t = 2\) payoffs first. So it values the \(t = 2\) chance nodes, keeps the best branch at \(t = 1\) (add scooters, ${TM(SCOOT.best)}), takes the council’s expected value and discounts it to today. The NPV is ${TM(SCOOT.npv)}, so Bluegum should launch.`,
+            keys: [['backwards', 'right to left'], ['later', 'decision', 'add scooters'], ['expected'], ['discount']] },
+        ],
+      },
+      'w7-C3': {
+        title: 'Book the stall now, or wait?',
+        topics: ['wait', 'option'],
+        story: R`**Saltbush Catering** wants a stall at a food festival **9 months** from now. It can book a stall **now** for $4,000. The fee is not refunded.\n\nIf the festival goes ahead (a 65% chance), the stall earns a profit of $10,000 on the day. If it is cancelled, the stall earns nothing.\n\nOr Saltbush can **wait** until it knows. It then books on the day, at the late price of $6,000, but only if the festival goes ahead.\n\nSaltbush’s cost of capital is an EAR of 8%.`,
+        tree: TREE_STALL,
+        parts: [
+          { kind: 'calc', marks: 2, ask: R`If Saltbush books now, what is its expected profit from the stall on the festival day?`,
+            formulas: ['expected'], answer: STALL.E, unit: '$', dp: 2,
+            model: ['E(profit) = p*V + (1 - p)*0', '= 0.65*10000 + (1 - 0.65)*0', `= ${T.money(STALL.E)}`],
+            meaning: R`On average the stall earns ${TM(STALL.E)} on the day. It is not the most likely outcome: it blends both.` },
+          { kind: 'calc', marks: 2, ask: R`Calculate the NPV of booking now. The profit comes in 9 months, so discount with \((1 + r)^{9/12}\).`,
+            formulas: ['option-wait', 'pv-lump'], answer: STALL.now, unit: '$', dp: 2,
+            model: ['NPV(now) = E(profit)/(1 + r)^(months/12) - cost now', '= 6500/(1 + 0.08)^(9/12) - 4000', `= ${T.money(STALL.now)}`],
+            meaning: R`Booking now is worth ${TM(STALL.now)} today.`,
+            hint: R`Use your answer to (a). The $4,000 is paid today, so it is not discounted.` },
+          { kind: 'calc', marks: 2, ask: R`Calculate the NPV of waiting.`,
+            formulas: ['expected', 'option-wait', 'pv-lump'], answer: STALL.wait, unit: '$', dp: 2,
+            model: ['NPV(wait) = p*(V - cost later)/(1 + r)^(months/12)', '= 0.65*(10000 - 6000)/(1 + 0.08)^(9/12)', `= ${T.money(STALL.wait)}`],
+            meaning: R`Waiting is worth ${TM(STALL.wait)} today. Nothing is paid now, and the $6,000 is paid only if the festival goes ahead.`,
+            hint: R`If the festival goes ahead, Saltbush gets $10,000 and pays $6,000 on the same day. If not, it pays and gets nothing.` },
+          { kind: 'theory', marks: 1, ask: R`Should Saltbush book now or wait? Give your reason.`,
+            points: [
+              { t: R`Wait: its NPV (${TM(STALL.wait)}) is higher than the NPV of booking now (${TM(STALL.now)}).`, ok: true },
+              { t: R`The two plans are mutually exclusive, so pick the one with the higher NPV.`, ok: true },
+              { t: R`Book now: $4,000 is cheaper than $6,000.`, ok: false, why: R`Compare NPVs, not prices. The $6,000 is paid later, and only if the festival goes ahead.` },
+              { t: R`Book now: both NPVs are positive, so either plan will do.`, ok: false, why: R`Saltbush can only do one. Pick the higher NPV.` },
+            ],
+            model: R`Saltbush should wait. The NPV of waiting (${TM(STALL.wait)}) is higher than the NPV of booking now (${TM(STALL.now)}), and it can only do one of them. Waiting adds ${TM(STALL.gain)} of value.`,
+            keys: [['wait'], ['NPV', 'higher']] },
+          { kind: 'theory', marks: 2, ask: R`Explain why the option to wait has value here.`,
+            points: [
+              { t: R`Saltbush decides after it knows whether the festival goes ahead, so it only pays in the good case.`, ok: true },
+              { t: R`If the festival is cancelled (a 35% chance), it pays nothing, instead of losing the $4,000 fee.`, ok: true },
+              { t: R`Waiting swaps a sure $4,000 today for a 65% chance of paying $6,000 in 9 months, which is worth less today.`, ok: true },
+              { t: R`Money received later is worth more, so waiting is always better.`, ok: false, why: R`Money later is worth less. And waiting is not always better: a much higher late price would make booking now win.` },
+              { t: R`Waiting raises the profit on the festival day.`, ok: false, why: R`The profit is $10,000 either way. Waiting changes what Saltbush pays, and when.` },
+              { t: R`The option to wait has value only if the festival is certain to go ahead.`, ok: false, why: R`The opposite: with no uncertainty, waiting just costs more. The option pays off because the outcome is uncertain.` },
+            ],
+            model: R`Waiting has value because Saltbush can decide after it learns whether the festival goes ahead, so it only pays in the good case. If the festival is cancelled (35%), it loses nothing instead of the $4,000 fee. It gives up the lower price, but a 65% chance of paying $6,000 in 9 months is worth only ${TM((STALL.p * STALL.cw) / STALL.df)} today, less than $4,000. So the option to wait adds ${TM(STALL.gain)} here, and it is worth most when the outcome is very uncertain.`,
+            keys: [['after', 'learns', 'knows', 'information'], ['cancel'], ['only pays', 'only if', 'good case']] },
         ],
       },
     },
@@ -938,7 +1216,7 @@
         choices: [R`\(\frac{SG\&A + Dep}{\text{Price} - \text{Cost per unit}}\)`, R`\(\frac{SG\&A + Dep}{\text{Price}}\)`, R`\(\frac{SG\&A}{\text{Price} - \text{Cost per unit}}\)`, R`\(\frac{\text{Price} - \text{Cost per unit}}{SG\&A + Dep}\)`], answer: 0,
         why: R`Each unit adds \(\text{Price} - \text{Cost per unit}\) to EBIT. You need enough units to cover SG&A **and** depreciation.`,
         wrong: { 1: 'Each unit also has a cost, so divide by the margin per unit, not the price.', 2: 'Depreciation is a cost above EBIT, so it must be covered too.' } },
-      { id: 'w7-q10', topic: 'breakeven', kind: 'num', level: 2, section: 'B', src: 'Lecture W7 slide 10 (extension)', formula: 'npv',
+      { id: 'w7-q10', topic: 'breakeven', kind: 'num', level: 2, section: 'B', formulas: ['npv', 'pv-perp', 'npv-breakeven'], src: 'Lecture W7 slide 10 (extension)', formula: 'npv',
         q: R`Lecture project: price $80, cost $60 per unit, initial cost $500,000, the same sales every year forever, no tax. The cost of capital is 10%. How many units a year make the NPV **zero**?`,
         answer: (500000 * 0.10) / (80 - 60), unit: 'units', dp: 0,
         mistakes: [
@@ -967,7 +1245,7 @@
         q: R`In **sensitivity analysis**, how many assumptions do you change at a time?`,
         choices: ['One, keeping all the others at their base values', 'All of them together', 'Only the two most uncertain ones', 'None: only the discount rate is changed'], answer: 0,
         why: R`Sensitivity analysis moves a **single** assumption. Changing several together is **scenario** analysis.` },
-      { id: 'w7-q14', topic: 'sens', kind: 'num', level: 1, section: 'B', src: 'Lecture W7 slide 10', formula: 'npv',
+      { id: 'w7-q14', topic: 'sens', kind: 'num', level: 1, section: 'B', formulas: ['npv', 'pv-perp'], src: 'Lecture W7 slide 10', formula: 'npv',
         q: R`A project costs $500,000. It sells 6,000 units a year forever at $80 each, and each unit costs $60. The cost of capital is 10%. Ignore tax and depreciation. What is the **base-case NPV**?`,
         table: { head: ['Input', 'Base case'], rows: [['Unit sales', '6,000'], ['Price per unit', '$80'], ['Cost per unit', '$60'], ['Cost of capital', '10%'], ['Initial cost', '$500,000']] },
         answer: npvPerp(6000, 80, 60, 0.10, 500000), unit: '$', dp: 0,
@@ -982,7 +1260,7 @@
         ],
         ti: [TI.line('(80-60)*6000/0.10-500000')],
         why: R`A \(\$120{,}000\) yearly margin forever is worth \(\$1.2\text{m}\). Less the \(\$0.5\text{m}\) cost, the NPV is \(\$0.7\text{m}\).` },
-      { id: 'w7-q15', topic: 'sens', kind: 'num', level: 2, section: 'B', src: 'Lecture W7 slide 12',
+      { id: 'w7-q15', topic: 'sens', kind: 'num', level: 2, section: 'B', formulas: ['npv', 'pv-perp'], src: 'Lecture W7 slide 12',
         q: R`In the lecture project (base NPV $700,000), unit sales fall from 6,000 to 5,500. Everything else stays at base. By what **percentage** does the NPV fall?`,
         answer: P(-(npvPerp(5500, 80, 60, 0.10, 500000) - 700000) / 700000), unit: '%', dp: 2,
         mistakes: [
@@ -1026,7 +1304,7 @@
           'A decision tree shows future decisions and how uncertainty is resolved',
           'All three tools still fail if the input data are unreliable'], answer: 0,
         why: R`It swaps the two tools. **Sensitivity** analysis changes one variable at a time. **Scenario** analysis changes several at once.` },
-      { id: 'w7-q20', topic: 'scen', kind: 'num', level: 2, section: 'B', src: 'Lecture W7 slide 15', formula: 'npv',
+      { id: 'w7-q20', topic: 'scen', kind: 'num', level: 2, section: 'B', formulas: ['npv', 'pv-perp'], src: 'Lecture W7 slide 15', formula: 'npv',
         q: R`Worst case for the lecture project: 5,500 units, price $75, cost $62 per unit and a 12% cost of capital. The initial cost is still $500,000, with cash flows forever. What is the **worst-case NPV**?`,
         table: { head: ['Input', 'Base', 'Worst', 'Best'], rows: [['Unit sales', '6,000', '5,500', '6,500'], ['Price per unit', '$80', '$75', '$85'], ['Cost per unit', '$60', '$62', '$58'], ['Cost of capital', '10%', '12%', '8%']] },
         answer: npvPerp(5500, 75, 62, 0.12, 500000), unit: '$', dp: 2,
@@ -1041,7 +1319,7 @@
         ],
         ti: [TI.line('(75-62)*5500/0.12-500000')],
         why: R`Every input moves the wrong way at once. NPV drops from \(\$0.7\text{m}\) to about \(\$0.096\text{m}\), but it is still positive.` },
-      { id: 'w7-q21', topic: 'scen', kind: 'num', level: 2, section: 'B', src: 'Lecture W7 slide 15', formula: 'npv',
+      { id: 'w7-q21', topic: 'scen', kind: 'num', level: 2, section: 'B', formulas: ['npv', 'pv-perp'], src: 'Lecture W7 slide 15', formula: 'npv',
         q: R`Best case for the lecture project: 6,500 units, price $85, cost $58 per unit and an 8% cost of capital. The initial cost is $500,000, with cash flows forever. What is the **best-case NPV**?`,
         table: { head: ['Input', 'Base', 'Worst', 'Best'], rows: [['Unit sales', '6,000', '5,500', '6,500'], ['Price per unit', '$80', '$75', '$85'], ['Cost per unit', '$60', '$62', '$58'], ['Cost of capital', '10%', '12%', '8%']] },
         answer: npvPerp(6500, 85, 58, 0.08, 500000), unit: '$', dp: 2,
@@ -1081,7 +1359,7 @@
       { id: 'w7-q27', topic: 'tree', kind: 'tf', level: 1, section: 'A', src: 'Tutorial W7 concept check Q2',
         q: R`A decision tree is a graphical representation of future decisions and of how uncertainty is resolved.`,
         answer: true, why: R`That is the definition. Squares show the decisions. Circles show the uncertain events.` },
-      { id: 'w7-q28', topic: 'tree', kind: 'num', level: 2, section: 'B', src: 'Lecture W7 Example 1', formula: 'expected',
+      { id: 'w7-q28', topic: 'tree', kind: 'num', level: 2, section: 'B', formulas: ['pv-perp', 'expected', 'pv-lump', 'npv'], src: 'Lecture W7 Example 1', formula: 'expected',
         q: R`**ELEC P/L** can spend $500,000 on a one-year research project for an electric mop. If it succeeds (33% chance), it yields $150,000 a year in perpetuity, valued at \(t = 1\). If it fails, it yields nothing. The discount rate is 12%. What is the NPV?`,
         tree: TREE_ELEC,
         answer: ELEC.npv, unit: '$', dp: 2,
@@ -1109,7 +1387,7 @@
         choices: [R`The weighted average: \(\$10\text{m} \times 0.8 + \$5\text{m} \times 0.2\)`, 'The more likely outcome of $10 million', R`The more likely outcome times its probability: \(\$10\text{m} \times 0.8\)`, R`The simple average: \((\$10\text{m} + \$5\text{m}) \div 2\)`], answer: 0,
         why: R`An expected value weights **every** outcome by its probability: \(0.8 \times 10 + 0.2 \times 5 = \$9\) million.`,
         wrong: { 1: 'The expected value is not the most likely outcome. It blends every outcome.', 2: 'That leaves out the $5m outcome. Every branch must be included.', 3: 'The outcomes are not equally likely, so a simple average is wrong.' } },
-      { id: 'w7-q31', topic: 'ev', kind: 'num', level: 2, section: 'B', src: 'Tutorial W7 Q1', formula: 'expected',
+      { id: 'w7-q31', topic: 'ev', kind: 'num', level: 2, section: 'B', formulas: ['expected', 'pv-annuity', 'npv'], src: 'Tutorial W7 Q1', formula: 'expected',
         q: R`{NAME}, you advise **Grocer**. It can spend $250,000 on advertising. Net cash flow then rises by $100,000 a year for 5 years (40% chance), or by only $50,000 a year (60% chance). The discount rate is 12%. What is the NPV of the campaign?`,
         tree: TREE_GROCER,
         answer: GROCER.npv, unit: '$', dp: 2,
@@ -1128,7 +1406,7 @@
         calc: `5 [N] · 12 [I/YR] · 70000 [PMT] · 0 [FV] · [PV] → −${T.money(GROCER.pv)}, then add −250,000`,
         ti: [TI.line('sum({0.4,0.6}*{100000,50000})', { note: 'The expected yearly cash flow.' }), TI.cmd('npv', [12, -250000, [70000], [5]], { note: R`\(\{5\}\) means the \(\$70{,}000\) repeats for 5 years.` })],
         why: R`Use the expected cash flow of \(\$70{,}000\) a year, discounted as a 5-year annuity at 12%.` },
-      { id: 'w7-q32', topic: 'ev', kind: 'num', level: 3, section: 'B', src: 'Tutorial W7 Q2', formula: 'expected', boss: true,
+      { id: 'w7-q32', topic: 'ev', kind: 'num', level: 3, section: 'B', formulas: ['expected', 'pv-annuity', 'deferred', 'pv-lump', 'npv'], src: 'Tutorial W7 Q2', formula: 'expected', boss: true,
         q: R`**InnoCam** can spend $250,000 now to develop a webcam over 2 years. The tree shows what can happen. A $20,000 staff training fee was paid last month. A $100,000 loan at 6.5% p.a. will fund part of the cost. The required return is 15% p.a. What is the NPV?`,
         tree: TREE_INNO,
         answer: INNO.npv, unit: '$', dp: 2,
@@ -1159,7 +1437,7 @@
         choices: ['60%', '50%', '20%', '10%'], answer: 0,
         why: R`\(P(L_1) = 20\% + 20\% = 40\%\), so \(P(H_1) = 1 - 0.4 = 60\%\). The missing path, high then low, is 10%.`,
         wrong: { 1: 'That is the joint probability of high demand in BOTH years. Add the high-then-low path (10%).', 3: 'That is only the high-then-low path.' } },
-      { id: 'w7-q35', topic: 'prob', kind: 'num', level: 2, section: 'B', src: 'Tutorial W7 Q3 tips',
+      { id: 'w7-q35', topic: 'prob', kind: 'num', level: 2, section: 'B', formulas: ['joint-prob'], src: 'Tutorial W7 Q3 tips',
         q: R`Balloon demand, as joint probabilities: high in both years 60%; high then low 15%; low in both years 20%. What is \(P(H_2 \mid H_1)\), the chance of high demand in year 2 **given** high demand in year 1?`,
         answer: P(LARGE.pH2H), unit: '%', dp: 2,
         mistakes: [
@@ -1170,7 +1448,7 @@
         steps: [R`\[P(H_1) = 0.60 + 0.15 = 0.75\]`, R`\[P(H_2 \mid H_1) = \frac{P(H_1 \text{ and } H_2)}{P(H_1)} = \frac{0.60}{0.75} = 0.80\]`],
         ti: [TI.line('0.60/(0.60+0.15)', { pct: true })],
         why: R`\(P(H_2 \mid H_1) = \frac{P(H_1 \text{ and } H_2)}{P(H_1)}\): the joint probability divided by the probability of the first branch.` },
-      { id: 'w7-q36', topic: 'prob', kind: 'num', level: 2, section: 'B', src: 'Tutorial W7 Q3',
+      { id: 'w7-q36', topic: 'prob', kind: 'num', level: 2, section: 'B', formulas: ['joint-prob'], src: 'Tutorial W7 Q3',
         q: R`Same balloon market: HH 60%, HL 15%, LL 20%. What is the **joint** probability that demand is low in year 1 **and** high in year 2?`,
         answer: P(1 - 0.60 - 0.15 - 0.20), unit: '%', dp: 0,
         mistakes: [
@@ -1181,7 +1459,7 @@
         steps: [R`All four paths add up to 1: \[P(L_1 \text{ and } H_2) = 1 - 0.60 - 0.15 - 0.20 = 0.05\]`],
         ti: [TI.line('1-0.60-0.15-0.20', { pct: true })],
         why: R`The joint probabilities of all paths sum to 100%, so the missing path is 5%.` },
-      { id: 'w7-q37', topic: 'prob', kind: 'num', level: 2, section: 'B', src: 'Tutorial W7 Q3',
+      { id: 'w7-q37', topic: 'prob', kind: 'num', level: 2, section: 'B', formulas: ['joint-prob'], src: 'Tutorial W7 Q3',
         q: R`Same balloon market: HH 60%, HL 15%, LL 20%, so LH is 5%. What is \(P(H_2 \mid L_1)\), the chance of high demand in year 2 after a **low** year 1?`,
         answer: P(LARGE.pH2L), unit: '%', dp: 2,
         mistakes: [
@@ -1208,7 +1486,7 @@
       { id: 'w7-q41', topic: 'option', kind: 'tf', level: 2, section: 'A',
         q: R`If managers only use a real option when it adds value, the option can never lower the project’s NPV.`,
         answer: true, why: R`At the decision node you can always choose to do nothing. So the node is worth at least as much as without the option.` },
-      { id: 'w7-q42', topic: 'option', kind: 'mcq', level: 2, section: 'B', src: 'Lecture W7 Example 2',
+      { id: 'w7-q42', topic: 'option', kind: 'mcq', level: 2, section: 'B', formulas: ['expected', 'pv-annuity', 'npv'], src: 'Lecture W7 Example 2',
         q: R`Machine B was bought, and demand was high for 3 years. At \(t = 3\) the firm can upgrade B for $3m. The tree shows the yearly cash flows for years 4–8. \(r = 10\%\). What should management do?`,
         tree: TREE_CHIP_UP,
         choices: [R`Do not upgrade: \(NPV_3 = \$${L.numT(CHIP.noH, 3)}\text{m}\) beats \(\$${L.numT(CHIP.upH, 3)}\text{m}\)`, R`Upgrade: \(NPV_3 = \$${L.numT(CHIP.aH, 3)}\text{m}\) beats \(\$${L.numT(CHIP.noH, 3)}\text{m}\)`, 'Upgrade: $0.9m a year beats $0.52m a year', 'Upgrade: high demand always justifies more capacity'], answer: 0,
@@ -1220,7 +1498,7 @@
         ],
         ti: [TI.cmd('npv', [10, -3, [0.9], [5]], { note: R`Upgrade: pay \(\$3\text{m}\), then the expected \(\$0.9\text{m}\) a year for 5 years (in $m, at \(t = 3\)).` }), TI.cmd('npv', [10, 0, [0.52], [5]], { note: R`Do not upgrade: the expected \(\$0.52\text{m}\) a year. This is bigger, so do not upgrade.` })],
         wrong: { 1: 'That forgets the $3m upgrade cost.', 2: 'The extra $0.38m a year does not pay back the $3m cost within 5 years.' } },
-      { id: 'w7-q43', topic: 'option', kind: 'num', level: 3, section: 'B', src: 'Lecture W7 Example 2', boss: true,
+      { id: 'w7-q43', topic: 'option', kind: 'num', level: 3, section: 'B', formulas: ['pv-lump', 'pv-annuity', 'expected', 'npv'], src: 'Lecture W7 Example 2', boss: true,
         q: R`Machine B costs $3m. In years 1–3, demand is high (0.7) or low (0.3), and B earns $0.6m or $0.2m a year. The best choice at \(t = 3\) is worth $1.971m after high demand and $1.365m after low demand. \(r = 10\%\). What is \(NPV_B\) at \(t = 0\) (in $m)?`,
         tree: TREE_CHIP_B,
         answer: CHIP.B, unit: '$m', dp: 3,
@@ -1236,7 +1514,7 @@
         ],
         ti: [TI.line('0.7*0.6+0.3*0.2', { note: 'The expected cash flow in each of years 1–3 ($m).' }), TI.line('npv(10,-3,{0.48,0.48,0.48+0.7*1.971+0.3*1.365})', { note: R`At \(t = 3\), add the expected value of the best choice. npv discounts each year’s expected cash flow.` })],
         why: R`Work backwards: the best \(t = 3\) values, plus years 1–3 cash flows, discounted and weighted by 0.7 and 0.3.` },
-      { id: 'w7-q44', topic: 'option', kind: 'num', level: 3, section: 'B', src: 'Lecture W7 Example 2', boss: true,
+      { id: 'w7-q44', topic: 'option', kind: 'num', level: 3, section: 'B', formulas: ['expected', 'pv-annuity', 'pv-lump', 'npv'], src: 'Lecture W7 Example 2', boss: true,
         q: R`Machine A costs $4m and lasts 8 years. It earns $1m a year when demand is high and $0.5m when it is low. Demand in years 1–3 is high with probability 0.7. After a high period, it stays high in years 4–8 with probability 0.8. After a low period, it stays low with probability 0.6. \(r = 10\%\). What is \(NPV_A\) (in $m)?`,
         tree: TREE_CHIP_A,
         answer: CHIP.A, unit: '$m', dp: 3,
@@ -1257,7 +1535,7 @@
         q: R`Chip machines: \(NPV_A = \$0.506\text{m}\) and \(NPV_B = -\$0.462\text{m}\), even though B keeps an option to upgrade. Which machine should the firm buy?`,
         choices: ['Machine A: it has the higher NPV', 'Machine B: it is $1m cheaper', 'Machine B: the upgrade option makes it more flexible', 'Neither: NPVs from decision trees are unreliable'], answer: 0,
         why: R`These are mutually exclusive choices, so pick the higher NPV. The upgrade option is already counted in \(NPV_B\), and it is not worth using after high demand.` },
-      { id: 'w7-q46', topic: 'option', kind: 'num', level: 3, section: 'B', src: 'Tutorial W7 Q3', boss: true,
+      { id: 'w7-q46', topic: 'option', kind: 'num', level: 3, section: 'B', formulas: ['joint-prob', 'expected', 'pv-lump', 'npv'], src: 'Tutorial W7 Q3', boss: true,
         q: R`**R. Branson & Assoc.** is pricing a **large** balloon: cost $135,000, 2-year life, no salvage at the end. Cash flow: $100,000 in a high-demand year, $55,000 in a low one. After a **low** year 1, it can sell the balloon for 45% of cost. Joint probabilities: HH 60%, HL 15%, LL 20%. \(r = 10\%\). What is the NPV?`,
         tree: balloonTree(135000, 100000, 55000, LARGE.sal, BALLOON_PROBS),
         answer: LARGE.npv, unit: '$', dp: 2,
@@ -1274,7 +1552,7 @@
         ],
         ti: [TI.line('(0.2*100000+0.8*55000)/1.1→k', { note: R`Keep after a low year 1, valued at \(t = 1\), stored in k.` }), TI.line('(0.8*100000+0.2*55000)/1.1→h', { note: R`Year 2 after a high year 1, valued at \(t = 1\), stored in h.` }), TI.line('-135000+(0.75*(100000+h)+0.25*(55000+max(k,0.45*135000)))/1.1', { note: R`max takes the better of keeping (k) and selling for \(0.45 \times 135{,}000 = 60{,}750\). Selling wins.` })],
         why: R`Solve backwards. At the \(t = 1\) decision node, selling (\(\$60{,}750\)) beats keeping (\(\$58{,}182\)).` },
-      { id: 'w7-q47', topic: 'option', kind: 'num', level: 3, section: 'B', src: 'Tutorial W7 Q3', boss: true,
+      { id: 'w7-q47', topic: 'option', kind: 'num', level: 3, section: 'B', formulas: ['joint-prob', 'expected', 'pv-lump', 'npv'], src: 'Tutorial W7 Q3', boss: true,
         q: R`Now the **small** balloon: cost $90,000, 2-year life, no salvage at the end. Cash flow: $70,000 in a high-demand year, $45,000 in a low one. After a **low** year 1, it can sell the balloon for 45% of cost. Joint probabilities: HH 60%, HL 15%, LL 20%. \(r = 10\%\). What is the NPV?`,
         tree: balloonTree(90000, 70000, 45000, SMALL.sal, BALLOON_PROBS),
         answer: SMALL.npv, unit: '$', dp: 2,
@@ -1294,7 +1572,7 @@
         q: R`Balloon NPVs: large $15,894 (sell after a low year 1) and small $18,574 (keep after a low year 1). Which balloon should R. Branson & Assoc. buy?`,
         choices: ['The small balloon: it has the higher NPV', 'The large balloon: it earns more cash in every year', 'The large balloon: its option to sell makes it safer', 'Neither: both NPVs are too small'], answer: 0,
         why: R`It is a mutually exclusive choice, so pick the higher NPV: \(\$18{,}574 > \$15{,}894\). Buy the **small** balloon.` },
-      { id: 'w7-q49', topic: 'option', kind: 'num', level: 3, section: 'B', src: 'Tutorial W7 case study (Unter)', boss: true,
+      { id: 'w7-q49', topic: 'option', kind: 'num', level: 3, section: 'B', formulas: ['pv-annuity', 'pv-lump', 'expected', 'npv'], src: 'Tutorial W7 case study (Unter)', boss: true,
         q: R`**Unter** can install self-driving systems in a quarter of its taxis for $30m. The tree shows the regulator’s review at \(t = 2\) and the choices after it. Savings are $5m a year in years 1–2 on every branch. \(r = 10\%\), no tax. What is \(NPV_0\) of the quarter-fleet plan (in $m)?`,
         tree: TREE_UNTER_Q,
         answer: UNTER.quarter, unit: '$m', dp: 2,
@@ -1310,7 +1588,7 @@
         ],
         ti: [TI.line('max(npv(10,0,{30},{7})-70,npv(10,0,{5},{7}))', { note: R`The decision at \(t = 2\) after approval ($m): upgrading (\(76.05\)) beats not upgrading (\(24.34\)).` }), TI.line('-30+0.9*(5/1.1+(5+ans)/1.1^2)+0.1*(5/1.1+85/1.1^2)', { note: R`ans is the best choice at \(t = 2\).` })],
         why: R`Value the upgrade decision at \(t = 2\) first, then weight the approve and ban branches and discount to today.` },
-      { id: 'w7-q50', topic: 'option', kind: 'num', level: 3, section: 'B', src: 'Tutorial W7 case study (Unter)', boss: true,
+      { id: 'w7-q50', topic: 'option', kind: 'num', level: 3, section: 'B', formulas: ['pv-annuity', 'pv-lump', 'expected', 'npv'], src: 'Tutorial W7 case study (Unter)', boss: true,
         q: R`Unter’s other plan: install the system in the **entire** fleet for $100m. It saves $30m a year for 9 years. After 2 years the regulator approves it (70%) or bans it (30%). If banned, the fleet is sold for $10m at \(t = 2\). \(r = 10\%\), no tax. What is \(NPV_0\) (in $m)?`,
         tree: TREE_UNTER_E,
         answer: UNTER.entire, unit: '$m', dp: 2,
@@ -1330,11 +1608,44 @@
         q: R`Unter: \(NPV_0\) is $39.04m for the entire fleet and $41.86m for a quarter of the fleet (with the option to upgrade later). What should Unter do?`,
         choices: ['Install in a quarter of the fleet now, and upgrade the rest if the regulator approves', 'Install in the entire fleet now, because its yearly savings are bigger', 'Do not install, because the regulator might ban the system', 'Install in a quarter of the fleet and never upgrade'], answer: 0,
         why: R`Both NPVs are positive, so invest. The quarter plan wins because it waits for approval before spending the other $70m.` },
+
+      /* ----- the option to wait (act now or wait) ----- */
+      { id: 'w7-q52', topic: 'wait', kind: 'num', level: 2, section: 'B', formulas: ['expected', 'option-wait', 'pv-lump'],
+        q: R`**Ironstone Mining** can hire a drill rig **now** for $160,000. In 6 months it learns if its licence is granted (a 70% chance). If so, the rig’s work is then worth $500,000. If not, it is worth nothing. Or Ironstone can **wait**, and hire a rig in 6 months for $260,000, only if the licence is granted. The EAR is 9%. What is the NPV of hiring **now**?`,
+        tree: decide('Today', [
+          ['Hire now: −$160,000', chance('In 6 months', [['70% granted', end('$500,000')], ['30% refused', end('$0')]])],
+          ['Wait', chance('In 6 months', [['70% granted', end('$500,000 − $260,000')], ['30% refused', end('Do not hire: $0')]])],
+        ]),
+        answer: RIG.now, unit: '$', dp: 2,
+        mistakes: [
+          { v: RIG.E - RIG.c0, why: R`That forgets to discount. The $500,000 comes in 6 months.` },
+          { v: RIG.E / Math.pow(1.09, 6) - RIG.c0, why: R`6 months is \(\frac{6}{12} = 0.5\) of a year, not 6 years.` },
+          { v: RIG.V / RIG.df - RIG.c0, why: 'Weight the $500,000 by the 70% chance that the licence is granted.' },
+          { v: RIG.wait, why: 'That is the NPV of waiting. The question asks for hiring now.' },
+        ],
+        steps: [
+          R`Ironstone finds out in 6 months: \(t = \frac{6}{12} = 0.5\), and \(1.09^{0.5} = ${L.numT(RIG.df, 6)}\).`,
+          R`\[NPV_{now} = \frac{0.7 \times 500{,}000}{1.09^{0.5}} - 160{,}000 = ${L.money(RIG.now)}\]`,
+          R`For comparison: \[NPV_{wait} = \frac{0.7 \times (500{,}000 - 260{,}000)}{1.09^{0.5}} = ${L.money(RIG.wait)}\]`,
+          R`Hiring now has the higher NPV, so hire now.`,
+        ],
+        ti: [TI.line('0.7*500000/1.09^(6/12)-160000', { note: 'The expected benefit, discounted 6 months, less the cost paid today.' })],
+        why: R`Here the late price is so much higher that committing now wins (\(${LM(RIG.now)} > ${LM(RIG.wait)}\)), even with a 30% chance that the licence is refused.` },
+      { id: 'w7-q53', topic: 'wait', kind: 'mcq', level: 2, section: 'A',
+        q: R`A firm can commit to a project now, or wait until it knows if the project will work. Which change makes the **option to wait more valuable**?`,
+        choices: ['A bigger chance that the project fails', 'A bigger price rise if the firm waits', 'Knowing for sure that the project will work', 'A smaller chance that the project fails'], answer: 0,
+        why: R`Waiting lets the firm skip the cost when things go badly. The more likely that bad case, the more the option to wait is worth.`,
+        wrong: { 1: 'That makes waiting dearer, so the option to wait is worth less.', 2: 'With no uncertainty there is nothing to wait for. Waiting would just cost more.', 3: 'Then the bad case is rarer, so skipping it is worth less.' } },
+      { id: 'w7-q54', topic: 'wait', kind: 'mcq', level: 2, section: 'A', formulas: ['pv-lump'],
+        q: R`A benefit of $5,000 arrives in **9 months**. The discount rate is an **EAR** of 8%. Which gives its value today?`,
+        choices: [R`\(\frac{5{,}000}{1.08^{9/12}}\)`, R`\(\frac{5{,}000}{1 + 0.08 \times \frac{9}{12}}\)`, R`\(\frac{5{,}000}{1.08^{9}}\)`, R`\(\frac{5{,}000}{1.08}\)`], answer: 0,
+        why: R`An EAR compounds once a year, so 9 months is \(\frac{9}{12} = 0.75\) of a year: \(\frac{5{,}000}{1.08^{0.75}} = ${L.money(5000 / Math.pow(1.08, 0.75))}\).`,
+        wrong: { 1: 'That is simple interest. Keep compounding: use a power.', 2: 'The power counts years, not months.', 3: 'That discounts a whole year, but the benefit comes after 9 months.' } },
     ],
 
     generators: [
       /* ---------- free cash flow recap ---------- */
-      { id: 'w7-g-fcf', topic: 'fcf', level: 2, section: 'B', formula: 'fcf', src: 'Lecture W7 slide 6',
+      { id: 'w7-g-fcf', topic: 'fcf', level: 2, section: 'B', formulas: ['fcf'], formula: 'fcf', src: 'Lecture W7 slide 6',
         make(rng) {
           const co = rng.company();
           for (let k = 0; k < 50; k++) {
@@ -1378,7 +1689,7 @@
         } },
 
       /* ---------- break-even ---------- */
-      { id: 'w7-g-be', topic: 'breakeven', level: 1, section: 'B', formula: 'breakeven', src: 'Lecture W7 slide 7',
+      { id: 'w7-g-be', topic: 'breakeven', level: 1, section: 'B', formulas: ['breakeven'], formula: 'breakeven', src: 'Lecture W7 slide 7',
         make(rng) {
           const co = rng.company();
           const margin = rng.pick([8, 10, 12, 15, 16, 20, 24, 25, 30, 40]);
@@ -1410,7 +1721,7 @@
             why: R`Each unit adds \(\text{price} - \text{cost}\) to EBIT. Sell enough units to cover SG&A and depreciation.`,
           };
         } },
-      { id: 'w7-g-be-dep', topic: 'breakeven', level: 2, section: 'B', formula: 'breakeven',
+      { id: 'w7-g-be-dep', topic: 'breakeven', level: 2, section: 'B', formulas: ['dep-sl', 'breakeven'], formula: 'breakeven',
         make(rng) {
           const co = rng.company();
           const life = rng.pick([4, 5, 8, 10]);
@@ -1457,6 +1768,7 @@
           return {
             q: R`${co} is weighing a project that costs ${T.moneyT(inv)} today. Each unit sells for ${T.moneyT(price)} and costs ${T.moneyT(cost)} to make. Sales are the same every year, ${perp ? 'forever' : `for ${n} years`}. Ignore tax. The cost of capital is ${pct(r)}. How many units a year make the NPV **zero**?`,
             givens: [['I', L.moneyT(inv)], [R`P - v`, L.moneyT(margin)], ['r', L.pctT(r)], ['n', perp ? R`\infty` : String(n)]],
+            formulas: perp ? ['npv', 'pv-perp', 'npv-breakeven'] : ['npv', 'pv-annuity', 'npv-breakeven'],
             answer: q, unit: 'units', dp: 0,
             mistakes: uniq(q, ms, 'units', 0),
             steps: [
@@ -1473,7 +1785,7 @@
         } },
 
       /* ---------- sensitivity ---------- */
-      { id: 'w7-g-sens', topic: 'sens', level: 1, section: 'B', formula: 'npv', src: 'Lecture W7 slides 10–12',
+      { id: 'w7-g-sens', topic: 'sens', level: 1, section: 'B', formulas: ['npv', 'pv-perp'], formula: 'npv', src: 'Lecture W7 slides 10–12',
         make(rng) {
           const co = rng.company();
           for (let k = 0; k < 60; k++) {
@@ -1508,7 +1820,7 @@
           }
           return null;
         } },
-      { id: 'w7-g-sens-pct', topic: 'sens', level: 2, section: 'B', src: 'Lecture W7 slide 12',
+      { id: 'w7-g-sens-pct', topic: 'sens', level: 2, section: 'B', formulas: ['npv', 'pv-perp'], src: 'Lecture W7 slide 12',
         make(rng) {
           const co = rng.company();
           for (let k = 0; k < 60; k++) {
@@ -1549,7 +1861,7 @@
           }
           return null;
         } },
-      { id: 'w7-g-sens-most', topic: 'sens', level: 1, section: 'A', src: 'Lecture W7 slides 10–12',
+      { id: 'w7-g-sens-most', topic: 'sens', level: 1, section: 'A', formulas: ['npv', 'pv-perp'], src: 'Lecture W7 slides 10–12',
         make(rng) {
           const co = rng.company();
           for (let k = 0; k < 60; k++) {
@@ -1579,7 +1891,7 @@
         } },
 
       /* ---------- scenario ---------- */
-      { id: 'w7-g-scen', topic: 'scen', level: 2, section: 'B', formula: 'npv', src: 'Lecture W7 slides 14–15',
+      { id: 'w7-g-scen', topic: 'scen', level: 2, section: 'B', formulas: ['npv', 'pv-perp'], formula: 'npv', src: 'Lecture W7 slides 14–15',
         make(rng) {
           const co = rng.company();
           for (let k = 0; k < 60; k++) {
@@ -1619,7 +1931,7 @@
         } },
 
       /* ---------- expected values ---------- */
-      { id: 'w7-g-ev', topic: 'ev', level: 1, section: 'B', formula: 'expected', src: 'Tutorial W7 concept check Q4',
+      { id: 'w7-g-ev', topic: 'ev', level: 1, section: 'B', formulas: ['expected'], formula: 'expected', src: 'Tutorial W7 concept check Q4',
         make(rng) {
           const co = rng.company();
           if (rng.chance(0.65)) {
@@ -1662,7 +1974,7 @@
             why: R`Multiply each outcome by its probability, then add them up.`,
           };
         } },
-      { id: 'w7-g-chancepv', topic: 'ev', level: 1, section: 'B', formula: 'expected',
+      { id: 'w7-g-chancepv', topic: 'ev', level: 1, section: 'B', formulas: ['expected', 'pv-lump'], formula: 'expected',
         make(rng) {
           const k = rng.int(1, 3), r = rng.step(0.08, 0.15, 0.01), p = rng.pick([0.2, 0.3, 0.4, 0.6, 0.7, 0.8]);
           const good = rng.step(200000, 2000000, 50000), bad = Math.round((good * rng.pick([0.1, 0.2, 0.3, 0.4])) / 10000) * 10000;
@@ -1687,7 +1999,7 @@
             why: R`Take the expected value at the node, then discount it back to \(t = 0\).`,
           };
         } },
-      { id: 'w7-g-evnpv', topic: 'ev', level: 2, section: 'B', formula: 'expected', src: 'Tutorial W7 Q1',
+      { id: 'w7-g-evnpv', topic: 'ev', level: 2, section: 'B', formulas: ['expected', 'pv-annuity', 'npv'], formula: 'expected', src: 'Tutorial W7 Q1',
         make(rng) {
           const co = rng.company();
           const n = rng.int(3, 8), r = rng.step(0.08, 0.15, 0.01);
@@ -1718,7 +2030,7 @@
             why: R`Replace the chance node by its expected yearly cash flow, discount it as an annuity, then subtract the cost.`,
           };
         } },
-      { id: 'w7-g-twostage', topic: 'ev', level: 3, section: 'B', formula: 'expected', src: 'Tutorial W7 Q2', boss: true,
+      { id: 'w7-g-twostage', topic: 'ev', level: 3, section: 'B', formulas: ['expected', 'pv-annuity', 'deferred', 'pv-lump', 'npv'], formula: 'expected', src: 'Tutorial W7 Q2', boss: true,
         make(rng) {
           const co = rng.company();
           const D = rng.pick([2, 2, 3]), n = rng.int(3, 6), r = rng.step(0.1, 0.18, 0.01);
@@ -1769,7 +2081,7 @@
         } },
 
       /* ---------- decision tree basics ---------- */
-      { id: 'w7-g-decnode', topic: 'tree', level: 1, section: 'B',
+      { id: 'w7-g-decnode', topic: 'tree', level: 1, section: 'B', formulas: ['pv-lump'],
         make(rng) {
           const k = rng.int(1, 4), r = rng.step(0.08, 0.14, 0.01);
           const names = rng.pick([['Expand', 'Carry on', 'Sell'], ['Upgrade', 'Do not upgrade', 'Abandon'], ['Launch nationally', 'Launch in one state', 'Sell the patent']]);
@@ -1799,7 +2111,7 @@
           }
           return null;
         } },
-      { id: 'w7-g-perp', topic: 'tree', level: 2, section: 'B', formula: 'expected', src: 'Lecture W7 Example 1',
+      { id: 'w7-g-perp', topic: 'tree', level: 2, section: 'B', formulas: ['pv-perp', 'expected', 'pv-lump', 'npv'], formula: 'expected', src: 'Lecture W7 Example 1',
         make(rng) {
           const co = rng.company();
           const c = rng.step(50000, 400000, 10000), r = rng.step(0.08, 0.15, 0.01), p = rng.pick([0.2, 0.25, 0.3, 0.33, 0.4, 0.5, 0.6]);
@@ -1829,7 +2141,7 @@
         } },
 
       /* ---------- probabilities ---------- */
-      { id: 'w7-g-py1', topic: 'prob', level: 1, section: 'B', src: 'Tutorial W7 concept check Q5',
+      { id: 'w7-g-py1', topic: 'prob', level: 1, section: 'B', formulas: ['joint-prob'], src: 'Tutorial W7 concept check Q5',
         make(rng) {
           const co = rng.company();
           for (let k = 0; k < 60; k++) {
@@ -1865,7 +2177,7 @@
           }
           return null;
         } },
-      { id: 'w7-g-joint', topic: 'prob', level: 1, section: 'B',
+      { id: 'w7-g-joint', topic: 'prob', level: 1, section: 'B', formulas: ['joint-prob'],
         make(rng) {
           const p1 = rng.step(0.55, 0.8, 0.05), c = rng.step(0.6, 0.9, 0.05), q = rng.step(0.55, 0.8, 0.05);
           const ask = rng.pick(['HH', 'HL', 'LL', 'LH']);
@@ -1893,7 +2205,7 @@
             why: R`A joint probability multiplies the probabilities along its path.`,
           };
         } },
-      { id: 'w7-g-cond', topic: 'prob', level: 2, section: 'B', src: 'Tutorial W7 Q3 tips',
+      { id: 'w7-g-cond', topic: 'prob', level: 2, section: 'B', formulas: ['joint-prob'], src: 'Tutorial W7 Q3 tips',
         make(rng) {
           for (let k = 0; k < 60; k++) {
             const hh = rng.step(0.3, 0.65, 0.05), hl = rng.step(0.05, 0.25, 0.05), ll = rng.step(0.05, 0.3, 0.05);
@@ -1932,7 +2244,7 @@
         } },
 
       /* ---------- real options ---------- */
-      { id: 'w7-g-abandon', topic: 'option', level: 2, section: 'B', src: 'Tutorial W7 Q3',
+      { id: 'w7-g-abandon', topic: 'option', level: 2, section: 'B', formulas: ['expected', 'pv-lump'], src: 'Tutorial W7 Q3',
         make(rng) {
           const co = rng.company();
           for (let k = 0; k < 60; k++) {
@@ -1971,7 +2283,7 @@
           }
           return null;
         } },
-      { id: 'w7-g-upgrade', topic: 'option', level: 2, section: 'B', src: 'Lecture W7 Example 2',
+      { id: 'w7-g-upgrade', topic: 'option', level: 2, section: 'B', formulas: ['expected', 'pv-annuity', 'npv'], src: 'Lecture W7 Example 2',
         make(rng) {
           for (let k = 0; k < 60; k++) {
             const r = rng.step(0.08, 0.12, 0.01), m = 5;
@@ -2016,7 +2328,7 @@
           }
           return null;
         } },
-      { id: 'w7-g-chip', topic: 'option', level: 3, section: 'B', src: 'Lecture W7 Example 2', boss: true,
+      { id: 'w7-g-chip', topic: 'option', level: 3, section: 'B', formulas: ['expected', 'pv-annuity', 'pv-lump', 'npv'], src: 'Lecture W7 Example 2', boss: true,
         make(rng) {
           for (let k = 0; k < 80; k++) {
             const r = rng.step(0.08, 0.12, 0.01), C = rng.step(2, 4, 0.5);
@@ -2081,7 +2393,7 @@
           }
           return null;
         } },
-      { id: 'w7-g-balloon', topic: 'option', level: 3, section: 'B', src: 'Tutorial W7 Q3', boss: true,
+      { id: 'w7-g-balloon', topic: 'option', level: 3, section: 'B', formulas: ['joint-prob', 'expected', 'pv-lump', 'npv'], src: 'Tutorial W7 Q3', boss: true,
         make(rng) {
           const co = rng.company();
           for (let k = 0; k < 80; k++) {
@@ -2122,7 +2434,7 @@
           }
           return null;
         } },
-      { id: 'w7-g-unter', topic: 'option', level: 3, section: 'B', src: 'Tutorial W7 case study (Unter)', boss: true,
+      { id: 'w7-g-unter', topic: 'option', level: 3, section: 'B', formulas: ['pv-annuity', 'pv-lump', 'expected', 'npv'], src: 'Tutorial W7 case study (Unter)', boss: true,
         make(rng) {
           const co = rng.company();
           for (let k = 0; k < 80; k++) {
@@ -2165,6 +2477,65 @@
                 ];
               })(),
               why: R`Solve the \(t = 2\) upgrade decision first. Then weight the approve and ban branches and discount to today.`,
+            };
+          }
+          return null;
+        } },
+
+      /* ---------- the option to wait ---------- */
+      { id: 'w7-g-wait', topic: 'wait', level: 2, section: 'B', formulas: ['expected', 'option-wait', 'pv-lump'],
+        make(rng) {
+          const co = rng.company();
+          const CTX = [
+            { what: 'a stall at a trade fair', good: 'the fair goes ahead', worth: 'the stall earns' },
+            { what: 'a stand at a tech expo', good: 'its new product is ready in time', worth: 'the stand brings in sales worth' },
+            { what: 'extra warehouse space for the busy season', good: 'a big new contract is signed', worth: 'the space earns' },
+            { what: 'a film crew for an advert', good: 'the client approves the advert', worth: 'the shoot earns' },
+          ];
+          for (let k = 0; k < 80; k++) {
+            const x = rng.pick(CTX);
+            const V = rng.step(8000, 120000, 1000), p = rng.step(0.5, 0.9, 0.05), m = rng.pick([3, 4, 6, 8, 9, 10, 12, 18]), r = rng.step(0.05, 0.12, 0.01);
+            const c0 = Math.round((p * V * rng.step(0.25, 0.7, 0.05)) / 100) * 100;
+            const cw = Math.round((c0 * rng.step(1.2, 2.2, 0.1)) / 100) * 100;
+            if (c0 < 500 || cw >= 0.9 * V) continue;
+            const w = waitPlan(V, p, c0, cw, m, r);
+            if (Math.abs(w.gain) < 0.02 * V) continue;
+            const ask = rng.pick(['now', 'wait', 'best']);
+            const waitWins = w.wait > w.now;
+            const ans = ask === 'now' ? w.now : ask === 'wait' ? w.wait : Math.max(w.now, w.wait);
+            const years = m / 12, dfTex = `${L.onePlus(r)}^{${L.numT(years, 4)}}`;
+            const nowTI = `${tn(p)}*${tn(V)}/${tn(1 + r)}^(${m}/12)-${tn(c0)}`, waitTI = `${tn(p)}*(${tn(V)}-${tn(cw)})/${tn(1 + r)}^(${m}/12)`;
+            const stepNow = R`Book now: \[NPV_{now} = \frac{${L.dec(p)} \times ${L.moneyT(V)}}{${dfTex}} - ${L.moneyT(c0)} = ${LM(w.now)}\]`;
+            const stepWait = R`Wait: nothing is paid today, and the later price is paid only if ${x.good}. \[NPV_{wait} = \frac{${L.dec(p)} \times (${L.moneyT(V)} - ${L.moneyT(cw)})}{${dfTex}} = ${LM(w.wait)}\]`;
+            const decide = waitWins ? R`Waiting has the higher NPV, so **wait**.` : R`Booking now has the higher NPV, so **book now**.`;
+            const noDisc = { now: w.E - c0, wait: p * (V - cw) };
+            const asYears = { now: w.E / Math.pow(1 + r, m) - c0, wait: (p * (V - cw)) / Math.pow(1 + r, m) };
+            const ms = ask === 'now' ? [
+              { v: noDisc.now, why: `That forgets to discount. The benefit comes in ${m} months.` },
+              { v: asYears.now, why: R`${m} months is \(\frac{${m}}{12}\) of a year, not ${m} years.` },
+              { v: V / w.df - c0, why: `Weight the benefit by the ${pct(p)} chance that ${x.good}.` },
+              { v: w.wait, why: 'That is the NPV of waiting. The question asks for booking now.' },
+            ] : ask === 'wait' ? [
+              { v: (V - cw) / w.df, why: `Weight by the ${pct(p)} chance that ${x.good}.` },
+              { v: (w.E - cw) / w.df, why: 'The later price is only paid if it goes well, so weight it by the chance too.' },
+              { v: noDisc.wait, why: `That forgets to discount. The money moves in ${m} months.` },
+              { v: w.now, why: 'That is the NPV of booking now. The question asks for waiting.' },
+            ] : [
+              { v: Math.min(w.now, w.wait), why: 'That is the NPV of the worse plan. Keep the higher NPV.' },
+              { v: waitWins ? noDisc.wait : noDisc.now, why: `That forgets to discount. The money moves in ${m} months.` },
+              { v: waitWins ? asYears.wait : asYears.now, why: R`${m} months is \(\frac{${m}}{12}\) of a year, not ${m} years.` },
+            ];
+            return {
+              q: R`${co} can book ${x.what} **now** for ${T.moneyT(c0)}. In ${m} months it will know if ${x.good} (a ${pct(p)} chance). If so, ${x.worth} ${T.moneyT(V)} then. If not, it earns nothing. Or ${co} can **wait** until it knows, and book then for ${T.moneyT(cw)}, only if ${x.good}. The discount rate is an EAR of ${pct(r)}. ${ask === 'now' ? 'What is the NPV of booking **now**?' : ask === 'wait' ? 'What is the NPV of **waiting**?' : 'Which plan is better? Give the NPV of the **better** plan.'}`,
+              givens: [['C_{now}', L.moneyT(c0)], ['C_{later}', L.moneyT(cw)], ['V', L.moneyT(V)], ['p', L.pctT(p)], ['t', R`\frac{${m}}{12}`], ['r', L.pctT(r)]],
+              answer: ans, unit: '$', dp: 2,
+              mistakes: uniq(ans, ms, '$', 2),
+              steps: [R`${co} finds out in ${m} months: \(t = \frac{${m}}{12}\) years, so divide by \(${dfTex} = ${L.numT(w.df, 6)}\).`]
+                .concat(ask === 'now' ? [stepNow] : ask === 'wait' ? [stepWait] : [stepNow, stepWait, decide]),
+              ti: ask === 'now' ? [TI.line(nowTI, { note: 'The expected benefit, discounted back, less the cost paid today.' })]
+                : ask === 'wait' ? [TI.line(waitTI, { note: 'Nothing is paid today. The later price is paid only if it goes well.' })]
+                  : [TI.line(`${nowTI}→k`, { note: 'Book now, stored in k.' }), TI.line(`max(k,${waitTI})`, { note: `The better plan. Here ${waitWins ? 'waiting' : 'booking now'} wins.` })],
+              why: R`Compare \(NPV_{now} = \frac{pV}{(1 + r)^{t}} - C_{now}\) with \(NPV_{wait} = \frac{p(V - C_{later})}{(1 + r)^{t}}\), where \(t = \frac{\text{months}}{12}\) for an EAR.`,
             };
           }
           return null;

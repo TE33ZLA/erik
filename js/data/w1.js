@@ -438,7 +438,8 @@
         title: 'The graduation gift',
         topics: ['tvm', 'fv', 'pv', 'simple'],
         story: R`Mele has just turned 18. Her grandmother offers her a choice of gift: \(\$10{,}000\) today, or \(\$13{,}000\) in 4 years.\n\nMele can put money in a term deposit that pays \(6\%\) p.a., compounded annually. A credit union offers \(6.5\%\) p.a. **simple** interest instead.`,
-        tl: { n: 4, at: { 0: '$10,000 now', 4: 'or $13,000' }, unit: 'Year', hi: [0, 4] },
+        viz: { type: 'compare', items: [{ icon: '💵', title: 'Gift A', big: R`\(\$10{,}000\)`, points: ['today'], c: 1 }, { icon: '⏳', title: 'Gift B', big: R`\(\$13{,}000\)`, points: ['in 4 years'], c: 3 }],
+          cap: R`Two gifts on two different dates. Compare them at the **same** date.` },
         parts: [
           { kind: 'calc', marks: 2, ask: R`Mele takes the \(\$10{,}000\) today and puts it in the term deposit. How much will she have in 4 years?`,
             formulas: ['fv-lump'],
@@ -499,7 +500,7 @@
               { t: R`The EAR and the APR are always the same.`, ok: false, why: R`They are equal only when interest is added once a year (\(m = 1\)).` },
             ],
             model: R`Kofi should choose Bank A, because offers with different compounding must be compared using the **EAR**, not the quoted APR. Bank A adds interest every month, so interest earns interest during the year: its EAR is \(6.01\%\). Bank B adds interest once a year, so its EAR is only \(5.90\%\). A saver wants the higher EAR, so Bank A pays more (\(\$9{,}530.67\) after 3 years) even though its APR is lower.`,
-            keys: [['EAR', 'effective'], ['compound', 'compounding', 'monthly'], ['6.01', 'higher']] },
+            keys: [['effective', 'compare EAR', 'compare the EAR', 'EAR is 6', 'EAR of 6'], ['compound', 'monthly', 'interest on interest'], ['6.01', '5.90']] },
           { kind: 'blanks', marks: 1, ask: R`Choose the right words.`,
             text: R`For the same APR, compounding more often gives a {{higher|lower|the same}} EAR. The EAR equals the APR only when interest is compounded {{once a year|monthly|daily}}.`,
             why: R`With \(m = 1\), \(EAR = (1 + APR) - 1 = APR\). Each extra compounding period adds interest on interest.` },

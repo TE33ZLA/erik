@@ -293,12 +293,15 @@
         enemy: { name: 'One-Basket Bandit', title: 'Puts every chip on one stock', body: 'round', color: '#e08e2b', acc: ['bandana', 'mustache'], mouth: 'tongue', item: '🧺',
           lines: { intro: 'All my chips on one stock! What could possibly go wrong?', hit: ['You spread the risk! My only weakness!', 'The covariance term! Noooo!'],
             taunt: ['Portfolio SD is a weighted average. Trust me.', 'Why diversify when you can gamble?'], win: 'Should not have put… all my eggs… in one basket…', lose: 'All in! And you are all out!' } } },
+      { id: 'w9-W1', kind: 'case', name: 'Written round: Ruby’s portfolio', case: 'w9-C1' },
       { id: 'w9-L8', kind: 'lesson', name: 'Beta, CAPM and the SML', lesson: 'w9-L8' },
       { id: 'w9-4', kind: 'battle', name: 'The High-Roller Lounge', topics: ['beta', 'capm'], n: 6,
         enemy: { name: 'Beta Blocker', title: 'Bouncer at the systematic door', body: 'box', color: '#3d5a80', acc: ['shades', 'headset'], mouth: 'flat', item: '📈',
           lines: { intro: 'Only systematic risk gets past this rope. Show me your beta.', hit: ['Beta times the market risk premium. You may pass.', 'You found the SML. Respect.'],
             taunt: ['Unsystematic risk earns nothing in here, pal.', 'You added the risk-free rate twice. Bounced!'], win: 'Access… granted…', lose: 'Your beta is not on the list tonight.' } } },
+      { id: 'w9-W2', kind: 'case', name: 'Written round: two shares and the SML', case: 'w9-C2' },
       { id: 'w9-m2', kind: 'mini', name: 'SML Sniper', mini: 'sml-sniper' },
+      { id: 'w9-W3', kind: 'case', name: 'Written round: risk, explained', case: 'w9-C3' },
       { id: 'w9-boss', kind: 'boss', name: 'The House', topics: '*', n: 10,
         enemy: { name: 'The House', title: 'Only pays for systematic risk', body: 'tall', color: '#8e1b3a', acc: ['crown', 'monocle'], eyes: 3, mouth: 'fangs', item: '🎰',
           lines: { intro: 'Welcome to my casino. I pay for systematic risk. Everything else… I keep.', hit: ['A diversified mind? Impossible!', 'You read my matrix like a pro!'],
@@ -722,6 +725,15 @@
               x: { label: 'Weight in asset A', fmt: '%', min: 0, max: 100 }, y: { label: 'Portfolio SD', fmt: '%', min: 0, max: 40 },
               series: [{ c: 1, pts: [[0, 0], [100, 40]] }], marks: [{ x: 40, y: P(0.4 * 0.4), label: '40% in A: SD 16%', c: 3, pos: 'right' }] } },
           { kind: 'check', gen: 'w9-g-rf-port' },
+          { kind: 'learn', title: 'Reading a variance–covariance matrix',
+            body: R`Risk data often comes as a **variance–covariance matrix**: a table with the same assets along the top and down the side.\n\nThe **diagonal** (top left to bottom right) holds each asset’s **variance**. Every other cell holds the **covariance** of its row and its column. The top half is left blank, because it would repeat the bottom half.`,
+            tip: R`SD \(= \sqrt{\text{variance}}\). Correlation \(= \frac{Cov}{\sigma_X\sigma_Y}\). In the portfolio variance, the last term becomes \(2w_Xw_Y\,Cov(R_X,R_Y)\).`,
+            viz: [
+              { type: 'table', key: true, head: ['', 'X', 'Y', 'Market'], cap: R`Variances on the diagonal. Covariances everywhere else. The market row is for beta (lesson 8).`,
+                rows: [['X', R`\(\sigma_X^2\)`, '', ''], ['Y', R`\(Cov(R_X,R_Y)\)`, R`\(\sigma_Y^2\)`, ''], ['Market', R`\(Cov(R_X,R_M)\)`, R`\(Cov(R_Y,R_M)\)`, R`\(\sigma_M^2\)`]] },
+              Object.assign({ type: 'table', cap: R`Lecture example: SSBB’s SD is \(\sqrt{0.0221} = ${pc(Math.sqrt(MX.vS))}\). The SSBB–WW covariance is \(0.0011\).` }, MX_TABLE),
+            ] },
+          { kind: 'check', gen: 'w9-g-matrix-read' },
           { kind: 'recap', title: 'Remember', points: [
             R`Weights use market values and add up to 1.`,
             R`Portfolio return **is** a weighted average: \(E[R_p] = \sum w_iE[R_i]\).`,
@@ -856,6 +868,125 @@
             R`**SML**: above the line = undervalued (buy); below the line = overvalued (sell).`,
             R`Exam trap: multiply beta by the market risk **premium** \((E[R_M] - r_f)\), not by \(E[R_M]\), and remember to add \(r_f\).`,
           ], formula: 'capm' },
+        ],
+      },
+    },
+
+    /* ---------- written rounds: a scenario with parts, answered as in the exam's written section ---------- */
+    cases: {
+      'w9-C1': {
+        title: 'Ruby’s three-part portfolio',
+        topics: ['port', 'cv', 'corr'],
+        story: R`Ruby has $800,000 to invest. She puts $320,000 into Opal Optics (O), $280,000 into Tern Textiles (T) and the rest into Treasury bills, which pay a risk-free 4% a year.\n\nAnalysts expect Opal to return 12% and Tern 9%. The risk of the two shares is in the **variance–covariance matrix** below: the variances are on the diagonal, and the covariance is off it.`,
+        table: { head: ['', 'Opal (O)', 'Tern (T)'], rows: [['Opal (O)', t4(C1.vO), ''], ['Tern (T)', t4(C1.cOT), t4(C1.vT)]] },
+        parts: [
+          { kind: 'calc', marks: 1, ask: R`Work out the three portfolio weights. End with the weight of the Treasury bills.`,
+            formulas: ['weights'], answer: P(C1.w[2]), unit: '%', dp: 2,
+            model: ['w = Value in the asset/Total value', 'wO = 320000/800000 = 0.40', 'wT = 280000/800000 = 0.35', 'wF = 200000/800000 = 25.00%'],
+            meaning: R`So \(w_O = 0.40\), \(w_T = 0.35\) and \(w_F = 0.25\). The three weights add up to 1.`,
+            hint: R`The Treasury bills get the rest: \(\$800{,}000 - \$320{,}000 - \$280{,}000\).` },
+          { kind: 'calc', marks: 2, ask: R`Calculate the expected return of Ruby’s portfolio.`,
+            formulas: ['port-ret'], answer: P(C1.eP), unit: '%', dp: 2,
+            model: ['E[Rp] = wO*E[RO] + wT*E[RT] + wF*rf', '= 0.40*0.12 + 0.35*0.09 + 0.25*0.04', '= 8.95%'],
+            meaning: R`The Treasury bills still earn \(4\%\), so they count in the weighted average.` },
+          { kind: 'calc', marks: 3, ask: R`Use the matrix to calculate the standard deviation of the portfolio.`,
+            formulas: ['port-var', 'corr', 'sd'], answer: P(C1.sP), unit: '%', dp: 2,
+            model: ['Var(p) = wO^2*VarO + wT^2*VarT + 2*wO*wT*CovOT', '= 0.40^2*0.04 + 0.35^2*0.0225 + 2*0.40*0.35*0.0045 = 0.01041625', 'SDp = sqrt(0.01041625) = 10.21%'],
+            meaning: R`The Treasury bills add no variance and no covariance, so they drop out. The matrix gives the covariance directly: it is the sheet’s \(\rho_{OT}\sigma_O\sigma_T\).`,
+            hint: R`Variances are on the diagonal and the covariance is off it. Square the weights, and take the square root at the end.` },
+          { kind: 'calc', marks: 2, ask: R`Calculate the Sharpe ratio of the portfolio, to 4 decimal places. Use your answers to (b) and (c).`,
+            formulas: ['sharpe'], answer: C1.sh, unit: '', dp: 4,
+            model: ['Sharpe Ratio = (E[Rp] - rf)/SDp', '= (0.0895 - 0.04)/0.102060', '= 0.4850'],
+            meaning: R`Each unit of risk earns about \(${nt(C1.sh, 2)}\) of expected return above the risk-free rate.` },
+          { kind: 'theory', marks: 2, ask: R`The weighted average of the three SDs is \(0.40(20\%) + 0.35(15\%) + 0.25(0\%) = ${pc(C1.avgSD)}\). Explain why the portfolio’s SD is lower than this.`,
+            points: [
+              { t: R`The correlation between Opal and Tern is only \(\frac{0.0045}{0.20 \times 0.15} = ${nt(C1.rho, 2)}\), well below \(+1\).`, ok: true },
+              { t: R`Because the two shares do not move in step, part of their ups and downs cancel out: **diversification**.`, ok: true },
+              { t: R`A portfolio’s SD equals the weighted average of the SDs only when \(\rho = +1\).`, ok: true },
+              { t: R`The Treasury bills have a negative covariance with the shares, which cancels risk.`, ok: false, why: 'Treasury bills have zero covariance with everything. They add no risk, but they cancel none either.' },
+              { t: R`The portfolio SD is lower because the portfolio’s expected return is lower.`, ok: false, why: 'The expected return does not set the risk. The variances and the covariance do.' },
+              { t: R`Portfolio risk is always a weighted average of the variances.`, ok: false, why: R`The weights are squared and there is a covariance term, so it is not a weighted average.` },
+            ],
+            model: R`The portfolio SD (\(${pc(C1.sP)}\)) is below the weighted average (\(${pc(C1.avgSD)}\)) because Opal and Tern are far from perfectly correlated: \(\rho = ${nt(C1.rho, 2)}\). When one share has a bad year, the other often does not, so part of their risk cancels out. This is diversification. Only with \(\rho = +1\) would the SD equal the weighted average.`,
+            keys: [['correlation', 'correlated', 'rho'], ['cancel', 'diversif', 'offset'], ['+1', 'perfect', 'weighted average']] },
+        ],
+      },
+      'w9-C2': {
+        title: 'Two shares and the SML',
+        topics: ['capm', 'beta'],
+        story: R`The risk-free rate is 3.5% and the expected return on the market is 10%.\n\nAnalysts forecast that Acacia Airlines (beta 1.3) will return 13.4%, and that Boronia Books (beta 0.8) will return 8.1%.\n\nLeo holds $50,000 of Acacia, $30,000 of Boronia and $20,000 of Treasury bills.`,
+        table: { head: ['Share', 'Beta', 'Forecast return'], rows: [['Acacia Airlines', '1.3', '13.4%'], ['Boronia Books', '0.8', '8.1%']] },
+        parts: [
+          { kind: 'calc', marks: 2, ask: R`Use CAPM to find the required return on Acacia Airlines.`,
+            formulas: ['capm'], answer: P(C2.reqA), unit: '%', dp: 2,
+            model: ['E[Ri] = rf + Beta(i)*(E[RM] - rf)', '= 0.035 + 1.3*(0.10 - 0.035)', '= 11.95%'],
+            meaning: R`Investors require \(${pc(C2.reqA)}\) from a share with Acacia’s beta.` },
+          { kind: 'calc', marks: 2, ask: R`What is Acacia’s alpha: its forecast return minus its required return?`,
+            formulas: ['capm', 'alpha'], answer: P(C2.aA), unit: '%', dp: 2,
+            model: ['alpha = Forecast return - E[Ri]', '= 13.4% - 11.95%', '= 1.45%'],
+            meaning: R`A positive alpha: Acacia offers \(${pc(C2.aA)}\) more than CAPM requires.` },
+          { kind: 'calc', marks: 2, ask: R`Find Boronia’s alpha in the same way.`,
+            formulas: ['capm', 'alpha'], answer: P(C2.aB), unit: '%', dp: 2,
+            model: ['alpha = Forecast return - (rf + Beta*(E[RM] - rf))', '= 0.081 - (0.035 + 0.8*(0.10 - 0.035))', '= -0.60%'],
+            meaning: R`Boronia needs \(${pc(C2.reqB)}\) for its beta but offers only \(8.1\%\): a negative alpha.` },
+          { kind: 'theory', marks: 2, ask: R`Is each share undervalued or overvalued? Explain, and say what investors would do.`,
+            points: [
+              { t: R`Acacia has a positive alpha, so it plots **above** the SML: it is **undervalued**, so buy.`, ok: true },
+              { t: R`Boronia has a negative alpha, so it plots **below** the SML: it is **overvalued**, so sell.`, ok: true },
+              { t: R`Buying pushes Acacia’s price up (and its expected return down) until it sits on the SML. Selling does the opposite for Boronia.`, ok: true },
+              { t: R`Acacia is overvalued because its beta is above 1.`, ok: false, why: 'A high beta means a high required return, not an overvalued share. Compare the forecast with the CAPM return.' },
+              { t: R`Boronia is undervalued because its forecast (8.1%) is below the market’s 10%.`, ok: false, why: 'Compare each share with its own CAPM return, not with the market’s return.' },
+            ],
+            model: R`Acacia is undervalued. Its forecast return (\(13.4\%\)) beats its CAPM required return (\(${pc(C2.reqA)}\)), so its alpha is \(+${pc(C2.aA)}\) and it plots above the SML: investors should buy. Boronia is overvalued: it offers \(8.1\%\) but needs \(${pc(C2.reqB)}\) for a beta of 0.8, so it plots below the SML: sell. Trading moves both prices until each share sits on the SML.`,
+            keys: [['undervalued'], ['overvalued'], ['above', 'below', 'SML'], ['buy', 'sell']] },
+          { kind: 'calc', marks: 2, ask: R`What is the beta of Leo’s portfolio?`,
+            formulas: ['weights', 'port-beta'], answer: C2.bp, unit: '', dp: 2,
+            model: ['Beta(p) = w1*Beta1 + w2*Beta2 + w3*Beta3', '= 50000/100000*1.3 + 30000/100000*0.8 + 20000/100000*0', '= 0.89'],
+            meaning: R`The Treasury bills have \(\beta = 0\) but still count in the weights. At \(${nt(C2.bp, 2)}\), the portfolio is a little less risky than the market.` },
+        ],
+      },
+      'w9-C3': {
+        title: 'Risk, explained',
+        topics: ['corr', 'divers', 'trade'],
+        story: R`Mina runs a class for new investors. Saltbush Solar shares have an SD of 28% and Grevillea Gold shares an SD of 20%. The covariance between their returns is 0.0084.\n\nShe also shows the US history of returns from 1925 to 2011 (below).`,
+        table: HIST_TABLE,
+        parts: [
+          { kind: 'calc', marks: 2, ask: R`Calculate the correlation between Saltbush and Grevillea.`,
+            formulas: ['corr'], answer: C3.rho, unit: '', dp: 2,
+            model: ['rho = CovSG/(SDS*SDG)', '= 0.0084/(0.28*0.20)', '= 0.15'],
+            meaning: R`A weak positive link: the two shares move together only a little.` },
+          { kind: 'theory', marks: 2, ask: R`What is the relationship between the covariance and the correlation? Why is the correlation easier to interpret?`,
+            points: [
+              { t: R`The correlation is the covariance divided by both standard deviations: \(\rho_{ij} = \frac{Cov(R_i,R_j)}{\sigma_i\sigma_j}\).`, ok: true },
+              { t: R`The size of a covariance depends on how volatile each share is, so on its own it is hard to judge.`, ok: true },
+              { t: R`The correlation is standardised: it always lies between \(-1\) and \(+1\), and \(+1\) is a perfect positive link.`, ok: true },
+              { t: R`The covariance always lies between \(-1\) and \(+1\) too.`, ok: false, why: R`The covariance has no fixed range. Only the correlation lies between \(-1\) and \(+1\).` },
+              { t: R`The covariance and the correlation can have opposite signs.`, ok: false, why: 'SDs are always positive, so dividing by them never changes the sign.' },
+            ],
+            model: R`The correlation is the covariance divided by both standard deviations: \(\rho = \frac{Cov}{\sigma_S\sigma_G}\). A covariance of \(0.0084\) is hard to judge on its own, because its size depends on how volatile each share is. Dividing by the SDs standardises it, so the correlation always lies between \(-1\) and \(+1\). Here \(\rho = ${nt(C3.rho, 2)}\): a weak positive link.`,
+            keys: [['divide', 'divided', 'standard deviation'], ['standardis', 'standardiz', 'scale'], ['-1', '−1', '+1', 'between']] },
+          { kind: 'theory', marks: 2, ask: R`Explain systematic and unsystematic risk. What happens to each as Mina adds more shares to a portfolio?`,
+            points: [
+              { t: R`**Unsystematic** risk comes from news about one firm (a CEO resigns, a mine floods). Adding shares from different industries removes most of it.`, ok: true },
+              { t: R`**Systematic** risk comes from market-wide news (interest rates, a recession). It stays however many shares you hold.`, ok: true },
+              { t: R`Adding enough shares removes both kinds of risk, so a big portfolio has no risk at all.`, ok: false, why: 'Systematic risk hits almost every firm, so no number of shares removes it.' },
+              { t: R`Systematic risk is the risk that is unique to one firm.`, ok: false, why: 'That is unsystematic risk. Systematic risk is market-wide.' },
+            ],
+            model: R`Total risk = systematic risk + unsystematic risk. Unsystematic risk comes from news about one firm, such as Grevillea losing a mine. As Mina adds shares from different industries, this risk cancels out: about 12 to 16 shares remove most of it. Systematic risk comes from economy-wide news, such as a rise in interest rates. It hits almost every share, so it stays however many shares she holds.`,
+            keys: [['unsystematic', 'firm-specific', 'diversifiable'], ['systematic', 'market'], ['diversif', 'more shares', 'adding']] },
+          { kind: 'theory', marks: 2, ask: R`Why does the market reward only systematic risk, measured by beta?`,
+            points: [
+              { t: R`Unsystematic risk can be removed for free by diversifying, so no one is paid for bearing it.`, ok: true },
+              { t: R`Systematic risk cannot be diversified away, so investors need a reward for bearing it. Beta measures it.`, ok: true },
+              { t: R`So in CAPM the risk premium is \(\beta_i(E[R_M] - r_f)\): it depends on beta, not on the total SD.`, ok: true },
+              { t: R`Shares with a higher total SD always earn higher returns.`, ok: false, why: 'For single shares there is no clear link between total SD and return, because much of the SD is unsystematic risk.' },
+              { t: R`Beta measures a share’s total risk.`, ok: false, why: 'Beta measures only systematic risk: how the share moves with the market.' },
+            ],
+            model: R`Investors can remove unsystematic risk for free by holding a diversified portfolio, so the market pays no premium for it. Systematic risk cannot be diversified away, so investors must be paid to bear it. Beta measures a share’s systematic risk, and CAPM sets its premium at \(\beta_i(E[R_M] - r_f)\). So a very volatile share like Saltbush can still have a low required return if its beta is low.`,
+            keys: [['diversif'], ['systematic'], ['beta'], ['premium', 'reward', 'paid']] },
+          { kind: 'blanks', marks: 1, ask: R`Use the table. Choose the right words.`,
+            text: R`From 1925 to 2011, the asset class with the lowest risk was {{Treasury bills|long-term government bonds|large company stocks|small company stocks}}. Its SD was only {{3.1%|8.4%|9.8%|32.5%}}.`,
+            why: R`Treasury bills are short-term loans to the government, so their returns hardly vary. They also had the lowest average return: \(3.6\%\).` },
         ],
       },
     },
@@ -1551,6 +1682,35 @@
         steps: [R`\[\beta_{WW} = \frac{0.0020}{0.0100} = 0.2\]`, R`\[E[R_{WW}] = 8\% + 0.2(14\% - 8\%) = 8\% + 1.2\% = 9.2\%\]`],
         ti: [TI.line('0.08+0.2*(0.14-0.08)', PCT(eWW))],
         why: 'This matches the 9.20% quoted in the lecture, so the estimate is justified.' },
+      { id: 'w9-q79', topic: 'beta', kind: 'num', level: 2, section: 'B', formulas: ['mean', 'cov-sample', 'var-sample', 'beta'], formula: 'beta',
+        q: R`Six monthly returns for Wattlebird Wines and for the market are below. Treat them as a sample. Estimate the **beta** of Wattlebird Wines.`,
+        table: BW_TABLE,
+        answer: bWB, unit: '', dp: 2,
+        mistakes: [
+          { v: FIN.covS(BW.s, BW.m) / FIN.varS(BW.s), why: 'Divide by the market’s variance, not the share’s own variance.' },
+          { v: FIN.corrS(BW.s, BW.m), why: 'That is the correlation with the market, not beta.' },
+          { v: (FIN.covS(BW.s, BW.m) * 5) / 6 / FIN.varS(BW.m), why: R`You mixed divisors: covariance \(\div N\) but variance \(\div (N - 1)\). Use \(N - 1\) in both.` },
+          { v: FIN.covS(BW.s, BW.m) / FIN.sdS(BW.m), why: R`Divide by the market’s **variance** \(\sigma_M^2\), not its SD.` },
+        ],
+        steps: [
+          R`Means: \(\bar{R}_M = ${nt(FIN.mean(BW.m), 6)}\) and \(\bar{R}_W = ${nt(FIN.mean(BW.s), 6)}\).`,
+          R`\[Cov(R_W,R_M) = \frac{\sum (R_{W,t} - \bar{R}_W)(R_{M,t} - \bar{R}_M)}{6 - 1} = \frac{${nt(FIN.covS(BW.s, BW.m) * 5, 6)}}{5} = ${nt(FIN.covS(BW.s, BW.m), 6)}\]`,
+          R`\[\sigma_M^2 = \frac{\sum (R_{M,t} - \bar{R}_M)^2}{6 - 1} = \frac{${nt(FIN.varS(BW.m) * 5, 6)}}{5} = ${nt(FIN.varS(BW.m), 6)}\]`,
+          R`\[\beta_W = \frac{Cov(R_W,R_M)}{\sigma_M^2} = \frac{${nt(FIN.covS(BW.s, BW.m), 6)}}{${nt(FIN.varS(BW.m), 6)}} = ${nt(bWB, 4)}\]`,
+        ],
+        ti: [sto(BW.m, 'x', { note: 'The market’s returns.' }), sto(BW.s, 'y', { note: 'Wattlebird’s returns.' }),
+          TI.line(`${COV_XY}/varSamp(x)`, { note: R`The sample covariance over the market’s sample variance. Both divide by \(N - 1\).` })],
+        xl: { title: 'Beta from past returns',
+          rows: [['Month', 'Market', 'Wattlebird'], ...BW.m.map((x, k) => [k + 1, x, BW.s[k]]),
+            ['Covariance (sample)', '=COVARIANCE.S(B2:B7,C2:C7)'], ['Market variance (sample)', '=VAR.S(B2:B7)'], ['Beta', '=B8/B9'], ['Check: SLOPE', '=SLOPE(C2:C7,B2:B7)']],
+          fmt: { 'B2:C7': '%', 'B10:B11': '0.0000' }, bold: ['A1:C1', 'A10:B10'], answer: 'B10',
+          steps: [
+            { t: 'The market’s returns in column B and the share’s in column C, one month per row.', cells: 'B2:C7' },
+            { t: 'The sample covariance: =COVARIANCE.S(B2:B7,C2:C7).', cells: 'B8' },
+            { t: 'The market’s sample variance: =VAR.S(B2:B7).', cells: 'B9' },
+            { t: 'Beta: =B8/B9. =SLOPE(C2:C7,B2:B7) gives the same beta in one step: the share’s returns first, then the market’s.', cells: 'B10:B11' },
+          ] },
+        why: R`Beta is the slope of the share’s returns against the market’s. Wattlebird tends to move about \(${nt(bWB, 2)}\) times as much as the market.` },
     ],
 
     generators: [
@@ -1965,6 +2125,92 @@
             ti: [TI.line(`${tn(w)}*${tn(e)}+${tn(1 - w)}*${tn(rf)}`, PCT(ep))],
             why: 'Portfolio return is still a weighted average, including the risk-free part.',
           };
+        } },
+      /* ---------- reading a variance-covariance matrix (the market row is not needed here) ---------- */
+      { id: 'w9-g-matrix-read', topic: 'port', level: 2, section: 'B', formulas: ['weights', 'port-var', 'corr', 'sd'], src: 'Lecture W9 Example 3 (portfolio theory)',
+        make(rng) {
+          const [nX, nY] = two(rng);
+          for (let t = 0; t < 300; t++) {
+            const vM = rng.pick([0.01, 0.012, 0.015, 0.016, 0.02, 0.025]);
+            const sX = rng.step(0.1, 0.35, 0.01), sY = rng.step(0.1, 0.35, 0.01);
+            if (Math.abs(sX - sY) < 0.03) continue;
+            const vX = +(sX * sX).toFixed(4), vY = +(sY * sY).toFixed(4);
+            const cXY = +(rng.step(-0.3, 0.7, 0.05) * sX * sY).toFixed(4);
+            if (Math.abs(cXY) < 0.0005) continue;
+            const cXM = +(rng.step(0.3, 1.5, 0.1) * vM).toFixed(4), cYM = +(rng.step(0.2, 1.3, 0.1) * vM).toFixed(4);
+            const kXM = cXM / Math.sqrt(vX * vM), kYM = cYM / Math.sqrt(vY * vM), kXY = cXY / Math.sqrt(vX * vY);
+            if (Math.abs(kXM) > 0.95 || Math.abs(kYM) > 0.95) continue;
+            if (1 - kXY * kXY - kXM * kXM - kYM * kYM + 2 * kXY * kXM * kYM < 0.02) continue; // a valid matrix
+            const table = { head: ['', 'X', 'Y', 'Market'], rows: [['X', t4(vX), '', ''], ['Y', t4(cXY), t4(vY), ''], ['Market', t4(cXM), t4(cYM), t4(vM)]] };
+            const intro = R`The variance–covariance matrix for share X (${nX}), share Y (${nY}) and the market is below.`;
+            const ask = rng.pick(['sd', 'corr', 'port', 'port']);
+            if (ask === 'sd') {
+              const onX = rng.chance(0.5), v = onX ? vX : vY, s = Math.sqrt(v), nm = onX ? 'X' : 'Y', other = onX ? 'Y' : 'X';
+              return {
+                q: R`${intro} What is the **standard deviation** of share ${nm}’s returns?`,
+                table, answer: P(s), unit: '%', dp: 2, formulas: ['sd'],
+                mistakes: [
+                  { v: P(v), why: 'That is the variance, as a percentage. Take its square root.' },
+                  { v: P(Math.sqrt(onX ? vY : vX)), why: `That is share ${other}’s SD. Use the diagonal cell in row ${nm}.` },
+                  { v: P(Math.sqrt(vM)), why: `That is the market’s SD. Use the diagonal cell in row ${nm}.` },
+                  { v: P(Math.sqrt(Math.abs(cXY))), why: 'That uses the X–Y covariance. The variance is on the diagonal.' },
+                ],
+                steps: [R`The diagonal holds the variances: \(\sigma_{${nm}}^2 = ${nt(v, 4)}\).`, R`\[\sigma_{${nm}} = \sqrt{${nt(v, 4)}} = ${nt(s, 4)} = ${pc(s)}\]`],
+                ti: [TI.line(`sqrt(${tn(v)})`, PCT(s))],
+                why: 'Each diagonal cell is a variance: the asset’s covariance with itself. The SD is its square root.',
+              };
+            }
+            if (ask === 'corr') {
+              const sx = Math.sqrt(vX), sy = Math.sqrt(vY), rho = cXY / (sx * sy);
+              return {
+                q: R`${intro} What is the **correlation** between the returns of X and Y? (4 decimal places)`,
+                table, answer: rho, unit: '', dp: 4, tol: 0.0006, formulas: ['sd', 'corr'],
+                mistakes: [
+                  { v: cXY, why: 'That is the covariance. Divide it by both SDs.' },
+                  { v: cXY / (vX * vY), why: 'Divide by the SDs (the square roots of the variances), not by the variances.' },
+                  { v: cXY / (sx + sy), why: 'Multiply the two SDs; do not add them.' },
+                  { v: cXY / sx, why: 'Divide by both SDs.' },
+                ],
+                steps: [
+                  R`Off the diagonal: \(Cov(R_X,R_Y) = ${nt(cXY, 4)}\). On the diagonal: \(\sigma_X = \sqrt{${nt(vX, 4)}} = ${nt(sx, 4)}\) and \(\sigma_Y = \sqrt{${nt(vY, 4)}} = ${nt(sy, 4)}\).`,
+                  R`\[\rho_{XY} = \frac{Cov(R_X,R_Y)}{\sigma_X\,\sigma_Y} = \frac{${nt(cXY, 4)}}{${nt(sx, 4)} \times ${nt(sy, 4)}} = ${nt(rho, 4)}\]`,
+                ],
+                ti: [TI.line(`${tb(cXY)}/sqrt(${tn(vX)}*${tn(vY)})`, { note: R`The covariance over both SDs: \(\sqrt{\sigma_X^2\,\sigma_Y^2} = \sigma_X\,\sigma_Y\).` })],
+                why: rho > 0 ? 'Positive: X and Y tend to move together.' : 'Negative: X and Y tend to move in opposite directions, which is good for diversification.',
+              };
+            }
+            const withRf = rng.chance(0.5);
+            const tot = rng.step(100000, 900000, 50000);
+            const wX = rng.step(0.2, 0.6, 0.1);
+            const wY = withRf ? rng.step(0.2, +(0.8 - wX).toFixed(1), 0.1) : +(1 - wX).toFixed(1);
+            const wF = +(1 - wX - wY).toFixed(10);
+            if (withRf && wF < 0.1) continue;
+            if (!withRf && Math.abs(wX - wY) < 0.01) continue;
+            const vP = wX * wX * vX + wY * wY * vY + 2 * wX * wY * cXY, sP = Math.sqrt(vP);
+            const mistakes = [
+              { v: P(Math.sqrt(wX * wX * vX + wY * wY * vY)), why: R`You dropped the covariance term \(2w_Xw_YCov(R_X,R_Y)\).` },
+              { v: P(wX * Math.sqrt(vX) + wY * Math.sqrt(vY)), why: 'Portfolio SD is not a weighted average of the SDs.' },
+              { v: P(Math.sqrt(wX * vX + wY * vY + 2 * wX * wY * cXY)), why: 'Square the weights on the variance terms.' },
+            ];
+            if (withRf) {
+              const a = wX / (wX + wY), b = wY / (wX + wY);
+              mistakes.push({ v: P(Math.sqrt(a * a * vX + b * b * vY + 2 * a * b * cXY)), why: `The Treasury bills are part of the portfolio. Use weights out of the full ${T.money(tot, 0)}.` });
+            }
+            mistakes.push({ v: P(vP), why: 'That is the variance. Take the square root.' });
+            return {
+              q: R`${intro} You invest ${T.money(tot * wX, 0)} in X and ${T.money(tot * wY, 0)} in Y${withRf ? `, and ${T.money(tot * wF, 0)} in Treasury bills (risk-free)` : ''}. What is the **standard deviation** of your portfolio?`,
+              table, answer: P(sP), unit: '%', dp: 2, mistakes, formulas: ['weights', 'port-var', 'corr', 'sd'],
+              steps: [
+                R`Weights (out of ${T.money(tot, 0)}): \(w_X = ${nt(wX, 2)}\), \(w_Y = ${nt(wY, 2)}\)${withRf ? R`, \(w_F = ${nt(wF, 2)}\)` : ''}. The market row is not needed.`,
+                R`With a covariance from the matrix, the last term is \(2w_Xw_Y\,Cov(R_X,R_Y)\) (the sheet’s \(\rho_{XY}\sigma_X\sigma_Y\)).`,
+                R`\[\sigma_p^2 = (${nt(wX, 2)})^2(${nt(vX, 4)}) + (${nt(wY, 2)})^2(${nt(vY, 4)}) + 2(${nt(wX, 2)})(${nt(wY, 2)})(${br(cXY, 4)}) = ${nt(vP, 6)}\]`,
+                R`\[\sigma_p = \sqrt{${nt(vP, 6)}} = ${pc(sP)}${withRf ? R` \quad (\text{the Treasury bills add no risk})` : ''}\]`,
+              ],
+              ti: [TI.line(`${tn(wX)}^2*${tn(vX)}+${tn(wY)}^2*${tn(vY)}+2*${tn(wX)}*${tn(wY)}*${tb(cXY)}`, { note: withRf ? 'The portfolio variance. The Treasury bills add nothing to it.' : 'The portfolio variance.' }), TI.line('sqrt(ans)', PCT(sP))],
+              why: withRf ? 'The risk-free part has no variance and no covariance, so it only scales the risk down.' : 'Variances from the diagonal, the X–Y covariance from the cell below it.',
+            };
+          }
+          return null;
         } },
       /* ---------- beta from covariance ---------- */
       { id: 'w9-g-beta', topic: 'beta', level: 1, section: 'B', formulas: ['beta'], formula: 'beta', src: 'Lecture W9 Example 3(a)',

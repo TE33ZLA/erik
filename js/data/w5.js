@@ -272,7 +272,7 @@
       { t: 'Inputs in labelled cells. Then the old press’s depreciation (=B6/B7) and its book value today (=B6-B8*B12).', cells: 'A1:B13' },
       { t: 'Years 0 to 5 across row 15.', cells: 'A15:G15' },
       { t: 'The savings every year, and the avoided overhaul in year 2 (a saving too).', cells: 'C16:G17' },
-      { t: 'Incremental depreciation, new minus old: =-($B$3/$B$4-$B$12) in years 1 to 4. In year 5 the new press has none left: =-(0-$B$12).', cells: 'C18:G18' },
+      { t: 'Incremental depreciation (new minus old), taken off as a cost: =-($B$3/$B$4-$B$12) in years 1 to 4. In year 5 the new press has none left, so =-(0-$B$12) gives +10,000: replacing loses the old press’s deduction.', cells: 'C18:G18' },
       { t: 'EBIT, tax at 30%, then depreciation added back.', cells: 'C19:G21' },
       { t: 'Year 0: the new press, and the old press sold after tax (below book value, so tax is saved). Year 5: the new press sold after tax.', cells: ['B22:B23', 'G24'] },
       { t: 'Cash flow: =SUM(B19:B24). NPV: =NPV(B2,C25:G25)+B25, with year 0 outside the brackets.', cells: 'B25:G26' },
@@ -433,6 +433,7 @@
       inflation: 'Inflation: nominal vs real',
       replace: 'The replacement decision',
       project: 'Full project analysis',
+      fade: 'Cash flows that fade (two-stage value)',
     },
 
     nodes: [
@@ -456,12 +457,16 @@
             taunt: ['Book value, market value, same thing!', 'Leave the working capital in the yard forever!'], win: 'Scrapped… at book value…', lose: 'Sold! No tax, no questions!' } } },
       { id: 'w5-L6', kind: 'lesson', name: 'Inflation: real and nominal', lesson: 'w5-L6' },
       { id: 'w5-L7', kind: 'lesson', name: 'A whole project, start to finish', lesson: 'w5-L7' },
-      { id: 'w5-4', kind: 'battle', name: 'The Inflation Chamber', topics: ['inflation', 'project'], n: 6,
+      { id: 'w5-W1', kind: 'case', name: 'Written round: the pastry line in Excel', case: 'w5-C1' },
+      { id: 'w5-L9', kind: 'lesson', name: 'Cash flows that fade away', lesson: 'w5-L9' },
+      { id: 'w5-4', kind: 'battle', name: 'The Inflation Chamber', topics: ['inflation', 'project', 'fade'], n: 6,
         enemy: { name: 'The Inflation Blimp', title: 'Puffs up every nominal number', body: 'round', color: '#e07a5f', acc: ['cap'], mouth: 'o', item: '🎈',
           lines: { intro: 'I puff up nominal cash flows! Mix me with a real rate, I dare you!', hit: ['Nominal with nominal? Pfffft…', 'The Fisher relation! My only weakness!'],
             taunt: ['Real cash flows at a nominal rate? Yum!', 'Mix them up! Mix them up!'], win: 'Deflating… deflating…', lose: 'Inflated your mistakes!' } } },
+      { id: 'w5-W2', kind: 'case', name: 'Written round: the dairy-free range', case: 'w5-C2' },
       { id: 'w5-m2', kind: 'mini', name: 'After-Tax Express', mini: 'after-tax' },
       { id: 'w5-L8', kind: 'lesson', name: 'The replacement decision', lesson: 'w5-L8' },
+      { id: 'w5-W3', kind: 'case', name: 'Written round: replace the press?', case: 'w5-C3' },
       { id: 'w5-boss', kind: 'boss', name: 'The Replacinator', topics: '*', n: 10,
         enemy: { name: 'The Replacinator', title: 'Out with the old, in with the NPV', body: 'tall', color: '#5a6f8c', acc: ['hardhat', 'glasses'], eyes: 1, mouth: 'flat', item: '⚙️',
           lines: { intro: 'Initial investment. Operating cash flows. Terminal cash flow. Get all three right or be scrapped!', hit: ['Incremental depreciation? Correct. Recalibrating…', 'Tax on the old machine’s sale? You remembered!'],
@@ -586,6 +591,30 @@
               cap: 'Only the aqua part happens because of the project. That is the incremental revenue.' },
             ti: [TI.line('0.15*40000*12')] },
           { kind: 'check', ref: 'w5-q02' },
+          { kind: 'learn', title: 'Three reasons profit and cash differ',
+            body: R`A project's **incremental earnings** are its extra profit after tax: \((Rev - Costs - Dep)(1 - t_c)\).\n\nIts **free cash flow** is different, for three reasons:`,
+            viz: { type: 'waterfall', fmt: '$', steps: [
+              { label: 'Earnings', v: TILES.earn, total: true },
+              { label: 'Add dep.', v: TILES.dep },
+              { label: 'CapEx', v: -TILES.capex },
+              { label: 'More receivables', v: -TILES.ar },
+              { label: 'FCF', total: true, c: 3 }],
+              cap: 'Tasman Tiles (next card): from profit to cash in three moves.' },
+            points: [
+              R`**Depreciation** is taken off to work out profit, but no cash is paid. So add it back.`,
+              R`**Capital spending** (CapEx) uses cash, but it is not an expense. Profit only sees it slowly, as depreciation. So take it off.`,
+              R`**Receivables**: profit counts a sale on the day it is made. If the customer pays later, the cash has not arrived yet. A rise in receivables is a rise in **net working capital** (Lesson 4), so take it off.`] },
+          { kind: 'example', title: 'Worked example: from earnings to cash', q: R`Tasman Tiles expects **incremental earnings** of $60,000 in year 1 of a project. Depreciation that year is $25,000. It spends $40,000 on new kilns. By the end of the year, customers owe it $8,000 more than at the start. What is the year 1 free cash flow?`,
+            steps: [
+              R`Start from the earnings: \(\$60{,}000\).`,
+              R`Add back the depreciation (not cash): \(+\$25{,}000\).`,
+              R`Take off the kilns (CapEx: cash spent, not an expense): \(-\$40{,}000\).`,
+              R`Take off the rise in receivables (sales not yet paid for): \(-\$8{,}000\).`,
+              R`\[FCF = 60{,}000 + 25{,}000 - 40{,}000 - 8{,}000 = ${M(TILES.fcf)}\]`,
+            ],
+            answer: R`\(FCF = ${M(TILES.fcf)}\), well below the \(\$60{,}000\) of earnings.`,
+            ti: [TI.line('60000+25000-40000-8000')] },
+          { kind: 'check', ref: 'w5-q61' },
           { kind: 'recap', title: 'Remember', formula: 'fcf', points: [
             R`Discount **cash flows**, not profits.`,
             R`\(FCF = (Rev - Costs - Dep)(1 - t_c) + Dep - CapEx - \Delta NWC\).`,
@@ -920,6 +949,13 @@
             steps: [R`\[NPV = -650{,}000 + \frac{232{,}000}{1.12} + \cdots + \frac{232{,}000}{1.12^{4}} + \frac{310{,}000}{1.12^{5}}\]`, R`On the TI-Nspire a count list saves typing: \(\$232{,}000\) four times, then \(\$310{,}000\) once.`, R`\(NPV = ${M(FIN.npv(LINE.k, LINE.cfs))} > 0\), so build it.`],
             answer: R`\(NPV = ${M(FIN.npv(LINE.k, LINE.cfs))}\). The line adds value.`,
             ti: [tiNpv(LINE.k, LINE.cfs)] },
+          { kind: 'excel', title: 'The whole table in Excel',
+            body: R`In the exam, cash flow tables are built in **Excel**. Here is the bottling line again: the inputs at the top, the years across, one row for each item.\n\nTap a step to see its cells. Tap **Show formulas** to see what is typed in each cell.`,
+            xl: LINE_XL, answer: FIN.npv(LINE.k, LINE.cfs), unit: '$', dp: 2,
+            points: [
+              R`Every formula points at an **input cell**. Change one input and the whole table updates.`,
+              R`Depreciation is taken off before tax, then added back, like the FCF formula.`,
+              R`Excel's NPV( ) starts at year 1. So year 0 is added **outside** the brackets: =NPV(B2,C17:G17)+B17.`] },
           { kind: 'check', ref: 'w5-q57' },
           { kind: 'guided', title: 'Your turn', q: R`Equipment costs $90,000 today. It is depreciated straight-line to zero over 3 years, with no salvage. NWC of $10,000 is needed today and recovered in year 3. Sales are $80,000 and costs $30,000 a year. Tax is 30% and the cost of capital is 10%.`,
             parts: [
@@ -952,6 +988,62 @@
             R`Build a small table: one column per year, one line per item.`,
             R`TI-Nspire: \(\text{npv}(k, CF_0, \{CF_1, \ldots\}, \{\text{counts}\})\).`,
             R`Exam trap: adding up years of net income is not a valuation. Use free cash flows, and discount them.`] },
+        ],
+      },
+      'w5-L9': {
+        title: 'Cash flows that fade away',
+        goal: R`Value a project whose cash flow is level for a few years, then falls a little every year, forever.`,
+        topics: ['fade'],
+        cards: [
+          { kind: 'learn', title: 'Some cash flows fade away',
+            body: R`Some projects have no clear end. A product sells steadily for a few years. Then customers slowly drift away, and its cash flow shrinks a little every year, forever.\n\nA ferry route earns $200,000 a year for 5 years. Then a new bridge opens, and from year 6 its cash flow falls by 4% a year.`,
+            viz: { type: 'bars', fmt: '$', bars: Array.from({ length: 9 }, (_, k) => {
+              const t = k + 1, v = t <= FERRY.n ? FERRY.C : FERRY.C * Math.pow(1 + FERRY.g, t - FERRY.n);
+              return { label: 'Yr ' + t, v, c: t <= FERRY.n ? 1 : 2 };
+            }),
+              cap: 'Level for 5 years (blue), then 4% smaller every year, forever (orange).' } },
+          { kind: 'learn', title: 'Value it in two pieces', formula: 'two-stage',
+            body: R`Split the cash flows after year \(n\).\n\n**Piece 1**: years 1 to \(n\) are level. That is an **annuity**.\n\n**Piece 2**: from year \(n + 1\) the cash flow shrinks at a steady rate. That is a **growing perpetuity** with a negative \(g\). Its formula gives a value at year \(n\): **one year before its first cash flow**. Discount that value \(n\) years to today.\n\n\[PV = \frac{C}{r}\left(1 - \frac{1}{(1+r)^{n}}\right) + \frac{1}{(1+r)^{n}} \times \frac{C_{n+1}}{r - g}\]`,
+            viz: { type: 'tl', key: true, n: 7, at: { 0: '?', 1: 'C', 2: 'C', 3: 'C', 4: 'C', 5: 'C', 6: 'C × 0.96', 7: '…' }, unit: 'Year', hi: [5],
+              moves: [{ from: 5, to: 0, label: '÷ (1+r)^5', c: 2 }],
+              spans: [{ from: 1, to: 5, label: 'Piece 1: an annuity', c: 1 }, { from: 6, to: 7, label: 'Piece 2', c: 3 }],
+              cap: R`Piece 2's value lands at year 5, one year before its first cash flow. Then it is discounted 5 years.` } },
+          { kind: 'learn', title: 'A decline is a negative g',
+            body: R`When the cash flow **falls** by 4% a year, the growth rate is negative: \(g = -0.04\). Two things follow.`,
+            viz: { type: 'anatomy', tex: R`\colA{PV_n} = \frac{\colB{C_{n+1}}}{\colC{r} - \colD{g}}`,
+              parts: [
+                { sym: 'PV_n', c: 'A', say: R`the value of the fading years, at year \(n\)` },
+                { sym: 'C_{n+1}', c: 'B', say: R`the first fading cash flow: \(C \times (1 + g)\)` },
+                { sym: 'r', c: 'C', say: 'the cost of capital' },
+                { sym: 'g', c: 'D', say: R`the growth rate: **negative** for a decline, e.g. \(-0.04\)` }],
+              cap: R`Minus a negative \(g\) is a plus: \(r - (-0.04) = r + 0.04\).` },
+            points: [R`The first fading cash flow is smaller: \(C_{n+1} = C(1 + g) = C \times 0.96\).`, R`The bottom of the fraction gets **bigger**: \(r - g = 0.09 - (-0.04) = 0.13\).`] },
+          { kind: 'example', title: 'Worked example: the ferry route', q: R`A ferry route earns free cash flows of $200,000 a year for years 1 to 5. From year 6, the cash flow falls by 4% a year, forever. The cost of capital is 9%. What is the route worth today?`,
+            steps: [
+              R`Piece 1, years 1 to 5 (an annuity): \[\frac{200{,}000}{0.09}\left(1 - \frac{1}{1.09^{5}}\right) = ${M(FERRY.lvl)}\]`,
+              R`The first fading cash flow: \(C_6 = 200{,}000 \times (1 - 0.04) = ${M(FERRY.c1)}\).`,
+              R`Piece 2, valued at year 5: \[\frac{192{,}000}{0.09 - (-0.04)} = \frac{192{,}000}{0.13} = ${M(FERRY.tvn)}\]`,
+              R`Bring piece 2 to today: \[\frac{${M(FERRY.tvn)}}{1.09^{5}} = ${M(FERRY.tv0)}\]`,
+              R`Add the two pieces, keeping every decimal: \(PV = ${M(FERRY.value)}\).`,
+            ],
+            answer: R`The route is worth \(${M(FERRY.value)}\) today.`,
+            ti: [TI.line('200000/0.09*(1-1/1.09^5)+200000*0.96/(0.09+0.04)/1.09^5', { note: R`Piece 1, plus piece 2 divided by \(1.09^{5}\). A fall of 4% gives \(\times 0.96\) on top and \(+0.04\) below.` })] },
+          { kind: 'check', ref: 'w5-q65' },
+          { kind: 'guided', title: 'Your turn', q: R`A music app earns $120,000 a year for years 1 to 3. From year 4, its cash flow falls by 2% a year, forever. The cost of capital is 10%.`,
+            parts: [
+              { ask: R`What is the year 4 cash flow, \(C_4\)?`, answer: FADE2.c1, unit: '$', dp: 0, hint: R`\(120{,}000 \times (1 - 0.02)\)`, why: R`\(C_4 = 120{,}000 \times 0.98 = ${M(FADE2.c1)}\).`, mistakes: [{ v: FADE2.C, why: 'The cash flow has already fallen by 2% in year 4.' }] },
+              { ask: R`What are years 4 onwards worth at year 3?`, answer: FADE2.tvn, unit: '$', dp: 0, hint: R`\(\frac{C_4}{r - g} = \frac{117{,}600}{0.10 - (-0.02)}\)`, why: R`\(\frac{117{,}600}{0.12} = ${M(FADE2.tvn)}\).`, mistakes: [{ v: FADE2.c1 / (FADE2.r + FADE2.g), why: R`A decline makes \(g\) negative, so \(r - g = 0.10 + 0.02 = 0.12\).` }] },
+              { ask: R`What is the app worth today?`, answer: FADE2.value, unit: '$', dp: 2, hint: R`The annuity for years 1 to 3, plus \(\frac{980{,}000}{1.1^{3}}\).`, why: R`\(${M(FADE2.lvl)} + ${M(FADE2.tv0)} = ${M(FADE2.value)}\).`,
+                mistakes: [{ v: FADE2.lvl + FADE2.tvn, why: 'Discount the year-3 value 3 years to today.' }, { v: FADE2.lvl + FADE2.tvn / Math.pow(1.1, 4), why: 'The value lands at year 3, not year 4. Discount it 3 years.' }] },
+            ],
+            answer: R`The app is worth \(${M(FADE2.value)}\) today.`,
+            ti: [TI.line('120000/0.1*(1-1/1.1^3)+120000*0.98/(0.1+0.02)/1.1^3')] },
+          { kind: 'check', gen: 'w5-g-two-stage' },
+          { kind: 'recap', title: 'Remember', formula: 'two-stage', points: [
+            R`Level for \(n\) years, then fading forever: value it in **two pieces**.`,
+            R`Piece 1: an annuity for years 1 to \(n\).`,
+            R`Piece 2: \(\frac{C_{n+1}}{r - g}\) with a **negative** \(g\). It lands at year \(n\), so discount it \(n\) years.`,
+            R`Exam trap: \(C_{n+1} = C(1 + g)\) is already smaller, and \(r - g = r + \text{the rate of decline}\).`] },
         ],
       },
       'w5-L8': {
@@ -1021,20 +1113,163 @@
       },
     },
 
+    /* ---------- written rounds (exam-style scenarios with parts a, b, c …) ---------- */
+    cases: {
+      'w5-C1': {
+        title: 'The pastry line in Excel',
+        topics: ['fcf', 'salvage', 'nwc', 'project'],
+        story: R`**Lyrebird Pastries** may start a frozen-pastry line. It would run for 5 years.\n\nThe equipment costs $450,000 today. It is depreciated straight-line to $0 over 5 years, and it will be sold for $50,000 at the end of year 5.\n\nCosts are 50% of revenue. Net working capital (NWC) must be 10% of the next year's revenue, and all of it is recovered by the end of year 5. The tax rate is 30% and the cost of capital is 10%.`,
+        table: { head: ['Year', '0', '1', '2', '3', '4', '5'], rows: [
+          ['Revenue', '—'].concat(PASTRY.rev.map((v) => cell(v))),
+          ['NWC needed (end of year)'].concat(PASTRY.lv.map((v) => cell(v))),
+        ] },
+        parts: [
+          { kind: 'calc', marks: 2, ask: R`Calculate the after-tax salvage value of the equipment at the end of year 5.`,
+            formulas: ['salvage'], answer: PASTRY.ats, unit: '$', dp: 2,
+            model: ['After-tax salvage = SV - (SV - BV)*tc', '= 50000 - (50000 - 0)*0.3', '= $35,000.00'],
+            hint: R`After 5 years of straight-line depreciation to $0, the book value is \(BV = \$0\).`,
+            meaning: R`Selling the equipment brings in \(${M(PASTRY.ats)}\) after tax. The whole \(\$50{,}000\) is a gain, because the book value is \(\$0\).`,
+            xl: { title: 'After-tax salvage', rows: [['Sale price (SV)', PASTRY.sv], ['Book value after 5 years (BV)', 0], ['Tax rate', PASTRY.tc], ['After-tax salvage', '=B1-(B1-B2)*B3']],
+              fmt: { 'B1:B2': '$', B3: '%', B4: '$' }, bold: ['A4:B4'], answer: 'B4',
+              steps: [{ t: 'The three inputs, each in a labelled cell.', cells: 'A1:B3' }, { t: 'The sheet formula, pointing at the cells: =B1-(B1-B2)*B3.', cells: 'B4' }] } },
+          { kind: 'excel', marks: 5, ask: R`In Excel, build the free cash flow table for years 0 to 5 and find the NPV of the line.`,
+            build: [
+              R`Put each input in its own labelled cell: the tax rate, cost of capital, equipment cost, life, salvage, costs (50% of revenue) and NWC (10% of next year's revenue).`,
+              R`Type the years 0 to 5 across one row. Type the revenue under years 1 to 5.`,
+              R`Add rows for costs, depreciation, EBIT, tax and depreciation added back. Point each formula at the input cells, with $ signs (like $B$1) so that it copies across.`,
+              R`Add the equipment in year 0, and the after-tax salvage in year 5.`,
+              R`Add a row for the NWC level at the end of each year (0 at the end of year 5). Then a row for the change in NWC: this year's level minus last year's.`,
+              R`Free cash flow: add EBIT, tax, depreciation added back, the equipment and the salvage. Then subtract the change in NWC.`,
+              R`NPV: =NPV(rate, the year 1 to year 5 cells) + the year 0 cell. The year-0 trap: Excel's NPV( ) treats the first cell as one year away, so year 0 must go outside the brackets.`,
+            ],
+            result: R`What NPV does your table give?`,
+            answer: PASTRY.npv, unit: '$', dp: 2, xl: PASTRY_XL,
+            meaning: R`The free cash flows for years 0 to 5 are \(${PASTRY.cfs.map((c) => M(c)).join(R`,\ `)}\). \(NPV = ${M(PASTRY.npv)} > 0\), so the line adds value.` },
+          { kind: 'theory', marks: 2, ask: R`Explain why an increase in NWC is subtracted in the free cash flow, and why the NWC comes back by the end of year 5.`,
+            points: [
+              { t: R`Extra NWC (stock, and money customers still owe) ties up cash, so an increase is a cash **outflow**.`, ok: true },
+              { t: R`NWC is not used up. When the line winds down, the stock is sold and customers pay, so the cash is **recovered**.`, ok: true },
+              { t: R`NWC is an expense, so it lowers the tax bill.`, ok: false, why: R`NWC is not an expense. It changes when cash moves, not the tax.` },
+              { t: R`NWC is depreciated over the 5 years, like the equipment.`, ok: false, why: R`Only long-term assets are depreciated. NWC is recovered in full at the end.` },
+              { t: R`It comes back because the tax office refunds it at the end.`, ok: false, why: R`It comes back because stock is sold and customers pay, not from tax.` },
+            ],
+            model: R`An increase in NWC means more cash is tied up in stock and in sales that customers have not paid for yet. So it is a cash outflow and is subtracted, even though it is not an expense. Lyrebird puts in $30,000 at the start and more as revenue grows. NWC is not used up: as the line winds down, the stock is sold and customers pay. So the NWC falls to $0 and all the cash comes back ($12,000 in year 4 and $30,000 in year 5).`,
+            keys: [['outflow', 'tied up', 'ties up'], ['recovered', 'comes back', 'released', 'returned'], ['not an expense', 'not taxed', 'not used up']] },
+          { kind: 'blanks', marks: 1, ask: R`Choose the right words.`,
+            text: R`Excel's NPV( ) treats the first cash flow in its range as arriving {{in one year|today}}. So the year-0 cash flow is added {{outside|inside}} the brackets. The NPV is positive, so Lyrebird should {{start|drop}} the line.`,
+            why: R`=NPV(B2,C20:G20) discounts its first cell by one year, so year 0 (B20) is added on its own. With \(NPV = ${M(PASTRY.npv)} > 0\), the line adds value.` },
+        ],
+      },
+      'w5-C2': {
+        title: 'The dairy-free range',
+        topics: ['relevant', 'fcf', 'fade'],
+        story: R`**Currawong Creamery** makes ice cream. It may launch a dairy-free range. The facts are in the table.\n\nNo new equipment or working capital is needed. The free cash flow will be the same in each of years 1 to 4. From year 5 it falls by 5% a year, forever, as the market fades. The tax rate is 30% and the cost of capital is 11%.`,
+        table: { head: ['Item', 'Details'], rows: [
+          ['Taste study', 'Paid last year: $45,000.'],
+          ['Building', 'The range would use a building the firm owns. Its depreciation, $20,000 a year, is charged whether or not the range goes ahead.'],
+          ['Rent', 'Without the range, the space could be rented out for $36,000 a year.'],
+          ['The new range', 'Sales $420,000 a year. Costs $210,000 a year.'],
+          ['The classic range', 'Some customers would switch, so its profit before tax falls by $50,000 a year.'],
+          ['Interest', 'The finance team wants to charge the range $15,000 a year of interest on the firm’s loans.'],
+        ] },
+        parts: [
+          { kind: 'theory', marks: 2, ask: R`Explain why Currawong should leave the $45,000 taste study and the building's $20,000 of yearly depreciation out of its analysis.`,
+            points: [
+              { t: R`Both come from money already spent (**sunk**): the study, and the building, whose old cost the depreciation just spreads out.`, ok: true },
+              { t: R`Only **incremental** cash flows, which happen only if the range goes ahead, can change the decision.`, ok: true },
+              { t: R`The study helped make the decision, so it should be spread over years 1 to 4.`, ok: false, why: R`It is already paid. Spreading it out still counts a cost that the decision cannot change.` },
+              { t: R`Depreciation is a cash payment, so the building's depreciation must be included.`, ok: false, why: R`Depreciation is not cash. And this charge happens anyway, so it is not incremental.` },
+              { t: R`The study is an opportunity cost of the range.`, ok: false, why: R`An opportunity cost is value you give up by using something. The study money is simply spent.` },
+            ],
+            model: R`The $45,000 study is a sunk cost: it was paid last year, whatever Currawong decides now. The building was also paid for long ago, and its $20,000 of depreciation (and the tax it saves) happens whether or not the range goes ahead, so it is not incremental. A decision can only change future cash flows, so only incremental cash flows belong in the analysis. So Currawong leaves both out.`,
+            keys: [['sunk'], ['incremental', 'only if', 'whether or not', 'either way', 'anyway'], ['leave', 'exclude', 'ignore']] },
+          { kind: 'calc', marks: 2, ask: R`Calculate the range's incremental free cash flow in each of years 1 to 4.`,
+            formulas: ['fcf'], answer: CREAM.fcf, unit: '$', dp: 2,
+            model: ['FCF = (Rev - Costs - Dep)*(1 - tc) + Dep - CapEx - Change in NWC', '= (420000 - 210000 - 50000 - 36000 - 0)*(1 - 0.3) + 0 - 0 - 0', '= $86,800.00'],
+            hint: R`Take off the classic range's lost profit (a side effect) and the lost rent (an opportunity cost). Leave out the study, the building's depreciation and the interest.`,
+            meaning: R`The lost profit and the lost rent are both taxed, so each costs 70 cents in the dollar. The yearly free cash flow is \(${M(CREAM.fcf)}\).` },
+          { kind: 'calc', marks: 3, ask: R`What is the range worth today? Use your answer to (b): it is level for years 1 to 4, then falls by 5% a year, forever.`,
+            formulas: ['pv-annuity', 'pv-grow-perp', 'pv-lump', 'two-stage'], answer: CREAM.value, unit: '$', dp: 2,
+            model: ['PV = C/r*(1 - 1/(1 + r)^n) + 1/(1 + r)^n*C*(1 + g)/(r - g)', '= 86800/0.11*(1 - 1/(1 + 0.11)^4) + 1/(1 + 0.11)^4*86800*(1 + (-0.05))/(0.11 - (-0.05))', '= $608,785.76'],
+            hint: R`A decline makes \(g = -0.05\). The growing perpetuity gives a value at year 4, so discount it 4 years.`,
+            meaning: R`Years 1 to 4 are worth \(${M(CREAM.lvl)}\) today. Years 5 onwards are worth \(${M(CREAM.tvn)}\) at year 4, which is \(${M(CREAM.tv0)}\) today. Together the range adds \(${M(CREAM.value)}\) of value.`,
+            visual: { tl: { n: 6, at: { 0: '?', 1: 'C', 2: 'C', 3: 'C', 4: 'C', 5: 'C × 0.95', 6: '…' }, unit: 'Year', hi: [4] } },
+            xl: CREAM_XL },
+          { kind: 'theory', marks: 2, ask: R`Currawong's accountant says: “A project's incremental earnings and its incremental free cash flows are the same thing.” Explain why they usually differ.`,
+            points: [
+              { t: R`Depreciation is taken off to work out earnings, but it is not a cash payment.`, ok: true },
+              { t: R`Capital spending uses cash, but it is not an expense in earnings.`, ok: true },
+              { t: R`A rise in receivables (part of NWC) means some sales in earnings have not been received in cash yet.`, ok: true },
+              { t: R`Earnings are before tax, but free cash flow is after tax.`, ok: false, why: R`Both are after tax: they start from \((Rev - Costs - Dep)(1 - t_c)\).` },
+              { t: R`Earnings include interest on loans, but free cash flow does not.`, ok: false, why: R`Incremental earnings are unlevered: interest is left out of both, because the discount rate covers it.` },
+            ],
+            model: R`Earnings are an accounting profit, but a project's value comes from its cash. They differ for three reasons: depreciation is deducted but is not paid in cash, capital spending uses cash but is not an expense, and a rise in receivables (part of NWC) means some sales are counted before the cash arrives. So FCF = earnings + depreciation − capital spending − the increase in NWC. Currawong's range needs no new equipment or working capital, and the building's depreciation is not incremental, so here its earnings and FCF happen to be the same.`,
+            keys: [['depreciation'], ['capital', 'capex', 'equipment'], ['receivables', 'working capital', 'nwc']] },
+          { kind: 'blanks', marks: 1, ask: R`Choose the right words.`,
+            text: R`The $15,000 of interest is {{left out|included}}, because the {{cost of capital|tax rate}} already charges for the money. The classic range's lost profit is {{included|left out}}: it is a {{side effect|sunk cost}} of the launch.`,
+            why: R`Financing costs are in the discount rate, so adding interest would count them twice. Lost profit on the firm's other products happens only because of the launch, so it is incremental.` },
+        ],
+      },
+      'w5-C3': {
+        title: 'Replacing the printing press',
+        topics: ['replace', 'salvage', 'dep'],
+        story: R`**Bandicoot Print Co** may replace its old printing press with a new digital press. It looks 5 years ahead. Working capital does not change. The facts are in the table.`,
+        table: { head: ['Item', 'Details'], rows: [
+          ['Old press', 'Bought 3 years ago for $80,000. Straight-line to $0 over 8 years. It can be sold today for $30,000. It will be worth $0 in 5 years.'],
+          ['Overhaul', 'If it is kept, the old press needs a $25,000 overhaul in year 2. The overhaul is tax-deductible.'],
+          ['New press', '$150,000 plus $10,000 installation. Straight-line to $0 over 4 years. It will be sold for $20,000 at the end of year 5.'],
+          ['Savings', 'Operating costs fall by $40,000 a year in years 1 to 5.'],
+          ['Tax and required return', 'Tax 30%. Required return 10%.'],
+        ] },
+        parts: [
+          { kind: 'calc', marks: 2, ask: R`Calculate the incremental cash flow at \(t = 0\).`,
+            formulas: ['dep-sl', 'salvage', 'fcf'], answer: PRESS.cfs[0], unit: '$', dp: 2,
+            model: ['CF0 = -CapEx + SV - (SV - BV)*tc', '= -(150000 + 10000) + 30000 - (30000 - 50000)*0.3', '= -$124,000.00'],
+            hint: R`Old press: \(BV = 80{,}000 - 3 \times \frac{80{,}000}{8} = \$50{,}000\). It sells below book value, so the loss saves tax.`,
+            meaning: R`The old press sells for \(\$20{,}000\) below its book value. That loss saves \(\$6{,}000\) of tax, so the sale brings in \(\$36{,}000\). The net outlay today is \(${M(-PRESS.cfs[0])}\).` },
+          { kind: 'calc', marks: 2, ask: R`Calculate the incremental cash flow in year 1 (a normal year).`,
+            formulas: ['dep-sl', 'fcf'], answer: PRESS.cfs[1], unit: '$', dp: 2,
+            model: ['FCF = (Rev - Costs - Dep)*(1 - tc) + Dep - CapEx - Change in NWC', '= (40000 - 30000)*(1 - 0.3) + 30000 - 0 - 0', '= $37,000.00'],
+            hint: R`Incremental depreciation \(= \frac{160{,}000}{4} - \frac{80{,}000}{8} = \$30{,}000\). The \(\$40{,}000\) saving is the \(Rev - Costs\) part.`,
+            meaning: R`Here \(Dep\) is the **incremental** depreciation, new minus old: \(\$40{,}000 - \$10{,}000 = \$30{,}000\). Replacing adds \(${M(PRESS.cfs[1])}\) in a normal year.` },
+          { kind: 'calc', marks: 1, ask: R`Calculate the incremental cash flow in year 2, the year of the overhaul.`,
+            formulas: ['fcf'], answer: PRESS.cfs[2], unit: '$', dp: 2,
+            model: ['FCF = (Rev - Costs - Dep)*(1 - tc) + Dep - CapEx - Change in NWC', '= (40000 + 25000 - 30000)*(1 - 0.3) + 30000 - 0 - 0', '= $54,500.00'],
+            hint: R`Replacing avoids the overhaul. An avoided cost is a saving, and it is taxed like one.`,
+            meaning: R`The avoided overhaul adds \(25{,}000 \times (1 - 0.3) = \$17{,}500\) to a normal year.` },
+          { kind: 'calc', marks: 2, ask: R`Calculate the incremental cash flow in year 5.`,
+            formulas: ['dep-sl', 'fcf', 'salvage'], answer: PRESS.cfs[5], unit: '$', dp: 2,
+            model: ['CF5 = (Rev - Costs - Dep)*(1 - tc) + Dep + SV - (SV - BV)*tc', '= (40000 - (-10000))*(1 - 0.3) + (-10000) + 20000 - (20000 - 0)*0.3', '= $39,000.00'],
+            hint: R`The new press is fully depreciated after year 4, but the old press would still be depreciated in year 5. So \(Dep = 0 - 10{,}000 = -\$10{,}000\).`,
+            meaning: R`In year 5, replacing **loses** the old press's \(\$10{,}000\) of depreciation, so tax rises by \(\$3{,}000\). The new press's sale adds \(\$14{,}000\) after tax.` },
+          { kind: 'calc', marks: 2, ask: R`Calculate the NPV of replacing the press. Should Bandicoot replace it?`,
+            formulas: ['npv'], answer: PRESS.npv, unit: '$', dp: 2,
+            model: ['NPV = NCF0 + NCF1/(1 + r) + NCF2/(1 + r)^2 + NCF3/(1 + r)^3 + NCF4/(1 + r)^4 + NCF5/(1 + r)^5',
+              '= -124000 + 37000/(1 + 0.1) + 54500/(1 + 0.1)^2 + 37000/(1 + 0.1)^3 + 37000/(1 + 0.1)^4 + 39000/(1 + 0.1)^5', '= $31,963.76'],
+            hint: R`Years 3 and 4 are normal years, like year 1.`,
+            meaning: R`\(NPV = ${M(PRESS.npv)} > 0\), so Bandicoot should **replace** the old press.`,
+            xl: PRESS_XL },
+          { kind: 'blanks', marks: 1, ask: R`Choose the right words.`,
+            text: R`The old press sells for {{less|more}} than its book value, so the sale {{saves|adds}} tax. In year 5 the incremental depreciation is {{negative|positive}}, because the new press is already fully depreciated.`,
+            why: R`A sale below book value is a loss, and a loss cuts tax. In year 5 replacing gives up the old press's \(\$10{,}000\) of depreciation and gains none, so \(\Delta Dep = -\$10{,}000\).` },
+        ],
+      },
+    },
+
     questions: [
       /* ----- free cash flow ----- */
       { id: 'w5-q01', topic: 'fcf', kind: 'mcq', level: 1, section: 'A', src: 'Tutorial W5 concept check 1', formula: 'fcf',
         q: R`Which formula gives a project’s **free cash flow (FCF)**?`,
         choices: [R`\(FCF = (Rev - Costs - Dep)(1 - t_c) + Dep - CapEx - \Delta NWC\)`, R`\(FCF = (Rev - Costs - Dep)(1 - t_c) - CapEx - \Delta NWC\)`, R`\(FCF = (Rev - Costs - Dep)(1 - t_c) + Dep - CapEx + \Delta NWC\)`, R`\(FCF = (Rev - Costs - Dep - Interest)(1 - t_c) + Dep\)`], answer: 0,
         why: R`Start from after-tax operating profit, add back depreciation (not cash), then subtract capital spending and the **increase** in working capital. Interest is never included.` },
-      { id: 'w5-q02', topic: 'fcf', kind: 'mcq', level: 1, section: 'A', src: 'Tutorial W5 concept check 4',
+      { id: 'w5-q02', topic: 'fcf', kind: 'mcq', level: 1, section: 'A', src: 'Tutorial W5 concept check 4', formulas: ['fcf', 'dep-shield'],
         q: R`Depreciation is not a cash flow. Why do we subtract it and then add it back?`,
         choices: ['Subtracting it lowers taxable income and the tax bill; adding it back undoes the non-cash charge', 'Because depreciation is paid in cash at the end of each year', 'To count the cost of the machine a second time', 'Because accountants require it, even though it has no effect on cash flow'], answer: 0,
         why: R`Depreciation saves real tax: \(Dep \times t_c\). Taking it off before tax and adding it back after tax leaves exactly that saving in the cash flow.` },
       { id: 'w5-q03', topic: 'fcf', kind: 'tf', level: 1, section: 'A', src: 'Lecture W5',
         q: R`Free cash flow is the cash a company is free to distribute to both its debtholders and its shareholders.`,
         answer: true, why: R`FCF is what is left after the firm has paid for the investments in working capital and long-term assets the project needs.` },
-      { id: 'w5-q04', topic: 'fcf', kind: 'num', level: 1, section: 'B', src: 'Lecture W5 Example 4', formula: 'fcf',
+      { id: 'w5-q04', topic: 'fcf', kind: 'num', level: 1, section: 'B', src: 'Lecture W5 Example 4', formula: 'fcf', formulas: ['fcf', 'dep-shield'],
         q: R`Splash Ltd’s new equipment adds $9,000 of revenue and $4,000 of costs a year. It can claim $3,000 of extra depreciation. The tax rate is 30%. What is the extra **after-tax cash flow** each year?`,
         answer: FIN.ocf(9000, 4000, 3000, 0.3), unit: '$', dp: 2,
         mistakes: [
@@ -1049,7 +1284,7 @@
         ],
         ti: [TI.line('(9000-4000-3000)*(1-0.3)+3000')],
         why: R`Both methods give $4,400. Depreciation only matters through the tax it saves.` },
-      { id: 'w5-q05', topic: 'tax', kind: 'num', level: 1, section: 'B', src: 'Lecture W5 Example 4', formula: 'dep-shield',
+      { id: 'w5-q05', topic: 'tax', kind: 'num', level: 1, section: 'B', src: 'Lecture W5 Example 4', formula: 'dep-shield', formulas: ['dep-shield'],
         q: R`Splash Ltd claims $3,000 of extra depreciation a year. The tax rate is 30%. How big is the yearly **depreciation tax shield**?`,
         answer: 900, unit: '$', dp: 2,
         mistakes: [
@@ -1059,7 +1294,7 @@
         steps: [R`\[\text{Tax shield} = Dep \times t_c = \$3{,}000 \times 0.30 = \$900\]`],
         ti: [TI.line('3000*0.3')],
         why: R`Each dollar of depreciation shields a dollar of income from tax, saving \(t_c\) dollars.` },
-      { id: 'w5-q06', topic: 'fcf', kind: 'num', level: 1, section: 'B', src: 'Textbook Ch 9 P2', formula: 'fcf',
+      { id: 'w5-q06', topic: 'fcf', kind: 'num', level: 1, section: 'B', src: 'Textbook Ch 9 P2', formula: 'fcf', formulas: ['dep-sl', 'fcf'],
         q: R`Planet buys a $10 million machine, plus $50,000 to transport and install it. It is depreciated straight-line to zero over 5 years. It adds $4 million of revenue and $1.2 million of costs a year. The tax rate is 30%. What are the **incremental earnings** each year?`,
         answer: (4e6 - 1.2e6 - 2.01e6) * 0.7, unit: '$', dp: 2,
         mistakes: [
@@ -1070,7 +1305,7 @@
         steps: [R`\[Dep = \frac{\$10{,}000{,}000 + \$50{,}000}{5} = \$2{,}010{,}000\]`, R`\[\text{Earnings} = (\$4{,}000{,}000 - \$1{,}200{,}000 - \$2{,}010{,}000)(1 - 0.30) = \$553{,}000\]`],
         ti: [TI.line('(4000000-1200000-(10000000+50000)/5)*(1-0.3)')],
         why: R`Incremental earnings \(= (Rev - Costs - Dep)(1 - t_c)\). They are a step towards the cash flow, not the cash flow itself.` },
-      { id: 'w5-q07', topic: 'fcf', kind: 'num', level: 2, section: 'B', src: 'Textbook Ch 9 P13 (Oakdale)', formula: 'fcf',
+      { id: 'w5-q07', topic: 'fcf', kind: 'num', level: 2, section: 'B', src: 'Textbook Ch 9 P13 (Oakdale)', formula: 'fcf', formulas: ['fcf'],
         q: R`Oakdale Enterprises forecasts the figures below for year 2 of an expansion. The tax rate is 30%. What is the **free cash flow** in year 2?`,
         table: { head: ['Item', 'Year 2'], rows: [['Sales', '$160,000'], ['Operating expenses', '$60,000'], ['Depreciation', '$36,000'], ['Capital expenditure', '$40,000'], ['Increase in NWC', '$8,000']] },
         answer: OAK, unit: '$', dp: 2,
@@ -1084,7 +1319,7 @@
         ],
         ti: [TI.line('(160000-60000-36000)*(1-0.3)+36000-40000-8000')],
         why: R`Year 2 FCF is $32,800. (Year 1 works the same way: $35,000.)` },
-      { id: 'w5-q08', topic: 'fcf', kind: 'num', level: 1, section: 'B', src: 'Textbook Ch 9 P3',
+      { id: 'w5-q08', topic: 'fcf', kind: 'num', level: 1, section: 'B', src: 'Textbook Ch 9 P3', formulas: ['fcf'],
         q: R`Better equipment will raise next year’s sales by 20% over the current 100,000 units. The price is $20 a unit. What is the **incremental revenue** next year?`,
         answer: 0.2 * 100000 * 20, unit: '$', dp: 2,
         mistakes: [
@@ -1097,19 +1332,19 @@
         why: R`Only the change caused by the upgrade counts: 20,000 extra units at $20.` },
 
       /* ----- tax effects ----- */
-      { id: 'w5-q09', topic: 'tax', kind: 'mcq', level: 1, section: 'A', src: 'Lecture W5',
+      { id: 'w5-q09', topic: 'tax', kind: 'mcq', level: 1, section: 'A', src: 'Lecture W5', formulas: ['fcf'],
         q: R`The tax rate is 30%. A project’s revenue rises by **$1**. How does its cash flow change?`,
         choices: ['It rises by $0.70', 'It rises by $1.00', 'It rises by $0.30', 'It falls by $0.30'], answer: 0,
         why: R`Revenue is taxed, so each extra dollar adds \(\$1 \times (1 - 0.30) = \$0.70\).` },
-      { id: 'w5-q10', topic: 'tax', kind: 'mcq', level: 1, section: 'A', src: 'Lecture W5',
+      { id: 'w5-q10', topic: 'tax', kind: 'mcq', level: 1, section: 'A', src: 'Lecture W5', formulas: ['fcf'],
         q: R`The tax rate is 30%. A project’s costs rise by **$1**. How does its cash flow change?`,
         choices: ['It falls by $0.70', 'It falls by $1.00', 'It falls by $0.30', 'It rises by $0.30'], answer: 0,
         why: R`Costs are tax-deductible, so each extra dollar of cost only removes \(\$1 \times (1 - 0.30) = \$0.70\).` },
-      { id: 'w5-q11', topic: 'tax', kind: 'mcq', level: 1, section: 'A', src: 'Lecture W5',
+      { id: 'w5-q11', topic: 'tax', kind: 'mcq', level: 1, section: 'A', src: 'Lecture W5', formulas: ['dep-shield'],
         q: R`The tax rate is 30%. A project’s depreciation rises by **$1**. How does its cash flow change?`,
         choices: ['It rises by $0.30', 'It falls by $1.00', 'It rises by $0.70', 'It does not change: depreciation is not cash'], answer: 0,
         why: R`Depreciation is not cash, but it lowers tax by \(\$1 \times 0.30 = \$0.30\). That saving is real cash.` },
-      { id: 'w5-q12', topic: 'tax', kind: 'num', level: 1, section: 'B', src: 'Textbook Ch 9 P7', formula: 'dep-shield',
+      { id: 'w5-q12', topic: 'tax', kind: 'num', level: 1, section: 'B', src: 'Textbook Ch 9 P7', formula: 'dep-shield', formulas: ['dep-shield'],
         q: R`Your depreciation expense is $500,000 and your tax rate is 30%. What is your **depreciation tax shield**?`,
         answer: 150000, unit: '$', dp: 2,
         mistakes: [
@@ -1119,12 +1354,12 @@
         steps: [R`\[\text{Tax shield} = Dep \times t_c = \$500{,}000 \times 0.30 = \$150{,}000\]`],
         ti: [TI.line('500000*0.3')],
         why: R`Each dollar of depreciation shields a dollar of income from tax.` },
-      { id: 'w5-q13', topic: 'tax', kind: 'tf', level: 2, section: 'A', src: 'Lecture W5',
+      { id: 'w5-q13', topic: 'tax', kind: 'tf', level: 2, section: 'A', src: 'Lecture W5', formulas: ['dep-shield'],
         q: R`All else equal, more depreciation means a higher free cash flow, because it lowers the tax bill.`,
         answer: true, why: R`Depreciation itself is not cash, but its tax shield \(Dep \times t_c\) is. More depreciation, less tax, more cash.` },
 
       /* ----- depreciation and book value ----- */
-      { id: 'w5-q14', topic: 'dep', kind: 'num', level: 1, section: 'B', src: 'Textbook Ch 9 P1',
+      { id: 'w5-q14', topic: 'dep', kind: 'num', level: 1, section: 'B', src: 'Textbook Ch 9 P1', formulas: ['dep-sl'],
         q: R`Planet buys a $10 million machine. Transport and installation cost another $50,000. It is depreciated straight-line over 5 years with no salvage value. What is the yearly **depreciation**?`,
         answer: 10050000 / 5, unit: '$', dp: 2,
         mistakes: [
@@ -1134,18 +1369,18 @@
         steps: [R`Depreciable cost \(= \$10{,}000{,}000 + \$50{,}000 = \$10{,}050{,}000\).`, R`\[Dep = \frac{\$10{,}050{,}000}{5} = \$2{,}010{,}000\]`],
         ti: [TI.line('(10000000+50000)/5')],
         why: R`Everything spent to get the asset working is capitalised and depreciated.` },
-      { id: 'w5-q15', topic: 'dep', kind: 'mcq', level: 1, section: 'A', src: 'Lecture W5',
+      { id: 'w5-q15', topic: 'dep', kind: 'mcq', level: 1, section: 'A', src: 'Lecture W5', formulas: ['dep-sl'],
         q: R`What is an asset’s **book value**?`,
         choices: ['Its cost minus the depreciation claimed so far', 'The price it could be sold for today', 'Its original purchase price', 'The present value of its future cash flows'], answer: 0,
         why: R`\(BV = \text{Cost} - \text{accumulated depreciation}\). The market price can be above or below it.` },
       { id: 'w5-q16', topic: 'dep', kind: 'tf', level: 2, section: 'A', src: 'Textbook Ch 9 P2',
         q: R`An asset’s depreciable life must equal its economic life (how long it is really used).`,
         answer: false, why: R`The depreciable life comes from tax and accounting rules. The asset may keep working long after it is fully depreciated.` },
-      { id: 'w5-q17', topic: 'dep', kind: 'mcq', level: 2, section: 'A', src: 'Lecture W5',
+      { id: 'w5-q17', topic: 'dep', kind: 'mcq', level: 2, section: 'A', src: 'Lecture W5', formulas: ['dep-dv'],
         q: R`Under the **diminishing value** method, each year’s depreciation is…`,
         choices: ['A fixed percentage of the start-of-year book value, so it falls over time', 'The same dollar amount every year', 'A fixed percentage of the original cost', 'Zero until the asset is sold'], answer: 0,
         why: R`\(D_t = r \times BV_{t-1}\). As book value falls, so does depreciation. Straight-line gives the same amount each year.` },
-      { id: 'w5-q18', topic: 'dep', kind: 'mcq', level: 1, section: 'B', src: 'Lecture W5 Example 5',
+      { id: 'w5-q18', topic: 'dep', kind: 'mcq', level: 1, section: 'B', src: 'Lecture W5 Example 5', formulas: ['dep-sl'],
         q: R`Nutson Bolz’s new machine costs $50,000, plus $3,000 shipping and $2,000 installation. It is depreciated straight-line to zero over 5 years, even though it can be sold for $10,000 at the end. What is its yearly depreciation?`,
         choices: ['$11,000', '$10,000', '$8,000', '$9,000'], answer: 0,
         wrong: { 1: R`Shipping and installation are part of the cost: \(\$55{,}000 \div 5\).`, 2: 'It is depreciated to zero, so do not subtract the $10,000 salvage.', 3: 'That is the incremental depreciation (new $11,000 minus old $2,000).' },
@@ -1153,7 +1388,7 @@
         why: R`\(Dep = \frac{\$50{,}000 + \$3{,}000 + \$2{,}000}{5} = \$11{,}000\). The salvage is taxed when the machine is sold.` },
 
       /* ----- net working capital ----- */
-      { id: 'w5-q19', topic: 'nwc', kind: 'mcq', level: 1, section: 'A', src: 'Lecture W5',
+      { id: 'w5-q19', topic: 'nwc', kind: 'mcq', level: 1, section: 'A', src: 'Lecture W5', formulas: ['nwc'],
         q: R`A project needs **$50,000 more inventory** at the start. How is this treated?`,
         choices: ['As a cash outflow now, recovered as an inflow when the project ends', 'As an expense that lowers taxable income', 'It is ignored: inventory is not a cash flow', 'As a cash inflow now, because inventory is an asset'], answer: 0,
         why: R`Cash tied up in working capital is an outflow. It is not used up, so it comes back at the end.` },
@@ -1164,7 +1399,7 @@
         q: R`Why do we track changes in net working capital separately from earnings?`,
         choices: ['Earnings record sales and costs when they happen, not when the cash moves', 'Because NWC is taxed at a higher rate', 'Because NWC is a sunk cost', 'Because NWC is depreciated'], answer: 0,
         why: R`A sale is booked before the customer pays, and inventory is bought before it is sold. The NWC adjustment turns earnings timing into cash timing.` },
-      { id: 'w5-q22', topic: 'nwc', kind: 'num', level: 2, section: 'B', src: 'Tutorial W5 Q3 (IFC)',
+      { id: 'w5-q22', topic: 'nwc', kind: 'num', level: 2, section: 'B', src: 'Tutorial W5 Q3 (IFC)', formulas: ['nwc'],
         q: R`IFC’s new unit needs $40,000 of working capital at the start, plus $10,000 more in each of years 1 to 4. All of it is recovered in year 5. How much **NWC is recovered** in year 5?`,
         answer: 80000, unit: '$', dp: 2,
         mistakes: [
@@ -1181,7 +1416,7 @@
         q: R`Which formula gives the **after-tax salvage value**?`,
         choices: [R`\(SV - (SV - BV)\,t_c\)`, R`\(SV \times (1 - t_c)\)`, R`\(SV + (SV - BV)\,t_c\)`, R`\(BV - (SV - BV)\,t_c\)`], answer: 0,
         why: R`Only the **gain** over book value is taxed. If \(SV < BV\), the “tax” is negative: a tax saving.` },
-      { id: 'w5-q24', topic: 'salvage', kind: 'num', level: 1, section: 'B', src: 'Mock MST Q19', formula: 'salvage',
+      { id: 'w5-q24', topic: 'salvage', kind: 'num', level: 1, section: 'B', src: 'Mock MST Q19', formula: 'salvage', formulas: ['salvage', 'fcf', 'nwc'],
         q: R`In the final year a project has $10,000 of after-tax operating cash flow. A fully depreciated machine is sold for $1,000. The $2,000 of working capital put in at the start is recovered. The tax rate is 40%. What is the final year’s **cash flow**?`,
         answer: 10000 + 2000 + FIN.afterTaxSalvage(1000, 0, 0.4), unit: '$', dp: 2,
         mistakes: [
@@ -1192,7 +1427,7 @@
         steps: [R`After-tax sale of the machine: \(\$1{,}000 - (\$1{,}000 - \$0) \times 0.40 = \$600\).`, R`\[CF_n = \$10{,}000 + \$2{,}000 + \$600 = \$12{,}600\]`],
         ti: [TI.line('10000+2000+1000-(1000-0)*0.4')],
         why: R`Add the final operating cash flow, the NWC recovered and the after-tax salvage.` },
-      { id: 'w5-q25', topic: 'salvage', kind: 'num', level: 2, section: 'B', formula: 'salvage',
+      { id: 'w5-q25', topic: 'salvage', kind: 'num', level: 2, section: 'B', formula: 'salvage', formulas: ['salvage'],
         q: R`A machine with a book value of $40,000 is sold for $30,000. The tax rate is 30%. What is the **after-tax cash** from the sale?`,
         answer: FIN.afterTaxSalvage(30000, 40000, 0.3), unit: '$', dp: 2,
         mistakes: [
@@ -1203,7 +1438,7 @@
         steps: [R`Loss \(= \$30{,}000 - \$40{,}000 = -\$10{,}000\). Tax saved \(= \$10{,}000 \times 0.30 = \$3{,}000\).`, R`\[\$30{,}000 - (\$30{,}000 - \$40{,}000)(0.30) = \$33{,}000\]`],
         ti: [TI.line('30000-(30000-40000)*0.3')],
         why: R`Selling below book value creates a tax saving, so you keep more than the sale price.` },
-      { id: 'w5-q26', topic: 'salvage', kind: 'num', level: 2, section: 'B', src: 'Lecture W5 Example 5', formula: 'salvage',
+      { id: 'w5-q26', topic: 'salvage', kind: 'num', level: 2, section: 'B', src: 'Lecture W5 Example 5', formula: 'salvage', formulas: ['salvage'],
         q: R`Nutson Bolz sells its old machine for $15,000. Its book value is $10,000 and the tax rate is 47%. How much **tax** is paid on the sale?`,
         answer: (15000 - 10000) * 0.47, unit: '$', dp: 2,
         mistakes: [
@@ -1275,7 +1510,7 @@
         q: R`How must **nominal** cash flows be discounted?`,
         choices: ['At the nominal rate', 'At the real rate', 'At the inflation rate', 'At the nominal rate plus inflation'], answer: 0,
         why: R`Be consistent: nominal with nominal, real with real. Done properly, both give the same NPV.` },
-      { id: 'w5-q42', topic: 'inflation', kind: 'num', level: 1, section: 'B', src: 'Lecture W5 Example 2', formula: 'fisher',
+      { id: 'w5-q42', topic: 'inflation', kind: 'num', level: 1, section: 'B', src: 'Lecture W5 Example 2', formula: 'fisher', formulas: ['fisher'],
         q: R`The nominal interest rate is 14% and inflation is 5%. What is the **real** interest rate?`,
         answer: P(EX2_REAL), unit: '%', dp: 2,
         mistakes: [
@@ -1285,7 +1520,7 @@
         steps: [R`\[1 + r_{real} = \frac{1 + r_{nominal}}{1 + i} = \frac{1.14}{1.05} = ${L.numT(1.14 / 1.05, 6)}\]`, R`\[r_{real} = ${L.pct(EX2_REAL, 4)}\]`],
         ti: [TI.line('1.14/1.05-1', { pct: true, note: 'A decimal: times 100 gives the percentage.' })],
         why: R`The exact real rate is 8.5714%, a little below the 9% shortcut.` },
-      { id: 'w5-q43', topic: 'inflation', kind: 'num', level: 2, section: 'B', src: 'Lecture W5 Example 2', formula: 'npv',
+      { id: 'w5-q43', topic: 'inflation', kind: 'num', level: 2, section: 'B', src: 'Lecture W5 Example 2', formula: 'npv', formulas: ['npv', 'fisher', 'real-cf'],
         q: R`Shields Electric forecasts **nominal** cash flows of −$1,000, $600 and $650 in years 0, 1 and 2. The nominal rate is 14% and inflation is 5%. What is the project’s **NPV**?`,
         tl: { cfs: [-1000, 600, 650], unit: 'Year' },
         answer: FIN.npv(0.14, EX2), unit: '$', dp: 2,
@@ -1301,7 +1536,7 @@
         calc: npvKeys(EX2, 0.14),
         ti: [TI.cmd('npv', [14, -1000, [600, 650]], { note: 'Nominal cash flows with the nominal rate.' })],
         why: R`Consistent treatment gives $26.47 both ways. The inflation rate is only needed for the real-with-real check.` },
-      { id: 'w5-q44', topic: 'inflation', kind: 'num', level: 2, section: 'B', src: 'Lecture W5 Example 3', formula: 'fisher',
+      { id: 'w5-q44', topic: 'inflation', kind: 'num', level: 2, section: 'B', src: 'Lecture W5 Example 3', formula: 'fisher', formulas: ['fisher', 'pv-annuity', 'npv', 'real-cf'],
         q: R`An investment of $10,000 will generate **real** cash flows of $5,000 at the end of each of the next 3 years. Inflation is 10% a year and the nominal required return is 15%. What is the **NPV**?`,
         answer: -10000 + FIN.pvAnnuity(5000, EX3_REAL, 3), unit: '$', dp: 2,
         mistakes: [
@@ -1316,7 +1551,7 @@
         ],
         ti: [TI.line('1.15/1.1-1', { note: 'The real rate, as a decimal.' }), TI.line('npv(100*ans,-10000,{5000,5000,5000})', { note: R`\(100 \times \text{ans}\) is the real rate as a percentage. Real cash flows with the real rate.` })],
         why: R`Real with real or nominal with nominal: both give $3,733.05.` },
-      { id: 'w5-q45', topic: 'inflation', kind: 'mcq', level: 2, section: 'A', src: 'Lecture W5',
+      { id: 'w5-q45', topic: 'inflation', kind: 'mcq', level: 2, section: 'A', src: 'Lecture W5', formulas: ['fisher', 'real-cf'],
         q: R`What happens if you discount **real** cash flows at the **nominal** rate?`,
         choices: ['The NPV is understated (too low)', 'The NPV is overstated (too high)', 'Nothing: the NPV is the same', 'Only the IRR changes'], answer: 0,
         why: R`The nominal rate includes inflation, but real cash flows do not. The discounting is too harsh, so good projects can be wrongly rejected.` },
@@ -1326,7 +1561,7 @@
         q: R`A standard project cash flow has **three parts**. Which list is right?`,
         choices: ['Initial investment, operating cash flows, terminal cash flow', 'Revenue, costs, profit', 'Payback, NPV, IRR', 'Debt, equity, dividends'], answer: 0,
         why: R`Part 1 at \(t = 0\), part 2 every year, part 3 in the final year. The replacement question in exams follows this structure.` },
-      { id: 'w5-q47', topic: 'replace', kind: 'num', level: 2, section: 'B', src: 'Lecture W5 Example 5', formula: 'salvage',
+      { id: 'w5-q47', topic: 'replace', kind: 'num', level: 2, section: 'B', src: 'Lecture W5 Example 5', formula: 'salvage', formulas: ['dep-sl', 'salvage', 'fcf', 'nwc'],
         q: R`Nutson Bolz may replace its old machine (details below). What is the **initial investment** at \(t = 0\)?`,
         table: NB_TABLE,
         answer: NB.init, unit: '$', dp: 2,
@@ -1342,7 +1577,7 @@
         ],
         ti: [TI.line('-(50000+3000+2000)+15000-(15000-10000)*0.47-5000')],
         why: R`New cost, minus the after-tax proceeds of the old machine, plus the working capital. Training and interest are ignored.` },
-      { id: 'w5-q48', topic: 'replace', kind: 'num', level: 2, section: 'B', src: 'Lecture W5 Example 5', formula: 'fcf',
+      { id: 'w5-q48', topic: 'replace', kind: 'num', level: 2, section: 'B', src: 'Lecture W5 Example 5', formula: 'fcf', formulas: ['dep-sl', 'fcf'],
         q: R`For Nutson Bolz (details below), what is the incremental **operating cash flow** in each of years 1 to 5?`,
         table: NB_TABLE,
         answer: NB.ocf, unit: '$', dp: 2,
@@ -1359,7 +1594,7 @@
         ],
         ti: [TI.line('55000/5-20000/10', { note: 'Incremental depreciation: new minus old.' }), TI.line('(17000+4000-ans)*(1-0.47)+ans', { note: R`\(\text{ans}\) is the \(\$9{,}000\) of incremental depreciation.` })],
         why: R`Take the incremental savings (new minus old), deduct the incremental depreciation, tax the result, then add the depreciation back.` },
-      { id: 'w5-q49', topic: 'replace', kind: 'num', level: 2, section: 'B', src: 'Lecture W5 Example 5', formula: 'salvage',
+      { id: 'w5-q49', topic: 'replace', kind: 'num', level: 2, section: 'B', src: 'Lecture W5 Example 5', formula: 'salvage', formulas: ['salvage', 'fcf', 'nwc'],
         q: R`For Nutson Bolz (details below), the operating cash flow is $15,360 a year. What is the **terminal cash flow** in year 5?`,
         table: NB_TABLE,
         answer: NB.term, unit: '$', dp: 2,
@@ -1371,7 +1606,7 @@
         steps: [stmt([['Year 5 operating cash flow', 15360], ['NWC recovered', 5000], ['Salvage value', 10000], ['Tax on gain (10,000 × 47%)', -4700], ['Terminal cash flow', NB.term, 1]])],
         ti: [TI.line('15360+5000+10000-(10000-0)*0.47')],
         why: R`The book value in year 5 is $0, so the whole $10,000 salvage is a taxable gain.` },
-      { id: 'w5-q50', topic: 'replace', kind: 'num', level: 3, section: 'B', src: 'Lecture W5 Example 5', formula: 'npv', boss: true,
+      { id: 'w5-q50', topic: 'replace', kind: 'num', level: 3, section: 'B', src: 'Lecture W5 Example 5', formula: 'npv', boss: true, formulas: ['npv', 'pv-annuity', 'pv-lump', 'irr'],
         q: R`Nutson Bolz’s incremental cash flows are below. The required return is 20%. What is the **NPV** of replacing the machine?`,
         table: { head: ['Year', 'Cash flow'], rows: NB.cfs.map((c, t) => [t, cell(c)]) },
         answer: FIN.npv(0.2, NB.cfs), unit: '$', dp: 2,
@@ -1383,8 +1618,10 @@
         steps: [R`\[NPV = -\$47{,}350 + ${annuityPV(15360, 0.2, 4)} + \frac{\$25{,}660}{1.2^{5}}\]`, R`\[NPV = -\$47{,}350 + ${M(FIN.pvAnnuity(15360, 0.2, 4))} + ${M(25660 / Math.pow(1.2, 5))} = ${M(FIN.npv(0.2, NB.cfs))}\]`, R`\(IRR = ${L.pct(FIN.irr(NB.cfs))} > 20\%\).`],
         calc: npvKeys(NB.cfs, 0.2),
         ti: [tiNpv(0.2, NB.cfs, { note: R`\(\$15{,}360\) four times, then \(\$25{,}660\) once.` })],
+        xl: replaceXL({ title: 'Nutson Bolz: incremental cash flows', tc: 0.47, r: 0.2, oldCost: 20000, oldLife: 10, age: 5, sale: 15000, price: 50000, ship: 3000 + 2000, n: 5, salv: 10000,
+          save: 21000, saveF: '=17000+(7000+3000)-(2000+4000)', nwc: 5000, left: 'Savings: the salary and benefits, plus the lower maintenance and defects. The training (sunk) and the loan interest (financing) are left out.' }),
         why: R`\(NPV > 0\) and \(IRR > 20\%\): replace the machine. It creates wealth for the owner.` },
-      { id: 'w5-q51', topic: 'replace', kind: 'num', level: 2, section: 'B', src: 'Tutorial W5 Q2 (Springvale)', formula: 'fcf',
+      { id: 'w5-q51', topic: 'replace', kind: 'num', level: 2, section: 'B', src: 'Tutorial W5 Q2 (Springvale)', formula: 'fcf', formulas: ['dep-sl', 'fcf', 'dep-shield'],
         q: R`A $60,000 machine would replace a worker paid $25,500 a year. It costs $8,000 a year to maintain and is depreciated straight-line to zero over 20 years. The tax rate is 30%. What is the yearly **free cash flow** from the swap?`,
         answer: SV.fcf, unit: '$', dp: 2,
         mistakes: [
@@ -1398,7 +1635,7 @@
         ],
         ti: [TI.line('(25500-8000-60000/20)*(1-0.3)+60000/20')],
         why: R`Tax-shield check: \((\$25{,}500 - \$8{,}000)(0.7) + \$3{,}000 \times 0.3 = \$12{,}250 + \$900 = \$13{,}150\).` },
-      { id: 'w5-q52', topic: 'replace', kind: 'num', level: 3, section: 'B', src: 'Tutorial W5 Q2 (Springvale)', formula: 'npv',
+      { id: 'w5-q52', topic: 'replace', kind: 'num', level: 3, section: 'B', src: 'Tutorial W5 Q2 (Springvale)', formula: 'npv', formulas: ['npv', 'pv-annuity', 'irr'],
         q: R`The Springvale machine costs $60,000 and produces a free cash flow of $13,150 a year for 20 years. The cost of capital is 15%. What is the **NPV**?`,
         answer: FIN.npv(0.15, SV.cfs), unit: '$', dp: 2,
         mistakes: [
@@ -1410,7 +1647,7 @@
         calc: npvKeys(SV.cfs, 0.15),
         ti: [tiNpv(0.15, SV.cfs, { note: R`The count list \(\{20\}\) repeats the \(\$13{,}150\) twenty times.` })],
         why: R`NPV and IRR agree, as expected for a single, independent decision.` },
-      { id: 'w5-q53', topic: 'replace', kind: 'num', level: 3, section: 'B', src: 'Tutorial W5 Q3 (IFC)', formula: 'salvage',
+      { id: 'w5-q53', topic: 'replace', kind: 'num', level: 3, section: 'B', src: 'Tutorial W5 Q3 (IFC)', formula: 'salvage', formulas: ['salvage', 'fcf', 'nwc'],
         q: R`International Foods (IFC) may replace its seafood unit (details below). What is the net **initial investment** at \(t = 0\)?`,
         table: IFC_TABLE,
         answer: -522500, unit: '$', dp: 2,
@@ -1423,7 +1660,7 @@
         steps: [stmt([['New unit, shipping, installation', -750000], ['Working capital', -40000], ['Sale of old unit', 275000], ['Tax on gain (25,000 × 30%)', -7500], ['Net initial investment', -522500, 1]])],
         ti: [TI.line('-(700000+50000)-40000+275000-(275000-250000)*0.3')],
         why: R`The loan is financing, so it does not appear. The old unit’s sale is taxed only on its gain over book value.` },
-      { id: 'w5-q54', topic: 'replace', kind: 'mcq', level: 3, section: 'B', src: 'Tutorial W5 Q3 (IFC)', boss: true,
+      { id: 'w5-q54', topic: 'replace', kind: 'mcq', level: 3, section: 'B', src: 'Tutorial W5 Q3 (IFC)', boss: true, formulas: ['dep-sl', 'fcf', 'nwc', 'salvage', 'npv', 'pv-annuity', 'pv-lump'],
         q: R`IFC’s incremental cash flows from replacing its unit are below. The cost of capital is 12%. What should IFC do?`,
         table: { head: ['Year', 'Net cash flow'], rows: IFC.map((c, t) => [t, cell(c)]) },
         choices: ['Keep the old unit: the NPV of replacing is negative', 'Replace: revenue rises by $100,000 a year', 'Replace: the IRR of the swap is positive', 'Keep the old unit: the 18% loan interest is too expensive'], answer: 0,
@@ -1440,7 +1677,7 @@
         q: R`In a replacement decision, what is the **incremental depreciation**?`,
         choices: ['The new machine’s depreciation minus the old machine’s depreciation', 'The new machine’s depreciation only', 'The old machine’s depreciation only', 'The sum of both machines’ depreciation'], answer: 0,
         why: R`If you replace, you gain the new machine’s depreciation but lose the old one’s. Only the difference changes your tax.` },
-      { id: 'w5-q56', topic: 'replace', kind: 'mcq', level: 2, section: 'A', src: 'Lecture W5',
+      { id: 'w5-q56', topic: 'replace', kind: 'mcq', level: 2, section: 'A', src: 'Lecture W5', formulas: ['salvage'],
         q: R`In a replacement, the old machine is sold today for **more than its book value**. How does this affect the initial investment?`,
         choices: ['The sale brings cash in, but tax on the gain reduces it', 'The whole sale price is taxed', 'The sale is ignored: the old machine is sunk', 'The sale increases the tax shield on the new machine'], answer: 0,
         why: R`After-tax proceeds \(= SV - (SV - BV)\,t_c\). They reduce the net initial investment.` },
@@ -1455,7 +1692,7 @@
         q: R`Monash Fibre owes the consultants **$1 million** for their report. Should this be included in the project’s cash flows?`,
         choices: ['No: it must be paid whatever the decision, so it is sunk', 'Yes: it is part of the initial investment', 'Yes: spread it over the 10 years', 'Only if the project goes ahead'], answer: 0,
         why: R`The fee is owed either way. A cost that does not change with the decision is not relevant.` },
-      { id: 'w5-q59', topic: 'project', kind: 'num', level: 2, section: 'B', src: 'Tutorial W5 case study (Monash Fibre)', formula: 'fcf',
+      { id: 'w5-q59', topic: 'project', kind: 'num', level: 2, section: 'B', src: 'Tutorial W5 case study (Monash Fibre)', formula: 'fcf', formulas: ['fcf', 'nwc'],
         q: R`Monash Fibre (report below): only $1m of the $2m SG&A is caused by the project. The tax rate is 35%. What is the project’s **free cash flow** in each of years 1 to 9?`,
         table: CASE_TABLE,
         answer: CASE.fcf, unit: '$m', dp: 3,
@@ -1470,7 +1707,7 @@
         ],
         ti: [TI.line('(30-18-1-2.5)*(1-0.35)+2.5', { note: 'In $ millions. Only the $1m of incremental SG&A is taken off.' })],
         why: R`Use only incremental costs, and add back depreciation: $8.025 million a year.` },
-      { id: 'w5-q60', topic: 'project', kind: 'num', level: 3, section: 'B', src: 'Tutorial W5 case study (Monash Fibre)', formula: 'npv', boss: true,
+      { id: 'w5-q60', topic: 'project', kind: 'num', level: 3, section: 'B', src: 'Tutorial W5 case study (Monash Fibre)', formula: 'npv', boss: true, formulas: ['npv', 'pv-annuity', 'pv-lump', 'irr'],
         q: R`Monash Fibre’s free cash flows are −$35m at year 0, $8.025m in years 1 to 9 and $18.025m in year 10. The cost of capital is 14%. What is the project’s **NPV**?`,
         answer: FIN.npv(0.14, CASE.cfs), unit: '$m', dp: 3,
         mistakes: [
@@ -1485,12 +1722,102 @@
         ],
         calc: npvKeys(CASE.cfs, 0.14, 'm'),
         ti: [tiNpv(0.14, CASE.cfs, { note: R`In $ millions: \(8.025\) nine times, then \(18.025\) once.` })],
+        xl: reportXL({ title: 'Monash Fibre: free cash flows ($ millions)', tc: 0.35, r: 0.14, K: 25, n: 10, W: 10, R0: 30, C: 18, Sinc: 1,
+          left: 'The $1m consultants’ fee (sunk) and the $1m of SG&A that is paid anyway are left out.' }),
         why: R`The project is worth about $9.557 million, not $48.75 million. Still positive, so accept.` },
+
+      /* ----- earnings are not cash flows ----- */
+      { id: 'w5-q61', topic: 'fcf', kind: 'mcq', level: 2, section: 'A', formulas: ['fcf', 'nwc'],
+        q: R`A project's **incremental earnings** are not the same as its **incremental free cash flows**. Which statement gives a correct reason?`,
+        choices: [
+          'A rise in accounts receivable means some of the sales in earnings have not been received in cash yet',
+          'Depreciation is paid in cash each year, so it lowers the cash flow more than the earnings',
+          'The cost of new equipment is taken off earnings in full, as an expense, in the year it is bought',
+          'Interest on the project loan is taken off the free cash flow, but not the earnings',
+        ], answer: 0,
+        wrong: {
+          1: 'Depreciation is not a cash payment at all. Its only cash effect is the tax it saves.',
+          2: 'Capital spending is not an expense. Earnings only see it slowly, as depreciation.',
+          3: 'Interest is a financing cost. It is left out of both incremental earnings and free cash flow.',
+        },
+        why: R`Earnings count a sale when it is made. If the customer has not paid yet, receivables rise and the cash has not arrived. That is why FCF takes off the increase in NWC.` },
+      { id: 'w5-q62', topic: 'fcf', kind: 'mcq', level: 2, section: 'A', formulas: ['fcf'],
+        q: R`Which of these is **not** a reason why a project's incremental earnings differ from its incremental free cash flows?`,
+        choices: [
+          'Interest on the money borrowed to fund the project',
+          'Depreciation, which is an expense but not a cash payment',
+          'Capital expenditure, which uses cash but is not an expense',
+          'An increase in net working capital, such as more receivables',
+        ], answer: 0,
+        wrong: {
+          1: 'Depreciation is taken off in earnings but is not cash, so FCF adds it back: a real difference.',
+          2: 'Capital spending uses cash that earnings do not show as an expense: a real difference.',
+          3: 'A rise in NWC (such as receivables) uses cash that earnings do not show: a real difference.',
+        },
+        why: R`In capital budgeting, incremental earnings are **unlevered**: interest is left out of the earnings and out of the free cash flow, because the discount rate already charges for the money. The three real differences: \(FCF = \text{Earnings} + Dep - CapEx - \Delta NWC\).` },
+      { id: 'w5-q63', topic: 'fcf', kind: 'num', level: 2, section: 'B', formulas: ['fcf', 'nwc'],
+        q: R`Wattlebird Wheels forecasts **incremental earnings** of $84,000 for year 1 of a project. That year the project also has $30,000 of depreciation and $50,000 of capital expenditure. Its accounts receivable rise by $12,000 (nothing else in NWC changes). What is the year 1 **free cash flow**?`,
+        answer: 84000 + 30000 - 50000 - 12000, unit: '$', dp: 2,
+        mistakes: [
+          { v: 84000 + 30000 - 50000, why: 'Take off the $12,000 rise in receivables: those sales are not cash yet.' },
+          { v: 84000 - 50000 - 12000, why: 'Add back the $30,000 of depreciation: it is not a cash cost.' },
+          { v: 84000 + 30000 - 12000, why: 'Take off the $50,000 of capital expenditure: it uses cash.' },
+          { v: 84000 + 30000 - 50000 + 12000, why: 'A rise in receivables is a cash outflow. Subtract it.' },
+        ],
+        steps: [R`\[FCF = \text{Earnings} + Dep - CapEx - \Delta NWC\]`, R`\[FCF = \$84{,}000 + \$30{,}000 - \$50{,}000 - \$12{,}000 = \$52{,}000\]`],
+        ti: [TI.line('84000+30000-50000-12000')],
+        why: R`Earnings, \((Rev - Costs - Dep)(1 - t_c)\), are the first part of the FCF formula. Add back depreciation, then take off CapEx and the rise in NWC.` },
+
+      /* ----- cash flows that fade (level, then a declining perpetuity) ----- */
+      { id: 'w5-q64', topic: 'fade', kind: 'num', level: 2, section: 'B', formulas: ['pv-annuity', 'pv-grow-perp', 'pv-lump', 'two-stage'],
+        q: R`A theme park's new ride is expected to earn free cash flows of $350,000 a year for years 1 to 6. From year 7, the cash flow falls by 4% a year, forever, as the ride gets old. The cost of capital is 10%. What is the **value today** of the ride's cash flows?`,
+        tl: { cfs: [''].concat(Array(RIDE.n).fill(RIDE.C)).concat(['−4% a year …']), unit: 'Year', hi: [RIDE.n] },
+        answer: RIDE.value, unit: '$', dp: 2,
+        mistakes: [
+          { v: RIDE.lvl + RIDE.C / (RIDE.r - RIDE.g) / Math.pow(1 + RIDE.r, RIDE.n), why: R`The first fading cash flow is \(C_7 = 350{,}000 \times 0.96 = \$336{,}000\), not \(\$350{,}000\).` },
+          { v: RIDE.lvl + RIDE.tvn, why: R`\(\frac{C_7}{r - g}\) is a value at year 6. Discount it 6 years to today.` },
+          { v: RIDE.lvl + RIDE.tvn / Math.pow(1 + RIDE.r, RIDE.n + 1), why: 'The value lands at year 6, one year before its first cash flow. Discount it 6 years, not 7.' },
+          { v: RIDE.lvl + RIDE.c1 / (RIDE.r + RIDE.g) / Math.pow(1 + RIDE.r, RIDE.n), why: R`A decline makes \(g\) negative, so \(r - g = 0.10 + 0.04 = 0.14\).` },
+        ],
+        steps: [
+          R`Piece 1, years 1 to 6 (an annuity): \[\frac{350{,}000}{0.10}\left(1 - \frac{1}{1.1^{6}}\right) = ${M(RIDE.lvl)}\]`,
+          R`\(C_7 = 350{,}000 \times (1 - 0.04) = ${M(RIDE.c1)}\). Piece 2, valued at year 6: \[\frac{336{,}000}{0.10 - (-0.04)} = \frac{336{,}000}{0.14} = ${M(RIDE.tvn)}\]`,
+          R`Bring piece 2 to today: \(\frac{${M(RIDE.tvn)}}{1.1^{6}} = ${M(RIDE.tv0)}\).`,
+          R`Add the two pieces, keeping every decimal: \(PV = ${M(RIDE.value)}\).`,
+        ],
+        ti: [TI.line('350000/0.1*(1-1/1.1^6)+350000*0.96/(0.1+0.04)/1.1^6')],
+        why: R`Level years: an annuity. Fading years: a growing perpetuity with \(g = -4\%\), valued at year 6 and discounted 6 years.` },
+      { id: 'w5-q65', topic: 'fade', kind: 'mcq', level: 2, section: 'A', formulas: ['two-stage', 'pv-grow-perp'],
+        q: R`A project's cash flow is level for \(n\) years. Then it falls by a fixed percentage every year, forever. The fading years are valued with \(\frac{C_{n+1}}{r - g}\). At which date does this value sit?`,
+        choices: [R`Year \(n\): one year before the first fading cash flow`, R`Year \(n + 1\): the date of the first fading cash flow`, R`Year 0: it is already a value today`, R`Year 1: a perpetuity always starts there`], answer: 0,
+        wrong: {
+          1: R`Perpetuity formulas value cash flows one period **before** the first one. So the value sits at year \(n\).`,
+          2: R`It is a value at year \(n\). You still need to divide by \((1 + r)^{n}\).`,
+          3: R`It sits one period before its own first cash flow, which comes at \(n + 1\).`,
+        },
+        why: R`Like every perpetuity, \(\frac{C_{n+1}}{r - g}\) lands one period before its first cash flow. That cash flow comes at \(n + 1\), so the value sits at year \(n\). Discount it \(n\) years to today.` },
+      { id: 'w5-q66', topic: 'fade', kind: 'num', level: 3, section: 'B', formulas: ['pv-annuity', 'pv-grow-perp', 'pv-lump', 'two-stage', 'npv'],
+        q: R`A film studio can buy the streaming rights to an old TV series for $2,400,000 today. The rights will earn free cash flows of $450,000 a year for years 1 to 5. From year 6, viewers drift away and the cash flow falls by 10% a year, forever. The cost of capital is 12%. What is the **NPV** of buying the rights?`,
+        answer: FILM.npv, unit: '$', dp: 2,
+        mistakes: [
+          { v: FILM.value, why: 'That is the value of the cash flows. Take off the $2,400,000 price.' },
+          { v: FILM.lvl + FILM.tvn - FILM.cost, why: R`The fading years' value sits at year 5. Divide it by \(1.12^{5}\).` },
+          { v: FILM.lvl + FILM.C / (FILM.r - FILM.g) / Math.pow(1 + FILM.r, FILM.n) - FILM.cost, why: R`The first fading cash flow is \(C_6 = 450{,}000 \times 0.90 = \$405{,}000\).` },
+          { v: FILM.lvl + FILM.tvn / Math.pow(1 + FILM.r, FILM.n + 1) - FILM.cost, why: 'The value lands at year 5, one year before its first cash flow. Discount it 5 years, not 6.' },
+        ],
+        steps: [
+          R`Piece 1, years 1 to 5 (an annuity): \[\frac{450{,}000}{0.12}\left(1 - \frac{1}{1.12^{5}}\right) = ${M(FILM.lvl)}\]`,
+          R`\(C_6 = 450{,}000 \times (1 - 0.10) = ${M(FILM.c1)}\). Piece 2, valued at year 5: \[\frac{405{,}000}{0.12 - (-0.10)} = \frac{405{,}000}{0.22} = ${M(FILM.tvn)}\]`,
+          R`Bring piece 2 to today: \(\frac{${M(FILM.tvn)}}{1.12^{5}} = ${M(FILM.tv0)}\).`,
+          R`\(NPV = -\$2{,}400{,}000 + ${M(FILM.lvl)} + ${M(FILM.tv0)} = ${M(FILM.npv)} > 0\), so buy the rights.`,
+        ],
+        ti: [TI.line('-2400000+450000/0.12*(1-1/1.12^5)+450000*0.9/(0.12+0.1)/1.12^5')],
+        why: R`\(NPV > 0\): the rights are worth more than they cost, even though the cash flows fade away.` },
     ],
 
     generators: [
       /* ---------- free cash flow ---------- */
-      { id: 'w5-g-ocf', topic: 'fcf', level: 1, section: 'B', formula: 'fcf', src: 'Lecture W5 Example 4',
+      { id: 'w5-g-ocf', topic: 'fcf', level: 1, section: 'B', formula: 'fcf', src: 'Lecture W5 Example 4', formulas: ['fcf', 'dep-shield'],
         make(rng) {
           for (let tries = 0; tries < 50; tries++) {
             const rev = rng.step(20, 400, 5) * 1000;
@@ -1521,7 +1848,7 @@
           }
           return null;
         } },
-      { id: 'w5-g-revenue', topic: 'fcf', level: 1, section: 'B', src: 'Textbook Ch 9 P3',
+      { id: 'w5-g-revenue', topic: 'fcf', level: 1, section: 'B', src: 'Textbook Ch 9 P3', formulas: ['fcf'],
         make(rng) {
           const u = rng.step(10, 500, 10) * 1000, g = rng.pick([0.05, 0.1, 0.15, 0.2, 0.25, 0.3]), price = rng.step(5, 120, 1);
           const inc = u * g * price;
@@ -1540,7 +1867,7 @@
             why: 'Only the change caused by the project counts.',
           };
         } },
-      { id: 'w5-g-earnings', topic: 'fcf', level: 1, section: 'B', formula: 'fcf', src: 'Textbook Ch 9 P2',
+      { id: 'w5-g-earnings', topic: 'fcf', level: 1, section: 'B', formula: 'fcf', src: 'Textbook Ch 9 P2', formulas: ['dep-sl', 'fcf'],
         make(rng) {
           for (let tries = 0; tries < 60; tries++) {
             const price = rng.step(100, 3000, 50) * 1000, inst = rng.step(5, 100, 5) * 1000, n = rng.int(3, 8);
@@ -1571,7 +1898,7 @@
           }
           return null;
         } },
-      { id: 'w5-g-fcf', topic: 'fcf', level: 2, section: 'B', formula: 'fcf', src: 'Textbook Ch 9 P13 (Oakdale)',
+      { id: 'w5-g-fcf', topic: 'fcf', level: 2, section: 'B', formula: 'fcf', src: 'Textbook Ch 9 P13 (Oakdale)', formulas: ['fcf'],
         make(rng) {
           const sales = rng.step(50, 600, 5) * 1000;
           const opex = round(sales * rng.step(0.25, 0.5, 0.01), 1000);
@@ -1600,7 +1927,7 @@
         } },
 
       /* ---------- tax shield ---------- */
-      { id: 'w5-g-shield', topic: 'tax', level: 1, section: 'B', formula: 'dep-shield', src: 'Textbook Ch 9 P7',
+      { id: 'w5-g-shield', topic: 'tax', level: 1, section: 'B', formula: 'dep-shield', src: 'Textbook Ch 9 P7', formulas: ['dep-sl', 'dep-shield'],
         make(rng) {
           const price = rng.step(20, 900, 5) * 1000, inst = rng.step(1, 40, 1) * 1000, n = rng.int(3, 10), tc = rng.pick(TAX);
           const dep = (price + inst) / n, sh = dep * tc;
@@ -1620,7 +1947,7 @@
         } },
 
       /* ---------- depreciation and book value ---------- */
-      { id: 'w5-g-dep', topic: 'dep', level: 1, section: 'B', src: 'Textbook Ch 9 P1',
+      { id: 'w5-g-dep', topic: 'dep', level: 1, section: 'B', src: 'Textbook Ch 9 P1', formulas: ['dep-sl'],
         make(rng) {
           const price = rng.step(20, 900, 5) * 1000, ship = rng.step(1, 20, 1) * 1000, inst = rng.step(1, 30, 1) * 1000, n = rng.int(3, 10);
           const cost = price + ship + inst;
@@ -1659,7 +1986,7 @@
             why: 'Straight-line spreads the cost, less the residual value, evenly over the depreciable life.',
           };
         } },
-      { id: 'w5-g-bv', topic: 'dep', level: 1, section: 'B', formula: 'salvage',
+      { id: 'w5-g-bv', topic: 'dep', level: 1, section: 'B', formula: 'salvage', formulas: ['dep-sl'],
         make(rng) {
           const price = rng.step(20, 900, 5) * 1000, inst = rng.step(1, 40, 1) * 1000, n = rng.int(4, 10), k = rng.int(1, n - 1);
           const cost = price + inst, dep = cost / n, bv = cost - k * dep;
@@ -1680,7 +2007,7 @@
         } },
 
       /* ---------- salvage and terminal cash flow ---------- */
-      { id: 'w5-g-salvage', topic: 'salvage', level: 1, section: 'B', formula: 'salvage',
+      { id: 'w5-g-salvage', topic: 'salvage', level: 1, section: 'B', formula: 'salvage', formulas: ['salvage'],
         make(rng) {
           const tc = rng.pick(TAX);
           const bv = rng.chance(0.25) ? 0 : rng.step(5, 200, 1) * 1000;
@@ -1705,7 +2032,7 @@
             why: gain > 0 ? 'Selling above book value creates a taxable gain.' : 'Selling below book value creates a tax-deductible loss, so you keep more than the price.',
           };
         } },
-      { id: 'w5-g-salvage-full', topic: 'salvage', level: 2, section: 'B', formula: 'salvage',
+      { id: 'w5-g-salvage-full', topic: 'salvage', level: 2, section: 'B', formula: 'salvage', formulas: ['dep-sl', 'salvage'],
         make(rng) {
           const cost = rng.step(20, 500, 5) * 1000, life = rng.int(4, 10), k = rng.int(2, life - 1), tc = rng.pick(TAX);
           const bv = cost * (1 - k / life);
@@ -1730,7 +2057,7 @@
             why: 'Find the book value first. Then tax only the gain (or save tax on the loss).',
           };
         } },
-      { id: 'w5-g-terminal', topic: 'salvage', level: 2, section: 'B', formula: 'salvage', src: 'Mock MST Q19',
+      { id: 'w5-g-terminal', topic: 'salvage', level: 2, section: 'B', formula: 'salvage', src: 'Mock MST Q19', formulas: ['salvage', 'fcf', 'nwc'],
         make(rng) {
           const ocf = rng.step(5, 200, 1) * 1000, nwc = rng.step(5, 60, 1) * 1000, tc = rng.pick(TAX);
           const bv = rng.chance(0.6) ? 0 : rng.step(1, 20, 1) * 1000;
@@ -1756,7 +2083,7 @@
         } },
 
       /* ---------- net working capital ---------- */
-      { id: 'w5-g-nwc', topic: 'nwc', level: 2, section: 'B',
+      { id: 'w5-g-nwc', topic: 'nwc', level: 2, section: 'B', formulas: ['nwc'],
         make(rng) {
           for (let tries = 0; tries < 50; tries++) {
             const n = rng.int(3, 5);
@@ -1788,7 +2115,7 @@
         } },
 
       /* ---------- relevant cash flows ---------- */
-      { id: 'w5-g-outlay', topic: 'relevant', level: 2, section: 'B', src: 'Tutorial W5 Q1',
+      { id: 'w5-g-outlay', topic: 'relevant', level: 2, section: 'B', src: 'Tutorial W5 Q1', formulas: ['fcf', 'nwc'],
         make(rng) {
           const price = rng.step(50, 900, 5) * 1000, inst = rng.step(2, 50, 1) * 1000, nwc = rng.step(5, 80, 1) * 1000;
           const land = rng.step(20, 400, 5) * 1000, study = rng.step(5, 60, 1) * 1000;
@@ -1811,7 +2138,7 @@
             why: 'Only cash flows that happen because of the decision count, including value given up.',
           };
         } },
-      { id: 'w5-g-annual', topic: 'relevant', level: 2, section: 'B', formula: 'fcf', src: 'Lecture W5',
+      { id: 'w5-g-annual', topic: 'relevant', level: 2, section: 'B', formula: 'fcf', src: 'Lecture W5', formulas: ['fcf'],
         make(rng) {
           for (let tries = 0; tries < 60; tries++) {
             const rev = rng.step(100, 900, 10) * 1000, cost = round(rev * rng.step(0.35, 0.55, 0.01), 1000);
@@ -1844,7 +2171,7 @@
         } },
 
       /* ---------- inflation ---------- */
-      { id: 'w5-g-fisher', topic: 'inflation', level: 1, section: 'B', formula: 'fisher', src: 'Lecture W5 Example 2',
+      { id: 'w5-g-fisher', topic: 'inflation', level: 1, section: 'B', formula: 'fisher', src: 'Lecture W5 Example 2', formulas: ['fisher'],
         make(rng) {
           for (let tries = 0; tries < 40; tries++) {
             const i = rng.step(0.01, 0.08, 0.005);
@@ -1882,7 +2209,7 @@
           }
           return null;
         } },
-      { id: 'w5-g-nominal', topic: 'inflation', level: 1, section: 'B', formula: 'fisher', src: 'Lecture W5 Example 3',
+      { id: 'w5-g-nominal', topic: 'inflation', level: 1, section: 'B', formula: 'fisher', src: 'Lecture W5 Example 3', formulas: ['real-cf'],
         make(rng) {
           const c = rng.step(1, 100, 1) * 1000, t = rng.int(2, 6), i = rng.step(0.02, 0.1, 0.005);
           const nom = c * Math.pow(1 + i, t);
@@ -1900,7 +2227,7 @@
             why: 'Nominal cash flows include inflation, compounded year by year.',
           };
         } },
-      { id: 'w5-g-infl-npv', topic: 'inflation', level: 2, section: 'B', formula: 'fisher', src: 'Lecture W5 Example 3',
+      { id: 'w5-g-infl-npv', topic: 'inflation', level: 2, section: 'B', formula: 'fisher', src: 'Lecture W5 Example 3', formulas: ['fisher', 'pv-annuity', 'npv', 'real-cf'],
         make(rng) {
           for (let tries = 0; tries < 60; tries++) {
             const i0 = rng.step(5, 200, 1) * 1000, n = rng.int(3, 6);
@@ -1934,7 +2261,7 @@
         } },
 
       /* ---------- replacement decision parts ---------- */
-      { id: 'w5-g-rep-init', topic: 'replace', level: 2, section: 'B', formula: 'salvage', src: 'Lecture W5 Example 5',
+      { id: 'w5-g-rep-init', topic: 'replace', level: 2, section: 'B', formula: 'salvage', src: 'Lecture W5 Example 5', formulas: ['dep-sl', 'salvage', 'fcf', 'nwc'],
         make(rng) {
           for (let tries = 0; tries < 60; tries++) {
             const tc = rng.pick(TAX);
@@ -1968,7 +2295,7 @@
           }
           return null;
         } },
-      { id: 'w5-g-rep-ocf', topic: 'replace', level: 2, section: 'B', formula: 'fcf', src: 'Lecture W5 Example 5',
+      { id: 'w5-g-rep-ocf', topic: 'replace', level: 2, section: 'B', formula: 'fcf', src: 'Lecture W5 Example 5', formulas: ['dep-sl', 'fcf'],
         make(rng) {
           for (let tries = 0; tries < 60; tries++) {
             const tc = rng.pick(TAX), n = rng.int(3, 8);
@@ -2002,7 +2329,7 @@
           }
           return null;
         } },
-      { id: 'w5-g-rep-terminal', topic: 'replace', level: 2, section: 'B', formula: 'salvage', src: 'Tutorial W5 Q3 (IFC)',
+      { id: 'w5-g-rep-terminal', topic: 'replace', level: 2, section: 'B', formula: 'salvage', src: 'Tutorial W5 Q3 (IFC)', formulas: ['nwc', 'salvage', 'fcf'],
         make(rng) {
           const n = rng.int(4, 6), tc = rng.pick(TAX);
           const ocf = rng.step(10, 200, 1) * 1000, w0 = rng.step(5, 60, 1) * 1000, w1 = rng.step(1, 15, 1) * 1000;
@@ -2105,6 +2432,14 @@
               answer: ans, unit: '$', dp: 2,
               mistakes: clean(ms, ans, '$', 2),
               steps,
+              formulas: {
+                init: ['dep-sl', 'salvage', 'fcf', 'nwc'],
+                ocf: ['dep-sl', 'fcf'],
+                term: ['dep-sl', 'fcf', 'salvage', 'nwc'],
+                npv: ['dep-sl', 'salvage', 'fcf', 'nwc', 'npv', 'pv-annuity', 'pv-lump'],
+              }[part],
+              xl: replaceXL({ title: `${co}: incremental cash flows`, tc, r, oldCost, oldLife, age, sale, price, ship, n, salv, save, nwc, part,
+                left: 'The training (sunk) and the loan interest (financing) are left out.' }),
               calc: part === 'npv' ? npvKeys(cfs, r) : undefined,
               ti: {
                 init: [TI.line(`-(${n6(price)}+${n6(ship)})+${n6(sale)}-(${n6(sale)}-${n6(bvOld)})*${n6(tc)}-${n6(nwc)}`, { note: R`The old machine’s book value is \(${M(bvOld)}\). The training and the interest are left out.` })],
@@ -2161,6 +2496,8 @@ What is the project’s **free cash flow** in each of years 1 to ${n - 1}?`,
                 ], fcf, '$m', 3),
                 steps: [stepFcf, R`Year ${n} adds back the ${T.moneyT(W, 3)}m of working capital.`],
                 ti: [TI.line(`(${n6(R0)}-${n6(C)}-${n6(Sinc)}-${n6(K)}/${n})*(1-${n6(tc)})+${n6(K)}/${n}`, { note: R`In $ millions. \(${n6(K)}/${n}\) is the depreciation. Only the incremental SG&A is taken off.` })],
+                formulas: ['dep-sl', 'fcf'],
+                xl: reportXL({ title: `${co}: free cash flows ($ millions)`, tc, r, K, n, W, R0, C, Sinc, part: 'fcf', left: 'The consultants’ fee (sunk) and the SG&A that happens anyway are left out.' }),
                 why: 'FCF uses incremental costs only and adds back depreciation.',
               };
             }
@@ -2186,12 +2523,14 @@ What is the project’s **NPV**?`,
                 TI.line(`(${n6(R0)}-${n6(C)}-${n6(Sinc)}-${n6(K)}/${n})*(1-${n6(tc)})+${n6(K)}/${n}`, { note: R`The yearly FCF, in $ millions. Only the incremental SG&A is taken off.` }),
                 TI.line(`npv(${n6(P(r))},${n6(-(K + W))},{ans,ans+${n6(W)}},{${n - 1},1})`, { note: R`\(\text{ans}\) is the FCF: ${n - 1} times, then once more with the NWC back.` }),
               ],
+              formulas: ['dep-sl', 'fcf', 'nwc', 'npv', 'pv-annuity', 'pv-lump'],
+              xl: reportXL({ title: `${co}: free cash flows ($ millions)`, tc, r, K, n, W, R0, C, Sinc, part: 'npv', left: 'The consultants’ fee (sunk) and the SG&A that happens anyway are left out.' }),
               why: R`${npv > 0 ? R`\(NPV > 0\): accept.` : R`\(NPV < 0\): reject.`} Adding up years of earnings is not a valuation.`,
             };
           }
           return null;
         } },
-      { id: 'w5-g-boss-labour', topic: 'replace', level: 3, section: 'B', formula: 'npv', boss: true, src: 'Tutorial W5 Q2 (Springvale)',
+      { id: 'w5-g-boss-labour', topic: 'replace', level: 3, section: 'B', formula: 'npv', boss: true, src: 'Tutorial W5 Q2 (Springvale)', formulas: ['dep-sl', 'fcf', 'npv', 'pv-annuity', 'irr'],
         make(rng) {
           for (let tries = 0; tries < 100; tries++) {
             const price = rng.step(20, 200, 5) * 1000, n = rng.pick([5, 8, 10, 15, 20]), dep = price / n;
@@ -2248,7 +2587,7 @@ What is the project’s **NPV**?`,
           }
           return null;
         } },
-      { id: 'w5-g-boss-inflation', topic: 'inflation', level: 3, section: 'B', formula: 'fisher', boss: true, src: 'Lecture W5 Examples 2–3',
+      { id: 'w5-g-boss-inflation', topic: 'inflation', level: 3, section: 'B', formula: 'fisher', boss: true, src: 'Lecture W5 Examples 2–3', formulas: ['real-cf', 'fcf', 'npv'],
         make(rng) {
           for (let tries = 0; tries < 100; tries++) {
             const i0 = rng.step(50, 300, 5) * 1000, n = rng.int(3, 4), dep = i0 / n;
@@ -2280,7 +2619,79 @@ What is the project’s **NPV**?`,
                 TI.line(`((${n6(rev)}-${n6(cost)})*${n6(1 + i)}^{${years.join(',')}}-${n6(i0)}/${n})*(1-${n6(tc)})+${n6(i0)}/${n}`, { note: R`A list of the nominal FCFs, years 1 to ${n}. Revenue and costs grow with inflation. Depreciation, \(${n6(i0)}/${n}\), does not.` }),
                 TI.line(`npv(${n6(P(nom))},${n6(-i0)},ans)`, { note: 'Nominal cash flows with the nominal rate.' }),
               ],
+              xl: (() => {
+                const Lc = COL(n);
+                return {
+                  title: 'Nominal free cash flows',
+                  rows: [
+                    ['Tax rate', tc], ['Nominal required return', nom], ['Inflation', i], ['Machine cost', i0], ['Life (years)', n],
+                    ['Revenue a year (today’s dollars)', rev], ['Costs a year (today’s dollars)', cost],
+                    [],
+                    xrow('Year', n, (t) => t),
+                    xrow('Revenue (nominal)', n, (t) => (t ? `=$B$6*(1+$B$3)^${COL(t)}9` : null)),
+                    xrow('Costs (nominal)', n, (t) => (t ? `=-$B$7*(1+$B$3)^${COL(t)}9` : null)),
+                    xrow('Depreciation (fixed)', n, (t) => (t ? '=-$B$4/$B$5' : null)),
+                    xrow('EBIT', n, (t) => (t ? `=SUM(${COL(t)}10:${COL(t)}12)` : null)),
+                    xrow('Tax', n, (t) => (t ? `=-${COL(t)}13*$B$1` : null)),
+                    xrow('Add back depreciation', n, (t) => (t ? `=-${COL(t)}12` : null)),
+                    xrow('Machine', n, (t) => (t === 0 ? '=-B4' : null)),
+                    xrow('Free cash flow', n, (t) => `=SUM(${COL(t)}13:${COL(t)}16)`),
+                    ['NPV', `=NPV(B2,C17:${Lc}17)+B17`],
+                  ],
+                  fmt: { 'B1:B3': '%', B4: '$', B5: '0', 'B6:B7': '$', [`B9:${Lc}9`]: '0', [`B10:${Lc}17`]: '$', B18: '$' },
+                  bold: [`A9:${Lc}9`, `A17:${Lc}17`, 'A18:B18'],
+                  answer: 'B18',
+                  steps: [
+                    { t: 'Inputs in labelled cells. Revenue and costs are in today’s dollars.', cells: 'A1:B7' },
+                    { t: 'Inflate revenue and costs: =$B$6*(1+$B$3)^C9, where C9 holds the year.', cells: `C10:${Lc}11` },
+                    { t: 'Depreciation is fixed in dollars: =-$B$4/$B$5 every year, with no inflation.', cells: `C12:${Lc}12` },
+                    { t: 'EBIT, tax, then depreciation added back.', cells: `C13:${Lc}15` },
+                    { t: `Free cash flow: =SUM(B13:B16). NPV at the nominal rate: =NPV(B2,C17:${Lc}17)+B17, with year 0 outside the brackets.`, cells: `B16:${Lc}18` },
+                  ],
+                };
+              })(),
               why: 'Nominal cash flows with a nominal rate. Depreciation is a fixed dollar amount, so inflation does not raise its tax shield.',
+            };
+          }
+          return null;
+        } },
+
+      /* ---------- cash flows that fade: level for n years, then a declining perpetuity ---------- */
+      { id: 'w5-g-two-stage', topic: 'fade', level: 3, section: 'B', formula: 'two-stage',
+        make(rng) {
+          for (let tries = 0; tries < 60; tries++) {
+            const C = rng.step(40, 900, 5) * 1000, n = rng.int(3, 8), r = rng.step(0.08, 0.15, 0.005), d = rng.step(0.01, 0.08, 0.005);
+            const f = fade(C, r, n, -d), disc = Math.pow(1 + r, n);
+            const askNpv = rng.chance(0.4);
+            const i0 = askNpv ? round(f.value * rng.step(0.75, 1.2, 0.01), 10000) : 0;
+            const ans = f.value - i0;
+            if (askNpv && Math.abs(ans) < 0.02 * i0) continue;
+            const what = rng.pick(['A ferry route', 'A mobile game', 'A toll bridge', 'A film library', 'A magazine brand', 'A patent licence']);
+            const mistakes = clean([
+              { v: f.lvl + C / (r + d) / disc - i0, why: R`The first fading cash flow is \(C_{${n + 1}} = C(1 + g)\), already ${T.pctT(d)} smaller than \(C\).` },
+              ...(r - d >= 0.02 ? [{ v: f.lvl + f.c1 / (r - d) / disc - i0, why: R`A decline makes \(g\) negative, so \(r - g = ${L.dec(r)} + ${L.dec(d)}\).` }] : []),
+              { v: f.lvl + f.tvn - i0, why: R`\(\frac{C_{${n + 1}}}{r - g}\) is a value at year ${n}. Discount it ${n} years to today.` },
+              { v: f.lvl + f.tvn / Math.pow(1 + r, n + 1) - i0, why: `The value lands at year ${n}, one year before its first cash flow. Discount it ${n} years, not ${n + 1}.` },
+              ...(askNpv ? [{ v: f.value, why: `That is the value of the cash flows. Take off the ${T.money(i0, 0)} cost.` }] : []),
+            ], ans, '$', 2);
+            return {
+              q: R`${what} is expected to earn free cash flows of ${T.money(C, 0)} a year for years 1 to ${n}. From year ${n + 1}, the cash flow falls by ${T.pctT(d)} a year, forever. The cost of capital is ${T.pctT(r)}.${askNpv ? ` It costs ${T.money(i0, 0)} today.` : ''} What is ${askNpv ? 'its **NPV**' : 'the **value today** of these cash flows'}?`,
+              givens: [['C', L.moneyT(C)], ['n', String(n)], ['g', '-' + L.pctT(d)], ['r', L.pctT(r)]].concat(askNpv ? [['C_0', L.moneyT(-i0)]] : []),
+              answer: ans, unit: '$', dp: 2,
+              mistakes,
+              steps: [
+                R`Piece 1, years 1 to ${n} (an annuity): \[\frac{${L.moneyT(C)}}{${L.dec(r)}}\left(1 - \frac{1}{${L.onePlus(r)}^{${n}}}\right) = ${M(f.lvl)}\]`,
+                R`The first fading cash flow: \(C_{${n + 1}} = ${L.moneyT(C)} \times (1 - ${L.dec(d)}) = ${M(f.c1)}\).`,
+                R`Piece 2, valued at year ${n}: \[\frac{${M(f.c1)}}{${L.dec(r)} - (-${L.dec(d)})} = ${M(f.tvn)}\]`,
+                R`Bring piece 2 to today: \[\frac{${M(f.tvn)}}{${L.onePlus(r)}^{${n}}} = ${M(f.tv0)}\]`,
+                askNpv ? R`Take off the cost, keeping every decimal: \(NPV = -${L.moneyT(i0)} + ${M(f.lvl)} + ${M(f.tv0)} = ${M(ans)}\).`
+                  : R`Add the two pieces, keeping every decimal: \(PV = ${M(ans)}\).`,
+              ],
+              ti: [TI.line(`${askNpv ? n6(-i0) + '+' : ''}${n6(C)}/${n6(r)}*(1-1/${n6(1 + r)}^${n})+${n6(C)}*${n6(1 - d)}/(${n6(r)}+${n6(d)})/${n6(1 + r)}^${n}`,
+                { note: R`Piece 1, plus piece 2 divided by \(${L.onePlus(r)}^{${n}}\). A fall of ${T.pctT(d)} gives \(\times ${L.dec(1 - d)}\) on top and \(+${L.dec(d)}\) below.` })],
+              formulas: ['pv-annuity', 'pv-grow-perp', 'pv-lump', 'two-stage'].concat(askNpv ? ['npv'] : []),
+              why: askNpv ? (ans > 0 ? R`\(NPV > 0\): go ahead. The fading years are a growing perpetuity with a negative \(g\).` : R`\(NPV < 0\): do not go ahead. The fading years are a growing perpetuity with a negative \(g\).`)
+                : R`Level years: an annuity. Fading years: a growing perpetuity with a negative \(g\), valued at year ${n} and discounted ${n} years.`,
             };
           }
           return null;
