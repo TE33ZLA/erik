@@ -456,6 +456,7 @@
     });
     s.stats.written = (s.stats.written || 0) + all.length;
     GAME.store.save();
+    GAME.checkAchievements({ type: 'written' });
     SFX.play('victory'); if (pct >= 0.6) UI.confetti();
     const tips = [];
     all.forEach((r) => r.answers.forEach(({ pt, st }) => {

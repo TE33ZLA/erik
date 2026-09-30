@@ -103,6 +103,9 @@
     { id: 'lvl10', name: 'Chief Financial Officer', icon: '💼', desc: 'Reach level 10.', test: (s) => levelOf(s.xp) >= 10 },
     { id: 'arcade', name: 'Arcade Regular', icon: '🕹️', desc: 'Play every mini-game.', test: (s) => root.PACKS.every((p) => p.nodes.filter((n) => n.kind === 'mini').every((n) => (s.nodes[n.id] || {}).plays > 0)) },
     { id: 'review', name: 'Night Shift', icon: '🌙', desc: 'Finish a Smart Review session.', test: (s) => s.stats.reviews >= 1 },
+    { id: 'writer1', name: 'First Draft', icon: '✍️', desc: 'Finish a written round.', test: (s) => (s.stats.written || 0) >= 1 },
+    { id: 'writer10', name: 'Wordsmith', icon: '🖋️', desc: 'Finish 10 written rounds.', test: (s) => (s.stats.written || 0) >= 10 },
+    { id: 'excel', name: 'Spreadsheet Wizard', icon: '📗', desc: 'Finish every Excel Lab lesson in the Writing Room.', test: (s) => { const p = root.PACKS.find((x) => x.id === 'wr'); const xs = p ? p.nodes.filter((n) => n.kind === 'lesson' && /-X\d+$/.test(n.id)) : []; return xs.length > 0 && xs.every((n) => (s.nodes[n.id] || {}).wins > 0); } },
   ];
 
   function checkAchievements(ev) {
