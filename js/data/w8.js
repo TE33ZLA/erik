@@ -292,12 +292,12 @@
           { kind: 'check', gen: 'w8-g-nwc' },
           { kind: 'learn', title: 'Which transactions change NWC?',
             body: R`A transaction changes NWC only if it moves **one** side: current assets or current liabilities. If both sides move by the same amount, NWC stays the same, even when cash changes.\n\nA loan due within a year is a current liability. A 5-year loan is not.`,
-            viz: { type: 'table', head: ['Transaction', 'Current assets', 'Current liabilities', 'NWC', 'Cash'], rows: [
-              ['Buy stock with a 6-month loan', '↑ stock', '↑ loan', 'Same', 'Same'],
-              ['Buy stock with a 5-year loan', '↑ stock', 'Same', '↑', 'Same'],
-              ['Pay a supplier in cash', '↓ cash', '↓ A/P', 'Same', '↓'],
-              ['A customer pays a bill', '↑ cash, ↓ A/R', 'Same', 'Same', '↑']],
-              cap: R`When both sides move by the same amount, NWC stays the same. A 5-year loan moves only one side.` } },
+            viz: { type: 'cards', items: [
+              { icon: '🏦', t: '6-month loan buys stock', s: 'Stock ↑ and loan ↑. NWC: same. Cash: same.', c: 'grey' },
+              { icon: '🏛️', t: '5-year loan buys stock', s: 'Only stock ↑. NWC ↑. Cash: same.', c: 2 },
+              { icon: '🧾', t: 'Pay a supplier in cash', s: 'Cash ↓ and A/P ↓. NWC: same. Cash ↓.', c: 'grey' },
+              { icon: '💵', t: 'A customer pays a bill', s: 'Cash ↑ and A/R ↓. NWC: same. Cash ↑.', c: 'grey' }],
+              cap: R`Only the orange card changes NWC: a 5-year loan is not a current liability, so just one side moves.` } },
           { kind: 'check', ref: 'w8-q68' },
           { kind: 'learn', title: 'Working capital and free cash flow',
             body: R`Recall free cash flow from Floor 5:\n\n\[FCF = \text{Net income} + Dep - CapEx - \Delta NWC\]\n\nAn **increase** in NWC (more stock, more unpaid customer bills) uses up cash, so it is subtracted. Tie up less cash, and FCF goes up. Higher FCF means a higher firm value.`,
@@ -839,7 +839,7 @@
               cap: R`Collection float costs you days of cash. Disbursement float gives you a few days.` },
             tip: R`Do not stretch disbursement float on purpose. Paying late can bring late fees, cash-on-delivery terms and a damaged reputation.` },
           { kind: 'learn', title: 'Cutting the float frees cash once',
-            body: R`A bank **lockbox** (customers post their payments straight to the bank) or a **billing service** gets your cash to you sooner, for a fee.\n\nEach day cut from the float brings one more day of collections into the bank. That cash is freed **once**, today:\n\n\[\text{Cash freed today} = \text{daily collections} \times \text{days saved}\]`,
+            body: R`A bank **lockbox** (customers post their payments straight to the bank) or a **billing service** gets your cash to you sooner, for a fee.\n\nEach day cut from the float brings one more day of collections into the bank. That cash is freed **once**, today.\n\n**Cash freed today** = daily collections \(\times\) days saved.`,
             formula: 'float',
             viz: { type: 'flow', op: true, steps: [
               { t: '2 days', s: 'cut from the float', c: 2 },
@@ -848,8 +848,8 @@
               links: [R`\(\times\)`, R`\(=\)`],
               cap: R`Cut 2 days at \(\$50{,}000\) a day, and \(${L.moneyT(FLOAT_PIC.freed)}\) more is in the bank today, once.` } },
           { kind: 'learn', title: 'Is the fee worth it?',
-            body: R`The fee is paid every month, forever: a **perpetuity** (Floor 2). Value it with the **monthly** rate \(i\):\n\n\[PV(\text{fees}) = \frac{\text{monthly fee}}{i}\]\n\nAn APR compounded monthly gives \(i = \frac{APR}{12}\). An EAR gives \(i = (1 + EAR)^{1/12} - 1\). Then:\n\n\[NPV = \text{cash freed today} - PV(\text{fees})\]`,
-            viz: { type: 'balance', tilt: 'left', left: { icon: '💵', label: 'Cash freed today', sub: T.moneyT(FLOAT_PIC.freed), c: 'good' }, right: { icon: '🧾', label: 'PV of the fees', sub: T.moneyT(FLOAT_PIC.pvf), c: 'bad' },
+            body: R`The fee is paid every month, forever: a **perpetuity** (Floor 2). Value it with the **monthly** rate \(i\):\n\n\[PV(\text{fees}) = \frac{\text{monthly fee}}{i}\]\n\nAn APR compounded monthly gives \(i = \frac{APR}{12}\). An EAR gives \(i = (1 + EAR)^{1/12} - 1\). Then:\n\n\[NPV = \text{cash freed} - PV(\text{fees})\]`,
+            viz: { type: 'balance', tilt: 'left', left: { icon: '💵', label: 'Cash freed', sub: T.moneyT(FLOAT_PIC.freed), c: 'good' }, right: { icon: '🧾', label: 'PV of fees', sub: T.moneyT(FLOAT_PIC.pvf), c: 'bad' },
               note: R`A fee of \(\$400\) a month at \(\frac{6\%}{12} = 0.5\%\): \(\frac{400}{0.005} = ${L.moneyT(FLOAT_PIC.pvf)}\). \(NPV = ${L.moneyT(FLOAT_PIC.npv)}\).`,
               cap: R`The cash freed outweighs the fees, so this service is worth taking.` } },
           { kind: 'example', title: 'Worked example: a billing service',
@@ -1422,6 +1422,62 @@
         q: R`What is the main **benefit** of holding enough inventory?`,
         choices: ['It helps prevent stock-outs and lost sales', 'It shortens the cash conversion cycle', 'It lowers carrying costs', 'It raises free cash flow'], answer: 0,
         why: R`Enough stock means customers are served. The trade-off is the cost of carrying it.` },
+
+      /* ----- collection float ----- */
+      { id: 'w8-q64', topic: 'float', kind: 'mcq', level: 1, section: 'A',
+        q: R`What is a firm’s **collection float**?`,
+        choices: ['The time between a customer paying and the firm being able to use the cash', 'The time customers take to pay after a credit sale', 'The time between the firm paying a supplier and the cash leaving its account', 'Cash kept in the bank for unexpected needs'], answer: 0,
+        why: R`Float is money that has been paid but cannot be used yet. Collection float is the delay on money coming **in**: in the post, waiting to be banked, and clearing.`,
+        wrong: { 1: 'That is measured by A/R days. Collection float starts once the customer has paid.', 2: 'That is disbursement float: money going out.', 3: 'That is a precautionary balance.' } },
+      { id: 'w8-q65', topic: 'float', kind: 'mcq', level: 2, section: 'A',
+        q: R`All else equal, which float does a firm prefer?`,
+        choices: ['A short collection float and a long disbursement float', 'A long collection float and a short disbursement float', 'A long collection float and a long disbursement float', 'A short collection float and a short disbursement float'], answer: 0,
+        why: R`It wants customers’ cash to be usable quickly, and its own payments to leave its account slowly. But paying suppliers late on purpose risks late fees, cash-on-delivery terms and a damaged reputation.`,
+        wrong: { 1: 'That is the wrong way round: cash coming in should arrive fast.', 2: 'A long collection float leaves customers’ cash unusable for longer.', 3: 'A longer disbursement float keeps the firm’s cash for longer, so the firm prefers it.' } },
+      { id: 'w8-q66', topic: 'float', kind: 'num', level: 1, section: 'B', formulas: ['float'],
+        q: R`**Tidewater Freight** collects about $58,000 a day from its customers. An electronic billing service would cut its collection float by 4 days. How much cash does this free up today?`,
+        answer: 58000 * 4, unit: '$', dp: 2,
+        mistakes: [
+          { v: 58000 * 4 * 365, why: 'The cash is freed once, not every day of the year.' },
+          { v: 58000 * 4 * 12, why: 'The cash is freed once, not every month.' },
+          { v: 58000 / 4, why: 'Multiply the daily collections by the days saved.' },
+        ],
+        steps: [R`\[\text{Cash freed today} = \text{daily collections} \times \text{days saved} = 58{,}000 \times 4 = \$232{,}000\]`],
+        ti: [TI.line('58000*4', { note: 'Daily collections times the days saved.' })],
+        why: R`Each day cut from the float brings one more day of collections into the bank. It happens once.` },
+      { id: 'w8-q67', topic: 'float', kind: 'num', level: 2, section: 'B', formulas: ['float', 'pv-perp'],
+        q: R`**Stringybark Supplies** collects $45,000 a day. A lockbox would cut its collection float by 2 days, for a fee of $600 a month, forever (the first fee in one month). Its cost of money is 7.5% a year (APR), compounded monthly. What is the NPV of the lockbox?`,
+        answer: STRINGY.npv, unit: '$', dp: 2,
+        mistakes: [
+          { v: STRINGY.freed - 600 / 0.075, why: R`A monthly fee needs the monthly rate: \(\frac{0.075}{12}\), not 0.075.` },
+          { v: STRINGY.freed - 600 * 12, why: 'The fee is paid forever, so value it as a perpetuity, not one year of fees.' },
+          { v: -STRINGY.npv, why: 'Check the sign: here the fees are worth more than the cash freed.' },
+        ],
+        steps: [
+          R`Cash freed today: \(2 \times 45{,}000 = ${L.moneyT(STRINGY.freed)}\).`,
+          R`Monthly rate: \(i = \frac{0.075}{12} = ${L.numT(STRINGY.i, 5)}\). \[PV(\text{fees}) = \frac{600}{${L.numT(STRINGY.i, 5)}} = ${L.moneyT(STRINGY.pvf)}\]`,
+          R`\[NPV = ${L.numT(STRINGY.freed, 0)} - ${L.numT(STRINGY.pvf, 0)} = ${L.money(STRINGY.npv)}\]`,
+          R`Negative, so do **not** take the lockbox.`,
+        ],
+        ti: [TI.line('2*45000-600/(0.075/12)', { note: 'Cash freed today, less the PV of the monthly fees. Negative: the lockbox does not pay.' })],
+        why: R`The cash freed would earn \(90{,}000 \times ${L.numT(STRINGY.i, 5)} = ${L.money(STRINGY.freed * STRINGY.i)}\) a month, less than the \(\$600\) fee. So the lockbox destroys value.` },
+
+      /* ----- how a transaction changes NWC and cash ----- */
+      { id: 'w8-q68', topic: 'nwc', kind: 'mcq', level: 2, section: 'A', formulas: ['nwc'],
+        q: R`**Kauri Furniture** borrows $80,000 on a **6-month** bank loan and uses all of it to buy inventory. What happens to its net working capital (NWC)?`,
+        choices: ['Nothing: current assets and current liabilities both rise by $80,000', 'NWC rises by $80,000, because inventory rises', 'NWC falls by $80,000, because its debt rises', 'NWC rises by $160,000: the loan and the inventory are both added'], answer: 0,
+        why: R`Inventory, a current asset, rises by $80,000. The loan is due within a year, so it is a current liability, and it rises by $80,000 too. \(\Delta NWC = 80{,}000 - 80{,}000 = 0\).`,
+        wrong: { 1: 'A loan due within a year is a current liability, so that side rises too.', 2: 'Inventory, a current asset, rises by the same amount.', 3: 'The loan is a liability: it is subtracted, not added.' } },
+      { id: 'w8-q69', topic: 'nwc', kind: 'mcq', level: 2, section: 'A', formulas: ['nwc'],
+        q: R`Kauri instead borrows the $80,000 on a **5-year** bank loan, and uses all of it to buy inventory. What happens to its NWC?`,
+        choices: ['NWC rises by $80,000: inventory rises, but a 5-year loan is not a current liability', 'Nothing: both sides of the balance sheet rise by $80,000', 'NWC falls by $80,000, because its debt rises', 'Nothing until the loan is repaid'], answer: 0,
+        why: R`Inventory, a current asset, rises by $80,000. The loan is long-term, so current liabilities do not change. So NWC rises by $80,000.`,
+        wrong: { 1: 'Both sides of the balance sheet rise, but only one side is current: NWC counts current items only.', 2: 'Long-term debt is not in NWC at all.', 3: 'NWC changes as soon as the inventory is bought.' } },
+      { id: 'w8-q70', topic: 'nwc', kind: 'mcq', level: 2, section: 'A', formulas: ['nwc'],
+        q: R`Which transaction **raises** a firm’s cash but leaves its net working capital **unchanged**?`,
+        choices: ['A customer pays an invoice it owed', 'The firm pays a supplier’s invoice in cash', 'The firm sells new shares for cash', 'The firm buys inventory on credit from a supplier'], answer: 0,
+        why: R`Cash rises and accounts receivable fall by the same amount. Both are current assets, so NWC is unchanged, but the firm has more cash to use.`,
+        wrong: { 1: 'Cash and accounts payable both fall, so NWC is unchanged, but cash goes down, not up.', 2: 'Cash rises and nothing current falls, so NWC rises too.', 3: 'Inventory and accounts payable both rise: NWC and cash are both unchanged.' } },
     ],
 
     generators: [
@@ -1902,6 +1958,60 @@
                 TI.line(`${tn(net0n)}+(${tn(creditN)}${plus(net0n)})/${tn(r)}-c`, { note: 'The new policy, minus the current one.' }),
               ],
               why: R`Value each policy as month-0 cash plus a monthly perpetuity, then take the difference.`,
+            };
+          }
+          return null;
+        } },
+
+      /* ---------- collection float ---------- */
+      { id: 'w8-g-float', topic: 'float', level: 2, section: 'B', formulas: ['float', 'pv-perp'],
+        make(rng) {
+          const co = rng.company();
+          for (let k = 0; k < 60; k++) {
+            const daily = rng.step(10000, 200000, 1000), days = rng.int(1, 5);
+            const perMonth = rng.chance(0.65), isAPR = rng.chance(0.6);
+            const rate = isAPR ? rng.step(0.036, 0.12, 0.006) : rng.step(0.04, 0.12, 0.005);
+            const monthly = isAPR ? rate / 12 : Math.pow(1 + rate, 1 / 12) - 1, yearly = isAPR ? Math.pow(1 + rate / 12, 12) - 1 : rate;
+            const target = daily * days * rng.step(0.6, 1.3, 0.05); // PV of the fees near the cash freed, so both decisions appear
+            const fee = perMonth ? Math.round((target * monthly) / 50) * 50 : Math.round((target * yearly) / 100) * 100;
+            if (fee < 100) continue;
+            const f = floatNPV(daily, days, fee, perMonth, rate, isAPR);
+            if (Math.abs(f.npv) < 0.03 * f.freed) continue;
+            const svc = rng.pick(['a lockbox (customers post their payments straight to the bank)', 'an electronic billing service']);
+            const rateText = isAPR ? `${pct(rate)} a year (APR), compounded monthly` : `an EAR of ${pct(rate)}`;
+            const ids = perMonth ? (isAPR ? ['float', 'pv-perp'] : ['float', 'apr-from-ear', 'pv-perp']) : (isAPR ? ['float', 'ear', 'pv-perp'] : ['float', 'pv-perp']);
+            const rateStep = perMonth
+              ? (isAPR ? R`Monthly rate: \(i = \frac{${L.dec(rate)}}{12} = ${L.numT(f.i, 6)}\).` : R`Monthly rate from the EAR: \(i = (1 + ${L.dec(rate)})^{1/12} - 1 = ${L.numT(f.i, 6)}\).`)
+              : (isAPR ? R`A yearly fee needs the yearly rate: \(EAR = \left(1 + \frac{${L.dec(rate)}}{12}\right)^{12} - 1 = ${L.numT(f.i, 6)}\).` : R`A yearly fee needs the yearly rate: the EAR, \(${L.dec(rate)}\).`);
+            const rateTI = perMonth ? (isAPR ? `(${tn(rate)}/12)` : 'mr') : (isAPR ? 'yr' : tn(rate));
+            const pre = perMonth && !isAPR ? [TI.line(`(1+${tn(rate)})^(1/12)-1→mr`, { note: 'The monthly rate from the EAR, stored in mr.' })]
+              : !perMonth && isAPR ? [TI.line(`(1+${tn(rate)}/12)^12-1→yr`, { note: 'The EAR from the APR, stored in yr.' })] : [];
+            const ms = perMonth ? [
+              { v: f.freed - fee / (isAPR ? rate : yearly), why: 'A monthly fee needs the monthly rate, not the yearly rate.' },
+              { v: f.freed - 12 * fee, why: 'The fee is paid forever, so value it as a perpetuity, not one year of fees.' },
+              isAPR ? { v: f.freed, why: 'Subtract the PV of the fees.' } : { v: f.freed - fee / (rate / 12), why: R`An EAR is not an APR: the monthly rate is \((1 + EAR)^{1/12} - 1\), not \(\frac{EAR}{12}\).` },
+              { v: -f.npv, why: 'Check the sign: NPV = cash freed − PV of the fees.' },
+            ] : [
+              { v: f.freed - fee / (isAPR ? rate / 12 : Math.pow(1 + rate, 1 / 12) - 1), why: 'A yearly fee needs the yearly rate, not a monthly rate.' },
+              { v: f.freed - fee, why: 'The fee is paid every year forever, so value it as a perpetuity.' },
+              isAPR ? { v: f.freed - fee / rate, why: R`The APR compounds monthly. Turn it into an EAR first: \(\left(1 + \frac{APR}{12}\right)^{12} - 1\).` } : { v: f.freed, why: 'Subtract the PV of the fees.' },
+              { v: -f.npv, why: 'Check the sign: NPV = cash freed − PV of the fees.' },
+            ];
+            return {
+              q: R`${co} collects about ${T.moneyT(daily)} a day from its customers. It could use ${svc}, which would cut its collection float by ${days} day${days > 1 ? 's' : ''}. The fee is ${T.moneyT(fee)} a ${perMonth ? 'month' : 'year'}, forever, starting in one ${perMonth ? 'month' : 'year'}. Its cost of money is ${rateText}. What is the NPV of the service?`,
+              givens: [[R`\text{daily collections}`, L.moneyT(daily)], [R`\text{days saved}`, String(days)], [R`\text{fee}`, R`${L.moneyT(fee)}\text{ a ${perMonth ? 'month' : 'year'}}`], [isAPR ? 'APR' : 'EAR', L.pctT(rate)]],
+              formulas: ids,
+              answer: f.npv, unit: '$', dp: 2,
+              mistakes: uniq(f.npv, ms, '$', 2),
+              steps: [
+                R`Cash freed today: \(${days} \times ${L.moneyT(daily)} = ${LM(f.freed)}\). It is freed once.`,
+                rateStep,
+                R`The fees are a perpetuity: \[PV(\text{fees}) = \frac{${L.moneyT(fee)}}{${L.numT(f.i, 6)}} = ${LM(f.pvf)}\]`,
+                R`\[NPV = ${LM(f.freed)} - ${LM(f.pvf)} = ${LM(f.npv)}\]`,
+                f.npv > 0 ? R`Positive, so take the service.` : R`Negative, so do **not** take it: the fees cost more than the float saves.`,
+              ],
+              ti: pre.concat([TI.line(`${days}*${tn(daily)}-${tn(fee)}/${rateTI}`, { note: `Cash freed today, less the PV of the ${perMonth ? 'monthly' : 'yearly'} fees (a perpetuity).${f.npv < 0 ? ' Negative: the service does not pay.' : ''}` })]),
+              why: R`Cutting the float frees cash once, today. The fee is a perpetuity, valued at the rate for its own period: a monthly fee with a monthly rate, a yearly fee with a yearly rate.`,
             };
           }
           return null;

@@ -727,12 +727,9 @@
           { kind: 'check', gen: 'w9-g-rf-port' },
           { kind: 'learn', title: 'Reading a variance–covariance matrix',
             body: R`Risk data often comes as a **variance–covariance matrix**: a table with the same assets along the top and down the side.\n\nThe **diagonal** (top left to bottom right) holds each asset’s **variance**. Every other cell holds the **covariance** of its row and its column. The top half is left blank, because it would repeat the bottom half.`,
-            tip: R`SD \(= \sqrt{\text{variance}}\). Correlation \(= \frac{Cov}{\sigma_X\sigma_Y}\). In the portfolio variance, the last term becomes \(2w_Xw_Y\,Cov(R_X,R_Y)\).`,
-            viz: [
-              { type: 'table', key: true, head: ['', 'X', 'Y', 'Market'], cap: R`Variances on the diagonal. Covariances everywhere else. The market row is for beta (lesson 8).`,
-                rows: [['X', R`\(\sigma_X^2\)`, '', ''], ['Y', R`\(Cov(R_X,R_Y)\)`, R`\(\sigma_Y^2\)`, ''], ['Market', R`\(Cov(R_X,R_M)\)`, R`\(Cov(R_Y,R_M)\)`, R`\(\sigma_M^2\)`]] },
-              Object.assign({ type: 'table', cap: R`Lecture example: SSBB’s SD is \(\sqrt{0.0221} = ${pc(Math.sqrt(MX.vS))}\). The SSBB–WW covariance is \(0.0011\).` }, MX_TABLE),
-            ] },
+            tip: R`SD \(= \sqrt{\text{variance}}\), and correlation \(= \frac{Cov}{\sigma_X\sigma_Y}\). In the portfolio variance the last term becomes \(2w_Xw_Y\,Cov(R_X,R_Y)\). Lecture example: SSBB’s variance is \(0.0221\), so its SD is \(\sqrt{0.0221} = ${pc(Math.sqrt(MX.vS))}\).`,
+            viz: { type: 'table', key: true, head: ['', 'X', 'Y', 'Market'], cap: R`Variances on the diagonal, covariances everywhere else. The market row is for beta (lesson 8).`,
+              rows: [['X', R`\(\sigma_X^2\)`, '', ''], ['Y', R`\(Cov_{X,Y}\)`, R`\(\sigma_Y^2\)`, ''], ['Market', R`\(Cov_{X,M}\)`, R`\(Cov_{Y,M}\)`, R`\(\sigma_M^2\)`]] } },
           { kind: 'check', gen: 'w9-g-matrix-read' },
           { kind: 'recap', title: 'Remember', points: [
             R`Weights use market values and add up to 1.`,

@@ -1003,11 +1003,11 @@
             }),
               cap: 'Level for 5 years (blue), then 4% smaller every year, forever (orange).' } },
           { kind: 'learn', title: 'Value it in two pieces', formula: 'two-stage',
-            body: R`Split the cash flows after year \(n\).\n\n**Piece 1**: years 1 to \(n\) are level. That is an **annuity**.\n\n**Piece 2**: from year \(n + 1\) the cash flow shrinks at a steady rate. That is a **growing perpetuity** with a negative \(g\). Its formula gives a value at year \(n\): **one year before its first cash flow**. Discount that value \(n\) years to today.\n\n\[PV = \frac{C}{r}\left(1 - \frac{1}{(1+r)^{n}}\right) + \frac{1}{(1+r)^{n}} \times \frac{C_{n+1}}{r - g}\]`,
-            viz: { type: 'tl', key: true, n: 7, at: { 0: '?', 1: 'C', 2: 'C', 3: 'C', 4: 'C', 5: 'C', 6: 'C × 0.96', 7: '…' }, unit: 'Year', hi: [5],
-              moves: [{ from: 5, to: 0, label: '÷ (1+r)^5', c: 2 }],
-              spans: [{ from: 1, to: 5, label: 'Piece 1: an annuity', c: 1 }, { from: 6, to: 7, label: 'Piece 2', c: 3 }],
-              cap: R`Piece 2's value lands at year 5, one year before its first cash flow. Then it is discounted 5 years.` } },
+            body: R`Split the cash flows after year \(n\).\n\n**Piece 1**: years 1 to \(n\) are level. That is an **annuity**.\n\n**Piece 2**: from year \(n + 1\) the cash flow shrinks at a steady rate. That is a **growing perpetuity** with a negative \(g\). Its formula gives a value at year \(n\): **one year before its first cash flow**. Discount that value \(n\) years to today.\n\n\[\text{Piece 1} = \frac{C}{r}\left(1 - \frac{1}{(1+r)^{n}}\right)\]\n\n\[\text{Piece 2} = \frac{1}{(1+r)^{n}} \times \frac{C_{n+1}}{r - g}\]\n\nThe value today is piece 1 plus piece 2.`,
+            viz: { type: 'tl', key: true, n: 5, at: { 0: '?', 1: 'C', 2: 'C', 3: 'C', 4: '0.96C', 5: '…' }, unit: 'Year', hi: [3],
+              moves: [{ from: 3, to: 0, label: '÷ (1+r)^3', c: 2 }],
+              spans: [{ from: 1, to: 3, label: 'Piece 1', c: 1 }, { from: 4, to: 5, label: 'Piece 2', c: 3 }],
+              cap: R`Here \(n = 3\). Piece 2's value lands at year 3, one year before its first cash flow. Then it is discounted 3 years.` } },
           { kind: 'learn', title: 'A decline is a negative g',
             body: R`When the cash flow **falls** by 4% a year, the growth rate is negative: \(g = -0.04\). Two things follow.`,
             viz: { type: 'anatomy', tex: R`\colA{PV_n} = \frac{\colB{C_{n+1}}}{\colC{r} - \colD{g}}`,
@@ -1119,10 +1119,7 @@
         title: 'The pastry line in Excel',
         topics: ['fcf', 'salvage', 'nwc', 'project'],
         story: R`**Lyrebird Pastries** may start a frozen-pastry line. It would run for 5 years.\n\nThe equipment costs $450,000 today. It is depreciated straight-line to $0 over 5 years, and it will be sold for $50,000 at the end of year 5.\n\nCosts are 50% of revenue. Net working capital (NWC) must be 10% of the next year's revenue, and all of it is recovered by the end of year 5. The tax rate is 30% and the cost of capital is 10%.`,
-        table: { head: ['Year', '0', '1', '2', '3', '4', '5'], rows: [
-          ['Revenue', '—'].concat(PASTRY.rev.map((v) => cell(v))),
-          ['NWC needed (end of year)'].concat(PASTRY.lv.map((v) => cell(v))),
-        ] },
+        table: { head: ['Year', 'Revenue', 'NWC needed (end of year)'], rows: PASTRY.lv.map((v, t) => [t, t ? cell(PASTRY.rev[t - 1]) : '—', cell(v)]) },
         parts: [
           { kind: 'calc', marks: 2, ask: R`Calculate the after-tax salvage value of the equipment at the end of year 5.`,
             formulas: ['salvage'], answer: PASTRY.ats, unit: '$', dp: 2,
@@ -1193,7 +1190,7 @@
             model: ['PV = C/r*(1 - 1/(1 + r)^n) + 1/(1 + r)^n*C*(1 + g)/(r - g)', '= 86800/0.11*(1 - 1/(1 + 0.11)^4) + 1/(1 + 0.11)^4*86800*(1 + (-0.05))/(0.11 - (-0.05))', '= $608,785.76'],
             hint: R`A decline makes \(g = -0.05\). The growing perpetuity gives a value at year 4, so discount it 4 years.`,
             meaning: R`Years 1 to 4 are worth \(${M(CREAM.lvl)}\) today. Years 5 onwards are worth \(${M(CREAM.tvn)}\) at year 4, which is \(${M(CREAM.tv0)}\) today. Together the range adds \(${M(CREAM.value)}\) of value.`,
-            visual: { tl: { n: 6, at: { 0: '?', 1: 'C', 2: 'C', 3: 'C', 4: 'C', 5: 'C × 0.95', 6: '…' }, unit: 'Year', hi: [4] } },
+            visual: { tl: { n: 5, at: { 0: '?', 1: 'C', 2: 'C', 3: 'C', 4: 'C', 5: '0.95C' }, unit: 'Year', hi: [4] } },
             xl: CREAM_XL },
           { kind: 'theory', marks: 2, ask: R`Currawong's accountant says: “A project's incremental earnings and its incremental free cash flows are the same thing.” Explain why they usually differ.`,
             points: [
@@ -1771,7 +1768,6 @@
       /* ----- cash flows that fade (level, then a declining perpetuity) ----- */
       { id: 'w5-q64', topic: 'fade', kind: 'num', level: 2, section: 'B', formulas: ['pv-annuity', 'pv-grow-perp', 'pv-lump', 'two-stage'],
         q: R`A theme park's new ride is expected to earn free cash flows of $350,000 a year for years 1 to 6. From year 7, the cash flow falls by 4% a year, forever, as the ride gets old. The cost of capital is 10%. What is the **value today** of the ride's cash flows?`,
-        tl: { cfs: [''].concat(Array(RIDE.n).fill(RIDE.C)).concat(['−4% a year …']), unit: 'Year', hi: [RIDE.n] },
         answer: RIDE.value, unit: '$', dp: 2,
         mistakes: [
           { v: RIDE.lvl + RIDE.C / (RIDE.r - RIDE.g) / Math.pow(1 + RIDE.r, RIDE.n), why: R`The first fading cash flow is \(C_7 = 350{,}000 \times 0.96 = \$336{,}000\), not \(\$350{,}000\).` },
