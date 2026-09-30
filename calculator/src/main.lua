@@ -156,8 +156,10 @@ function Out:interp(f, root, sfx, what, line)
   local st = (math.abs(root) < 0.02) and 0.001 or 0.01   -- small (monthly) rates: trial rates 0.1% apart
   local r1 = math.floor(root / st + 1e-7) * st
   local r2 = r1 + st
-  local A1, A2 = f(r1), f(r2)
-  if not (A1 and A2) or A1 ~= A1 or A2 ~= A2 or A1 == A2 then return end
+  local ok1, A1 = pcall(f, r1)
+  local ok2, A2 = pcall(f, r2)
+  if not (ok1 and ok2 and type(A1) == "number" and type(A2) == "number") then return end   -- a trial rate the formula cannot take
+  if A1 ~= A1 or A2 ~= A2 or A1 == A2 or math.abs(A1) == INF or math.abs(A2) == INF then return end
   local lam = A1 / (A1 - A2)
   sfx = sfx or ""
   self:head("BY HAND: INTERPOLATE (on the sheet)")
@@ -438,11 +440,14 @@ local function solveAnn(V, out)
     return a + CC * s2fac(ii)
   end
   if not r then
-    if C and (PV or FV) then
+    if C and FV and not PV and not n then
+      out:need("n: an FV needs the number of payments (a perpetuity has no FV)")
+      return
+    elseif C and (PV or FV) then
       local f
       if PV and g2 then f = function(ii) local v = tot0(ii, C); return v and v - PV end
-      elseif PV then f = function(ii) return pv0(ii, C, (not perp) and n or nil) - PV end
-      else f = function(ii) return fvn(ii, C, n) - FV end end
+      elseif PV then f = function(ii) local v = pv0(ii, C, (not perp) and n or nil); return v and v - PV end
+      else f = function(ii) local v = fvn(ii, C, n); return v and v - FV end end
       i = findRoot(f, math.max(1e-6, (g2 or 0) + 1e-6), 2.0, 0.002)
       if i then r = i * m
         how.r = "i found by search so that " .. (PV and "PV" or "FV") ..
@@ -507,10 +512,12 @@ local function solveAnn(V, out)
       else
         if g ~= 0 then
           n = findRoot(function(nn) return fvn(i, C, nn) - FV end, 0.01, 1000, 0.5)
+          if not n then out:err("no number of payments gives that FV - check C, g and FV"); return end
           how.n = "N found by search so that FV matches"
           out:off("n found by search so the FV matches", "FV of growing annuity (PV times (1 + r)^n), solved for n by trial")
         else
           local arg = 1 + FV * i / C
+          if arg <= 0 or i <= 0 then out:err("no number of payments gives that FV - check C and FV"); return end
           n = ln(arg) / ln(1 + i)
           how.n = "N = ln(1 + FV*i/C)/ln(1 + i) = ln(" .. P(arg) .. ")/ln(" .. P(1 + i) .. ")"
           out:off("annNfv")
@@ -1362,7 +1369,7 @@ local function solveFCF(V, out)
         out:row("EBIT", ebit, "$", (lost ~= 0) and ("EBIT given - lost sales = " .. P(V.EBIT) .. " - " .. P(lost)) or "given", "EBIT")
         out:off("ebitfcf")
       else
-        out:row("EBIT = Rev - Costs - Dep", Rev - Costs - lost - Dep, "$", P(Rev) .. " - " .. P(Costs) ..
+        out:row((lost ~= 0) and "EBIT = Rev - Costs - lost sales - Dep" or "EBIT = Rev - Costs - Dep", Rev - Costs - lost - Dep, "$", P(Rev) .. " - " .. P(Costs) ..
                 ((lost ~= 0) and (" - " .. P(lost) .. " lost sales") or "") .. " - " .. P(Dep), "EBIT")
         ebit = Rev - Costs - lost - Dep
       end
@@ -1372,11 +1379,13 @@ local function solveFCF(V, out)
       out:row("depreciation tax shield", Tc * Dep, "$", "Tc*Dep = " .. P(Tc) .. "*" .. P(Dep), "shield")
       local fcf = ebit * (1 - Tc) + Dep - CapEx - dNWC + ats
       local atsTxt = (ats ~= 0) and (" + " .. P(ats)) or ""
-      out:row("FCF (method 1)", fcf, "$", (V.EBIT and "EBIT*(1 - Tc)" or "(Rev - Costs - Dep)*(1 - Tc)") ..
+      out:row("FCF (method 1)", fcf, "$", (V.EBIT and ((lost ~= 0) and "(EBIT - lost)*(1 - Tc)" or "EBIT*(1 - Tc)") or
+              ((lost ~= 0) and "(Rev - Costs - lost - Dep)*(1 - Tc)" or "(Rev - Costs - Dep)*(1 - Tc)")) ..
               " + Dep - CapEx - dNWC" .. ((ats ~= 0) and " + ATS" or "") .. " = " ..
               P(ebit * (1 - Tc)) .. " + " .. P(Dep) .. " - " .. P(CapEx) .. " - " .. P(dNWC) .. atsTxt, "FCF")
       local fcf2 = (ebit + Dep) * (1 - Tc) + Tc * Dep - CapEx - dNWC + ats
-      out:row("FCF (method 2, check)", fcf2, "$", (V.EBIT and "(EBIT + Dep)" or "(Rev - Costs)") .. "*(1 - Tc) + Tc*Dep - CapEx - dNWC" ..
+      out:row("FCF (method 2, check)", fcf2, "$", (V.EBIT and ((lost ~= 0) and "(EBIT - lost + Dep)" or "(EBIT + Dep)") or
+              ((lost ~= 0) and "(Rev - Costs - lost)" or "(Rev - Costs)")) .. "*(1 - Tc) + Tc*Dep - CapEx - dNWC" ..
               ((ats ~= 0) and " + ATS" or "") .. " = " ..
               P((ebit + Dep) * (1 - Tc)) .. " + " .. P(Tc * Dep) .. " - " .. P(CapEx) .. " - " .. P(dNWC) .. atsTxt, "FCF2")
       out:check("both methods agree", math.abs(fcf - fcf2) < 0.01)
@@ -2145,7 +2154,10 @@ IF THE QUESTION SAYS...
   payment; needs g < r
 - "how many payments" -> solve N with
   ln; check C > PV*i or it never ends
-- "should you accept" -> NPV >= 0]],
+- "should you accept" -> NPV >= 0
+- "then falls 4% a year forever" ->
+  n + g2 -4: stage 2 is a growing
+  perpetuity at t = n, then /(1 + i)^n]],
 
 STEPS_COMMON .. [[
 THIS TYPE (loan):
@@ -2270,7 +2282,15 @@ IF THE QUESTION SAYS...
 - "sold above book value" -> gain taxed
 - "inflation" -> nominal with nominal,
   real with real (Fisher)
-- Excel required for cash flow tables]],
+- Excel required for cash flow tables
+- "EBIT is $X" -> type EBIT (then no
+  revenue or costs)
+- "takes sales from our other products"
+  -> lost sales: a cost, before tax
+- "a building built last year" -> SUNK:
+  leave it AND its depreciation out
+- "replace the old machine" -> type 22
+  (the whole table)]],
 
 STEPS_COMMON .. [[
 THIS TYPE (rate conversions):
@@ -4191,7 +4211,8 @@ local function solveFromSlots(qt)
     out:err("Something went wrong in the maths - check the inputs.")
     out:note("(detail: " .. tostring(err):gsub("^.*:%d+:%s*", "") .. ")")
   end
-  FSHEET.section(out)   -- the formula-sheet lines used, and the ones not on the sheet (after the answers)
+  -- the formula-sheet lines used, and the ones not on the sheet (after the answers)
+  if not pcall(FSHEET.section, out) then out:head("FORMULA SHEET (see N)") end
   return out
 end
 

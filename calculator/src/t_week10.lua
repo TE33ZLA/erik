@@ -227,7 +227,23 @@ WACC = 11.91%]],
     end
     if not VU then out:need("the cash flow (EBIT and Tc, or FCF) and rU, or VU"); return end
     if rU then out:note("the unlevered firm's WACC = rU = " .. pct(rU) .. "% (it has no debt)"); out:off("unlev") end
-    if not V.D then out:need("D: the permanent debt, to value the levered firm"); return end
+    if not V.D then
+      if V.DE and V.rd and rU then
+        -- only the D/E ratio is known: the costs still follow (weights from D/E)
+        local DE = V.DE
+        local re = rU + DE * (rU - V.rd) * (1 - Tc)
+        out:head("COST OF EQUITY AND WACC (levered, from D/E)")
+        out:row("rE", re, "%", "rU + D/E*(rU - rD)" .. (tax and "*(1 - Tc)" or "") .. " = " .. pct(rU) .. "% + " .. P(DE) .. " x " ..
+                pct(rU - V.rd) .. "%" .. (tax and (" x " .. P(1 - Tc)) or ""), "re")
+        local wE, wD = 1 / (1 + DE), DE / (1 + DE)
+        local w = re * wE + V.rd * (1 - Tc) * wD
+        out:row("WACC", w, "%", "rE*E/(E + D) + rD*D/(E + D)" .. (tax and "*(1 - Tc)" or "") .. ", E/V = " .. P(wE) .. ", D/V = " .. P(wD), "wacc")
+        if tax then out:uses("ret2", "wacct") else out:uses("re", "ru") end
+        out:note("give D in $ as well to value the levered firm and its shares")
+        return
+      end
+      out:need("D: the permanent debt, to value the levered firm"); return
+    end
     out:head(tax and "LEVERED FIRM (with tax)" or "LEVERED FIRM (no tax)")
     local VL
     if tax then
@@ -409,7 +425,14 @@ THIS TYPE:
 TRAPS
 - no tax: WACC stays at rU
 - with tax: VL = VU + Tc x D, so the
-  equity after a buyback is VL - D]],
+  equity after a buyback is VL - D
+
+IF THE QUESTION SAYS...
+- "EBIT of $X a year forever" -> value
+  from cash flows: VU = EBIT(1 - Tc)/rU
+- "price per share" -> (VL - D)/shares
+- "costs of financial distress" (textbook)
+  -> take their PV off VL]],
     worked = [[## Unlevered cost (no tax)
 Q: E $520m (9.5%), D $390m (6%).
 ENTER: mode rU | re 9.5 | rd 6 | E 520m |

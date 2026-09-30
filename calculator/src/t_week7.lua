@@ -510,6 +510,9 @@ IF THE QUESTION SAYS...
 - "can sell for 60% of cost" -> sell
 - "sunk cost" / "already paid" -> ignore
 - "loan interest" -> ignore (financing)
+- "book now or wait until you know" ->
+  act now or wait: the waiter pays the
+  later cost ONLY if it goes well
 
 TRAPS
 - probabilities must add to 100%

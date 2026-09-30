@@ -41,6 +41,8 @@ CASES = [
   (2, 'two stages: monthly, level forever', dict(C=500, r=.06, m='12 (monthly)', n=12, g2=0), dict(PV1=5809.466, PV2=94190.534, PV=100000)),
   (2, 'two stages: C from the total PV', dict(PV=2000, r=.08, n=10, g2=-.04), dict(C=192.0191, PV=2000)),
   (2, 'two stages + price -> NPV', dict(C=100, r=.08, n=10, g2=-.04, price=1000), dict(NPV=41.563)),
+  (2, 'deferred: C from PV (moved forward first)', dict(PV=10000, r=.10, n=5, first=3), dict(C=3191.95, _sheet='fv,pva,pv',
+   _off='C = PV*r/(1 - 1/(1 + r)^n)')),
   # ---- v23: type 8, NPV of repeating forever (on the sheet)
   (8, 'EAA and NPV forever', dict(k=.07, NPVA=24500, tA=6, NPVB=17800, tB=4),
    dict(EAAA=5139.997, NPVinfA=73428.53, EAAB=5255.061, NPVinfB=75072.29, _sheet='eav,npvinf')),
@@ -163,6 +165,7 @@ CASES = [
   (21, 'tax shield', dict(mode='tax shield and levered value', D=50, rd=.08, Tc=.3), dict(its=1.2, pvts=15)),
   (21, 'rE with tax', dict(rU=.08, rd=.06, D=315, E=420, Tc=.3), dict(re=.0905, wacc=.0697)),
   (21, 'buyback with tax', dict(mode='tax shield and levered value', D=125, rd=.055, Tc=.3, VU=250, rU=.11), dict(VL=287.5, E2=162.5, re2=.1396)),
+  (21, 'rU from EBIT, then rE and WACC from D/E', dict(mode='value from cash flows (EBIT or FCF)', EBIT=900, Tc=.3, VU=5000, rd=.08, DE=.5), dict(rU=.126, re=.1421, wacc=.113389)),
   (21, 'recapitalise', dict(mode='recapitalise to a new D/E', re=.10, rd=.06, E=690, D=690, newDE=1.5), dict(rU=.08, re2=.11)),
   (21, 'v23 value from EBIT: share price (brief)', dict(mode='value from cash flows (EBIT or FCF)', EBIT=1000, Tc=.3, rU=.10, D=2000, shares=400),
    dict(FCF=700, VU=7000, pvts=600, VL=7600, E=5600, price=14, _sheet='perp,vl,pvits', _off='E = VL - D')),

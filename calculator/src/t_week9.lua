@@ -406,7 +406,13 @@ TRAPS
   average SD (unless rho = 1)
 - past data: divide by n - 1
 - with the risk-free asset only one
-  term is left: SD = w x SD]],
+  term is left: SD = w x SD
+
+IF THE QUESTION SAYS...
+- "variance-covariance matrix" -> Var
+  on the diagonal, Cov off it
+- "the rest in T-bills" -> two shares +
+  the risk-free asset: wF = 1 - wA - wB]],
     worked = [[## Portfolio SD
 Q: $63,700 in A (SD 20.6%), $34,300 in
 B (SD 17.2%), correlation 0.4.

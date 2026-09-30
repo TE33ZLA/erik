@@ -287,6 +287,9 @@ IF THE QUESTION SAYS...
   freed = 10 x COGS/365
 - "pays on the last day of net 45" ->
   A/P days become 45
+- "a lockbox gets the cash 2 days
+  sooner for $X a month" -> float:
+  NPV = cash freed - fee/monthly rate
 
 TRAPS
 - A/R days use SALES, not COGS

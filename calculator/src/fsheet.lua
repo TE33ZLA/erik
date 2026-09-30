@@ -82,7 +82,7 @@ do
     nlump = { "n = ln(FVn/PV)/ln(1 + r)", "rearranged from FVn = PV*(1 + r)^n" },
     rlump = { "r = (FVn/PV)^(1/n) - 1", "rearranged from FVn = PV*(1 + r)^n" },
     mult = { "FVn/PV = the multiple (2 = double, 3 = triple)", "FVn = PV*(1 + r)^n: only the ratio FVn/PV matters" },
-    cont = { "FV = PV*e^(r*n)   PV = FV/e^(r*n)", "continuous compounding (the EAR line when m is huge)" },
+    cont = { "FV = PV*e^(r*n); PV = FV/e^(r*n)", "continuous compounding (the EAR line when m is huge)" },
     contn = { "n = ln(FV/PV)/r", "continuous compounding FV = PV*e^(r*n), solved for n" },
     contr = { "r = ln(FV/PV)/n", "continuous compounding FV = PV*e^(r*n), solved for r" },
     contear = { "EAR = e^r - 1", "continuous compounding (the EAR line when m is huge)" },
@@ -133,7 +133,7 @@ do
     eavnpv = { "NPV = EAV/r*(1 - 1/(1 + r)^n)", "EAV = NPV*r/(1 - 1/(1 + r)^n), solved for NPV (the PV of an annuity with C = EAV)" },
     depshield = { "Dep tax shield = Dep*tc", "part of the FCF line: (Rev - Costs)*(1 - tc) + Dep*tc" },
     ebitfcf = { "FCF = EBIT*(1 - tc) + Dep - CapEx - Change in NWC", "the FCF line with EBIT = Rev - Costs - Dep" },
-    nwcitems = { "NWC = Inventory + A/R - A/P   Change in NWC = NWC this year - NWC last year", "the Change in NWC in the FCF line" },
+    nwcitems = { "NWC = Inventory + A/R - A/P; then Change in NWC = NWC this year - NWC last year", "the Change in NWC in the FCF line" },
     sldep = { "Dep = (cost - salvage)/life (straight line)", "not on the sheet" },
     dvdep = { "DV dep = rate*opening book value", "not on the sheet" },
     bv = { "BV = cost - all depreciation so far", "not on the sheet: the BV in SV - (SV - BV)*tc" },
@@ -165,7 +165,7 @@ do
     freed = { "Cash freed = days cut*(COGS or sales)/365", "the days lines (days = balance/daily COGS), solved for the balance" },
     nwcbs = { "NWC = current assets - current liabilities", "not on the sheet" },
     fcfni = { "FCF = NI + Dep - CapEx - Change in NWC", "the FCF line with net income in place of (Rev - Costs - Dep)*(1 - tc)" },
-    float = { "Cash freed today = daily collections*days of float saved   NPV = cash freed - PV(fees)",
+    float = { "Cash freed today = daily collections*days of float saved; NPV = cash freed - PV(fees)",
               "not on the sheet; a fee every month forever is PV of a perpetuity = fee/monthly rate" },
     tcear = { "EAR = (1 + d/(1 - d))^(365/(N - D)) - 1", "the EAR line with APR/m = d/(1 - d) and m = 365/(N - D)" },
     creditcf = { "CF0 = -cost*Q + cash sales   later CF = CF0 + last month's credit sales", "credit policy cash flows, not on the sheet" },
@@ -182,7 +182,7 @@ do
     wtarget = { "wA = (Beta(p) - BetaB)/(BetaA - BetaB)", "Beta(p) = w1*Beta1 + w2*Beta2 with w2 = 1 - w1, solved for w1" },
     -- weeks 10-11
     rdat = { "after-tax rd = rd*(1 - Tc)", "the rd*(1 - Tc) part of the WACC line" },
-    mv = { "E = shares*share price   D = bonds*bond price", "market values, not on the sheet" },
+    mv = { "E = shares*share price; D = bonds*bond price", "market values, not on the sheet" },
     divp = { "DIVp = dividend rate*par value", "not on the sheet" },
     eqvl = { "E = VL - D", "the firm is split between its owners: E + D = VL (like E + D = U = A)" },
     price = { "share price = E/number of shares", "not on the sheet" },
@@ -195,7 +195,7 @@ do
   -- the sheet formulas each type can use (its N page starts with them)
   FSHEET.types = {
     { "fv", "pv", "ear" },
-    { "pva", "pvad", "fva", "fvad", "perp", "gperp", "gann", "pv", "npv", "lam", "interp" },
+    { "fv", "pv", "pva", "pvad", "fva", "fvad", "perp", "gperp", "gann", "npv", "lam", "interp" },
     { "pva", "lam", "interp" },
     { "bond", "zbond", "pva", "pv", "lam", "interp" },
     { "bond", "zbond", "irr", "npv", "lam", "interp" },
@@ -264,7 +264,7 @@ do
   -- the start of a type's N page ("@@" = a sheet section, "@=" = a formula; see buildDoc)
   function FSHEET.notes(ti)
     local ids = sorted(FSHEET.types[ti] or {})
-    local t = { "## FORMULA SHEET (" .. #ids .. " for this type)" }
+    local t = { "## FORMULA SHEET (" .. ((#ids == 0) and "none" or tostring(#ids)) .. " for this type)" }
     if #ids == 0 then
       t[#t + 1] = "None: this type's formulas are not on the sheet. Each answer lists them under NOT ON THE SHEET."
     else

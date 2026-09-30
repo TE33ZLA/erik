@@ -163,8 +163,9 @@ do
       local t2 = {}
       for t = 1, n do t2[#t2 + 1] = P(cfs[t]) end
       out:head("ON YOUR TI-NSPIRE (Calculator page)")
-      out:xl("npv(" .. P(r * 100) .. "," .. P(cf0) .. ",{" .. table.concat(t2, ",") .. "})")
-      out:xl("irr(" .. P(cf0) .. ",{" .. table.concat(t2, ",") .. "})")
+      out:xl("npv(" .. P(r * 100) .. ", " .. P(cf0) .. ", {" .. table.concat(t2, ", ") .. "})")
+      out:xl("irr(" .. P(cf0) .. ", {" .. table.concat(t2, ", ") .. "})")
+      out:note("each is ONE line on the TI (spaces are fine)")
     end
     if irr then out:interp(function(rr) return npvAt(rr, cfs, n) end, irr, "", "NPV", "npv") end
   end
