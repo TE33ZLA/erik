@@ -7,6 +7,7 @@
 --@include t_week8.lua
 --@include t_week9.lua
 --@include t_week10.lua
+--@include t_replace.lua
 
 -- notes pages of the new types, laid out like the first ten
 for i2 = 11, #TYPES do
@@ -19,7 +20,7 @@ end
 GROUPS = {
   { t = "Wk 1-2  Time value of money", s = "lump sums, annuities, loans, rates", types = { 1, 2, 3, 10 } },
   { t = "Wk 3    Bonds and shares", s = "price, yield, sold early, dividends", types = { 4, 5, 6 } },
-  { t = "Wk 4-5  Projects and cash flows", s = "NPV, IRR, payback, PI, EAA, FCF", types = { 7, 8, 9 } },
+  { t = "Wk 4-5  Projects and cash flows", s = "NPV, IRR, payback, PI, EAA, FCF, replacement", types = { 7, 8, 9, 22 } },
   { t = "Wk 7    Project risk", s = "break-even, scenarios, trees, probabilities", types = { 11, 12, 13 } },
   { t = "Wk 8    Working capital", s = "days, cycles, trade credit, credit policy", types = { 14, 15, 16 } },
   { t = "Wk 9    Risk and return", s = "returns, SD, portfolios, beta, CAPM", types = { 17, 18, 19 } },
@@ -31,14 +32,14 @@ for gi, g in ipairs(GROUPS) do for _, ti in ipairs(g.types) do TYPES[ti].group =
 do
 local LOOKS = {
   "invest today | grows to | worth in n years | how long to double | what rate | compounded",
-  "each year | per month | annuity | forever | perpetuity | growing | first payment in | annuity due | deposits",
+  "each year | per month | annuity | forever | perpetuity | growing | first payment in | annuity due | deposits | then declines | then grows forever | falls each year forever | two stages | after year",
   "borrow | mortgage | repayment | loan | balance owing | still owe | rate rises | amortisation",
   "bond | coupon | face value | par | yield to maturity | YTM | price of the bond | semi-annual",
   "sold the bond | held for | realised yield | sold before maturity | return you earned",
   "dividend | share price | grows at | required return | constant growth | two-stage | DDM",
   "NPV | IRR | payback | profitability index | PI | accept | reject | crossover | mutually exclusive",
   "different lives | EAA | EAC | equivalent annual | replace | unequal lives",
-  "free cash flow | depreciation | tax | salvage | book value | working capital | incremental",
+  "free cash flow | depreciation | tax | salvage | book value | working capital | incremental | EBIT | lost sales | erosion | cannibalisation | inventory | receivables | payables | sunk cost | opportunity cost",
   "EAR | APR | effective | nominal | compounded monthly | continuous | real rate | inflation | Fisher",
 }
 for i2 = 1, 10 do TYPES[i2].looks = LOOKS[i2] end
@@ -52,6 +53,7 @@ local HINTS = {
     EAR = "the effective (true) yearly rate, if that is what is given" },
   { C = "the payment each period (the FIRST one if it grows)", r = "the yearly DISCOUNT rate as a %", m = "payments per year: monthly = 12",
     n = "number of payments; blank = forever (perpetuity)", g = "growth of the payments each period, e.g. 3",
+    g2 = "after the n payments it grows at g2 forever: -5 = falls 5% a period",
     timing = "start of each period = annuity due", first = "the period of the FIRST payment, e.g. 3 (deferred)",
     PV = "value today, if given (then another slot is solved)", FV = "value at the last payment, if given",
     price = "what you pay / the target: NPV = PV - price" },
@@ -77,6 +79,12 @@ local HINTS = {
     NPVB = "project B's NPV", tB = "project B's life", EAAB = "B's EAA if given" },
   { Tc = "company tax rate as a %", Rev = "revenue for the year", Costs = "operating costs (not depreciation)",
     Dep = "depreciation for the year", CapEx = "equipment bought this year", dNWC = "increase in working capital",
+    EBIT = "EBIT if the question gives it (then revenue and costs are not needed)",
+    lost = "sales lost on the firm's other products (erosion), before tax",
+    ATS = "after-tax salvage (or other after-tax cash) to ADD this year",
+    inv1 = "inventory at the end of THIS year (NWC = inv + A/R - A/P)", ar1 = "accounts receivable this year",
+    ap1 = "accounts payable this year", inv0 = "inventory LAST year (blank = 0, a new project)",
+    ar0 = "accounts receivable last year", ap0 = "accounts payable last year",
     sale = "what the machine is sold for", BV = "its book value at the sale", opFCF = "the final year's operating FCF",
     NWCrec = "working capital recovered at the end", cost = "the asset's cost", salv = "salvage value used for depreciation",
     life = "useful life in years", dvr = "diminishing-value rate as a %", yr = "the year you want the book value after",
@@ -128,7 +136,7 @@ do
   end)
   wrapSolve(2, function(V, out, x)
     local m = mOf(V.m)
-    if (V.g and V.g ~= 0) or not x.N or not x.C or not x.r then return end
+    if (V.g and V.g ~= 0) or V.g2 or not x.N or not x.C or not x.r then return end
     if V.first and V.first > 1 then out:note("first payment later than t = 1: the Finance Solver gives the value one period before the first payment"); end
     local due = tostring(V.timing or ""):find("start") ~= nil
     if x.PV and not (V.first and V.first > 1) then
@@ -184,6 +192,7 @@ FINDER = {
         { t = "payments forever (perpetuity)", go = { type = 2, want = "PV", say = "leave n BLANK = forever" } },
         { t = "payments that grow", go = { type = 2, want = "PV", say = "type the growth g" } },
         { t = "first payment later, or at the start", go = { type = 2, want = "PV", say = "set 'first payment at t' or the timing" } },
+        { t = "n payments, then growing or falling forever", go = { type = 2, want = "PV", say = "type n (the first stage), then g2 (e.g. -4 for a 4% fall)" } },
       } } },
     { t = "A LOAN or mortgage", s = "'borrow $400,000 over 25 years'", kids = {
       q = "What do they ask for?", opts = {
@@ -212,6 +221,7 @@ FINDER = {
         { t = "the cash flow of each year", go = { type = 7 } },
         { t = "two projects with different lives", go = { type = 8 } },
         { t = "revenue, costs, tax, depreciation", go = { type = 9 } },
+        { t = "replace an old machine (the whole table)", go = { type = 22 } },
         { t = "a graph of NPV against the rate", go = { type = 7, set = { cmp = "graph" } } },
         { t = "which method or rule is right?", theory = "npv" },
       } } },
@@ -224,6 +234,7 @@ FINDER = {
         { t = "a decision node (the best option)", go = { type = 12, set = { mode = "decision" } } },
         { t = "the NPV with uncertain cash flow", go = { type = 12, set = { mode = "project" } } },
         { t = "sell (abandon) or keep", go = { type = 12, set = { mode = "sell" } } },
+        { t = "act now or wait (book now or wait and see)", go = { type = 12, set = { mode = "act" } } },
         { t = "a joint or 'given' probability", go = { type = 13 } },
       } } },
     { t = "WORKING CAPITAL, trade credit", s = "'inventory days', '2/10 net 30'", kids = {
@@ -233,6 +244,7 @@ FINDER = {
         { t = "cash freed by changing the days", go = { type = 14, set = { mode = "cash" } } },
         { t = "net working capital", go = { type = 14, set = { mode = "NWC" } } },
         { t = "firm value from FCF", go = { type = 14, set = { mode = "firm" } } },
+        { t = "collect faster: lockbox, billing firm, float", go = { type = 14, set = { mode = "float" } } },
         { t = "cost of skipping a discount", go = { type = 15 } },
         { t = "switch credit policy? (NPV)", go = { type = 16 } },
       } } },
@@ -243,6 +255,7 @@ FINDER = {
         { t = "SD from past returns", go = { type = 17, set = { mode = "past" } } },
         { t = "CV or Sharpe ratio", go = { type = 17, set = { mode = "CV" } } },
         { t = "a two-share portfolio", go = { type = 18 } },
+        { t = "two shares + risk-free, or a Var-Cov matrix", go = { type = 18, set = { mode = "two shares" } } },
         { t = "correlation or covariance", go = { type = 18, set = { mode = "forecast" }, say = "pick the mode that matches the data" } },
         { t = "a required return (CAPM)", go = { type = 19 } },
         { t = "beta, or portfolio beta", go = { type = 19, set = { mode = "beta" } } },
@@ -257,6 +270,7 @@ FINDER = {
         { t = "cost of equity with debt (MM)", go = { type = 21 } },
         { t = "unlevered cost of capital", go = { type = 21, set = { mode = "unlev" } } },
         { t = "tax shield, levered value", go = { type = 21, set = { mode = "tax" } } },
+        { t = "value or share price from EBIT / cash flow", go = { type = 21, set = { mode = "value" } } },
       } } },
     { t = "NO NUMBERS: explain / true-false", s = "'what happens if...', 'which is TRUE'", theory = true },
   },
@@ -295,6 +309,8 @@ FILLING IN A QUESTION
 - leave the unknown BLANK
 - rates as PERCENT: 7 means 7 %
 - money: 4750, 4.75k or 1.2m
+- sums work too: 4/12, 1.08^2,
+  50000-40000, (3+4)*2
 - a NEGATIVE number: the (-) key
 - ENTER = SOLVE, ESC = back
 - D (or C) clears every box
@@ -307,11 +323,18 @@ ON THE ANSWER PAGE
 - T: the table (timelines, schedules)
 - ON YOUR TI-NSPIRE: the line to type
   to check it with the calculator
+- FORMULA SHEET: the exam sheet's lines
+  this answer used, typed as they must
+  be in the exam box; NOT ON THE SHEET:
+  the other formulas, and where they
+  come from
 
 HELP ON EVERY PAGE
 Y  the theory for this type: the
    what-if rules and the traps
-N  notes: formulas + what letters mean
+N  notes: this type's formula-sheet
+   lines first, then formulas + what
+   the letters mean
 A  steps + traps: what to WRITE
 W  worked examples from the course
 H  this page      ESC  go back]]

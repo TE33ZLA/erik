@@ -17,8 +17,8 @@ do
   local MODES17 = { "realised return (one year)", "several years: annualised", "forecast: states of the economy",
                     "past returns (a sample)", "CV and Sharpe ratio" }
   local function riskTail(out, ER, SD, rf)
-    if ER and SD and ER ~= 0 then out:row("CV (risk per unit of return)", SD / ER, "", "SD/E[R] = " .. P(SD) .. "/" .. P(ER), "cv") end
-    if ER and SD and rf and SD > 0 then out:row("Sharpe ratio", (ER - rf) / SD, "", "(E[R] - rf)/SD = (" .. P(ER) .. " - " .. P(rf) .. ")/" .. P(SD), "sharpe") end
+    if ER and SD and ER ~= 0 then out:row("CV (risk per unit of return)", SD / ER, "", "SD/E[R] = " .. P(SD) .. "/" .. P(ER), "cv"); out:uses("cv") end
+    if ER and SD and rf and SD > 0 then out:row("Sharpe ratio", (ER - rf) / SD, "", "(E[R] - rf)/SD = (" .. P(ER) .. " - " .. P(rf) .. ")/" .. P(SD), "sharpe"); out:uses("sharpe") end
   end
   local function solveOne(V, out)
     local mode = V.mode or MODES17[1]
@@ -34,6 +34,7 @@ do
       out:row("dividend yield", div / V.P0, "%", "Div/P0 = " .. P(div) .. "/" .. P(V.P0), "dy")
       out:row("capital gain yield", (V.P1 - V.P0) / V.P0, "%", "(P1 - P0)/P0 = (" .. P(V.P1) .. " - " .. P(V.P0) .. ")/" .. P(V.P0), "cg")
       out:row("total return R", (div + V.P1 - V.P0) / V.P0, "%", "(Div + P1 - P0)/P0", "R")
+      out:uses("ret"); out:off("yields")
       return
     end
     if mode == MODES17[2] then
@@ -45,6 +46,7 @@ do
       out:row("holding-period return", g - 1, "%", "(1 + R1)(1 + R2)... - 1", "hpr")
       out:row("annualised (compound) return", g ^ (1 / #rs) - 1, "%", "(1 + HPR)^(1/" .. #rs .. ") - 1", "ann")
       out:row("arithmetic average", mean(rs), "%", "(R1 + R2 + ...)/" .. #rs, "avg")
+      out:off("hpr"); out:off("annret"); out:uses("mean")
       out:note("the annualised (geometric) return is never above the arithmetic average")
       return
     end
@@ -61,6 +63,7 @@ do
       out:row("expected return E[R]", ER, "%", "sum p x R", "ER")
       out:row("variance", var, "", "sum p x (R - E[R])^2", "var")
       out:row("SD", sqrt(var), "%", "square root of the variance", "sd")
+      out:uses("er", "varp"); out:off("sd")
       riskTail(out, ER, sqrt(var), V.rf)
       return
     end
@@ -74,6 +77,7 @@ do
       out:row("average return", m, "%", "sum R / " .. #rs, "avg")
       out:row("variance", var, "", "sum (R - avg)^2 / (n - 1) = " .. P(ss) .. "/" .. (#rs - 1), "var")
       out:row("SD", sqrt(var), "%", "square root of the variance", "sd")
+      out:uses("mean", "vars"); out:off("sd")
       riskTail(out, m, sqrt(var), V.rf)
       out:head("ON YOUR TI-NSPIRE")
       out:xl("stDevSamp({" .. join(rs, P) .. "})")
@@ -183,35 +187,82 @@ avg 8.75%; SD = 23.51%]],
   -- 18 two shares: a portfolio
   ------------------------------------------------------------------
   local MODES18 = { "SDs + correlation known", "forecast table (states)", "past returns (a sample)",
-                    "one share + the risk-free asset", "weights from holdings" }
-  local function port(out, wA, ERA, ERB, sA, sB, cov)
-    local wB = 1 - wA
-    out:head("PORTFOLIO (wA " .. pct(wA) .. "%, wB " .. pct(wB) .. "%)")
-    if ERA and ERB then out:row("E[Rp]", wA * ERA + wB * ERB, "%", "wA x E[RA] + wB x E[RB]", "ERp") end
+                    "one share + the risk-free asset", "weights from holdings", "two shares + the risk-free asset" }
+  -- wB defaults to 1 - wA; a risk-free part wF = 1 - wA - wB adds rf to E[Rp] but no risk and no covariance
+  local function port(out, wA, ERA, ERB, sA, sB, cov, wB, rf)
+    wB = wB or (1 - wA)
+    local wF = 1 - wA - wB
+    local hasF = math.abs(wF) > 1e-9
+    out:head("PORTFOLIO (wA " .. pct(wA) .. "%, wB " .. pct(wB) .. "%" .. (hasF and (", risk-free " .. pct(wF) .. "%") or "") .. ")")
+    local ERp, sdp
+    if ERA and ERB then
+      if hasF then
+        if rf then
+          ERp = wA * ERA + wB * ERB + wF * rf
+          out:row("E[Rp]", ERp, "%", "wA x E[RA] + wB x E[RB] + wF x rf = " .. P(wA) .. " x " .. P(ERA) .. " + " .. P(wB) .. " x " ..
+                  P(ERB) .. " + " .. P(wF) .. " x " .. P(rf), "ERp")
+          out:uses("erp")
+        else
+          out:need("rf: the return on the risk-free part (" .. pct(wF) .. "% of the money)")
+        end
+      else
+        ERp = wA * ERA + wB * ERB
+        out:row("E[Rp]", ERp, "%", "wA x E[RA] + wB x E[RB]", "ERp")
+        out:uses("erp")
+      end
+    end
     if sA and sB and cov then
       local var = wA ^ 2 * sA ^ 2 + wB ^ 2 * sB ^ 2 + 2 * wA * wB * cov
-      out:row("portfolio variance", var, "", "wA^2 sA^2 + wB^2 sB^2 + 2 wA wB Cov", "varp")
-      out:row("portfolio SD", sqrt(var), "%", "square root of the variance", "sdp")
-      out:note("SD of the portfolio is below the weighted average unless the correlation is +1")
+      out:row("portfolio variance", var, "", "wA^2 sA^2 + wB^2 sB^2 + 2 wA wB Cov = " .. P(wA ^ 2) .. " x " .. P(sA ^ 2) .. " + " ..
+              P(wB ^ 2) .. " x " .. P(sB ^ 2) .. " + 2 x " .. P(wA) .. " x " .. P(wB) .. " x " .. P(cov), "varp")
+      sdp = sqrt(var)
+      out:row("portfolio SD", sdp, "%", "square root of the variance", "sdp")
+      out:uses("varpf"); out:off("sd")
+      if hasF then out:note("the risk-free part has no risk and no covariance: it adds nothing to the variance")
+      else out:note("SD of the portfolio is below the weighted average unless the correlation is +1") end
+    end
+    if ERp and sdp and rf and sdp > 0 then
+      out:row("Sharpe ratio of the portfolio", (ERp - rf) / sdp, "", "(E[Rp] - rf)/SDp = (" .. P(ERp) .. " - " .. P(rf) .. ")/" .. P(sdp), "shp")
+      out:uses("sharpe")
     end
   end
   local function solvePort(V, out)
     local mode = V.mode or MODES18[1]
-    local wA = V.wA
+    local wA, wB = V.wA, V.wB
     if not wA and V.amtA and V.amtB then
-      wA = V.amtA / (V.amtA + V.amtB)
-      out:row("wA (from the amounts)", wA, "%", "A/(A + B) = " .. P(V.amtA) .. "/" .. P(V.amtA + V.amtB), "wA")
-    end
-    if mode == MODES18[1] then
-      local cov, rho = V.cov, V.rho
-      if cov == nil and rho and V.sA and V.sB then
-        cov = rho * V.sA * V.sB
-        out:row("covariance", cov, "", "rho x sA x sB = " .. P(rho) .. " x " .. P(V.sA) .. " x " .. P(V.sB), "cov")
-      elseif cov and not rho and V.sA and V.sB then
-        out:row("correlation", cov / (V.sA * V.sB), "", "Cov/(sA x sB) = " .. P(cov) .. "/(" .. P(V.sA) .. " x " .. P(V.sB) .. ")", "rho")
+      local tot = V.amtT or (V.amtA + V.amtB + (V.amtF or 0))
+      wA = V.amtA / tot
+      if math.abs(tot - V.amtA - V.amtB) < 1e-9 then
+        out:row("wA (from the amounts)", wA, "%", "A/(A + B) = " .. P(V.amtA) .. "/" .. P(V.amtA + V.amtB), "wA")
+      else
+        -- v23: part of the money is in the risk-free asset
+        wB = V.amtB / tot
+        out:row("wA (from the amounts)", wA, "%", "$ in A/total = " .. P(V.amtA) .. "/" .. P(tot), "wA")
+        out:row("wB (from the amounts)", wB, "%", "$ in B/total = " .. P(V.amtB) .. "/" .. P(tot), "wB")
+        out:row("w risk-free", 1 - wA - wB, "%", "1 - wA - wB = the rest of the " .. P(tot) ..
+                (V.amtT and "" or (" (" .. P(V.amtF) .. " in the risk-free asset)")), "wF")
       end
-      if not wA then out:need("the weight of A (or the two amounts)"); return end
-      port(out, wA, V.ERA, V.ERB, V.sA, V.sB, cov)
+      out:off("weights")
+    elseif wA and wB then
+      out:row("w risk-free", 1 - wA - wB, "%", "1 - wA - wB = 1 - " .. P(wA) .. " - " .. P(wB), "wF")
+    end
+    if mode == MODES18[1] or mode == MODES18[6] then
+      -- SDs, or variances (a variance-covariance matrix: Var on the diagonal, Cov off it)
+      local sA, sB = V.sA, V.sB
+      if not sA and V.vA then sA = sqrt(V.vA); out:row("SD of A", sA, "%", "sqrt(VarA) = sqrt(" .. P(V.vA) .. ")", "sA"); out:off("sd") end
+      if not sB and V.vB then sB = sqrt(V.vB); out:row("SD of B", sB, "%", "sqrt(VarB) = sqrt(" .. P(V.vB) .. ")", "sB"); out:off("sd") end
+      local cov, rho = V.cov, V.rho
+      if cov == nil and rho and sA and sB then
+        cov = rho * sA * sB
+        out:row("covariance", cov, "", "rho x sA x sB = " .. P(rho) .. " x " .. P(sA) .. " x " .. P(sB), "cov")
+        out:off("covrho")
+      elseif cov and not rho and sA and sB then
+        out:row("correlation", cov / (sA * sB), "", "Cov/(sA x sB) = " .. P(cov) .. "/(" .. P(sA) .. " x " .. P(sB) .. ")", "rho")
+        out:uses("corr")
+      end
+      if not wA then out:need("the weight of A (or the amounts: $ in A, $ in B" .. ((mode == MODES18[6]) and ", and the total or the $ in the risk-free asset)" or ")")); return end
+      if (V.vA or V.vB or V.cov) and sA and sB and cov then out:off("varcov") end
+      port(out, wA, V.ERA, V.ERB, sA, sB, cov, wB, V.rf)
       return
     end
     if mode == MODES18[2] then
@@ -229,6 +280,7 @@ avg 8.75%; SD = 23.51%]],
       out:row("SD A", sqrt(vA), "%", "sqrt(sum p (RA - E[RA])^2)", "sA"); out:row("SD B", sqrt(vB), "%", "sqrt(sum p (RB - E[RB])^2)", "sB")
       out:row("covariance", cv, "", "sum p (RA - E[RA])(RB - E[RB])", "cov")
       out:row("correlation", cv / (sqrt(vA) * sqrt(vB)), "", "Cov/(sA x sB)", "rho")
+      out:uses("er", "varp", "covp", "corr"); out:off("sd")
       if wA then port(out, wA, EA, EB, sqrt(vA), sqrt(vB), cv) end
       return
     end
@@ -243,6 +295,7 @@ avg 8.75%; SD = 23.51%]],
       out:row("SD A", sqrt(sa / n1), "%", "sqrt(sum (RA - avg)^2/(n - 1))", "sA"); out:row("SD B", sqrt(sb / n1), "%", "sqrt(sum (RB - avg)^2/(n - 1))", "sB")
       out:row("covariance", sc / n1, "", "sum (RA - avgA)(RB - avgB)/(n - 1) = " .. P(sc) .. "/" .. n1, "cov")
       out:row("correlation", (sc / n1) / (sqrt(sa / n1) * sqrt(sb / n1)), "", "Cov/(sA x sB)", "rho")
+      out:uses("mean", "vars", "covs", "corr"); out:off("sd")
       if wA then port(out, wA, mA, mB, sqrt(sa / n1), sqrt(sb / n1), sc / n1) end
       return
     end
@@ -250,9 +303,10 @@ avg 8.75%; SD = 23.51%]],
       local w = wA
       if not (w and V.sA) then out:need("the weight in the share and its SD"); return end
       out:head("SHARE + RISK-FREE ASSET")
-      if V.ERA and V.rf then out:row("E[Rp]", w * V.ERA + (1 - w) * V.rf, "%", "w x E[R] + (1 - w) x rf", "ERp") end
+      if V.ERA and V.rf then out:row("E[Rp]", w * V.ERA + (1 - w) * V.rf, "%", "w x E[R] + (1 - w) x rf", "ERp"); out:uses("erp") end
       out:row("portfolio SD", w * V.sA, "%", "w x SD (the risk-free asset has no risk) = " .. P(w) .. " x " .. P(V.sA), "sdp")
-      if V.ERA and V.rf then out:row("Sharpe ratio", (V.ERA - V.rf) / V.sA, "", "(E[R] - rf)/SD: the same for any mix", "sh") end
+      out:off("sdrf")
+      if V.ERA and V.rf then out:row("Sharpe ratio", (V.ERA - V.rf) / V.sA, "", "(E[R] - rf)/SD: the same for any mix", "sh"); out:uses("sharpe") end
       return
     end
     local vals, tot = {}, 0
@@ -262,12 +316,15 @@ avg 8.75%; SD = 23.51%]],
     end
     if tot == 0 then out:need("shares and price for each holding"); return end
     out:row("total value", tot, "$", "sum of shares x price", "tot")
+    out:off("weights")
     for k2 = 1, 3 do if vals[k2] then out:row("weight " .. k2, vals[k2] / tot, "%", P(vals[k2]) .. "/" .. P(tot), "w" .. k2) end end
   end
   local slots18 = { S("mode", "what you have", "choice", MODES18, 1),
     S("wA", "wA weight in A (%)", "pct"), S("amtA", "or: $ in A", "money"), S("amtB", "and $ in B", "money"),
     S("ERA", "E[RA] (%)", "pct"), S("ERB", "E[RB] (%)", "pct"), S("sA", "SD of A (%)", "pct"), S("sB", "SD of B (%)", "pct"),
-    S("rho", "correlation (e.g. 0.4)", "num"), S("cov", "or: covariance (e.g. 0.012)", "num"), S("rf", "rf risk-free (%)", "pct") }
+    S("rho", "correlation (e.g. 0.4)", "num"), S("cov", "or: covariance (e.g. 0.012)", "num"), S("rf", "rf risk-free (%)", "pct"),
+    S("wB", "wB weight in B (%)", "pct"), S("amtT", "total $ (with risk-free)", "money"), S("amtF", "or: $ in the risk-free", "money"),
+    S("vA", "or: variance of A (0.04)", "num"), S("vB", "or: variance of B", "num") }
   for k2 = 1, 4 do
     slots18[#slots18 + 1] = S("p" .. k2, "state " .. k2 .. ": probability (%)", "pct")
     slots18[#slots18 + 1] = S("A" .. k2, "state/period " .. k2 .. ": R of A (%)", "pct")
@@ -283,12 +340,13 @@ avg 8.75%; SD = 23.51%]],
   end
   table.insert(TYPES, {
     name = "Two shares: portfolio risk", group = 6, solve = solvePort,
-    desc = "portfolio return and SD, covariance and correlation (forecast or past data), risk-free mixes, weights",
-    looks = "portfolio | weight | correlation | covariance | standard deviation of the portfolio | risk-free asset | invest $",
+    desc = "portfolio return and SD, covariance and correlation (forecast or past data), risk-free mixes (one or two shares), weights",
+    looks = "portfolio | weight | correlation | covariance | standard deviation of the portfolio | risk-free asset | invest $ | variance-covariance matrix | covariance matrix | variance | total budget | treasury bills",
     slots = slots18,
     vis = function(Sm)
       local m = Sm.mode.opts[Sm.mode.idx]
-      if m == MODES18[1] then return { "mode", "wA", "amtA", "amtB", "ERA", "ERB", "sA", "sB", "rho", "cov" } end
+      if m == MODES18[1] then return { "mode", "wA", "amtA", "amtB", "ERA", "ERB", "sA", "vA", "sB", "vB", "rho", "cov" } end
+      if m == MODES18[6] then return { "mode", "amtA", "amtB", "amtT", "amtF", "wA", "wB", "ERA", "ERB", "rf", "sA", "vA", "sB", "vB", "cov", "rho" } end
       if m == MODES18[2] then return { "mode", "p1", "A1", "B1", "p2", "A2", "B2", "p3", "A3", "B3", "p4", "A4", "B4", "wA" } end
       if m == MODES18[3] then return { "mode", "A1", "B1", "A2", "B2", "A3", "B3", "A4", "B4", "A5", "B5", "A6", "B6", "wA" } end
       if m == MODES18[4] then return { "mode", "wA", "ERA", "sA", "rf" } end
@@ -299,7 +357,12 @@ avg 8.75%; SD = 23.51%]],
       wA = "share of your money in A, e.g. 65 (B gets the rest)",
       amtA = "or the dollars in A (and in B)",
       rho = "correlation between -1 and 1, e.g. 0.4",
-      cov = "covariance as a decimal, e.g. 0.01205",
+      cov = "covariance as a decimal, e.g. 0.01205 (off the diagonal of a matrix)",
+      wB = "B's share of ALL the money, e.g. 50 (the rest is risk-free)",
+      amtT = "the total $ you invest, risk-free part included",
+      amtF = "or: the $ put in the risk-free asset",
+      vA = "Var of A as a decimal, e.g. 0.04 (a matrix diagonal)",
+      vB = "Var of B as a decimal (the other diagonal)",
       sA = "standard deviation of A, e.g. 20.6",
       p1 = "chance of this state, e.g. 25",
       A1 = "A's return in this state or period, e.g. -2.2",
@@ -310,7 +373,8 @@ avg 8.75%; SD = 23.51%]],
     words = "the portfolio return is a weighted average; the portfolio risk is LESS than the average unless the shares move perfectly together",
     letters = { "wA, wB = weights (they add to 100%)", "E[R] = expected return", "sA, sB = standard deviations",
                 "Cov = covariance = rho x sA x sB", "rho = correlation (-1 to +1)", "rf = risk-free rate" },
-    acronyms = { "SD = standard deviation", "Cov = covariance", "rho = correlation coefficient" },
+    acronyms = { "SD = standard deviation", "Cov = covariance", "rho = correlation coefficient",
+                 "Var = variance = SD^2; a variance-covariance matrix has Var on the diagonal and Cov off it" },
     notes = [[TWO SHARES: A PORTFOLIO
 
 HOW TO USE
@@ -324,7 +388,13 @@ FORMULAS
 $$E[R_p] = w_A*E[R_A] + w_B*E[R_B]
 $$Var_p = w_A^2*s_A^2 + w_B^2*s_B^2 + 2*w_A*w_B*Cov
 $$Cov = rho*s_A*s_B   rho = (Cov)/(s_A*s_B)
-with the risk-free asset: SD_p = w*SD]],
+with the risk-free asset: SD_p = w*SD
+two shares + risk-free: wF = 1 - wA - wB
+E[Rp] = wA*E[RA] + wB*E[RB] + wF*rf
+Var(p) = wA^2*VarA + wB^2*VarB +
+2*wA*wB*Cov (rf adds no risk)
+a variance-covariance matrix: Var on
+the diagonal, Cov off it.]],
     assume = STEPS_COMMON .. [[
 THIS TYPE:
 1. weights first (they add to 1)
@@ -352,7 +422,21 @@ SD = 0.55 x 45% = 24.75%
 ## Correlation from covariance
 Q: Cov 0.01205, SDs 39.5% and 30.5%.
 ENTER: sA 39.5 | sB 30.5 | cov 0.01205
-rho = 0.01205/(0.395 x 0.305) = 0.1]],
+rho = 0.01205/(0.395 x 0.305) = 0.1
+
+## Two shares + the risk-free asset
+Q: $100,000: $30,000 in A, $50,000 in
+B, the rest in T-bills (4%). E[R] 10%
+and 14%; Var 0.04 and 0.09; Cov 0.012.
+ENTER: mode two shares + risk-free |
+amtA 30000 | amtB 50000 | amtT 100000 |
+ERA 10 | ERB 14 | rf 4 | vA 0.04 |
+vB 0.09 | cov 0.012
+wA 30%, wB 50%, wF 20%
+E[Rp] = 3% + 7% + 0.8% = 10.8%
+Var = 0.09 x 0.04 + 0.25 x 0.09 +
+2 x 0.3 x 0.5 x 0.012 = 0.0297
+SD = 17.23%]],
   })
 
   ------------------------------------------------------------------
@@ -369,12 +453,14 @@ rho = 0.01205/(0.395 x 0.305) = 0.1]],
       if not cov and V.rho and V.si and V.sm then
         cov = V.rho * V.si * V.sm
         out:row("Cov(i, M)", cov, "", "rho x SD_i x SD_M = " .. P(V.rho) .. " x " .. P(V.si) .. " x " .. P(V.sm), "cov")
+        out:off("covrho")
       end
       local varm = V.varm or (V.sm and V.sm ^ 2)
       if not (cov and varm) then out:need("Cov(i, M) (or rho and both SDs) and the market's SD (or variance)"); return end
       local b = cov / varm
       out:row("beta", b, "", "Cov(i, M)/Var(M) = " .. P(cov) .. "/" .. P(varm), "beta")
-      if V.rf and rm then out:row("required return (CAPM)", capm(V.rf, b, rm), "%", "rf + beta x (E[RM] - rf)", "req") end
+      out:uses("beta")
+      if V.rf and rm then out:row("required return (CAPM)", capm(V.rf, b, rm), "%", "rf + beta x (E[RM] - rf)", "req"); out:uses("capm") end
       return
     end
     if mode == MODES19[3] then
@@ -392,7 +478,9 @@ rho = 0.01205/(0.395 x 0.305) = 0.1]],
         out:row("weight " .. k2, w, "%", useAmt and (P(ws[k2]) .. "/" .. P(tot)) or "given", "w" .. k2)
       end
       out:row("portfolio beta", bp, "", "sum w x beta", "bp")
-      if V.rf and rm then out:row("portfolio E[R] (CAPM)", capm(V.rf, bp, rm), "%", "rf + beta_p x (E[RM] - rf)", "erp") end
+      out:uses("betap")
+      if useAmt then out:off("weights") end
+      if V.rf and rm then out:row("portfolio E[R] (CAPM)", capm(V.rf, bp, rm), "%", "rf + beta_p x (E[RM] - rf)", "erp"); out:uses("capm") end
       return
     end
     if mode == MODES19[4] then
@@ -402,6 +490,7 @@ rho = 0.01205/(0.395 x 0.305) = 0.1]],
       local w = (bp - V.bB) / (V.bA - V.bB)
       out:row("weight in A", w, "%", "(beta_p - beta_B)/(beta_A - beta_B) = (" .. P(bp) .. " - " .. P(V.bB) .. ")/(" .. P(V.bA) .. " - " .. P(V.bB) .. ")", "wA")
       out:row("weight in B", 1 - w, "%", "1 - wA", "wB")
+      out:off("betaT"); out:off("wtarget")
       return
     end
     if not (V.rf and rm and V.beta) then out:need("rf, E[RM] (or the market risk premium) and beta"); return end
@@ -409,7 +498,9 @@ rho = 0.01205/(0.395 x 0.305) = 0.1]],
     out:head("CAPM")
     out:row("market risk premium", rm - V.rf, "%", "E[RM] - rf", "mrp")
     out:row("required return E[Ri]", req, "%", "rf + beta x (E[RM] - rf) = " .. pct(V.rf) .. "% + " .. P(V.beta) .. " x " .. pct(rm - V.rf) .. "%", "req")
+    out:uses("capm")
     if V.fc then
+      out:off("alpha")
       out:head("ON THE SML?")
       out:row("alpha (forecast - required)", V.fc - req, "%", pct(V.fc) .. "% - " .. pct(req) .. "%", "alpha")
       if V.fc > req then out:add("ok", "ABOVE the SML: UNDERVALUED -> buy")

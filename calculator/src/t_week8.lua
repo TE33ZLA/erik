@@ -6,11 +6,95 @@
 ----------------------------------------------------------------------
 do
   local MODES14 = { "days + cycles from balances", "cycles from days", "cash freed by a change in days",
-                    "NWC from the balance sheet", "firm value from FCF" }
+                    "NWC from the balance sheet", "firm value from FCF", "float: faster collection (lockbox)" }
   local function yearOf(s) return tonumber(tostring(s or "365"):match("^%d+")) or 365 end
+
+  -- v23: a billing firm or lockbox collects the cash sooner (less collection float) for a fee
+  local function solveFloat(V, out)
+    if not (V.dcol and V.fdays) then out:need("the average daily collections and the days of float saved"); return end
+    local freed = V.dcol * V.fdays
+    out:head("CASH FREED TODAY")
+    out:row("cash freed today", freed, "$", "daily collections x days saved = " .. P(V.dcol) .. " x " .. P(V.fdays), "freed")
+    out:note("the cash comes in " .. P(V.fdays) .. " days sooner: a one-off gain, today")
+    out:off("float")
+    if not (V.feeM or V.feeY) then out:need("the fee (a month or a year)"); return end
+    local ear, im
+    local mf = tonumber(tostring(V.mf or "12"):match("^%d+")) or 12
+    out:head("RATE")
+    if V.apr then
+      if mf == 12 then
+        im = V.apr / 12
+        ear = (1 + im) ^ 12 - 1
+        out:row("monthly rate i", im, "%", "APR/12 = " .. P(V.apr) .. "/12", "im")
+        out:off("iper")
+      else
+        ear = (1 + V.apr / mf) ^ mf - 1
+        out:row("EAR", ear, "%", "(1 + APR/m)^m - 1 = (1 + " .. P(V.apr) .. "/" .. mf .. ")^" .. mf .. " - 1", "ear")
+        out:uses("ear")
+        im = (1 + ear) ^ (1 / 12) - 1
+        out:row("monthly rate i", im, "%", "(1 + EAR)^(1/12) - 1 = " .. P(1 + ear) .. "^(1/12) - 1", "im")
+        out:off("iperear")
+      end
+    elseif V.ear then
+      ear = V.ear
+      im = (1 + ear) ^ (1 / 12) - 1
+      out:row("monthly rate i", im, "%", "(1 + EAR)^(1/12) - 1 = " .. P(1 + ear) .. "^(1/12) - 1", "im")
+      out:off("iperear")
+    else
+      out:need("the rate: an APR (with how often it compounds) or an EAR")
+      return
+    end
+    if im <= 0 then out:err("the rate must be above zero"); return end
+    out:head("PV OF THE FEES")
+    local pvf = 0
+    if V.feeM then
+      local pv
+      if V.fmon then
+        pv = V.feeM * annFac(im, V.fmon)
+        out:row("PV of the monthly fees", pv, "$", "fee/i*(1 - 1/(1 + i)^N) = " .. P(V.feeM) .. "/" .. P(im) ..
+                "*(1 - 1/" .. P(1 + im) .. "^" .. P(V.fmon) .. ")  (N = " .. P(V.fmon) .. " months)", "pvM")
+        out:uses("pva")
+      else
+        pv = V.feeM / im
+        out:row("PV of the monthly fees", pv, "$", "fee/i (every month, forever) = " .. P(V.feeM) .. "/" .. P(im), "pvM")
+        out:uses("perp")
+      end
+      pvf = pvf + pv
+    end
+    if V.feeY then
+      local pv
+      if V.fmon then
+        local ny = V.fmon / 12
+        pv = V.feeY * annFac(ear, ny)
+        out:row("PV of the yearly fees", pv, "$", "fee/EAR*(1 - 1/(1 + EAR)^n), n = " .. P(ny) .. " years = " .. P(V.feeY) .. "/" .. P(ear) ..
+                "*(1 - 1/" .. P(1 + ear) .. "^" .. P(ny) .. ")", "pvY")
+        out:uses("pva")
+      else
+        pv = V.feeY / ear
+        out:row("PV of the yearly fees", pv, "$", "fee/EAR (at each year end, forever) = " .. P(V.feeY) .. "/" .. P(ear), "pvY")
+        out:uses("perp")
+      end
+      pvf = pvf + pv
+    end
+    out:row("PV of all the fees", pvf, "$", (V.feeM and V.feeY) and "monthly + yearly" or "as above", "pvfees")
+    out:head("DECISION")
+    local npv = freed - pvf
+    out:row("NPV", npv, "$", "cash freed - PV(fees) = " .. P(freed) .. " - " .. P(pvf), "NPV")
+    out:add(npv >= 0 and "ok" or "bad", (npv >= 0) and "NPV >= 0: take the service (cut the float)" or "NPV < 0: the fee costs more than the float saves")
+    out:uses("npv")
+    out:head("QUICK CHECK: INTEREST vs FEE")
+    if V.feeM then
+      out:row("interest a month on the cash freed", freed * im, "$", "cash freed x i = " .. P(freed) .. " x " .. P(im) ..
+              "  vs the fee " .. P(V.feeM), "intM")
+    end
+    out:row("interest a year on the cash freed", freed * ear, "$", "cash freed x EAR = " .. P(freed) .. " x " .. P(ear), "intY")
+    out:row("fees a year", (V.feeM or 0) * 12 + (V.feeY or 0), "$", "12 x monthly fee + yearly fee", "feeYr")
+    out:note("interest earned above the fee -> worth it (the NPV is the exact test; with fees for a set time use the NPV)")
+  end
 
   local function solveWC(V, out)
     local mode = V.mode or MODES14[1]
+    if mode == MODES14[6] then solveFloat(V, out); return end
     local Y = yearOf(V.year)
     if mode == MODES14[1] then
       local dS = V.sales and V.sales / Y
@@ -24,13 +108,14 @@ do
       if V.inv and not dC then out:need("COGS for inventory days") end
       if V.ar and not dS then out:need("sales for A/R days") end
       if V.ap and not dC then out:need("COGS for A/P days") end
-      if inv then out:row("inventory days", inv, "days", "inventory/(COGS/" .. Y .. ") = " .. P(V.inv) .. "/" .. P(dC), "invD") end
-      if ar then out:row("A/R days", ar, "days", "receivables/(sales/" .. Y .. ") = " .. P(V.ar) .. "/" .. P(dS), "arD") end
-      if ap then out:row("A/P days", ap, "days", "payables/(COGS/" .. Y .. ") = " .. P(V.ap) .. "/" .. P(dC), "apD") end
+      if inv then out:row("inventory days", inv, "days", "inventory/(COGS/" .. Y .. ") = " .. P(V.inv) .. "/" .. P(dC), "invD"); out:uses("invd") end
+      if ar then out:row("A/R days", ar, "days", "receivables/(sales/" .. Y .. ") = " .. P(V.ar) .. "/" .. P(dS), "arD"); out:uses("ard") end
+      if ap then out:row("A/P days", ap, "days", "payables/(COGS/" .. Y .. ") = " .. P(V.ap) .. "/" .. P(dC), "apD"); out:uses("apd") end
       out:head("CYCLES")
-      if inv and ar then out:row("operating cycle", inv + ar, "days", "inventory days + A/R days", "oc") end
+      if inv and ar then out:row("operating cycle", inv + ar, "days", "inventory days + A/R days", "oc"); out:off("opcycle") end
       if inv and ar and ap then
         out:row("cash cycle (CCC)", inv + ar - ap, "days", "inventory days + A/R days - A/P days", "ccc")
+        out:uses("ccc")
         if V.paynet then out:row("CCC if you pay on day " .. P(V.paynet), inv + ar - V.paynet, "days", "A/P days replaced by " .. P(V.paynet), "ccc2") end
       else
         out:need("inventory, receivables, payables, sales and COGS for the cycles")
@@ -41,7 +126,8 @@ do
       if not (V.invD and V.arD) then out:need("inventory days and A/R days"); return end
       out:head("CYCLES")
       out:row("operating cycle", V.invD + V.arD, "days", "inventory days + A/R days", "oc")
-      if V.apD then out:row("cash cycle (CCC)", V.invD + V.arD - V.apD, "days", "inventory days + A/R days - A/P days = " .. P(V.invD) .. " + " .. P(V.arD) .. " - " .. P(V.apD), "ccc") end
+      out:off("opcycle")
+      if V.apD then out:row("cash cycle (CCC)", V.invD + V.arD - V.apD, "days", "inventory days + A/R days - A/P days = " .. P(V.invD) .. " + " .. P(V.arD) .. " - " .. P(V.apD), "ccc"); out:uses("ccc") end
       out:note("a negative cash cycle: suppliers are paid AFTER customers pay")
       return
     end
@@ -55,6 +141,7 @@ do
       local d = V.newD - V.oldD
       local freed = (which == "payables (A/P)") and d * day or -d * day
       out:row("cash freed", freed, "$", (which == "payables (A/P)") and "(new - old A/P days) x one day" or "(old - new days) x one day", "freed")
+      out:off("freed")
       out:note(freed >= 0 and "positive: cash is released" or "negative: more cash is tied up")
       return
     end
@@ -64,6 +151,7 @@ do
       out:row("current assets", ca, "$", "cash + receivables + inventory + other", "ca")
       out:row("current liabilities", cl, "$", "payables + other current liabilities", "cl")
       out:row("NWC", ca - cl, "$", "current assets - current liabilities", "nwc")
+      out:off("nwcbs")
       return
     end
     -- firm value from next year's FCF growing forever
@@ -71,8 +159,10 @@ do
     local g = V.g or 0
     local fcf = V.ni + V.dep - (V.capex or 0) - (V.dnwc or 0)
     out:row("FCF next year", fcf, "$", "NI + Dep - CapEx - dNWC", "fcf")
+    out:off("fcfni")
     if V.r <= g then out:err("r must be above g"); return end
     out:row("firm value V", fcf / (V.r - g), "$", "V = FCF/(r - g) = " .. P(fcf) .. "/(" .. P(V.r) .. " - " .. P(g) .. ")", "V")
+    out:uses((g == 0) and "perp" or "gperp")
     if V.cut and V.dnwc then
       local save = V.cut * V.dnwc
       out:row("yearly cash saved", save, "$", "cut x dNWC = " .. P(V.cut) .. " x " .. P(V.dnwc), "save")
@@ -82,8 +172,8 @@ do
 
   table.insert(TYPES, {
     name = "Working capital: days, cycles, NWC", group = 5, solve = solveWC,
-    desc = "inventory, A/R and A/P days, operating and cash cycles, cash freed, NWC, firm value",
-    looks = "inventory days | receivable days | payable days | cash conversion cycle | operating cycle | net working capital",
+    desc = "inventory, A/R and A/P days, operating and cash cycles, cash freed, NWC, firm value, float (faster collection)",
+    looks = "inventory days | receivable days | payable days | cash conversion cycle | operating cycle | net working capital | billing firm | collection | lockbox | float | collection float | collect sooner | fee per month",
     slots = {
       S("mode", "what to find", "choice", MODES14, 1),
       S("sales", "sales for the year ($)", "money"),
@@ -109,10 +199,19 @@ do
       S("g", "g growth of FCF (%)", "pct"),
       S("r", "r cost of capital (%)", "pct"),
       S("cut", "cut in the NWC increase (%)", "pct"),
+      S("dcol", "average daily collections ($)", "money"),
+      S("fdays", "days of float saved", "num"),
+      S("feeM", "fee per month ($)", "money"),
+      S("feeY", "or: fee per year ($)", "money"),
+      S("apr", "rate: APR (%)", "pct"),
+      S("mf", "the APR compounds", "choice", { "12 (monthly)", "1 (yearly)", "2 (semi-annual)", "4 (quarterly)", "365 (daily)" }, 1),
+      S("ear", "or: rate as an EAR (%)", "pct"),
+      S("fmon", "fee for months (blank=forever)", "num"),
     },
     vis = function(Sm)
       local m = Sm.mode.opts[Sm.mode.idx]
       if m == MODES14[1] then return { "mode", "sales", "cogs", "inv", "ar", "ap", "year", "paynet" } end
+      if m == MODES14[6] then return { "mode", "dcol", "fdays", "feeM", "feeY", "apr", "mf", "ear", "fmon" } end
       if m == MODES14[2] then return { "mode", "invD", "arD", "apD" } end
       if m == MODES14[3] then return { "mode", "which", "sales", "cogs", "oldD", "newD", "year" } end
       if m == MODES14[4] then return { "mode", "cash", "ar", "inv", "oca", "ap", "ocl" } end
@@ -129,6 +228,14 @@ do
       paynet = "'if it paid on the last day, day 45' -> 45",
       which = "which days change, e.g. 'A/P days rise from 53 to 63'",
       cut = "'cuts the increase in working capital by 20%'",
+      dcol = "cash collected on an average day, e.g. 150,000",
+      fdays = "how many days sooner the cash arrives, e.g. 2",
+      feeM = "the service's fee each month",
+      feeY = "or a fee each year (paid at each year end)",
+      apr = "the interest rate as an APR, e.g. 6",
+      mf = "how often the APR compounds: monthly = 12",
+      ear = "or the rate as an EAR (leave the APR blank)",
+      fmon = "how many months the fee is paid; blank = forever",
     },
     formula = { "Inv days = (Inv)/(COGS/365)   A/R days = (AR)/(Sales/365)", "CCC = Inv days + A/R days - A/P days" },
     words = "days = balance / one day's flow; the cash cycle is how long cash is tied up before it comes back",
@@ -136,7 +243,8 @@ do
                 "CCC = cash conversion cycle (cash cycle)", "operating cycle = inventory days + A/R days",
                 "NWC = current assets - current liabilities", "FCF = NI + Dep - CapEx - dNWC" },
     acronyms = { "COGS = cost of goods sold", "A/R = accounts receivable; A/P = accounts payable", "CCC = cash conversion cycle",
-                 "NWC = net working capital", "NI = net income", "CapEx = capital expenditure" },
+                 "NWC = net working capital", "NI = net income", "CapEx = capital expenditure",
+                 "float = cash on its way (sent but not yet usable); APR = quoted yearly rate; EAR = effective yearly rate" },
     notes = [[WORKING CAPITAL: DAYS AND CYCLES
 
 HOW TO USE
@@ -145,6 +253,10 @@ and the three balances.
 Cycles from days: type the days.
 Cash freed: which days change, old
 and new days, and sales or COGS.
+Float: the daily collections, the days
+saved, the fee (a month or a year), the
+rate (APR + how often, or an EAR) and
+the months the fee runs (blank = forever).
 
 FORMULAS
 $$Inv days = (Inventory)/(COGS/365)
@@ -153,7 +265,15 @@ $$AP days = (Payables)/(COGS/365)
 operating cycle = Inv days + AR days
 cash cycle = operating cycle - AP days
 A/R uses SALES; inventory and A/P use COGS.
-Shorter cash cycle = less cash tied up.]],
+Shorter cash cycle = less cash tied up.
+
+FLOAT (faster collection)
+cash freed today = daily collections x
+days saved
+monthly fee forever: PV = fee/i, with
+i = APR/12 (or (1 + EAR)^(1/12) - 1)
+NPV = cash freed - PV(fees): take it if
+NPV > 0.]],
     assume = STEPS_COMMON .. [[
 THIS TYPE:
 1. one day of sales = sales/365; one
@@ -189,7 +309,20 @@ Q: COGS $19.5m; A/P days rise from 53
 to 63.
 ENTER: mode cash freed | payables |
 cogs 19.5m | old 53 | new 63
-= 10 x 19.5m/365 = $534,247]],
+= 10 x 19.5m/365 = $534,247
+
+## Float: a lockbox for a fee
+Q: collections $150,000 a day; a lockbox
+gets the cash 2 days sooner for $1,200
+a month forever; 6% APR monthly.
+ENTER: mode float | dcol 150000 |
+fdays 2 | feeM 1200 | apr 6
+cash freed = 2 x 150,000 = $300,000
+i = 0.06/12 = 0.005; PV fees =
+1,200/0.005 = $240,000
+NPV = 300,000 - 240,000 = $60,000: yes
+(check: 300,000 x 0.005 = $1,500 a
+month of interest > $1,200 fee)]],
   })
 
   ------------------------------------------------------------------
@@ -208,6 +341,7 @@ cogs 19.5m | old 53 | new 63
     out:row("extra days of credit", days, "days", "pay day - discount days = " .. P(pay) .. " - " .. P(V.dd), "days")
     local ear = (1 + per) ^ (Y / days) - 1
     out:row("EAR of skipping the discount", ear, "%", "(1 + d/(1 - d))^(" .. Y .. "/" .. P(days) .. ") - 1", "ear")
+    out:off("tcear")
     if V.pay and V.pay > V.nd then out:note("paying after day " .. P(V.nd) .. " is STRETCHING: cheaper, but it risks the supplier") end
     if V.bank then
       out:head("DECISION (bank rate " .. pct(V.bank) .. "%)")
@@ -222,6 +356,7 @@ cogs 19.5m | old 53 | new 63
       local apd = V.apbal / V.dcogs
       out:head("WHEN DOES THE FIRM PAY?")
       out:row("A/P days", apd, "days", "payables / daily COGS = " .. P(V.apbal) .. "/" .. P(V.dcogs), "apd")
+      out:uses("apd")
       if apd <= V.dd + 0.5 then out:note("within the discount period: it takes the discount")
       elseif apd < V.nd - 0.5 then out:note("between the two dates: it loses the discount AND wastes free credit")
       elseif apd <= V.nd + 0.5 then out:note("on the due date: right if it chose to skip the discount")
@@ -327,6 +462,7 @@ EAR = (1 + 1/99)^(365/65) - 1 = 5.81%]],
         out:row("month 0 cash flow", cf0, "$", "-cost x units + cash sales at the discounted price", pol[1] .. "0")
         out:row("each later month", later, "$", "month-0 flow + last month's credit sales collected", pol[1] .. "L")
         out:row("NPV", npv, "$", "CF0 + later/r = " .. P(cf0) .. " + " .. P(later) .. "/" .. P(V.r), pol[1] .. "N")
+        out:uses("npv", "perp"); out:off("creditcf")
         rows[#rows + 1] = npv
       end
     end

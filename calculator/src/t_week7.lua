@@ -26,6 +26,7 @@ do
     if not dep and V.life and V.I then
       dep = V.I / V.life
       out:row("Dep (straight-line)", dep, "$", "Dep = I/life = " .. P(V.I) .. "/" .. P(V.life), "Dep")
+      out:off("depI")
     end
     dep = dep or 0
     local FC = V.FC or 0
@@ -39,6 +40,7 @@ do
       if V.FC or V.Dep or (V.life and V.I) then
         out:head("EBIT (ACCOUNTING) BREAK-EVEN")
         out:row("Q (EBIT = 0)", (FC + dep) / mgn, "units", "Q = (FC + Dep)/(P - v) = (" .. P(FC) .. " + " .. P(dep) .. ")/" .. P(mgn), "Qebit")
+        out:off("ebe")
         out:note("interest and tax are NOT used: EBIT is before both")
       else
         out:note("EBIT break-even: type the fixed costs FC and/or Dep")
@@ -50,6 +52,7 @@ do
       out:row("factor", f, "", factorText(V.r, V.n), "f")
       local need = V.I / f
       out:row("OCF needed each year", need, "$", "I/factor = " .. P(V.I) .. "/" .. P(f) .. "  (like a loan repayment)", "need")
+      out:off("ocfneed"); out:off("npvbe")
       local Qbe = (need + FC * (1 - T) - T * dep) / (mgn * (1 - T))
       if T == 0 then
         out:row("Q (NPV = 0)", Qbe, "units", "Q = (OCF needed + FC)/(P - v) = (" .. P(need) .. " + " .. P(FC) .. ")/" .. P(mgn), "Qnpv")
@@ -62,16 +65,18 @@ do
         out:head("THIS PROJECT (Q = " .. P(V.Q) .. ")")
         out:row("OCF each year", ocf, "$", "((P - v)Q - FC - Dep)(1 - T) + Dep", "ocf")
         out:row("NPV", npv, "$", "NPV = OCF x factor - I = " .. P(ocf) .. " x " .. P(f) .. " - " .. P(V.I), "NPV")
+        out:uses("fcf", "npv", V.n and "pva" or "perp"); out:off("ocfq")
         out:add(npv >= 0 and "ok" or "bad", npv >= 0 and "NPV >= 0: accept" or "NPV < 0: reject")
         -- break-even for the other inputs (NPV is a straight line in each of them)
         local base = (need - dep) / (1 - T) + FC + dep     -- (P - v)Q needed
         out:head("BREAK-EVEN OF EACH INPUT (NPV = 0)")
         out:row("price P", V.v + base / V.Q, "$", "P = v + ((OCF needed - Dep)/(1 - T) + FC + Dep)/Q", "Pbe")
         out:row("cost per unit v", V.P - base / V.Q, "$", "v = P - (same)/Q", "vbe")
+        out:off("bein")
         local irr = findRoot(function(r)
           local g = annFac(r, V.n); if not g then return nil end
           return ocf * g - V.I end, 0.0005, 5, 0.0025)
-        if irr then out:row("discount rate (IRR)", irr, "%", "the r that makes OCF x factor = I", "irr") end
+        if irr then out:row("discount rate (IRR)", irr, "%", "the r that makes OCF x factor = I", "irr"); out:uses("irr") end
       end
       out:head("ON YOUR TI-NSPIRE")
       if V.n then out:xl("tvmPmt(" .. P(V.n) .. "," .. pct(V.r) .. ",-" .. P(V.I) .. ",0,1,1)  -> OCF needed")
@@ -87,6 +92,7 @@ do
     out:head("BASE CASE")
     out:row("OCF each year", ocf0, "$", "((P - v)Q - FC - Dep)(1 - T) + Dep", "ocf0")
     out:row("NPV base", npv0, "$", "OCF x " .. factorText(V.r, V.n) .. " - I", "npv0")
+    out:uses("fcf", "npv", V.n and "pva" or "perp"); out:off("ocfq")
 
     if mode == "sensitivity: one input" then
       local which = V.test or "units Q"
@@ -126,6 +132,7 @@ do
       local pb0 = 1 - V.pw - V.pb
       out:row("probability of base", pb0, "%", "1 - worst - best", "pbase")
       out:row("expected NPV", V.pw * nw + pb0 * npv0 + V.pb * nb, "$", "p_w x NPV_w + p_b x NPV_b + p_base x NPV_base", "enpv")
+      out:off("enpv")
     end
   end
 
@@ -269,7 +276,8 @@ NPV new = $231,818.18]],
   ------------------------------------------------------------------
   -- 12 expected values, decision trees, options
   ------------------------------------------------------------------
-  local MODES12 = { "chance node (expected value)", "decision node (pick the best)", "project with uncertain cash flow", "sell or keep (abandon option)" }
+  local MODES12 = { "chance node (expected value)", "decision node (pick the best)", "project with uncertain cash flow", "sell or keep (abandon option)",
+                    "act now or wait (option to wait)" }
   local VALKIND = { "values at the node", "a yearly amount forever", "a yearly amount for n years" }
 
   local function outcomes(V, n)
@@ -289,8 +297,49 @@ NPV new = $231,818.18]],
     return vals, probs
   end
 
+  -- v23: commit now, or wait until you know and pay (a different amount) only if it went well
+  local function solveWait(V, out)
+    local r, t = V.r, V.t
+    if V.tm then t = V.tm / 12 end
+    if not (V.c0 and V.vg and V.pg and V.cw and t and r) then
+      out:need("the cost now, the value if it goes well and its chance, the cost if you wait, the months (or years) and r")
+      return
+    end
+    local p, vb = V.pg, V.vb or 0
+    if p < 0 or p > 1 then out:err("the chance must be between 0% and 100%"); return end
+    local df = (1 + r) ^ t
+    out:head("TIMING")
+    if V.tm then out:row("t (years)", t, "years", "months/12 = " .. P(V.tm) .. "/12", "t") end
+    out:note("assumed: the value AND the later cost both come at t = " .. P(t) .. " years (when you find out); the cost now is paid today")
+    out:note("r is a yearly EAR, so divide by (1 + r)^t even when t is part of a year")
+    out:head("COMMIT NOW")
+    local E = p * V.vg + (1 - p) * vb
+    out:row("expected value at t", E, "$", P(p) .. " x " .. P(V.vg) .. " + " .. P(1 - p) .. " x " .. P(vb), "Enow")
+    out:row("PV of the expected value", E / df, "$", "E/(1 + r)^t = " .. P(E) .. "/" .. P(1 + r) .. "^" .. P(t), "PVnow")
+    local npvNow = E / df - V.c0
+    out:row("NPV (commit now)", npvNow, "$", "PV - cost now = " .. P(E / df) .. " - " .. P(V.c0), "npvNow")
+    out:head("WAIT, THEN DECIDE")
+    local gw, bw = math.max(V.vg - V.cw, 0), math.max(vb - V.cw, 0)
+    out:row("if it goes well: go ahead", gw, "$", "max(" .. P(V.vg) .. " - " .. P(V.cw) .. ", 0)", "waitG")
+    out:row("if it goes badly: " .. ((bw > 0) and "go ahead" or "walk away, pay nothing"), bw, "$",
+            "max(" .. P(vb) .. " - " .. P(V.cw) .. ", 0)", "waitB")
+    local Ew = p * gw + (1 - p) * bw
+    out:row("expected value at t", Ew, "$", P(p) .. " x " .. P(gw) .. " + " .. P(1 - p) .. " x " .. P(bw), "Ewait")
+    local npvWait = Ew / df
+    out:row("NPV (wait)", npvWait, "$", "E/(1 + r)^t = " .. P(Ew) .. "/" .. P(1 + r) .. "^" .. P(t) .. "  (nothing is paid today)", "npvWait")
+    out:head("DECISION")
+    out:row("value of waiting = NPV(wait) - NPV(now)", npvWait - npvNow, "$", P(npvWait) .. " - " .. P(npvNow), "optw")
+    if npvWait > npvNow then
+      out:add("ok", "WAIT: the option to wait is worth " .. fmtU(npvWait - npvNow, "$") .. " more than committing now")
+    else
+      out:add("ok", "COMMIT NOW: its NPV is " .. fmtU(npvNow - npvWait, "$") .. " higher than waiting")
+    end
+    out:uses("pv", "npv"); out:off("waitnow"); out:off("wait")
+  end
+
   local function solveTree(V, out)
     local mode = V.mode or MODES12[1]
+    if mode == MODES12[5] then solveWait(V, out); return end
     local r, t = V.r, V.t or 0
     if mode == MODES12[2] then
       local best, bi = nil, nil
@@ -299,7 +348,8 @@ NPV new = $231,818.18]],
       out:head("DECISION NODE: keep the BEST option")
       out:row("best option", bi, "", "option " .. bi .. " has the highest value", "bi")
       out:row("node value (at t = " .. P(t) .. ")", best, "$", "max of the options", "node")
-      if r and t > 0 then out:row("value today", best / (1 + r) ^ t, "$", "node/(1 + r)^t = " .. P(best) .. "/" .. P(1 + r) .. "^" .. P(t), "pv") end
+      out:off("decnode")
+      if r and t > 0 then out:row("value today", best / (1 + r) ^ t, "$", "node/(1 + r)^t = " .. P(best) .. "/" .. P(1 + r) .. "^" .. P(t), "pv"); out:uses("pv") end
       return
     end
     local vals, probs = outcomes(V, 4)
@@ -312,13 +362,15 @@ NPV new = $231,818.18]],
       if conv == VALKIND[3] and not V.n then out:need("n (the number of years)"); return end
       out:row("factor", f, "", factorText(r, conv == VALKIND[3] and V.n or nil), "f")
       out:note("a yearly amount starting ONE year after a date is worth amount x factor AT that date")
+      out:uses(conv == VALKIND[3] and "pva" or "perp")
     end
+    out:off("ev")
     local E, terms = 0, {}
     for k2, v in ipairs(vals) do E = E + probs[k2] * v; terms[#terms + 1] = P(probs[k2]) .. " x " .. P(v) end
     if mode == MODES12[1] then
       out:head("CHANCE NODE: probability-weighted average")
       out:row("expected value", E * f, conv == VALKIND[1] and "$" or "$", table.concat(terms, " + ") .. (f ~= 1 and (" then x " .. P(f)) or ""), "E")
-      if r and t > 0 then out:row("value today", E * f / (1 + r) ^ t, "$", "E/(1 + r)^t = " .. P(E * f) .. "/" .. P(1 + r) .. "^" .. P(t), "pv") end
+      if r and t > 0 then out:row("value today", E * f / (1 + r) ^ t, "$", "E/(1 + r)^t = " .. P(E * f) .. "/" .. P(1 + r) .. "^" .. P(t), "pv"); out:uses("pv") end
       if not r and t > 0 then out:need("r to bring the node value back to today") end
       return
     end
@@ -330,6 +382,7 @@ NPV new = $231,818.18]],
       out:row("factor", g, "", factorText(r, V.n), "g")
       local npv = -V.I + E * g
       out:row("NPV", npv, "$", "-I + E[CF] x factor = -" .. P(V.I) .. " + " .. P(E) .. " x " .. P(g), "NPV")
+      out:uses("npv", V.n and "pva" or "perp")
       out:add(npv >= 0 and "ok" or "bad", npv >= 0 and "NPV >= 0: go ahead" or "NPV < 0: do not go ahead")
       return
     end
@@ -347,12 +400,13 @@ NPV new = $231,818.18]],
     out:row("node value", node, "$", "the larger of sell and keep", "node")
     out:add("ok", sell > keep and "SELL (abandon): it is worth more" or "KEEP: it is worth more")
     out:row("value of the option to sell", node - keep, "$", "node - keep (never below zero)", "opt")
+    out:uses("pv"); out:off("decnode"); out:off("optval")
   end
 
   table.insert(TYPES, {
     name = "Expected values, trees, options", group = 4, solve = solveTree,
-    desc = "chance nodes, decision nodes, projects with uncertain cash flow, sell (abandon) or keep",
-    looks = "probability | expected cash flow | chance node | decision node | tree | abandon | sell the asset | option",
+    desc = "chance nodes, decision nodes, projects with uncertain cash flow, sell (abandon) or keep, act now or wait",
+    looks = "probability | expected cash flow | chance node | decision node | tree | abandon | sell the asset | option | act now or wait | option to wait | wait and see | book now or wait | timing option | delay",
     slots = {
       S("mode", "what to find", "choice", MODES12, 1),
       S("v1", "value / option 1 ($)", "money"), S("p1", "probability 1 (%)", "pct"),
@@ -367,10 +421,17 @@ NPV new = $231,818.18]],
       S("sell", "sale value if sold ($)", "money"),
       S("sellp", "or: sale as % of cost", "pct"),
       S("cost", "cost of the asset ($)", "money"),
+      S("c0", "cost if you commit NOW ($)", "money"),
+      S("vg", "value if it goes well ($)", "money"),
+      S("pg", "chance it goes well (%)", "pct"),
+      S("vb", "value if it goes badly ($)", "money"),
+      S("cw", "cost if you WAIT ($)", "money"),
+      S("tm", "months until you know", "num"),
     },
     vis = function(Sm)
       local m = Sm.mode.opts[Sm.mode.idx]
       if m == MODES12[2] then return { "mode", "v1", "v2", "v3", "v4", "t", "r" } end
+      if m == MODES12[5] then return { "mode", "c0", "vg", "pg", "vb", "cw", "tm", "t", "r" } end
       local l = { "mode", "v1", "p1", "v2", "p2", "v3", "p3", "v4", "p4", "kind", "n" }
       if m == MODES12[1] then table.insert(l, "t"); table.insert(l, "r") end
       if m == MODES12[3] then table.insert(l, "r"); table.insert(l, "I") end
@@ -387,12 +448,19 @@ NPV new = $231,818.18]],
       I = "the cost today (the project's outlay)",
       sell = "cash if you sell (abandon) now",
       sellp = "'sell for 60% of its cost' -> 60",
+      c0 = "the cost if you commit now, paid today (e.g. book now for 500)",
+      vg = "what it is worth to you if things go well",
+      pg = "the chance things go well, e.g. 70 (30% you cannot go -> 70)",
+      vb = "what it is worth if things go badly (blank = 0)",
+      cw = "the cost if you wait: paid later, only if you go ahead",
+      tm = "months until you find out, e.g. 6 (or years in t)",
     },
     formula = { "E[V] = sum p_k*V_k", "value today = E[V]/(1 + r)^t   decision node = max(options)" },
     words = "a chance node is worth the probability-weighted average; a decision node is worth its best option; then discount to today",
     letters = { "V_k = the value of outcome k", "p_k = its probability (they add to 100%)", "t = the date of the node (years)",
                 "r = discount rate", "E[V] = expected value", "I = outlay today", "factor = turns a yearly amount into a value" },
-    acronyms = { "E[CF] = expected cash flow", "NPV = net present value", "abandon = sell or stop the project early" },
+    acronyms = { "E[CF] = expected cash flow", "NPV = net present value", "abandon = sell or stop the project early",
+                 "option to wait = the right to decide later, once you know more" },
     notes = [[EXPECTED VALUES, TREES, OPTIONS
 
 HOW TO USE
@@ -405,6 +473,11 @@ Project: outlay I, yearly cash-flow
 outcomes, n (blank = forever), r.
 Sell or keep: the sale value and next
 year's outcomes if you keep it.
+Act now or wait: the cost now, the value
+if it goes well (and its chance), the
+value if it goes badly (blank = 0), the
+cost if you wait, the months (or years)
+until you know, and r (an EAR).
 
 SOLVE A TREE FROM RIGHT TO LEFT
 1. value the END (right) nodes
@@ -416,7 +489,12 @@ FORMULAS
 $$E[V] = p_1*V_1 + p_2*V_2 + ...
 $$PV = (E[V])/((1 + r)^t)
 option value = NPV with option
-- NPV without (never below zero)]],
+- NPV without (never below zero)
+act now: NPV = PV(p*Vgood + (1 - p)*Vbad)
+- cost now
+wait: NPV = PV(p*max(Vgood - cost later,
+0) + (1 - p)*max(Vbad - cost later, 0))
+you pay later ONLY if it went well.]],
     assume = STEPS_COMMON .. [[
 THIS TYPE:
 1. draw the tree: squares = decisions,
@@ -467,7 +545,20 @@ ENTER: mode sell or keep | v1 60000 |
 p1 25 | v2 33000 | r 10 | sellp 60 |
 cost 75000
 keep = 39,750/1.1 = $36,136.36
-sell = $45,000 -> abandon]],
+sell = $45,000 -> abandon
+
+## Act now or wait (concert)
+Q: pay $500 now for a concert worth
+$900 to you; 30% chance you cannot go.
+Or wait 6 months and pay $750 then,
+only if you can go. EAR 10%.
+ENTER: mode act now or wait | c0 500 |
+vg 900 | pg 70 | cw 750 | tm 6 | r 10
+now: 0.7 x 900 = 630; PV = 630/1.1^0.5
+= 600.68; NPV = 600.68 - 500 = $100.68
+wait: 0.7 x (900 - 750) = 105;
+PV = 105/1.1^0.5 = $100.11
+100.68 > 100.11 -> commit now]],
   })
 
   ------------------------------------------------------------------
@@ -483,7 +574,7 @@ sell = $45,000 -> abandon]],
       for _, k2 in ipairs({ "HH", "HL", "LH", "LL" }) do
         if t[k2] then given = given + 1; sum = sum + t[k2] elseif blank then out:need("at least 3 of the 4 path probabilities"); return else blank = k2 end
       end
-      if blank then t[blank] = 1 - sum; out:row("P(" .. blank .. ") (missing path)", t[blank], "%", "1 - the other three", "miss"); sum = 1 end
+      if blank then t[blank] = 1 - sum; out:row("P(" .. blank .. ") (missing path)", t[blank], "%", "1 - the other three", "miss"); sum = 1; out:off("paths") end
       if math.abs(sum - 1) > 0.0005 then out:err("the four paths must add to 100% (now " .. pct(sum) .. "%)"); return end
       HH, HL, LH, LL = t.HH, t.HL, t.LH, t.LL
     else
@@ -495,6 +586,7 @@ sell = $45,000 -> abandon]],
       if not ll then out:need("P(L2 | L1) or P(H2 | L1)"); return end
       HH, HL, LH, LL = V.H1 * hh, V.H1 * (1 - hh), L1 * (1 - ll), L1 * ll
       out:note("multiply ALONG a path: P(H1 and H2) = P(H1) x P(H2 | H1)")
+      out:off("joint")
     end
     local H1, L1 = HH + HL, LH + LL
     out:head("PATHS (JOINT PROBABILITIES)")
@@ -508,6 +600,7 @@ sell = $45,000 -> abandon]],
     out:row("P(H2)", HH + LH, "%", "P(HH) + P(LH)", "H2")
     out:row("P(L2)", HL + LL, "%", "P(HL) + P(LL)", "L2")
     out:head("GIVEN YEAR 1 (CONDITIONAL)")
+    out:off("cond")
     if H1 > 0 then
       out:row("P(H2 | H1)", HH / H1, "%", "P(HH)/P(H1) = " .. P(HH) .. "/" .. P(H1), "HgH")
       out:row("P(L2 | H1)", HL / H1, "%", "P(HL)/P(H1)", "LgH")

@@ -259,6 +259,81 @@ company-specific risk (a strike, a new
 product): diversifies away, so it earns
 no extra return.
 -> TYPE 18
+## collection float
+cash customers have already sent that
+the firm cannot use yet (in the post,
+being processed, clearing at the bank).
+Less float = the cash arrives sooner.
+IN QUESTIONS: 'a lockbox (or billing
+firm) cuts collection time by 2 days
+for a fee' -> cash freed today = daily
+collections x days; NPV = cash freed
+- PV(fees).
+-> TYPE 14
+## disbursement float
+money the firm has paid (a cheque sent)
+that has not left its account yet. It
+keeps the cash a little longer, so it
+works in the firm's favour.
+IN QUESTIONS: the opposite of collection
+float: the firm is the one paying.
+-> TYPE 14
+## financial distress costs
+the costs of being close to (or in)
+bankruptcy: legal fees (direct), lost
+customers, suppliers and staff
+(indirect). They rise with debt.
+Textbook, not on the sheet: VL = VU +
+PV(tax shield) - PV(distress costs).
+IN QUESTIONS: 'PV of distress costs'
+(subtract it), or 'the cash flows fall
+because of distress' (use the lower one).
+-> TYPE 21
+## incremental depreciation
+the new asset's depreciation minus the
+old asset's (which is lost if you
+replace). Only the difference changes
+the tax. It turns negative once the new
+asset is fully depreciated but the old
+one would still be.
+-> TYPE 22
+## lockbox (billing service)
+a bank or firm that collects customer
+payments faster for a fee: it cuts the
+collection float.
+-> TYPE 14
+## option to wait (timing option)
+the right to delay a decision until you
+know more. Waiting lets you go ahead
+only when the news is good. Worth
+NPV(wait) - NPV(act now) when positive.
+IN QUESTIONS: 'book now for $500, or wait
+and pay $750 later only if you can go'.
+-> TYPE 12
+## replacement decision
+swap an old asset for a new one? Use
+INCREMENTAL cash flows: new minus old,
+including the old asset's sale now (after
+tax) and its lost depreciation. Replace
+if the NPV is above 0.
+IN QUESTIONS: 'replace the old machine',
+'book value of the old machine', 'cost
+savings of $X a year'.
+-> TYPE 22
+## trade-off theory
+the best amount of debt balances the
+interest tax shield against the costs of
+financial distress. Textbook, not on the
+formula sheet.
+-> TYPE 21
+## unlevered free cash flow
+the cash flow the firm's assets make
+with no debt: EBIT x (1 - Tc) (+ Dep -
+CapEx - change in NWC). Forever:
+VU = FCF/rU.
+IN QUESTIONS: 'EBIT of $1,000 a year
+forever, tax 30%' -> FCF = 700.
+-> TYPE 21
 ## WACC
 weighted average cost of capital:
 rE(E/V) + rP(P/V) + rD(1 - Tc)(D/V),
