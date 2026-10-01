@@ -180,6 +180,9 @@ do
     alpha = { "alpha = forecast return - required return", "not on the sheet" },
     betaT = { "Beta(p) = (target - rf)/(E[RM] - rf)", "the CAPM line, solved for Beta" },
     wtarget = { "wA = (Beta(p) - BetaB)/(BetaA - BetaB)", "Beta(p) = w1*Beta1 + w2*Beta2 with w2 = 1 - w1, solved for w1" },
+    range95 = { "95% of returns: Rbar - 2*SD to Rbar + 2*SD", "textbook (normal distribution), not on the sheet" },
+    sterr = { "SE = SD/sqrt(T); 95% CI for E[R]: Rbar - 2*SE to Rbar + 2*SE", "textbook (standard error of the average), not on the sheet" },
+    ewport = { "Var(p) = (1/n)*Var + (1 - 1/n)*Cov", "textbook: the Var(p) line with n shares, each w = 1/n, the same Var and the same Cov" },
     -- weeks 10-11
     rdat = { "after-tax rd = rd*(1 - Tc)", "the rd*(1 - Tc) part of the WACC line" },
     mv = { "E = shares*share price; D = bonds*bond price", "market values, not on the sheet" },
@@ -212,7 +215,7 @@ do
     { "npv", "perp" },
     { "ret", "mean", "er", "varp", "vars", "cv", "sharpe" },
     { "er", "varp", "mean", "vars", "covp", "covs", "corr", "erp", "varpf", "sharpe" },
-    { "capm", "beta", "betap" },
+    { "capm", "beta", "betap", "erp" },
     { "capm", "rp", "wacc", "v", "bond", "lam", "interp" },
     { "mm1", "ru", "re", "rura", "vl", "its", "pvits", "ret2", "wacct", "perp" },
     { "fcf", "salv", "npv", "irr", "lam", "interp" },

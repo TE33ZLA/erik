@@ -79,6 +79,18 @@ do
       out:row("SD", sqrt(var), "%", "square root of the variance", "sd")
       out:uses("mean", "vars"); out:off("sd")
       riskTail(out, m, sqrt(var), V.rf)
+      do
+        -- textbook (not on the sheet): returns are about normal, so 95% of years fall within 2 SDs of the average;
+        -- the average itself is an estimate, with standard error SD/sqrt(n)
+        local sd, se = sqrt(var), sqrt(var) / sqrt(#rs)
+        out:head("RANGES (textbook, not on the sheet)")
+        out:row("95% of yearly returns: from", m - 2 * sd, "%", "avg - 2 x SD = " .. pct(m) .. "% - 2 x " .. pct(sd) .. "%", "lo95")
+        out:row("95% of yearly returns: to", m + 2 * sd, "%", "avg + 2 x SD", "hi95")
+        out:row("standard error of the average", se, "%", "SD/sqrt(n) = " .. pct(sd) .. "%/sqrt(" .. #rs .. ")", "se")
+        out:row("95% confidence interval for E[R]: from", m - 2 * se, "%", "avg - 2 x SE", "ciLo")
+        out:row("95% confidence interval for E[R]: to", m + 2 * se, "%", "avg + 2 x SE", "ciHi")
+        out:off("range95"); out:off("sterr")
+      end
       out:head("ON YOUR TI-NSPIRE")
       out:xl("stDevSamp({" .. join(rs, P) .. "})")
       return
@@ -147,7 +159,13 @@ $$E[R] = p_1*R_1 + p_2*R_2 + ...
 $$Var = sum p*(R - E[R])^2
 past data (a sample): divide by n - 1
 $$SD = sqrt(Var)
-$$CV = SD/E[R]   Sharpe = (E[R] - r_f)/SD]],
+$$CV = SD/E[R]   Sharpe = (E[R] - r_f)/SD
+
+TEXTBOOK (NOT ON THE SHEET)
+95% of years: avg - 2 x SD up to
+avg + 2 x SD
+SE = SD/sqrt(n): 95% interval for
+E[R] is avg - 2 x SE to avg + 2 x SE]],
     assume = STEPS_COMMON .. [[
 THIS TYPE:
 1. forecast (probabilities) -> weights
@@ -180,14 +198,16 @@ E[R] = 10.75%; SD = 15.55%
 Q: -22%, 34%, 17%, 6% (a sample).
 ENTER: mode past returns | -22 | 34 |
 17 | 6
-avg 8.75%; SD = 23.51%]],
+avg 8.75%; SD = 23.51%
+95% of years: -38.28% to 55.78%]],
   })
 
   ------------------------------------------------------------------
   -- 18 two shares: a portfolio
   ------------------------------------------------------------------
   local MODES18 = { "SDs + correlation known", "forecast table (states)", "past returns (a sample)",
-                    "one share + the risk-free asset", "weights from holdings", "two shares + the risk-free asset" }
+                    "one share + the risk-free asset", "weights from holdings", "two shares + the risk-free asset",
+                    "equal weights: n shares" }
   -- wB defaults to 1 - wA; a risk-free part wF = 1 - wA - wB adds rf to E[Rp] but no risk and no covariance
   local function port(out, wA, ERA, ERB, sA, sB, cov, wB, rf)
     wB = wB or (1 - wA)
@@ -254,6 +274,22 @@ avg 8.75%; SD = 23.51%]],
       out:off("weights")
     elseif wA and wB then
       out:row("w risk-free", 1 - wA - wB, "%", "1 - wA - wB = 1 - " .. P(wA) .. " - " .. P(wB), "wF")
+    end
+    if mode == MODES18[7] then
+      -- n shares, equal weights 1/n, each with the same SD and the same correlation (or covariance) with each other
+      local n = V.nN
+      local var1 = V.vA or (V.sA and V.sA ^ 2)
+      local cov = V.cov or (V.rho and var1 and V.rho * var1)
+      if not (n and n >= 1 and var1 and cov) then out:need("n (shares), each share's SD (or variance) and the correlation (or covariance)"); return end
+      if V.rho and not V.cov then out:row("covariance", cov, "", "rho x SD x SD = " .. P(V.rho) .. " x " .. P(sqrt(var1)) .. "^2", "cov"); out:off("covrho") end
+      local varp = var1 / n + (1 - 1 / n) * cov
+      out:head("EQUAL WEIGHTS: " .. P(n) .. " SHARES")
+      out:row("portfolio variance", varp, "", "(1/n) x Var + (1 - 1/n) x Cov = " .. P(var1) .. "/" .. P(n) .. " + " .. P(1 - 1 / n) .. " x " .. P(cov), "varp")
+      out:row("portfolio SD", sqrt(varp), "%", "square root of the variance", "sdp")
+      if cov >= 0 then out:row("SD with very many shares", sqrt(cov), "%", "sqrt(Cov): the risk that never goes away (systematic)", "sdinf") end
+      out:off("ewport"); out:off("sd")
+      out:note("more shares -> the Var/n part (unsystematic) shrinks; the Cov part (systematic) stays")
+      return
     end
     if mode == MODES18[1] or mode == MODES18[6] then
       -- SDs, or variances (a variance-covariance matrix: Var on the diagonal, Cov off it)
@@ -333,7 +369,8 @@ avg 8.75%; SD = 23.51%]],
     S("ERA", "E[RA] (%)", "pct"), S("ERB", "E[RB] (%)", "pct"), S("sA", "SD of A (%)", "pct"), S("sB", "SD of B (%)", "pct"),
     S("rho", "correlation (e.g. 0.4)", "num"), S("cov", "or: covariance (e.g. 0.012)", "num"), S("rf", "rf risk-free (%)", "pct"),
     S("wB", "wB weight in B (%)", "pct"), S("amtT", "total $ (with risk-free)", "money"), S("amtF", "or: $ in the risk-free", "money"),
-    S("vA", "or: variance of A (0.04)", "num"), S("vB", "or: variance of B", "num") }
+    S("vA", "or: variance of A (0.04)", "num"), S("vB", "or: variance of B", "num"),
+    S("nN", "n shares (equal weights)", "num") }
   for k2 = 1, 4 do
     slots18[#slots18 + 1] = S("p" .. k2, "state " .. k2 .. ": probability (%)", "pct")
     slots18[#slots18 + 1] = S("A" .. k2, "state/period " .. k2 .. ": R of A (%)", "pct")
@@ -359,10 +396,12 @@ avg 8.75%; SD = 23.51%]],
       if m == MODES18[2] then return { "mode", "p1", "A1", "B1", "p2", "A2", "B2", "p3", "A3", "B3", "p4", "A4", "B4", "wA", "rho" } end
       if m == MODES18[3] then return { "mode", "A1", "B1", "A2", "B2", "A3", "B3", "A4", "B4", "A5", "B5", "A6", "B6", "wA", "rho" } end
       if m == MODES18[4] then return { "mode", "wA", "ERA", "sA", "rf" } end
+      if m == MODES18[7] then return { "mode", "nN", "sA", "vA", "rho", "cov" } end
       return { "mode", "n1", "px1", "n2", "px2", "n3", "px3" }
     end,
     hints = {
-      mode = "left/right: SDs known, forecast, past, risk-free, weights",
+      mode = "left/right: SDs known, forecast, past, risk-free, weights, equal weights",
+      nN = "how many shares, each with the same weight 1/n, e.g. 20",
       wA = "share of your money in A, e.g. 65 (B gets the rest)",
       amtA = "or the dollars in A (and in B)",
       rho = "correlation, e.g. 0.4; if the question GIVES one, type it",
@@ -372,7 +411,7 @@ avg 8.75%; SD = 23.51%]],
       amtF = "or: the $ put in the risk-free asset",
       vA = "Var of A as a decimal, e.g. 0.04 (a matrix diagonal)",
       vB = "Var of B as a decimal (the other diagonal)",
-      sA = "standard deviation of A, e.g. 20.6",
+      sA = "SD of A, e.g. 20.6 (equal weights: each share's SD)",
       p1 = "chance of this state, e.g. 25",
       A1 = "A's return in this state or period, e.g. -2.2",
       rf = "the risk-free rate",
@@ -403,7 +442,18 @@ E[Rp] = wA*E[RA] + wB*E[RB] + wF*rf
 Var(p) = wA^2*VarA + wB^2*VarB +
 2*wA*wB*Cov (rf adds no risk)
 a variance-covariance matrix: Var on
-the diagonal, Cov off it.]],
+the diagonal, Cov off it.
+
+equal weights, n shares (textbook):
+$$Var_p = (1/n)*Var + (1 - 1/n)*Cov
+more shares: only the Cov part stays
+
+HOW THEY LINK
+SD -> square it -> Var
+SDs + rho -> Cov = rho x SDA x SDB
+Cov -> rho = Cov/(SDA x SDB)
+weights, Var, Cov -> Var(p) -> SD(p)
+E[Rp] and SD(p) -> Sharpe ratio]],
     assume = STEPS_COMMON .. [[
 THIS TYPE:
 1. weights first (they add to 1)
@@ -451,7 +501,17 @@ wA 30%, wB 50%, wF 20%
 E[Rp] = 3% + 7% + 0.8% = 10.8%
 Var = 0.09 x 0.04 + 0.25 x 0.09 +
 2 x 0.3 x 0.5 x 0.012 = 0.0297
-SD = 17.23%]],
+SD = 17.23%
+
+## Equal weights, n shares
+Q: 25 shares, 1/25 each, each SD 40%,
+correlation 0.3 between any two.
+ENTER: mode equal weights | nN 25 |
+sA 40 | rho 0.3
+Cov = 0.3 x 0.16 = 0.048
+Var = 0.16/25 + 0.96 x 0.048
+    = 0.05248; SD = 22.91%
+many shares: sqrt(0.048) = 21.91%]],
   })
 
   ------------------------------------------------------------------
@@ -475,27 +535,49 @@ SD = 17.23%]],
       local b = cov / varm
       out:row("beta", b, "", "Cov(i, M)/Var(M) = " .. P(cov) .. "/" .. P(varm), "beta")
       out:uses("beta")
-      if V.rf and rm then out:row("required return (CAPM)", capm(V.rf, b, rm), "%", "rf + beta x (E[RM] - rf)", "req"); out:uses("capm") end
+      if V.rf and rm then out:row("required return (CAPM)", capm(V.rf, b, rm), "%", "rf + beta x (E[RM] - rf) = " .. pct(V.rf) .. "% + " .. P(b) .. " x " .. pct(rm - V.rf) .. "%", "req"); out:uses("capm") end
       return
     end
     if mode == MODES19[3] then
-      local ws, bs, tot = {}, {}, 0
+      local ws, bs, ks, tot = {}, {}, {}, 0
       for k2 = 1, 3 do
         local w = V["w" .. k2] or V["amt" .. k2]
-        if w and V["b" .. k2] then ws[#ws + 1] = w; bs[#bs + 1] = V["b" .. k2]; tot = tot + w end
+        if w and V["b" .. k2] then ws[#ws + 1] = w; bs[#bs + 1] = V["b" .. k2]; ks[#ks + 1] = k2; tot = tot + w end
       end
       if #ws == 0 then out:need("a weight (or $ amount) and a beta for each share"); return end
       local useAmt = V.amt1 or V.amt2 or V.amt3
-      local bp = 0
+      local cap = V.rf and rm
+      if cap then
+        out:head("EACH SHARE (CAPM)")
+        for k2 = 1, #ws do
+          out:row("share " .. ks[k2] .. ": expected return", capm(V.rf, bs[k2], rm), "%",
+                  "rf + beta x (E[RM] - rf) = " .. pct(V.rf) .. "% + " .. P(bs[k2]) .. " x " .. pct(rm - V.rf) .. "%", "er" .. ks[k2])
+        end
+        out:uses("capm")
+      end
+      out:head("PORTFOLIO")
+      local bp, wsum, erw, parts = 0, 0, 0, {}
       for k2 = 1, #ws do
         local w = useAmt and ws[k2] / tot or ws[k2]
-        bp = bp + w * bs[k2]
-        out:row("weight " .. k2, w, "%", useAmt and (P(ws[k2]) .. "/" .. P(tot)) or "given", "w" .. k2)
+        bp = bp + w * bs[k2]; wsum = wsum + w
+        if cap then erw = erw + w * capm(V.rf, bs[k2], rm) end
+        parts[#parts + 1] = P(w) .. " x " .. P(bs[k2])
+        out:row("weight " .. ks[k2], w, "%", useAmt and (P(ws[k2]) .. "/" .. P(tot)) or "given", "w" .. ks[k2])
       end
-      out:row("portfolio beta", bp, "", "sum w x beta", "bp")
+      out:row("portfolio beta", bp, "", "w1 x beta1 + w2 x beta2 ... = " .. table.concat(parts, " + "), "bp")
       out:uses("betap")
       if useAmt then out:off("weights") end
-      if V.rf and rm then out:row("portfolio E[R] (CAPM)", capm(V.rf, bp, rm), "%", "rf + beta_p x (E[RM] - rf)", "erp"); out:uses("capm") end
+      if math.abs(wsum - 1) > 1e-9 then
+        out:note("the weights add to " .. pct(wsum) .. "%: the other " .. pct(1 - wsum) .. "% is in the risk-free asset (beta 0)")
+        if cap then erw = erw + (1 - wsum) * V.rf end
+      end
+      if cap then
+        out:row("portfolio expected return", capm(V.rf, bp, rm), "%",
+                "rf + beta_p x (E[RM] - rf) = " .. pct(V.rf) .. "% + " .. P(bp) .. " x " .. pct(rm - V.rf) .. "%", "erp")
+        out:note("check: w1 x E[R1] + w2 x E[R2] ... = " .. pct(erw) .. "% (the same)")
+        out:uses("erp")
+        out:row("step: market risk premium", rm - V.rf, "%", "E[RM] - rf (a step, not an answer)", "mrp")
+      end
       return
     end
     if mode == MODES19[4] then
@@ -586,7 +668,19 @@ $$E[R_i] = r_f + beta_i*(E[R_M] - r_f)
 $$beta_i = (Cov(R_i, R_M))/(s_M^2)
 $$beta_p = w_1*beta_1 + w_2*beta_2 + ...
 forecast ABOVE the required return:
-above the SML, undervalued, BUY.]],
+above the SML, undervalued, BUY.
+
+PORTFOLIO OF SHARES
+1. each: E[Ri] = rf + beta x MRP
+2. beta_p = w1 x beta1 + w2 x beta2
+3. E[Rp] = rf + beta_p x MRP
+   (= w1 x E[R1] + w2 x E[R2])
+
+HOW THEY LINK
+beta = Cov(i,M)/Var(M)
+     = rho x SD_i/SD_M
+CAPM uses beta only: the SDs are a
+step to beta, never in CAPM itself]],
     assume = STEPS_COMMON .. [[
 THIS TYPE:
 1. market risk premium = E[RM] - rf
@@ -601,6 +695,8 @@ IF THE QUESTION SAYS...
 - "portfolio beta" -> weighted average
 
 TRAPS
+- E[RM] - rf is the premium, NOT the
+  share's expected return
 - beta uses the MARKET's variance
 - over/undervalued: compare forecast
   with the REQUIRED return]],
@@ -618,6 +714,16 @@ required 14.4% > 13.4%: overvalued
 ## Beta from covariance
 Q: Cov 0.02, market SD 10%.
 ENTER: mode beta | cov 0.02 | sm 10
-beta = 0.02/0.01 = 2]],
+beta = 0.02/0.01 = 2
+
+## Portfolio beta + return
+Q: 70% in X (beta 1.2), 30% in Y
+(beta 0.8); rf 3%, market 9%.
+ENTER: mode portfolio | w1 70 |
+b1 1.2 | w2 30 | b2 0.8 | rf 3 | rm 9
+X: 3% + 1.2 x 6% = 10.2%
+Y: 3% + 0.8 x 6% = 7.8%
+beta_p = 0.7 x 1.2 + 0.3 x 0.8 = 1.08
+E[Rp] = 3% + 1.08 x 6% = 9.48%]],
   })
 end

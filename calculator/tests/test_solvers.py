@@ -152,6 +152,15 @@ CASES = [
   (19, 'portfolio return by CAPM', dict(mode='portfolio beta + return', w1=.45, b1=1.35, w2=.55, b2=.9, rf=.06, rm=.13), dict(erp=.1372)),
   (19, 'beta from correlation', dict(mode='beta from covariance/correlation', rho=.9, si=.4, sm=.1, rf=.035, rm=.09), dict(beta=3.6, req=.233)),
   (19, 'target return', dict(mode='target return -> weights', rf=.02, mrp=.04, target=.0766, bA=2, bB=.7), dict(wA=.55)),
+  # ---- v24: own numbers (checked in Python first)
+  (17, 'sample SD: 95% range and standard error', dict(mode='past returns (a sample)', R1=-.22, R2=.34, R3=.17, R4=.06),
+   dict(lo95=-.382784, hi95=.557784, se=.117571, ciLo=-.147642, ciHi=.322642, _off='95% of returns')),
+  (18, 'equal weights: n shares from SD + correlation', dict(mode='equal weights: n shares', nN=25, sA=.40, rho=.3),
+   dict(cov=.048, varp=.05248, sdp=.229085, sdinf=.219089, _off='(1/n)*Var')),
+  (18, 'equal weights: n shares from Var + Cov', dict(mode='equal weights: n shares', nN=10, vA=.09, cov=.02), dict(varp=.027, sdp=.164317)),
+  (19, 'portfolio: each share by CAPM, then beta_p and E[Rp]', dict(mode='portfolio beta + return', w1=.7, b1=1.2, w2=.3, b2=.8, rf=.03, rm=.09),
+   dict(er1=.102, er2=.078, bp=1.08, erp=.0948, mrp=.06, _sheet='capm,betap,erp')),
+  (19, 'portfolio with a risk-free part', dict(mode='portfolio beta + return', w1=.5, b1=1.4, w2=.3, b2=.6, rf=.04, rm=.10), dict(bp=.88, erp=.0928)),
   # ---- 20 cost of capital
   (20, 'preference shares', dict(mode='cost of preference shares', divpct=.10, par=20, pp=22.86), dict(rp=.0875)),
   (20, 'after-tax cost of debt', dict(mode='cost of debt (bond YTM)', rd=.0425, Tc=.3), dict(rdat=.02975)),
