@@ -511,8 +511,10 @@ SD = 17.23%]],
     if not (V.rf and rm and V.beta) then out:need("rf, E[RM] (or the market risk premium) and beta"); return end
     local req = capm(V.rf, V.beta, rm)
     out:head("CAPM")
-    out:row("market risk premium", rm - V.rf, "%", "E[RM] - rf", "mrp")
-    out:row("required return E[Ri]", req, "%", "rf + beta x (E[RM] - rf) = " .. pct(V.rf) .. "% + " .. P(V.beta) .. " x " .. pct(rm - V.rf) .. "%", "req")
+    -- the answer first; the market risk premium is only a step (it is NOT the share's expected return)
+    out:row("ANSWER: expected return E[Ri]", req, "%", "rf + beta x (E[RM] - rf) = " .. pct(V.rf) .. "% + " .. P(V.beta) .. " x " .. pct(rm - V.rf) .. "%", "req")
+    out:row("step: market risk premium", rm - V.rf, "%", "E[RM] - rf (a step, not the answer)", "mrp")
+    out:note("the market's SD is not needed for CAPM: only beta measures the share's risk here")
     out:uses("capm")
     if V.fc then
       out:off("alpha")
