@@ -143,6 +143,7 @@ CASES = [
    sA=.25, sB=.15, rho=-.2, ERA=.12, ERB=.07, rf=.03), dict(wA=.5, wB=.25, wF=.25, cov=-.0075, varp=.01515625, sdp=.123111,
    ERp=.085, shp=.446752)),
   (18, 'v23 variances instead of SDs (no rf)', dict(wA=.6, vA=.0625, vB=.0225, cov=.00375), dict(sA=.25, sB=.15, varp=.0279, sdp=.167033, rho=.1)),
+  (18, 'past returns + a given correlation', dict(mode='past returns (a sample)', A1=.10, B1=.02, A2=-.05, B2=.12, A3=.20, B3=-.04, A4=.08, B4=.10, wA=.6, rho=.25), dict(sA=.102754, sB=.073937, sdp=.074749)),
   # ---- 19 CAPM
   (19, 'CAPM', dict(rf=.02, rm=.11, beta=1.65), dict(req=.1685)),
   (19, 'overvalued', dict(rf=.02, rm=.10, beta=1.55, fc=.134), dict(req=.144, alpha=-.01)),

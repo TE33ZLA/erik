@@ -365,7 +365,7 @@ WACC = 11.91%]],
       if m == MODES21[1] then return { "mode", "rU", "rd", "E", "D", "DE", "Tc" } end
       if m == MODES21[2] then return { "mode", "re", "rd", "E", "D" } end
       if m == MODES21[3] then return { "mode", "D", "rd", "Tc", "VU", "rU" } end
-      if m == MODES21[5] then return { "mode", "EBIT", "FCF", "Tc", "rU", "VU", "D", "rd", "shares", "PVd" } end
+      if m == MODES21[5] then return { "mode", "EBIT", "FCF", "Tc", "rU", "VU", "D", "DE", "rd", "shares", "PVd" } end
       return { "mode", "re", "rd", "E", "D", "rU", "newDE", "Tc" }
     end,
     hints = {

@@ -226,6 +226,15 @@ avg 8.75%; SD = 23.51%]],
       out:uses("sharpe")
     end
   end
+  -- the question may GIVE the correlation (often the data's own one, rounded): then the portfolio uses the given one
+  local function givenCov(out, V, sA, sB, cov)
+    if not V.rho then return cov end
+    local c = V.rho * sA * sB
+    out:note("the question gives the correlation " .. P(V.rho) .. ": the portfolio uses it (the data's own is " .. P(cov / (sA * sB)) .. ")")
+    out:row("covariance used", c, "", "rho x sA x sB = " .. P(V.rho) .. " x " .. P(sA) .. " x " .. P(sB), "covU")
+    out:off("covrho")
+    return c
+  end
   local function solvePort(V, out)
     local mode = V.mode or MODES18[1]
     local wA, wB = V.wA, V.wB
@@ -281,7 +290,7 @@ avg 8.75%; SD = 23.51%]],
       out:row("covariance", cv, "", "sum p (RA - E[RA])(RB - E[RB])", "cov")
       out:row("correlation", cv / (sqrt(vA) * sqrt(vB)), "", "Cov/(sA x sB)", "rho")
       out:uses("er", "varp", "covp", "corr"); out:off("sd")
-      if wA then port(out, wA, EA, EB, sqrt(vA), sqrt(vB), cv) end
+      if wA then port(out, wA, EA, EB, sqrt(vA), sqrt(vB), givenCov(out, V, sqrt(vA), sqrt(vB), cv)) end
       return
     end
     if mode == MODES18[3] then
@@ -296,7 +305,7 @@ avg 8.75%; SD = 23.51%]],
       out:row("covariance", sc / n1, "", "sum (RA - avgA)(RB - avgB)/(n - 1) = " .. P(sc) .. "/" .. n1, "cov")
       out:row("correlation", (sc / n1) / (sqrt(sa / n1) * sqrt(sb / n1)), "", "Cov/(sA x sB)", "rho")
       out:uses("mean", "vars", "covs", "corr"); out:off("sd")
-      if wA then port(out, wA, mA, mB, sqrt(sa / n1), sqrt(sb / n1), sc / n1) end
+      if wA then port(out, wA, mA, mB, sqrt(sa / n1), sqrt(sb / n1), givenCov(out, V, sqrt(sa / n1), sqrt(sb / n1), sc / n1)) end
       return
     end
     if mode == MODES18[4] then
@@ -347,8 +356,8 @@ avg 8.75%; SD = 23.51%]],
       local m = Sm.mode.opts[Sm.mode.idx]
       if m == MODES18[1] then return { "mode", "wA", "amtA", "amtB", "ERA", "ERB", "sA", "vA", "sB", "vB", "rho", "cov" } end
       if m == MODES18[6] then return { "mode", "amtA", "amtB", "amtT", "amtF", "wA", "wB", "ERA", "ERB", "rf", "sA", "vA", "sB", "vB", "cov", "rho" } end
-      if m == MODES18[2] then return { "mode", "p1", "A1", "B1", "p2", "A2", "B2", "p3", "A3", "B3", "p4", "A4", "B4", "wA" } end
-      if m == MODES18[3] then return { "mode", "A1", "B1", "A2", "B2", "A3", "B3", "A4", "B4", "A5", "B5", "A6", "B6", "wA" } end
+      if m == MODES18[2] then return { "mode", "p1", "A1", "B1", "p2", "A2", "B2", "p3", "A3", "B3", "p4", "A4", "B4", "wA", "rho" } end
+      if m == MODES18[3] then return { "mode", "A1", "B1", "A2", "B2", "A3", "B3", "A4", "B4", "A5", "B5", "A6", "B6", "wA", "rho" } end
       if m == MODES18[4] then return { "mode", "wA", "ERA", "sA", "rf" } end
       return { "mode", "n1", "px1", "n2", "px2", "n3", "px3" }
     end,
@@ -356,7 +365,7 @@ avg 8.75%; SD = 23.51%]],
       mode = "left/right: SDs known, forecast, past, risk-free, weights",
       wA = "share of your money in A, e.g. 65 (B gets the rest)",
       amtA = "or the dollars in A (and in B)",
-      rho = "correlation between -1 and 1, e.g. 0.4",
+      rho = "correlation, e.g. 0.4; if the question GIVES one, type it",
       cov = "covariance as a decimal, e.g. 0.01205 (off the diagonal of a matrix)",
       wB = "B's share of ALL the money, e.g. 50 (the rest is risk-free)",
       amtT = "the total $ you invest, risk-free part included",
