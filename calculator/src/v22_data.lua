@@ -259,7 +259,9 @@ FINDER = {
         { t = "correlation or covariance", go = { type = 18, set = { mode = "forecast" }, say = "pick the mode that matches the data" } },
         { t = "a required return (CAPM)", go = { type = 19 } },
         { t = "beta, or portfolio beta", go = { type = 19, set = { mode = "beta" } } },
-        { t = "over- or undervalued?", go = { type = 19, want = "fc", say = "type the forecast return" } },
+        { t = "over- or undervalued?", go = { type = 19, want = "fc", say = "type the forecast return (or the prices)" } },
+        { t = "what beta / rf / premium fits a forecast", go = { type = 19, want = "beta", say = "type the forecast or the prices" } },
+        { t = "rf and premium from two shares (SML)", go = { type = 19, set = { mode = "two shares" } } },
       } } },
     { t = "WACC and capital structure", s = "'WACC', 'cost of debt', 'MM'", kids = {
       q = "What do they ask for?", opts = {
