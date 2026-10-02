@@ -5,7 +5,7 @@
   ------------------------------------------------------------------
   do
     local U = { homeSel = 1, group = 1, gsel = 1, fstack = {}, fsel = 1, want = nil, say = nil,
-                tsel = 1, tlines = {}, tscroll = 0, topic = nil, q = "", hits = {}, hsel = 1, index = nil }
+                tsel = 1, tlines = {}, tscroll = 0, topic = nil, q = "", hits = {}, hsel = 1, index = nil, mt = nil, msel = 1 }
     local HOME = { { k = "F", t = "Find my question type", s = "answer 2 short questions: start here" } }
     for gi, g in ipairs(GROUPS) do HOME[#HOME + 1] = { k = tostring(gi), t = g.t, s = g.s, g = gi } end
     HOME[#HOME + 1] = { k = "T", t = "Theory + what-ifs (no numbers)", s = "'what happens if', true or false, explain" }
@@ -72,6 +72,26 @@
       local o = nd.opts[U.fsel]
       note(gc, o.s or (o.go and ("opens: " .. TYPES[o.go.type].name)) or (o.theory and "opens the theory pages") or "", SH - 26)
       footer(gc, "number or ENTER | ESC back")
+    end
+    ------------------------------------------------------------------ kinds of question (a type with a mode)
+    -- a type with several kinds of question opens this numbered list first, so nothing hides behind left/right
+    local function modeSlotOf(ti)
+      local qt = TYPES[ti]
+      for _, sl in ipairs(qt and qt.slots or {}) do
+        if sl.key == "mode" and sl.kind == "choice" and #sl.opts > 1 then return sl end
+      end
+      return nil
+    end
+    local function paintModes(gc)
+      local qt, sl = TYPES[U.mt], modeSlotOf(U.mt)
+      title(gc, qt.name)
+      setc(gc, COL.head); gc:setFont("sansserif", "b", 10); gc:drawString("What does the question ask for?", 6, 23, "top")
+      local rows = {}
+      for _, o in ipairs(sl.opts) do rows[#rows + 1] = { t = o } end
+      if U.msel > #rows then U.msel = #rows end
+      drawRows(gc, rows, U.msel, 40, 15, SH - 27, function(i) return tostring(i) end)
+      note(gc, (qt.modeHelp and qt.modeHelp[U.msel]) or "ENTER opens a page with only the boxes this kind needs", SH - 26)
+      footer(gc, "number or ENTER | N notes | W worked | ESC back")
     end
     ------------------------------------------------------------------ theory list
     local function paintTheory(gc)
@@ -271,10 +291,26 @@
     function firstBox()
       for i, sl in ipairs(visSlots()) do if sl.kind ~= "choice" and sl.key ~= U.want then sel = i; return end end
     end
+    local function openModes(ti)
+      local sl = modeSlotOf(ti)
+      U.mt, U.msel = ti, sl and sl.idx or 1
+      curT = ti
+      scr = "modes"
+      inval()
+    end
+    local function pickMode(i)
+      local sl = modeSlotOf(U.mt)
+      if not (sl and sl.opts[i]) then return end
+      sl.idx = i
+      U.want, U.say = nil, nil
+      openType(U.mt)
+      firstBox()
+    end
     local function openGroupType(i)
       local ti = GROUPS[U.group].types[i]
       if not ti then return end
       U.gsel, U.want, U.say = i, nil, nil
+      if modeSlotOf(ti) then openModes(ti); return end
       openType(ti)
       firstBox()
     end
@@ -291,7 +327,9 @@
     local function openHit(h)
       if not h then return end
       local e = h.e
-      if e.kind == 1 then openFrom({ type = e.ti })
+      if e.kind == 1 then
+        openFrom({ type = e.ti })
+        if modeSlotOf(e.ti) then openModes(e.ti) end
       elseif e.kind == 2 then openTopic(e.topic, e.item)
       else gSel = e.gi; toGlossary() end
     end
@@ -308,7 +346,7 @@
     ------------------------------------------------------------------ event plumbing
     local old = { paint = on.paint, arrowKey = on.arrowKey, enterKey = on.enterKey, escapeKey = on.escapeKey,
                   charIn = on.charIn, backspaceKey = on.backspaceKey, mouseDown = on.mouseDown, deleteKey = on.deleteKey }
-    local NEW = { home = true, menu = true, finder = true, theory = true, search = true, input = true }
+    local NEW = { home = true, menu = true, finder = true, theory = true, search = true, input = true, modes = true }
 
     function on.paint(gc)
       if NEW[scr] then
@@ -316,6 +354,7 @@
         setc(gc, COL.bg); gc:fillRect(0, 0, SW, SH)
         if scr == "home" then paintHome(gc)
         elseif scr == "menu" then paintGroup(gc)
+        elseif scr == "modes" then paintModes(gc)
         elseif scr == "finder" then paintFinder(gc)
         elseif scr == "theory" then paintTheory(gc)
         elseif scr == "search" then paintSearch(gc)
@@ -339,6 +378,7 @@
     function on.arrowKey(key)
       if scr == "home" then U.homeSel = move(U.homeSel, #HOME, key)
       elseif scr == "menu" then U.gsel = move(U.gsel, #groupTypes(), key)
+      elseif scr == "modes" then U.msel = move(U.msel, #modeSlotOf(U.mt).opts, key)
       elseif scr == "finder" then U.fsel = move(U.fsel, #fnode().opts, key)
       elseif scr == "theory" and #THEORY > 0 then U.tsel = move(U.tsel, #THEORY, key)
       elseif scr == "search" and #U.hits > 0 then U.hsel = move(U.hsel, #U.hits, key)
@@ -349,6 +389,7 @@
     function on.enterKey()
       if scr == "home" then homePick(U.homeSel)
       elseif scr == "menu" then openGroupType(U.gsel)
+      elseif scr == "modes" then pickMode(U.msel)
       elseif scr == "finder" then finderPick(U.fsel)
       elseif scr == "theory" then if #THEORY > 0 then openTopic(U.tsel) end
       elseif scr == "search" then openHit(U.hits[U.hsel])
@@ -359,6 +400,7 @@
     function on.escapeKey()
       if scr == "home" then return end
       if scr == "menu" or scr == "theory" or scr == "search" then scr = "home"
+      elseif scr == "modes" then scr = "menu"
       elseif scr == "finder" then
         if #U.fstack > 0 then table.remove(U.fstack); U.fsel = 1 else scr = "home" end
       elseif scr == "tpage" then
@@ -367,6 +409,7 @@
         U.want, U.say = nil, nil
         U.group = TYPES[curT].group or U.group
         for i, ti in ipairs(GROUPS[U.group].types) do if ti == curT then U.gsel = i end end
+        if modeSlotOf(curT) then openModes(curT); return end   -- back to the list of kinds
         scr = "menu"
       else old.escapeKey(); return end
       inval()
@@ -410,6 +453,15 @@
         if cl == "g" then toGlossary(); return end
         return
       end
+      if scr == "modes" then
+        local d = tonumber(ch)
+        if d then pickMode(d); return end
+        curT = U.mt
+        if cl == "n" then toNotes() elseif cl == "a" then toAssume() elseif cl == "w" then toWorked()
+        elseif cl == "h" then toHelp() elseif cl == "g" then toGlossary()
+        elseif cl == "y" then local ti = topicForType(U.mt); if ti then openTopic(ti) end end
+        return
+      end
       if scr == "finder" then
         local d = tonumber(ch)
         if d then finderPick(d == 0 and 10 or d) end
@@ -447,6 +499,11 @@
       if scr == "finder" then
         local i = math.floor((my - 40) / 15) + 1
         if fnode().opts[i] and my >= 40 then finderPick(i) end
+        return
+      end
+      if scr == "modes" then
+        local i = math.floor((my - 40) / 15) + 1
+        if my >= 40 and modeSlotOf(U.mt).opts[i] then pickMode(i) end
         return
       end
       if scr == "theory" or scr == "search" or scr == "tpage" then return end

@@ -45,14 +45,24 @@ for gi in range(1, len(GROUPS) + 1):
         for s in TYPES[ti].slots.values():
             if s.kind == 'choice': mode = s; break
         nmodes = len(mode.opts) if mode is not None else 1
+        # v24: a type with kinds of question ('mode') opens a numbered list first; a number opens that kind's page
+        has_list = mode is not None and mode.key == 'mode' and nmodes > 1
+        if has_list:
+            t = check_screen(f'type {ti} ({name}) list of kinds')
+            if 'What does the question ask for?' not in t: fails.append(f'type {ti}: the list of kinds does not open')
         for mi in range(1, nmodes + 1):
-            if mode is not None: mode.idx = mi
+            if has_list: key('charIn', str(mi))
+            elif mode is not None: mode.idx = mi
             where = f'type {ti} ({name}) mode {mi}'
+            if has_list and mode.idx != mi: fails.append(f'{where}: the list did not open kind {mi}')
             check_screen(where + ' input')
             key('enterKey'); check_screen(where + ' blank result')
             if 'FORMULA SHEET' not in G.CORE.rtext(): fails.append(f'{where} blank result: no FORMULA SHEET section')
             key('arrowKey', 'down'); key('charIn', 'i'); check_screen(where + ' inspect'); key('escapeKey')
             key('escapeKey')
+            if has_list:
+                key('escapeKey')
+                if 'What does the question ask for?' not in check_screen(where + ' back'): fails.append(f'{where}: ESC does not go back to the list')
         for letter, label in (('n', 'notes'), ('a', 'steps'), ('w', 'worked')):
             key('charIn', letter); t = check_screen(f'type {ti} {label}')
             if len(t) < 40: fails.append(f'type {ti} {label}: page looks empty')
@@ -61,6 +71,16 @@ for gi in range(1, len(GROUPS) + 1):
             key('escapeKey')
         key('escapeKey')
     key('escapeKey')
+
+# v24: CAPM: 6, 3 shows the kinds; 2 (find beta) shows no beta box
+for _ in range(4): key('escapeKey')
+key('charIn', '6'); key('charIn', '3')
+t = check_screen('CAPM list')
+for want_txt in ('required return', 'find beta', 'buy or sell'):
+    if want_txt not in t: fails.append(f'CAPM list: {want_txt!r} not shown')
+key('charIn', '2'); t = check_screen('CAPM find beta page')
+if 'find beta' not in t or 'beta of the share' in t: fails.append('CAPM find beta: wrong page (or a beta box on it)')
+for _ in range(4): key('escapeKey')
 
 # the finder: every route to a leaf
 def leaves(node, path, out):

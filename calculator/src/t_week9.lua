@@ -517,14 +517,16 @@ many shares: sqrt(0.048) = 21.91%]],
   ------------------------------------------------------------------
   -- 19 beta, CAPM, SML
   ------------------------------------------------------------------
-  local MODES19 = { "CAPM: return, beta or premium", "beta from covariance/correlation", "portfolio beta + return", "target return -> weights",
-                    "two shares on the SML -> rf, premium" }
+  -- one mode per kind of question (the list opens first: "what do they ask for?")
+  local MODES19 = { "required return (beta given)", "find beta (prices or forecast)", "buy or sell? (over/undervalued)",
+                    "find rf or the market premium", "beta from covariance/correlation", "portfolio beta + return",
+                    "target return -> weights", "two shares on the SML -> rf, premium" }
   local function capm(rf, b, rm) return rf + b * (rm - rf) end
   local function solveCAPM(V, out)
     local mode = V.mode or MODES19[1]
     local rm = V.rm
     if not rm and V.mrp and V.rf then rm = V.rf + V.mrp end
-    if mode == MODES19[2] then
+    if mode == MODES19[5] then
       local cov = V.cov
       if not cov and V.rho and V.si and V.sm then
         cov = V.rho * V.si * V.sm
@@ -539,7 +541,7 @@ many shares: sqrt(0.048) = 21.91%]],
       if V.rf and rm then out:row("required return (CAPM)", capm(V.rf, b, rm), "%", "rf + beta x (E[RM] - rf) = " .. pct(V.rf) .. "% + " .. P(b) .. " x " .. pct(rm - V.rf) .. "%", "req"); out:uses("capm") end
       return
     end
-    if mode == MODES19[3] then
+    if mode == MODES19[6] then
       local ws, bs, ks, tot = {}, {}, {}, 0
       for k2 = 1, 3 do
         local w = V["w" .. k2] or V["amt" .. k2]
@@ -581,7 +583,7 @@ many shares: sqrt(0.048) = 21.91%]],
       end
       return
     end
-    if mode == MODES19[4] then
+    if mode == MODES19[7] then
       if not (V.rf and rm and V.target) then out:need("rf, E[RM] (or premium) and the target return (then both betas)"); return end
       local bp = (V.target - V.rf) / (rm - V.rf)
       out:row("target beta", bp, "", "(target - rf)/(E[RM] - rf) = (" .. pct(V.target) .. "% - " .. pct(V.rf) .. "%)/" .. pct(rm - V.rf) .. "%", "bp")
@@ -592,7 +594,7 @@ many shares: sqrt(0.048) = 21.91%]],
       out:off("betaT"); out:off("wtarget")
       return
     end
-    if mode == MODES19[5] then
+    if mode == MODES19[8] then
       if not (V.erA and V.bA and V.erB and V.bB) then out:need("both shares' expected returns and betas"); return end
       if math.abs(V.bA - V.bB) < 1e-12 then out:need("two DIFFERENT betas"); return end
       local mrp = (V.erA - V.erB) / (V.bA - V.bB)
@@ -605,52 +607,60 @@ many shares: sqrt(0.048) = 21.91%]],
       out:uses("capm"); out:off("sml2")
       return
     end
-    -- CAPM: leave ONE of rf, the market (E[RM] or premium), beta, the forecast return blank and it is solved
+    -- modes 1-4: the CAPM line. The forecast return is typed, or comes from the prices
     local fc = V.fc
     if V.P0 and V.P1 then
       -- the forecast return from the prices: R = (Div + P1 - P0)/P0
       fc = ((V.div or 0) + V.P1 - V.P0) / V.P0
-      out:head("FORECAST RETURN (FROM THE PRICES)")
+      out:head("STEP 1: FORECAST RETURN (FROM THE PRICES)")
       out:row("forecast return", fc, "%", "(Div + P1 - P0)/P0 = (" .. P(V.div or 0) .. " + " .. P(V.P1) .. " - " .. P(V.P0) .. ")/" .. P(V.P0), "fcR")
       out:uses("ret")
     end
-    if not V.beta and fc and V.rf and rm then
-      out:head("CAPM SOLVED FOR BETA")
+    if mode == MODES19[2] then
+      -- "what beta would it need?": CAPM solved for beta
+      if not fc then out:need("the prices (P0, P1 and the dividend) or the forecast return"); return end
+      if not (V.rf and rm) then out:need("rf and E[RM] (or the market risk premium)"); return end
+      out:head((V.P0 and V.P1) and "STEP 2: CAPM SOLVED FOR BETA" or "CAPM SOLVED FOR BETA")
       out:row("ANSWER: beta", (fc - V.rf) / (rm - V.rf), "", "(E[Ri] - rf)/(E[RM] - rf) = (" .. pct(fc) .. "% - " .. pct(V.rf) .. "%)/" .. pct(rm - V.rf) .. "%", "beta")
-      out:row("step: market risk premium", rm - V.rf, "%", "E[RM] - rf (a step)", "mrp")
+      out:row("market risk premium", rm - V.rf, "%", "E[RM] - rf (a step)", "mrp")
       out:uses("capm"); out:off("capmb")
       out:note("with this beta the forecast is ON the SML: CAPM agrees with it")
       return
     end
-    if V.beta and fc and V.rf and not rm then
-      local mrp = (fc - V.rf) / V.beta
-      out:head("CAPM SOLVED FOR THE PREMIUM")
-      out:row("ANSWER: market risk premium", mrp, "%", "(E[Ri] - rf)/beta = (" .. pct(fc) .. "% - " .. pct(V.rf) .. "%)/" .. P(V.beta), "mrp")
-      out:row("market return E[RM]", V.rf + mrp, "%", "rf + premium = " .. pct(V.rf) .. "% + " .. pct(mrp) .. "%", "rm")
-      out:uses("capm"); out:off("capmm")
-      return
-    end
-    if V.beta and fc and not V.rf and (V.mrp or V.rm) then
-      local rf0
-      if V.mrp then
-        rf0 = fc - V.beta * V.mrp
-        out:head("CAPM SOLVED FOR rf")
-        out:row("ANSWER: risk-free rate", rf0, "%", "E[Ri] - beta x premium = " .. pct(fc) .. "% - " .. P(V.beta) .. " x " .. pct(V.mrp) .. "%", "rf")
-      else
-        if math.abs(V.beta - 1) < 1e-12 then out:need("rf or the premium: with beta 1 the share earns E[RM] whatever rf is"); return end
-        rf0 = (fc - V.beta * V.rm) / (1 - V.beta)
-        out:head("CAPM SOLVED FOR rf")
-        out:row("ANSWER: risk-free rate", rf0, "%", "(E[Ri] - beta x E[RM])/(1 - beta) = (" .. pct(fc) .. "% - " .. P(V.beta) .. " x " .. pct(V.rm) .. "%)/(1 - " ..
-                P(V.beta) .. ")", "rf")
-        out:row("market risk premium", V.rm - rf0, "%", "E[RM] - rf", "mrp")
+    if mode == MODES19[4] then
+      -- beta and a forecast are given: the market line is solved for rf or for the premium
+      if not (V.beta and fc) then out:need("beta and the forecast return (or the prices)"); return end
+      if V.rf and not rm then
+        local mrp = (fc - V.rf) / V.beta
+        out:head("CAPM SOLVED FOR THE PREMIUM")
+        out:row("ANSWER: market risk premium", mrp, "%", "(E[Ri] - rf)/beta = (" .. pct(fc) .. "% - " .. pct(V.rf) .. "%)/" .. P(V.beta), "mrp")
+        out:row("market return E[RM]", V.rf + mrp, "%", "rf + premium = " .. pct(V.rf) .. "% + " .. pct(mrp) .. "%", "rm")
+        out:uses("capm"); out:off("capmm")
+        return
       end
-      out:uses("capm"); out:off("capmrf")
+      if not V.rf and (V.mrp or V.rm) then
+        local rf0
+        if V.mrp then
+          rf0 = fc - V.beta * V.mrp
+          out:head("CAPM SOLVED FOR rf")
+          out:row("ANSWER: risk-free rate", rf0, "%", "E[Ri] - beta x premium = " .. pct(fc) .. "% - " .. P(V.beta) .. " x " .. pct(V.mrp) .. "%", "rf")
+        else
+          if math.abs(V.beta - 1) < 1e-12 then out:need("the premium: with beta 1 the share earns E[RM] whatever rf is"); return end
+          rf0 = (fc - V.beta * V.rm) / (1 - V.beta)
+          out:head("CAPM SOLVED FOR rf")
+          out:row("ANSWER: risk-free rate", rf0, "%", "(E[Ri] - beta x E[RM])/(1 - beta) = (" .. pct(fc) .. "% - " .. P(V.beta) .. " x " .. pct(V.rm) .. "%)/(1 - " ..
+                  P(V.beta) .. ")", "rf")
+          out:row("market risk premium", V.rm - rf0, "%", "E[RM] - rf", "mrp")
+        end
+        out:uses("capm"); out:off("capmrf")
+        return
+      end
+      if V.rf and rm then out:need("ONE blank: leave rf blank, or leave both E[RM] and the premium blank"); return end
+      out:need("rf, or E[RM] (or the premium): the one you know")
       return
     end
-    if not (V.rf and rm and V.beta) then
-      out:need("rf, E[RM] (or the premium) and beta. To FIND one of them, leave it blank and type the forecast return (or the prices)")
-      return
-    end
+    -- modes 1 and 3: the required return
+    if not (V.rf and rm and V.beta) then out:need("rf, E[RM] (or the market risk premium) and beta"); return end
     local req = capm(V.rf, V.beta, rm)
     out:head("CAPM")
     -- the answer first; the market risk premium is only a step (it is NOT the share's expected return)
@@ -658,6 +668,7 @@ many shares: sqrt(0.048) = 21.91%]],
     out:row("step: market risk premium", rm - V.rf, "%", "E[RM] - rf (a step, not the answer)", "mrp")
     out:note("the market's SD is not needed for CAPM: only beta measures the share's risk here")
     out:uses("capm")
+    if not fc and mode == MODES19[3] then out:need("the forecast return (or the prices) to compare with") end
     if fc then
       out:off("alpha")
       out:head("ON THE SML?")
@@ -677,7 +688,7 @@ many shares: sqrt(0.048) = 21.91%]],
       S("rm", "E[RM] market return (%)", "pct"),
       S("mrp", "or: market risk premium (%)", "pct"),
       S("beta", "beta of the share", "num"),
-      S("fc", "forecast return (%) (or prices below)", "pct"),
+      S("fc", "forecast return (%)", "pct"),
       S("P0", "or: price now P0 ($)", "money"), S("P1", "price in a year P1 ($)", "money"), S("div", "dividend in the year ($)", "money"),
       S("erA", "E[RA] expected return of A (%)", "pct"), S("erB", "E[RB] expected return of B (%)", "pct"),
       S("cov", "Cov(i, M) e.g. 0.02", "num"),
@@ -693,19 +704,21 @@ many shares: sqrt(0.048) = 21.91%]],
     },
     vis = function(Sm)
       local m = Sm.mode.opts[Sm.mode.idx]
-      if m == MODES19[1] then return { "mode", "rf", "rm", "mrp", "beta", "fc", "P0", "P1", "div" } end
-      if m == MODES19[2] then return { "mode", "cov", "rho", "si", "sm", "varm", "rf", "rm", "mrp" } end
-      if m == MODES19[3] then return { "mode", "w1", "amt1", "b1", "w2", "amt2", "b2", "w3", "amt3", "b3", "rf", "rm", "mrp" } end
-      if m == MODES19[5] then return { "mode", "erA", "bA", "erB", "bB" } end
+      if m == MODES19[1] then return { "mode", "rf", "rm", "mrp", "beta" } end
+      if m == MODES19[2] then return { "mode", "rf", "rm", "mrp", "fc", "P0", "P1", "div" } end
+      if m == MODES19[3] or m == MODES19[4] then return { "mode", "rf", "rm", "mrp", "beta", "fc", "P0", "P1", "div" } end
+      if m == MODES19[5] then return { "mode", "cov", "rho", "si", "sm", "varm", "rf", "rm", "mrp" } end
+      if m == MODES19[6] then return { "mode", "w1", "amt1", "b1", "w2", "amt2", "b2", "w3", "amt3", "b3", "rf", "rm", "mrp" } end
+      if m == MODES19[8] then return { "mode", "erA", "bA", "erB", "bB" } end
       return { "mode", "rf", "rm", "mrp", "target", "bA", "bB" }
     end,
     hints = {
-      mode = "left/right: CAPM, beta, portfolio, target, two shares",
+      mode = "left/right changes the kind; ESC: back to the list",
       rf = "risk-free rate, e.g. 2 (inflation up 2% -> add 2)",
       rm = "expected return on the MARKET, e.g. 10",
       mrp = "'market risk premium 8%' = E[RM] - rf",
-      beta = "the share's beta, e.g. 1.55 (blank = find it)",
-      fc = "the return you forecast; with no beta it finds beta",
+      beta = "the share's beta, e.g. 1.55",
+      fc = "the return you forecast, e.g. 13.4 (or the prices)",
       P0 = "price today: the forecast return comes from the prices",
       P1 = "the price you expect in a year",
       div = "the dividend paid in the year (blank = none)",
@@ -716,6 +729,15 @@ many shares: sqrt(0.048) = 21.91%]],
       target = "the portfolio return you want, e.g. 7.66",
     },
     formula = { "E[R_i] = r_f + beta_i*(E[R_M] - r_f)", "beta_i = (Cov(R_i, R_M))/(Var(R_M))   beta_p = sum w*beta" },
+    -- one line per kind, under the list that opens first
+    modeHelp = { "beta is given: E[Ri] = rf + beta x (E[RM] - rf)",
+                 "'what beta would it need?': from the prices or a forecast",
+                 "a forecast (or prices) against the CAPM return: alpha",
+                 "beta and a forecast are given: find rf or the premium",
+                 "beta = Cov(i, M)/Var(M), or rho x SD of share/SD of market",
+                 "each share's E[R], then the portfolio beta and E[Rp]",
+                 "the weights that give a target return",
+                 "two shares' E[R] and betas: rf and the premium (the SML)" },
     words = "required return = risk-free rate + beta x the market risk premium; only market (systematic) risk earns a reward",
     letters = { "rf = risk-free rate", "E[RM] = expected market return", "E[RM] - rf = market risk premium",
                 "beta = the share's market risk (market = 1)", "Cov(i, M) = covariance with the market",
@@ -724,15 +746,18 @@ many shares: sqrt(0.048) = 21.91%]],
     notes = [[BETA, CAPM, THE SML
 
 HOW TO USE
-CAPM: rf, the market return (or the
-premium) and beta. Add a forecast to
-test over/undervalued.
-Beta: Cov with the market and the
-market SD (or rho and both SDs).
-CAPM backwards: leave the unknown
-blank (beta, rf or the market) and
-type the forecast return, or the
-prices: P0, P1 and the dividend.
+Pick what they ask for from the list
+(6, 3, then the number):
+1 required return: beta is given
+2 find beta: "what beta would it
+  need?" - from prices or a forecast
+3 buy or sell: a forecast (or prices)
+  against the CAPM return
+4 find rf or the market premium
+5 beta from Cov or the correlation
+6 portfolio: each share, beta, E[Rp]
+7 target return -> weights
+8 rf and premium from two shares
 
 FORMULAS
 $$E[R_i] = r_f + beta_i*(E[R_M] - r_f)
@@ -768,11 +793,12 @@ IF THE QUESTION SAYS...
 - "inflation expectations rise 2%" ->
   rf up 2%, the premium stays
 - "portfolio beta" -> weighted average
-- "what beta would it need" -> leave
-  beta blank; type the prices (or the
+- "what beta would it need" -> 2 find
+  beta; type the prices (or the
   forecast return)
+- "is it a good buy?" -> 3 buy or sell
 - two shares' E[R] and betas, find rf
-  -> mode two shares on the SML
+  -> 8 two shares on the SML
 
 TRAPS
 - E[RM] - rf is the premium, NOT the
@@ -782,25 +808,30 @@ TRAPS
   with the REQUIRED return]],
     worked = [[## CAPM
 Q: beta 1.65, rf 2%, market 11%.
+PICK: 1 required return
 ENTER: rf 2 | rm 11 | beta 1.65
 E[R] = 2% + 1.65 x 9% = 16.85%
 
 ## Over or under?
 Q: beta 1.55, forecast 13.4%, rf 2%,
 market 10%.
-ENTER: ... | fc 13.4
+PICK: 3 buy or sell
+ENTER: rf 2 | rm 10 | beta 1.55 |
+fc 13.4
 required 14.4% > 13.4%: overvalued
 
 ## Beta from covariance
 Q: Cov 0.02, market SD 10%.
-ENTER: mode beta | cov 0.02 | sm 10
+PICK: 5 beta from covariance
+ENTER: cov 0.02 | sm 10
 beta = 0.02/0.01 = 2
 
 ## Portfolio beta + return
 Q: 70% in X (beta 1.2), 30% in Y
 (beta 0.8); rf 3%, market 9%.
-ENTER: mode portfolio | w1 70 |
-b1 1.2 | w2 30 | b2 0.8 | rf 3 | rm 9
+PICK: 6 portfolio beta + return
+ENTER: w1 70 | b1 1.2 | w2 30 |
+b2 0.8 | rf 3 | rm 9
 X: 3% + 1.2 x 6% = 10.2%
 Y: 3% + 0.8 x 6% = 7.8%
 beta_p = 0.7 x 1.2 + 0.3 x 0.8 = 1.08
@@ -809,16 +840,18 @@ E[Rp] = 3% + 1.08 x 6% = 9.48%
 ## Beta from a price forecast
 Q: price $80; in a year $86 plus a $2
 dividend; rf 4%, premium 5%.
+PICK: 2 find beta
 ENTER: rf 4 | mrp 5 | P0 80 | P1 86 |
-div 2 (leave beta blank)
+div 2
 R = (2 + 86 - 80)/80 = 10%
 beta = (10% - 4%)/5% = 1.2
 
 ## rf and premium from two shares
 Q: A: E[R] 13%, beta 1.5; B: E[R] 8%,
 beta 0.5.
-ENTER: mode two shares | erA 13 |
-bA 1.5 | erB 8 | bB 0.5
+PICK: 8 two shares on the SML
+ENTER: erA 13 | bA 1.5 | erB 8 |
+bB 0.5
 premium = (13% - 8%)/(1.5 - 0.5) = 5%
 rf = 13% - 1.5 x 5% = 5.5%]],
   })

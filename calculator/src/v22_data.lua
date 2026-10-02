@@ -257,11 +257,17 @@ FINDER = {
         { t = "a two-share portfolio", go = { type = 18 } },
         { t = "two shares + risk-free, or a Var-Cov matrix", go = { type = 18, set = { mode = "two shares" } } },
         { t = "correlation or covariance", go = { type = 18, set = { mode = "forecast" }, say = "pick the mode that matches the data" } },
-        { t = "a required return (CAPM)", go = { type = 19 } },
-        { t = "beta, or portfolio beta", go = { type = 19, set = { mode = "beta" } } },
-        { t = "over- or undervalued?", go = { type = 19, want = "fc", say = "type the forecast return (or the prices)" } },
-        { t = "what beta / rf / premium fits a forecast", go = { type = 19, want = "beta", say = "type the forecast or the prices" } },
-        { t = "rf and premium from two shares (SML)", go = { type = 19, set = { mode = "two shares" } } },
+        { t = "CAPM, beta, the SML", s = "required return, what beta, buy or sell, portfolio beta", kids = {
+          q = "What do they ask for?", opts = {
+            { t = "a required return (beta is given)", go = { type = 19, set = { mode = "required" } } },
+            { t = "what beta would it need? (prices)", go = { type = 19, set = { mode = "find beta" } } },
+            { t = "buy or sell? over- or undervalued?", go = { type = 19, set = { mode = "buy or sell" } } },
+            { t = "find rf or the market risk premium", go = { type = 19, set = { mode = "find rf" } } },
+            { t = "beta from covariance or correlation", go = { type = 19, set = { mode = "beta" } } },
+            { t = "a portfolio's beta and return", go = { type = 19, set = { mode = "portfolio" } } },
+            { t = "a target return: the weights", go = { type = 19, set = { mode = "target" } } },
+            { t = "rf and premium from two shares (SML)", go = { type = 19, set = { mode = "two shares" } } },
+          } } },
       } } },
     { t = "WACC and capital structure", s = "'WACC', 'cost of debt', 'MM'", kids = {
       q = "What do they ask for?", opts = {
@@ -307,6 +313,9 @@ FILLING IN A QUESTION
 - up/down or TAB: move between boxes
 - type the number; the grey line at
   the bottom says what that box is
+- a type with several kinds of question
+  shows a numbered list first: press
+  the number of what they ask for
 - left/right: change a < choice >
 - leave the unknown BLANK
 - rates as PERCENT: 7 means 7 %

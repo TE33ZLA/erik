@@ -301,7 +301,15 @@ WACC = 11.91%]],
     if mode == MODES21[2] or mode == MODES21[4] then
       local rU = V.rU
       if not rU then
-        if not (V.re and V.rd and V.E and V.D) then out:need("rE, rD and the market values E and D"); return end
+        if mode == MODES21[2] and not (V.re and V.rd and V.E and V.D) and (V.EBIT or V.FCF) and V.VU then
+          -- rU from the cash flow and the all-equity value: rU = FCF/VU, FCF = EBIT*(1 - Tc)
+          solveValue(V, out, Tc)
+          return
+        end
+        if not (V.re and V.rd and V.E and V.D) then
+          out:need("rE, rD and the market values E and D" .. ((mode == MODES21[2]) and " - or EBIT (or FCF), Tc and VU" or ""))
+          return
+        end
         rU = V.re * V.E / (V.E + V.D) + V.rd * V.D / (V.E + V.D)
         out:row("rU (unlevered)", rU, "%", "rE(E/(E + D)) + rD(D/(E + D)) = the pre-tax WACC", "rU")
         out:uses("ru")
@@ -363,7 +371,7 @@ WACC = 11.91%]],
     vis = function(Sm)
       local m = Sm.mode.opts[Sm.mode.idx]
       if m == MODES21[1] then return { "mode", "rU", "rd", "E", "D", "DE", "Tc" } end
-      if m == MODES21[2] then return { "mode", "re", "rd", "E", "D" } end
+      if m == MODES21[2] then return { "mode", "re", "rd", "E", "D", "EBIT", "FCF", "Tc", "VU" } end
       if m == MODES21[3] then return { "mode", "D", "rd", "Tc", "VU", "rU" } end
       if m == MODES21[5] then return { "mode", "EBIT", "FCF", "Tc", "rU", "VU", "D", "DE", "rd", "shares", "PVd" } end
       return { "mode", "re", "rd", "E", "D", "rU", "newDE", "Tc" }
