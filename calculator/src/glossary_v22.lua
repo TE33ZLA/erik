@@ -1,4 +1,4 @@
--- Glossary entries for Weeks 7-11 (merged into the v21 glossary in alphabetical order)
+-- Glossary entries for Weeks 7-12 (merged into the v21 glossary in alphabetical order)
 GLOSSARY_NEW = [[## abandonment option
 the right to stop a project and sell the
 assets if things go badly. Worth
@@ -339,4 +339,313 @@ weighted average cost of capital:
 rE(E/V) + rP(P/V) + rD(1 - Tc)(D/V),
 market-value weights. The discount rate
 for projects as risky as the firm.
--> TYPE 20]]
+-> TYPE 20
+## abnormal return
+a return above what the risk requires
+(e.g. above the CAPM return). An
+efficient market rules out abnormal
+returns from known information, not
+normal returns for bearing risk.
+## adverse selection
+investors know managers like to sell
+shares when they are overpriced. So a
+share issue is read as bad news and
+the price falls. Like a used-car buyer
+who offers less because the seller
+knows more.
+## agency costs (of debt)
+value lost when one group acts for
+itself, not for the firm.
+Managers vs owners: perks, empire
+building. Debt REDUCES these (less
+spare cash to waste).
+Equity vs lenders near default: risky
+gambles, under-investment, cashing
+out. Debt CAUSES these.
+IN QUESTIONS: agency cost = firm value
+under the firm's best plan - firm
+value under the plan equity picks.
+-> TYPE 21
+## asset substitution (excessive risk-taking)
+near default, shareholders back a very
+risky project, even one with a
+negative NPV: they keep the upside,
+lenders bear the downside. Firm value
+falls.
+IN QUESTIONS: 'which plan do the
+shareholders prefer?' -> equity gets
+max(payoff - debt, 0) in each state.
+-> TYPE 21
+## asymmetric information
+managers know more about the firm's
+future than outside investors. So
+investors read signals from what the
+firm does: borrowing, issuing shares,
+paying dividends, buying back shares.
+## book value weights
+weights from the balance sheet (face
+value of debt, book equity). Old
+numbers, so NOT used in the WACC: use
+market values, which are current.
+IN QUESTIONS: 'book value per share',
+'face value of the bonds' -> book
+weights; 'which is more relevant?' ->
+market weights.
+-> TYPE 20
+## capital gains tax (CGT) discount
+Australian individuals who hold shares
+for more than 12 months pay tax on
+only 50% of the gain. Held for less:
+the whole gain is taxed.
+IN QUESTIONS: 'held for two years' ->
+halve the gain, then apply the tax
+rate.
+-> TYPE 23
+## cashing out
+near default, paying as much cash as
+possible to shareholders (e.g. a big
+dividend) before the lenders take
+over. An agency cost of debt.
+-> TYPE 21
+## classical tax system
+company profit is taxed, then the
+dividend is taxed again in the
+shareholder's hands: double taxation
+(e.g. the US). It makes buy-backs more
+attractive than dividends.
+-> TYPE 23
+## cum-dividend
+'with the dividend': a share bought
+before the ex-dividend date comes with
+the right to the next dividend.
+-> TYPE 23
+## debt overhang (under-investment)
+near default, shareholders refuse to
+fund a positive-NPV project, because
+most of the gain would go to the
+lenders. The lost NPV is an agency
+cost.
+IN QUESTIONS: 'would the shareholders
+put up the money?' -> compare what
+they pay in with what equity gains.
+-> TYPE 21
+## declaration date
+the day the board announces a
+dividend: its amount and its dates.
+Order: declaration, ex-dividend,
+record, payment.
+## direct costs of financial distress
+fees to run a bankruptcy: lawyers,
+accountants, administrators. Only a
+few % of firm value on average.
+Legal and accounting fees are DIRECT,
+not indirect.
+-> TYPE 21
+## dividend irrelevance (MM)
+in a perfect market, with investment
+policy fixed, payout policy does not
+change the share price. Dividends or
+buy-backs, now or later: same value.
+-> TYPE 23
+## dividend signalling
+dividend changes carry managers' news.
+A raise: they expect to afford it
+(good news). A cut: often trouble, but
+it can mean the cash is going into
+new positive-NPV projects.
+## dividend smoothing
+keeping dividends steady: raise them
+only when higher earnings look
+lasting; cut them only as a last
+resort.
+## divisional cost of capital
+a separate rate for each division, set
+by that division's risk. A project
+must beat its own division's rate, not
+the firm's WACC.
+IN QUESTIONS: 'divisions', 'IRR vs
+the divisional cost of capital'.
+-> TYPE 20
+## effective annual cost of debt
+the lectures' yearly pre-tax cost of
+debt for a semi-annual bond:
+(1 + y)^2 - 1, with y the yield per
+half-year. Pearson / textbook answers
+often use the APR y x 2 instead.
+IN QUESTIONS: semi-annual coupons +
+'cost of debt' -> find y from the
+price, then (1 + y)^2 - 1, then
+x (1 - Tc) for the after-tax cost.
+-> TYPE 20
+## efficient market hypothesis (EMH)
+prices reflect the information
+available, so securities are fairly
+priced. No abnormal returns from
+information already known. It comes
+from keen competition among investors.
+## ex-dividend date
+the first day the share trades WITHOUT
+the dividend. Buy on or after it: no
+dividend (the seller keeps it). In a
+perfect market the price falls by the
+dividend that day.
+IN QUESTIONS: 'cum-dividend price 30,
+dividend 1.20' -> ex price 28.80.
+-> TYPE 23
+## flotation costs (issue costs)
+fees paid to issue new shares or
+bonds (underwriters, lawyers). A real
+cash cost of the project: subtract
+them from its NPV.
+IN QUESTIONS: 'issuance costs paid
+when the deal closes' -> NPV =
+PV(FCF at the WACC) - price - costs.
+-> TYPE 20
+## franked dividend
+a dividend paid from profit that has
+already borne Australian company tax.
+It carries franking credits. Fully
+franked: credits for all the company
+tax on that profit.
+-> TYPE 23
+## homemade dividend
+an investor sells some shares to get
+more cash than the dividend gives, or
+reinvests a dividend they do not want.
+So, in a perfect market, the firm's
+dividend choice does not matter.
+-> TYPE 23
+## homemade leverage
+investors borrow or lend on their own
+to copy or undo a firm's leverage. In
+a perfect market it is a perfect
+substitute, so leverage cannot add
+value (MM, no tax).
+-> TYPE 21
+## imputation credit (franking credit)
+a credit for company tax already paid,
+attached to a franked dividend. The
+shareholder adds it to income (gross
+up), works out tax at their own rate,
+then subtracts the credit.
+Credit = dividend x Tc / (1 - Tc).
+IN QUESTIONS: 'fully franked dividend
+of 14, company tax 30%' -> credit 6,
+taxable income 20.
+-> TYPE 23
+## indirect costs of financial distress
+business lost because the firm looks
+shaky: lost customers and suppliers,
+costs to employees, fire sales of
+assets. Often much bigger than the
+direct costs. They can start before
+default.
+-> TYPE 21
+## managerial entrenchment
+managers who face little threat of
+being fired can run the firm for
+themselves (perks, low effort, empire
+building). Debt helps discipline them.
+## market portfolio
+every risky asset, held in proportion
+to its market value: weight = market
+cap / total market cap. In practice a
+broad index stands in for it (S&P 500
+in the US, S&P/ASX 200 here).
+IN QUESTIONS: 'the whole market is
+these shares' -> each one's cap / the
+total cap.
+-> TYPE 19
+## market timing
+issuing shares when managers think
+they are OVERvalued; using debt or
+retained earnings when they think the
+shares are undervalued.
+## overreaction
+a biased price response: the first
+move is too big and later REVERSES.
+## payment date
+the day the dividend is paid to the
+holders on the register at the record
+date (often weeks later).
+## payout policy
+how a firm returns cash to its
+shareholders: how much, how often, and
+how (dividends or buy-backs).
+-> TYPE 23
+## pecking order
+fund projects with retained earnings
+first, then debt, and new equity only
+as a last resort. It comes from
+asymmetric information. Unlike the
+trade-off theory, it has NO optimal
+debt ratio.
+## pre-tax cost of debt
+the yield (YTM) lenders require on the
+firm's bonds today: NOT the coupon
+rate. It is before the tax saving on
+interest. After tax: rD x (1 - Tc).
+-> TYPE 20
+## pure play
+a firm that does only one kind of
+business. Its cost of capital (its rE
+from CAPM, if it has no debt) is the
+rate for a project in that business.
+IN QUESTIONS: 'a new line of business',
+'a comparable firm with no debt'.
+-> TYPE 20
+## record date
+the date the firm checks its share
+register: holders listed then get the
+dividend. To be listed in time, buy
+before the ex-dividend date.
+## semi-strong-form efficiency
+all PUBLIC information (reports, news,
+past prices) is in the price.
+Analysing public news cannot earn
+abnormal returns. Implies the weak
+form.
+## share repurchase (buy-back)
+the firm uses cash to buy back its own
+shares: on-market (on the exchange) or
+off-market (an offer to shareholders).
+Perfect market: the share price stays
+the same, and wealth is the same as
+with a dividend.
+IN QUESTIONS: 'buys back 10% of its
+shares at the market price' -> fewer
+shares, same price.
+-> TYPE 23
+## signalling theory of debt
+using more debt to signal good
+prospects. Weak firms could not afford
+the fixed payments, so investors
+believe it: more debt -> good news.
+## strong-form efficiency
+ALL information, public and private,
+is in the price. Not even insiders can
+earn abnormal returns. Implies the
+semi-strong and weak forms.
+## subjective approach
+put projects into risk classes and add
+or subtract an adjustment to the WACC
+(e.g. + 4% for risky projects). Rough
+but simple.
+IN QUESTIONS: 'adjustment factor of
++3%' -> discount at WACC + 3%.
+-> TYPE 20
+## tax clientele
+investors who prefer a payout policy
+because of their tax position, e.g.
+low-tax super funds like fully franked
+dividends. Firms attract the clientele
+their policy suits.
+## underreaction
+a biased price response: the first
+move is too small and later CONTINUES
+(a delayed reaction).
+## weak-form efficiency
+past prices and trading volume are
+already in today's price. Technical
+analysis (chart patterns) cannot earn
+abnormal returns.]]
