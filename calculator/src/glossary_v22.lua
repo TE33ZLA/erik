@@ -323,8 +323,8 @@ savings of $X a year'.
 ## trade-off theory
 the best amount of debt balances the
 interest tax shield against the costs of
-financial distress. Textbook, not on the
-formula sheet.
+financial distress (Week 11 lecture).
+The distress part is not on the sheet.
 -> TYPE 21
 ## unlevered free cash flow
 the cash flow the firm's assets make

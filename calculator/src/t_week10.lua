@@ -585,7 +585,7 @@ NPV = 25m - 20m - 1m = 4m: accept]],
       out:row("VL", VL, "$", "VU" .. (tax and " + Tc*D" or "") .. " - PV(distress) = " .. P(VU) .. (tax and (" + " .. P(Tc * V.D)) or "") ..
               " - " .. P(V.PVd), "VL")
       out:off("tradeoff")
-      out:note("trade-off theory (textbook): the PV of distress costs is NOT on the formula sheet")
+      out:note("trade-off theory (Week 11 lecture): the PV of distress costs is NOT on the formula sheet")
     else
       out:row("VL", VL, "$", tax and ("VU + Tc*D = " .. P(VU) .. " + " .. P(Tc * V.D)) or "VL = VU", "VL")
       if tax then out:uses("vl") end
@@ -940,7 +940,7 @@ the shields at rD.
 from cash flows (not on the sheet):
 VU = FCF/rU with FCF = EBIT*(1 - Tc)
 share price = (VL - D)/shares
-trade-off (textbook, not on the sheet):
+trade-off (lecture, not on the sheet):
 VL = VU + Tc*D - PV(distress costs)
 equity next year = max(assets - debt,
 0); agency cost = firm value lost.]],
@@ -967,7 +967,7 @@ IF THE QUESTION SAYS...
 - "interest expense $X" -> type it in
   'interest a year' (D = interest/rD)
 - "price per share" -> (VL - D)/shares
-- "costs of financial distress" (textbook)
+- "costs of financial distress" (trade-off)
   -> take their PV off VL
 - "weak / expected / strong demand" ->
   6 levered returns by state

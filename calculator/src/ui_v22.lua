@@ -104,7 +104,7 @@
       for _, t in ipairs(THEORY) do rows[#rows + 1] = { t = "Wk " .. t.week .. "  " .. t.topic } end
       drawRows(gc, rows, U.tsel, 24, 15, SH - 27)
       note(gc, (#THEORY[U.tsel].items) .. " questions, " .. (#THEORY[U.tsel].rules) .. " what-if rules", SH - 26)
-      footer(gc, "arrows + ENTER | week number jumps | S search")
+      footer(gc, "arrows + ENTER | 1-9 a week, 0 = Wk 10-12 | S search")
     end
     local function buildTopic(ti)
       local t = THEORY[ti]
@@ -472,9 +472,19 @@
         if cl == "s" then U.q, U.hits = "", {}; scr = "search"; inval() end
         if cl == "h" then toHelp() end
         local d = tonumber(ch)
-        if d and scr == "theory" then   -- a week number jumps to that week's first topic (0 = weeks 10-11)
-          local wk = (d == 0) and "10" or tostring(d)
-          for ti, t in ipairs(THEORY) do if t.week:sub(1, #wk) == wk then U.tsel = ti; inval(); break end end
+        if d and scr == "theory" and d > 0 then   -- a week number jumps to that week's first topic
+          local wk = tostring(d)
+          for ti, t in ipairs(THEORY) do if t.week == wk or t.week:sub(1, #wk + 1) == wk .. "-" then U.tsel = ti; inval(); break end end
+        elseif d == 0 and scr == "theory" and #THEORY > 0 then
+          -- 0 steps through Weeks 10, 11 and 12: the first topic of the next of those weeks
+          local cur = THEORY[U.tsel].week
+          local function late(w) return #w >= 2 and w:sub(1, 1) == "1" end
+          local n = #THEORY
+          for k = 1, n do
+            local ti = (U.tsel - 1 + k) % n + 1
+            local w = THEORY[ti].week
+            if late(w) and (w ~= cur or not late(cur)) then U.tsel = ti; inval(); break end
+          end
         end
         return
       end

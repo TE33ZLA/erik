@@ -5119,7 +5119,8 @@ if platform then
 
   function buildGlossary()
     glines, gEntries = {}, {}
-    for block in (GLOSSARY .. "\n## "):gmatch("## (.-)\n## ") do
+    -- the frontier keeps the next entry's "## " (the old pattern ate it and skipped every other entry)
+    for block in (GLOSSARY .. "\n## "):gmatch("## (.-)\n(%f[#])") do
       local head, txt = block:match("^(.-)\n(.*)$")
       if head then
         local ent = { head = head, typ = tonumber(txt:match("TYPE (%d+)")), line = #glines + 1 }
