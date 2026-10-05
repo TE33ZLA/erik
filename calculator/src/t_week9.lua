@@ -355,14 +355,14 @@ avg 8.75%; SD = 23.51%
       return
     end
     local vals, tot = {}, 0
-    for k2 = 1, 3 do
+    for k2 = 1, 5 do
       local n, pr = V["n" .. k2], V["px" .. k2]
       if n and pr then vals[k2] = n * pr; tot = tot + n * pr end
     end
     if tot == 0 then out:need("shares and price for each holding"); return end
     out:row("total value", tot, "$", "sum of shares x price", "tot")
     out:off("weights")
-    for k2 = 1, 3 do if vals[k2] then out:row("weight " .. k2, vals[k2] / tot, "%", P(vals[k2]) .. "/" .. P(tot), "w" .. k2) end end
+    for k2 = 1, 5 do if vals[k2] then out:row("weight " .. k2, vals[k2] / tot, "%", P(vals[k2]) .. "/" .. P(tot), "w" .. k2) end end
   end
   local slots18 = { S("mode", "what you have", "choice", MODES18, 1),
     S("wA", "wA weight in A (%)", "pct"), S("amtA", "or: $ in A", "money"), S("amtB", "and $ in B", "money"),
@@ -380,7 +380,7 @@ avg 8.75%; SD = 23.51%
     slots18[#slots18 + 1] = S("A" .. k2, "period " .. k2 .. ": R of A (%)", "pct")
     slots18[#slots18 + 1] = S("B" .. k2, "period " .. k2 .. ": R of B (%)", "pct")
   end
-  for k2 = 1, 3 do
+  for k2 = 1, 5 do
     slots18[#slots18 + 1] = S("n" .. k2, "holding " .. k2 .. ": shares", "num")
     slots18[#slots18 + 1] = S("px" .. k2, "holding " .. k2 .. ": price ($)", "money")
   end
@@ -397,7 +397,7 @@ avg 8.75%; SD = 23.51%
       if m == MODES18[3] then return { "mode", "A1", "B1", "A2", "B2", "A3", "B3", "A4", "B4", "A5", "B5", "A6", "B6", "wA", "rho" } end
       if m == MODES18[4] then return { "mode", "wA", "ERA", "sA", "rf" } end
       if m == MODES18[7] then return { "mode", "nN", "sA", "vA", "rho", "cov" } end
-      return { "mode", "n1", "px1", "n2", "px2", "n3", "px3" }
+      return { "mode", "n1", "px1", "n2", "px2", "n3", "px3", "n4", "px4", "n5", "px5" }
     end,
     hints = {
       mode = "left/right: SDs known, forecast, past, risk-free, weights, equal weights",

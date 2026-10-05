@@ -136,7 +136,7 @@
       "shares|dividend", "npv|irr|capital budget", "lives|eaa|replace", "fcf|relevant", "apr|ear|rate",
       "break-even|forecast", "decision tree|expected", "probabilit", "cycle|working capital", "trade credit",
       "credit policy|receivable", "return|risk", "portfolio|correlation", "capm|beta|sml", "wacc|cost of", "capital structure|mm",
-      "replacement|replace" }
+      "replacement|replace", "dividends|payout" }
     local function topicForType(ti)
       for word in (TYPE_TOPIC[ti] or ""):gmatch("[^|]+") do
         for k2, t in ipairs(THEORY) do if t.topic:lower():find(word, 1, true) then return k2 end end

@@ -1,7 +1,7 @@
 # BFC2140 Solver for the TI-Nspire CX CAS
 
 `BFC2140_SOLVER.tns` is a Lua app for the TI-Nspire CX / CX II (CAS or not, OS 3.2 or later) that solves every
-kind of question in BFC2140 Corporate Finance, Weeks 1 to 11, and answers the questions without numbers.
+kind of question in BFC2140 Corporate Finance, Weeks 1 to 12, and answers the questions without numbers.
 It grew out of the student's own v21 solver (Weeks 1-5, kept here as `BFC2140_SOLVER_v21.tns`).
 
 ## Put it on the calculator
@@ -19,7 +19,9 @@ The home screen:
 
 - **F  Find my question type.** Answer two short questions ("What is it about?", "What do they ask for?"). The right
   solver opens with the answer box marked **FIND** and any choices already set.
-- **1-7** pick a week, then a question type (22 types).
+- **1-8** pick a week, then a question type (23 types). A type that covers several kinds of question opens a numbered
+  list first ("What does the question ask for?"): press its number and the page shows only the boxes that kind needs;
+  ESC goes back to the list.
 - **T  Theory + what-ifs.** The questions without numbers, by week and topic: first the WHAT-IF rules
   ("rates UP -> bond price DOWN"), then each question with its answer, why, and the trap. A week number jumps to that week.
 - **S  Search.** Type a word from the question (COUPON, PERPETUITY, 2/10, BETA) and open the match: a solver, a theory
@@ -67,17 +69,20 @@ list are in `src/fsheet.lua`; a solver records what it used with `out:uses("fv")
 | 4-5 | projects (NPV, IRR, payback, PI, A vs B, crossover, NPV-graph questions); different lives (EAA/EAC, NPV of repeating forever); cash flows (FCF from revenue and costs or from EBIT, lost sales (erosion), after-tax salvage added, change in NWC from inventory, A/R and A/P; depreciation, salvage, inflation); **replacement decisions** (type 22: year 0, each year's savings, incremental depreciation, EBIT, tax, NOPAT, operating CF, a one-off cost avoided, the final year's asset sales and NWC back, NPV, IRR and the Excel layout) |
 | 7 | break-even (EBIT and NPV), sensitivity, scenarios; expected values, decision trees, abandon options, **act now or wait** (the option to wait); two-year joint and conditional probabilities |
 | 8 | inventory/A/R/A/P days, operating and cash cycles, cash freed, NWC, firm value, **float** (a lockbox or billing firm: cash freed today vs the PV of the fees); trade credit cost and decision; credit policy NPV |
-| 9 | one share (realised, annualised, expected return, SD, CV, Sharpe); two-share portfolios (covariance, correlation, SD, weights, variances instead of SDs, one share or **two shares plus the risk-free asset**); beta, CAPM, SML, portfolio beta, target return |
-| 10-11 | costs of equity, debt (YTM) and preference shares, WACC; Modigliani-Miller with and without tax, tax shield, recapitalisation, **value from cash flows** (VU = EBIT(1 - Tc)/rU, VL, equity, share price, levered rE and WACC, PV of distress costs: the trade-off theory, textbook) |
+| 9 | one share (realised, annualised, expected return, SD, CV, Sharpe, 95% range, standard error); two-share portfolios (covariance, correlation, SD, weights from up to 5 holdings, variances instead of SDs, one share or **two shares plus the risk-free asset**, equal weights over n shares); CAPM: required return, **find beta** (from prices or a forecast), buy or sell, find rf or the premium, beta from covariance, portfolio beta and return, target return, rf and premium from two shares on the SML |
+| 10-11 | WACC (from values, weights or D/E); cost of equity (CAPM, dividend growth, g from past dividends); cost of debt from a bond (the lectures' **effective** yearly rate, the APR alongside, after tax); preference shares (with issue costs); **book vs market weights**; cost of debt from **two bond issues**; **projects vs the SML** (wrongly accepted / rejected by one WACC); **project NPV at the WACC** (risk adjustment, issue costs); Modigliani-Miller with and without tax, tax shield (permanent or n-year debt, from the interest paid), recapitalisation (price, buyback, rE and WACC after), value from cash flows (VU = EBIT(1 - Tc)/rU, VL, equity, share price, PV of distress costs), **levered equity returns by state**, **levered vs unlevered: better buy**, **agency costs** of risky strategies, **debt overhang** |
+| 12 | payout policy: ex-dividend price, **share buy-backs**, **homemade dividends**, franked dividends (**imputation**) vs classical tax, **capital gains tax** with the 50% discount; market efficiency and payout theory on the T pages |
 
-Weeks 10-11 follow the unit's formula sheet (for example, MM Proposition II with tax uses `(1 - Tc)`, which assumes
-permanent debt), because the lectures for those weeks were not in the course files used to build this.
+Weeks 10-12 follow the unit's formula sheet and the lecture conventions (for example, the cost of debt from a
+semi-annual bond is the effective yearly rate `(1 + y)^2 - 1`, with the APR shown next to it; MM Proposition II with tax
+uses `(1 - Tc)`, which assumes permanent debt). Course slides and worksheets are not in this repository: the examples
+and tests use their own numbers.
 
 ## Build and test (for changes)
 
 - `src/main.lua` is the app (the v21 code, extended). `--@include` lines pull in `src/t_week7.lua` ... `t_week10.lua`
-  (the Weeks 7-11 solvers), `t_replace.lua` (type 22, replacement decisions), `v22_data.lua` (groups, hints, the finder,
-  the Finance Solver checks, the help), `glossary_v22.lua`, `theory_a.lua` / `theory_b.lua` (the theory cards),
+  (the Weeks 7-11 solvers), `t_replace.lua` (type 22, replacement decisions), `t_week12.lua` (type 23, payout policy), `v22_data.lua` (groups, hints, the finder,
+  the Finance Solver checks, the help), `glossary_v22.lua`, `theory_a.lua` / `theory_b.lua` / `theory_c.lua` (the theory cards),
   `fsheet.lua` (the exam formula sheet and the FORMULA SHEET section) and `ui_v22.lua` (the new screens).
 - Lua 5.1 allows 200 local variables per function: new code goes in `do ... end` blocks or its own file.
 - `node calculator/tools/build.js` writes `build/bfc2140_solver.lua` and `BFC2140_SOLVER.tns`.
@@ -90,6 +95,7 @@ permanent debt), because the lectures for those weeks were not in the course fil
   - `python3 calculator/tests/test_ui.py`: every screen, mode, finder route, theory page and search opens without an
     error; every blank-solved page and every test case (typed into the boxes) shows the FORMULA SHEET section, and
     every N page starts with the sheet formulas;
-  - `python3 calculator/tests/check_theory.py calculator/src/theory_b.lua THEORY_B`: the theory data format.
+  - `python3 calculator/tests/check_theory.py calculator/src/theory_c.lua THEORY_C` (and `theory_a`/`theory_b`): the
+    theory data format.
   `tests/mock/nspire_mock.py` is a small TI-Nspire Lua mock that draws the screen to SVG; `tests/ui_tour.py` saves
   screenshots of a tour of the app (needs Playwright).

@@ -8,6 +8,7 @@
 --@include t_week9.lua
 --@include t_week10.lua
 --@include t_replace.lua
+--@include t_week12.lua
 
 -- notes pages of the new types, laid out like the first ten
 for i2 = 11, #TYPES do
@@ -24,7 +25,8 @@ GROUPS = {
   { t = "Wk 7    Project risk", s = "break-even, scenarios, trees, probabilities", types = { 11, 12, 13 } },
   { t = "Wk 8    Working capital", s = "days, cycles, trade credit, credit policy", types = { 14, 15, 16 } },
   { t = "Wk 9    Risk and return", s = "returns, SD, portfolios, beta, CAPM", types = { 17, 18, 19 } },
-  { t = "Wk 10-11 WACC + capital structure", s = "costs of capital, WACC, MM", types = { 20, 21 } },
+  { t = "Wk 10-11 WACC + capital structure", s = "costs of capital, WACC, MM, agency, overhang", types = { 20, 21 } },
+  { t = "Wk 12   Payout policy", s = "dividends, buy-backs, homemade dividends, imputation, CGT", types = { 23 } },
 }
 for gi, g in ipairs(GROUPS) do for _, ti in ipairs(g.types) do TYPES[ti].group = gi end end
 
@@ -280,6 +282,15 @@ FINDER = {
         { t = "tax shield, levered value", go = { type = 21, set = { mode = "tax" } } },
         { t = "value or share price from EBIT / cash flow", go = { type = 21, set = { mode = "value" } } },
       } } },
+    { t = "PAYOUT: dividends, buy-backs, tax", s = "'ex-dividend', 'repurchase', 'franked'", kids = {
+      q = "What do they ask for?", opts = {
+        { t = "the price before / after a dividend", go = { type = 23, set = { mode = "dividend:" } } },
+        { t = "a share buy-back (repurchase)", go = { type = 23, set = { mode = "share buy-back" } } },
+        { t = "make your own dividend (homemade)", go = { type = 23, set = { mode = "homemade" } } },
+        { t = "tax on a franked dividend (imputation)", go = { type = 23, set = { mode = "dividend tax" } } },
+        { t = "capital gains tax (50% discount)", go = { type = 23, set = { mode = "capital gains" } } },
+        { t = "market efficiency, signals (no numbers)", theory = "market efficiency" },
+      } } },
     { t = "NO NUMBERS: explain / true-false", s = "'what happens if...', 'which is TRUE'", theory = true },
   },
 }
@@ -289,8 +300,9 @@ FINDER = {
 ----------------------------------------------------------------------
 --@include? theory_a.lua
 --@include? theory_b.lua
+--@include? theory_c.lua
 THEORY = {}
-for _, part in ipairs({ THEORY_A or {}, THEORY_B or {} }) do
+for _, part in ipairs({ THEORY_A or {}, THEORY_B or {}, THEORY_C or {} }) do
   for _, t in ipairs(part) do THEORY[#THEORY + 1] = t end
 end
 
