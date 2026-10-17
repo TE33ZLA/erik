@@ -11,7 +11,7 @@
 ----------------------------------------------------------------------
 
 if platform then platform.apilevel = "2.0" end
-local VERSION = "v24"
+local VERSION = "v25"
 
 ----------------------------------------------------------------------
 -- 1. SMALL HELPERS + NUMBER FORMATTING
@@ -4065,6 +4065,7 @@ RESULTS
 
 --@include v22_data.lua
 --@include fsheet.lua
+--@include roots.lua
 
 ----------------------------------------------------------------------
 -- 7. INPUT PARSING + SOLVE ORCHESTRATION

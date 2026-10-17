@@ -314,7 +314,14 @@ START HERE (home screen)
 F  Find my question: answer 2 short
    questions; the right solver opens
    with the answer box marked FIND.
-1-7  pick a week, then a question type.
+R  Root formulas: every line of the
+   formula sheet as boxes (slots). Fill
+   what you know, leave ONE blank,
+   ENTER: the answer, the formula
+   solved for it, your numbers in it.
+   N on a formula: how to fill each
+   slot.
+1-8  pick a week, then a question type.
 T  Theory: 'what happens if', true or
    false, explain why - by topic.
 S  Search: type a word from the

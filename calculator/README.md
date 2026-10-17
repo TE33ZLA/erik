@@ -17,6 +17,13 @@ Press-to-Test mode disables documents, so check your exam's calculator rules bef
 
 The home screen:
 
+- **R  Root formulas.** Every line of the exam formula sheet (55 of them, in 9 groups) as a page of boxes, one per
+  letter. Fill what the question gives, leave ONE box blank, ENTER: the answer, the formula solved for that letter
+  (when it can be rearranged; otherwise it is found by trial), your numbers in it, the answer to 2 decimals, and a
+  check with every box filled. N on a formula explains what goes in each box and lists the formula solved for every
+  letter. Some boxes can come from a helper (D0 for D1, the market risk premium for E[RM], yearly COGS for daily
+  COGS, variances and a covariance for SDs and the correlation); list formulas (NPV, IRR, expected return, variance,
+  covariance) take one value per box.
 - **F  Find my question type.** Answer two short questions ("What is it about?", "What do they ask for?"). The right
   solver opens with the answer box marked **FIND** and any choices already set.
 - **1-8** pick a week, then a question type (23 types). A type that covers several kinds of question opens a numbered
@@ -83,7 +90,7 @@ and tests use their own numbers.
 - `src/main.lua` is the app (the v21 code, extended). `--@include` lines pull in `src/t_week7.lua` ... `t_week10.lua`
   (the Weeks 7-11 solvers), `t_replace.lua` (type 22, replacement decisions), `t_week12.lua` (type 23, payout policy), `v22_data.lua` (groups, hints, the finder,
   the Finance Solver checks, the help), `glossary_v22.lua`, `theory_a.lua` / `theory_b.lua` / `theory_c.lua` (the theory cards),
-  `fsheet.lua` (the exam formula sheet and the FORMULA SHEET section) and `ui_v22.lua` (the new screens).
+  `fsheet.lua` (the exam formula sheet and the FORMULA SHEET section), `roots.lua` (the R pages) and `ui_v22.lua` (the new screens).
 - Lua 5.1 allows 200 local variables per function: new code goes in `do ... end` blocks or its own file.
 - `node calculator/tools/build.js` writes `build/bfc2140_solver.lua` and `BFC2140_SOLVER.tns`.
   `tools/tns.js` makes the .tns (the same file layout as the Luna converter) and can read the Lua back out
@@ -95,6 +102,8 @@ and tests use their own numbers.
   - `python3 calculator/tests/test_ui.py`: every screen, mode, finder route, theory page and search opens without an
     error; every blank-solved page and every test case (typed into the boxes) shows the FORMULA SHEET section, and
     every N page starts with the sheet formulas;
+  - `python3 calculator/tests/test_roots.py`: every root formula (R) solves its example, gets each box back when
+    that box is left blank, every rearranged form checks numerically, and every R page opens;
   - `python3 calculator/tests/check_theory.py calculator/src/theory_c.lua THEORY_C` (and `theory_a`/`theory_b`): the
     theory data format.
   `tests/mock/nspire_mock.py` is a small TI-Nspire Lua mock that draws the screen to SVG; `tests/ui_tour.py` saves

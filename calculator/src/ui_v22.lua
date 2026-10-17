@@ -5,8 +5,10 @@
   ------------------------------------------------------------------
   do
     local U = { homeSel = 1, group = 1, gsel = 1, fstack = {}, fsel = 1, want = nil, say = nil,
-                tsel = 1, tlines = {}, tscroll = 0, topic = nil, q = "", hits = {}, hsel = 1, index = nil, mt = nil, msel = 1 }
-    local HOME = { { k = "F", t = "Find my question type", s = "answer 2 short questions: start here" } }
+                tsel = 1, tlines = {}, tscroll = 0, topic = nil, q = "", hits = {}, hsel = 1, index = nil, mt = nil, msel = 1,
+                rlev = 1, rg = 1, rsel = 1 }
+    local HOME = { { k = "F", t = "Find my question type", s = "answer 2 short questions: start here" },
+                   { k = "R", t = "Root formulas: fill the slots", s = "every formula-sheet line: fill what you know, leave ONE slot blank" } }
     for gi, g in ipairs(GROUPS) do HOME[#HOME + 1] = { k = tostring(gi), t = g.t, s = g.s, g = gi } end
     HOME[#HOME + 1] = { k = "T", t = "Theory + what-ifs (no numbers)", s = "'what happens if', true or false, explain" }
     HOME[#HOME + 1] = { k = "S", t = "Search a word from the question", s = "e.g. COUPON, BREAK-EVEN, BETA" }
@@ -45,7 +47,7 @@
     ------------------------------------------------------------------ home
     local function paintHome(gc)
       title(gc, "BFC2140 SOLVER " .. VERSION .. " - all weeks")
-      local y = drawRows(gc, HOME, U.homeSel, 23, 15, SH - 27, function(i, r) return r.k end)
+      local y = drawRows(gc, HOME, U.homeSel, 23, 13, SH - 27, function(i, r) return r.k end)
       note(gc, HOME[U.homeSel].s, SH - 26)
       footer(gc, "key or arrows + ENTER | H help | G glossary")
     end
@@ -92,6 +94,37 @@
       drawRows(gc, rows, U.msel, 40, 15, SH - 27, function(i) return tostring(i) end)
       note(gc, (qt.modeHelp and qt.modeHelp[U.msel]) or "ENTER opens a page with only the boxes this kind needs", SH - 26)
       footer(gc, "number or ENTER | N notes | W worked | ESC back")
+    end
+    ------------------------------------------------------------------ root formulas: the sheet's lines as pages of slots
+    local function rootRows()
+      if U.rlev == 1 then
+        local rows = {}
+        for _, g2 in ipairs(ROOTMENU or {}) do rows[#rows + 1] = { t = g2.t } end
+        return rows
+      end
+      local rows = {}
+      for _, ti in ipairs(ROOTMENU[U.rg].types) do rows[#rows + 1] = { t = TYPES[ti].root.name, ti = ti } end
+      return rows
+    end
+    local function paintRoots(gc)
+      local rows = rootRows()
+      if U.rsel > #rows then U.rsel = #rows end
+      if U.rsel < 1 then U.rsel = 1 end
+      title(gc, (U.rlev == 1) and "ROOT FORMULAS - the formula sheet" or ROOTMENU[U.rg].t)
+      setc(gc, COL.head); gc:setFont("sansserif", "b", 10)
+      gc:drawString((U.rlev == 1) and "Which part of the sheet?" or "Which formula?", 6, 23, "top")
+      drawRows(gc, rows, U.rsel, 40, 15, SH - 27, function(i) return (i < 10) and tostring(i) or "" end)
+      local r = rows[U.rsel]
+      note(gc, (U.rlev == 1) and "then pick the formula: fill what you know, leave ONE slot blank, ENTER"
+                 or (r and TYPES[r.ti].root.eq or ""), SH - 26)
+      footer(gc, "number or ENTER | ESC back")
+    end
+    local function rootPick(i)
+      local rows = rootRows()
+      if not rows[i] then return end
+      if U.rlev == 1 then U.rg, U.rlev, U.rsel = i, 2, 1; inval(); return end
+      U.rsel, U.want, U.say = i, nil, nil
+      openType(rows[i].ti)      -- a formula page has no choice row: the cursor starts on its first slot
     end
     ------------------------------------------------------------------ theory list
     local function paintTheory(gc)
@@ -338,6 +371,7 @@
       if not h then return end
       if h.k == "F" then U.fstack, U.fsel = {}, 1; scr = "finder"
       elseif h.k == "T" then scr = "theory"
+      elseif h.k == "R" then U.rlev, U.rsel = 1, 1; scr = "roots"
       elseif h.k == "S" then U.q, U.hits = "", {}; scr = "search"
       else U.group, U.gsel = h.g, 1; scr = "menu" end
       inval()
@@ -346,7 +380,7 @@
     ------------------------------------------------------------------ event plumbing
     local old = { paint = on.paint, arrowKey = on.arrowKey, enterKey = on.enterKey, escapeKey = on.escapeKey,
                   charIn = on.charIn, backspaceKey = on.backspaceKey, mouseDown = on.mouseDown, deleteKey = on.deleteKey }
-    local NEW = { home = true, menu = true, finder = true, theory = true, search = true, input = true, modes = true }
+    local NEW = { home = true, menu = true, finder = true, theory = true, search = true, input = true, modes = true, roots = true }
 
     function on.paint(gc)
       if NEW[scr] then
@@ -355,6 +389,7 @@
         if scr == "home" then paintHome(gc)
         elseif scr == "menu" then paintGroup(gc)
         elseif scr == "modes" then paintModes(gc)
+        elseif scr == "roots" then paintRoots(gc)
         elseif scr == "finder" then paintFinder(gc)
         elseif scr == "theory" then paintTheory(gc)
         elseif scr == "search" then paintSearch(gc)
@@ -379,6 +414,7 @@
       if scr == "home" then U.homeSel = move(U.homeSel, #HOME, key)
       elseif scr == "menu" then U.gsel = move(U.gsel, #groupTypes(), key)
       elseif scr == "modes" then U.msel = move(U.msel, #modeSlotOf(U.mt).opts, key)
+      elseif scr == "roots" then U.rsel = move(U.rsel, #rootRows(), key)
       elseif scr == "finder" then U.fsel = move(U.fsel, #fnode().opts, key)
       elseif scr == "theory" and #THEORY > 0 then U.tsel = move(U.tsel, #THEORY, key)
       elseif scr == "search" and #U.hits > 0 then U.hsel = move(U.hsel, #U.hits, key)
@@ -390,6 +426,7 @@
       if scr == "home" then homePick(U.homeSel)
       elseif scr == "menu" then openGroupType(U.gsel)
       elseif scr == "modes" then pickMode(U.msel)
+      elseif scr == "roots" then rootPick(U.rsel)
       elseif scr == "finder" then finderPick(U.fsel)
       elseif scr == "theory" then if #THEORY > 0 then openTopic(U.tsel) end
       elseif scr == "search" then openHit(U.hits[U.hsel])
@@ -401,10 +438,17 @@
       if scr == "home" then return end
       if scr == "menu" or scr == "theory" or scr == "search" then scr = "home"
       elseif scr == "modes" then scr = "menu"
+      elseif scr == "roots" then
+        if U.rlev == 2 then U.rlev, U.rsel = 1, U.rg else scr = "home" end
       elseif scr == "finder" then
         if #U.fstack > 0 then table.remove(U.fstack); U.fsel = 1 else scr = "home" end
       elseif scr == "tpage" then
         if U.tback == "search" or U.tback == "menu" or U.tback == "input" or U.tback == "result" then scr = U.tback else scr = "theory" end
+      elseif scr == "input" and TYPES[curT].root then
+        U.want, U.say = nil, nil
+        U.rlev, U.rg = 2, TYPES[curT].rootGroup     -- back to the list of that part of the sheet
+        for i, ti in ipairs(ROOTMENU[U.rg].types) do if ti == curT then U.rsel = i end end
+        scr = "roots"
       elseif scr == "input" then
         U.want, U.say = nil, nil
         U.group = TYPES[curT].group or U.group
@@ -453,6 +497,12 @@
         if cl == "g" then toGlossary(); return end
         return
       end
+      if scr == "roots" then
+        local d = tonumber(ch)
+        if d and d > 0 then rootPick(d); return end
+        if cl == "h" then toHelp() elseif cl == "g" then toGlossary() end
+        return
+      end
       if scr == "modes" then
         local d = tonumber(ch)
         if d then pickMode(d); return end
@@ -496,8 +546,13 @@
       old.charIn(ch)
     end
     function on.mouseDown(mx, my)
+      if scr == "roots" then
+        local i = math.floor((my - 40) / 15) + 1
+        if my >= 40 and rootRows()[i] then rootPick(i) end
+        return
+      end
       if scr == "home" then
-        local i = math.floor((my - 23) / 15) + 1
+        local i = math.floor((my - 23) / 13) + 1
         if HOME[i] and my >= 23 then if i == U.homeSel then homePick(i) else U.homeSel = i; inval() end end
         return
       end
