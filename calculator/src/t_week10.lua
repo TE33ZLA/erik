@@ -132,8 +132,8 @@ do
         out:head("BOOK VALUES")
         out:row("E (book)", Eb, "$", V.BE and "given" or ("shares x book value per share = " .. P(V.nE) .. " x " .. P(V.bvps)), "Eb")
         out:row("D (book) = face values", Db, "$", "the face values added up", "Db")
-        out:row("E/V (book)", Eb / (Eb + Db), "%", P(Eb) .. "/" .. P(Eb + Db), "wEb")
-        out:row("D/V (book)", Db / (Eb + Db), "%", P(Db) .. "/" .. P(Eb + Db), "wDb")
+        out:row("equity weight (book)", Eb / (Eb + Db), "%", P(Eb) .. "/" .. P(Eb + Db), "wEb")
+        out:row("debt weight (book)", Db / (Eb + Db), "%", P(Db) .. "/" .. P(Eb + Db), "wDb")
       end
       if Em then
         out:head("MARKET VALUES")
@@ -143,8 +143,8 @@ do
           if F then out:row("issue " .. k .. " market value", F * (V["q" .. k] or 1), "$", "face x price % = " .. P(F) .. " x " .. P(V["q" .. k] or 1), "Dm" .. k) end
         end
         out:row("D (market)", Dm, "$", "the issues added up", "Dm")
-        out:row("E/V (market)", Em / (Em + Dm), "%", P(Em) .. "/" .. P(Em + Dm), "wEm")
-        out:row("D/V (market)", Dm / (Em + Dm), "%", P(Dm) .. "/" .. P(Em + Dm), "wDm")
+        out:row("equity weight (market)", Em / (Em + Dm), "%", P(Em) .. "/" .. P(Em + Dm), "wEm")
+        out:row("debt weight (market)", Dm / (Em + Dm), "%", P(Dm) .. "/" .. P(Em + Dm), "wDm")
         out:note("use the MARKET weights in the WACC: they are today's values")
       end
       out:off("bookmv")
@@ -255,10 +255,11 @@ do
     out:head("MARKET-VALUE WEIGHTS")
     if not V.E and not V.DE then out:row("E", E, "$", "shares x price = " .. P(V.nE) .. " x " .. P(V.pE), "E"); out:off("mv") end
     if not V.D and not V.DE then out:row("D", D, "$", "bonds x price = " .. P(V.nD) .. " x " .. P(V.pD), "D"); out:off("mv") end
-    out:row("V = E + P + D", Vt, "$", P(E) .. " + " .. P(Pv) .. " + " .. P(D), "V")
-    out:row("E/V", E / Vt, "%", P(E) .. "/" .. P(Vt), "wE")
-    if Pv > 0 then out:row("P/V", Pv / Vt, "%", P(Pv) .. "/" .. P(Vt), "wP") end
-    out:row("D/V", D / Vt, "%", P(D) .. "/" .. P(Vt), "wD")
+    out:row("V total value (everything)", Vt, "$", "shares + preference + debt = " .. P(E) .. " + " .. P(Pv) .. " + " .. P(D), "V")
+    out:row("equity weight (E/V)", E / Vt, "%", "shares/everything = " .. P(E) .. "/" .. P(Vt), "wE")
+    if Pv > 0 then out:row("preference weight (P/V)", Pv / Vt, "%", "preference/everything = " .. P(Pv) .. "/" .. P(Vt), "wP") end
+    out:row("debt weight (D/V)", D / Vt, "%", "debt/everything = " .. P(D) .. "/" .. P(Vt), "wD")
+    out:note("the weights add to 100%")
     out:note("MARKET values: a BOOK value of the shares is not used")
     if not (V.re and V.rd) then
       out:uses("v")
