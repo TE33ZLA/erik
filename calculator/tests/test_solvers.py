@@ -244,6 +244,7 @@ CASES = [
   (23, 'v24 capital gains tax, held under a year', dict(mode='capital gains tax (50% discount)', gain=10000, tp=.45, held='12 months or less'),
    dict(taxable=10000, cgt=4500, keptG=5500)),
   (18, 'v24 weights from 4 holdings', dict(mode='weights from holdings', n1=10, px1=20, n2=20, px2=15, n3=5, px3=40, n4=10, px4=30), dict(tot=1000, w1=.2, w4=.3)),
+  (20, 'v25 weights only, with preference shares', dict(nE=4e6, pE=25, D=60e6, Pv=15e6), dict(E=100e6, V=175e6, wE=.571429, wP=.085714, wD=.342857, _sheet='v')),
   (21, 'v23 FCF given directly', dict(mode='value from cash flows (EBIT or FCF)', FCF=900, Tc=.3, rU=.12, D=1000), dict(VU=7500, VL=7800, E=6800)),
 ]
 

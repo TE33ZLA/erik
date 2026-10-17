@@ -249,16 +249,22 @@ do
       out:row("weights from D/E", V.DE, "", "E/V = 1/(1 + D/E) = " .. pct(1 / (1 + V.DE)) .. "%, D/V = " .. pct(V.DE / (1 + V.DE)) .. "%", "DE")
       out:off("dew")
     end
-    if not (E and D and V.re and V.rd) then out:need("E, D (market values, or the weights, or D/E) and the costs rE and rD (rP if there are preference shares)"); return end
+    if not (E and D) then out:need("E and D: market values (shares x price, bonds x price), or the weights, or D/E - then the costs rE and rD for the WACC"); return end
     local Tc = V.Tc or 0
     local Vt = E + D + Pv
     out:head("MARKET-VALUE WEIGHTS")
-    if not V.E and not V.DE then out:row("E", E, "$", "shares x price", "E"); out:off("mv") end
-    if not V.D and not V.DE then out:row("D", D, "$", "bonds x price", "D"); out:off("mv") end
+    if not V.E and not V.DE then out:row("E", E, "$", "shares x price = " .. P(V.nE) .. " x " .. P(V.pE), "E"); out:off("mv") end
+    if not V.D and not V.DE then out:row("D", D, "$", "bonds x price = " .. P(V.nD) .. " x " .. P(V.pD), "D"); out:off("mv") end
     out:row("V = E + P + D", Vt, "$", P(E) .. " + " .. P(Pv) .. " + " .. P(D), "V")
-    out:row("E/V", E / Vt, "%", "", "wE")
-    if Pv > 0 then out:row("P/V", Pv / Vt, "%", "", "wP") end
-    out:row("D/V", D / Vt, "%", "", "wD")
+    out:row("E/V", E / Vt, "%", P(E) .. "/" .. P(Vt), "wE")
+    if Pv > 0 then out:row("P/V", Pv / Vt, "%", P(Pv) .. "/" .. P(Vt), "wP") end
+    out:row("D/V", D / Vt, "%", P(D) .. "/" .. P(Vt), "wD")
+    out:note("MARKET values: a BOOK value of the shares is not used")
+    if not (V.re and V.rd) then
+      out:uses("v")
+      out:need("rE and rD (and rP if there are preference shares) to go on to the WACC itself")
+      return
+    end
     local w = V.re * E / Vt + (V.rp or 0) * Pv / Vt + V.rd * (1 - Tc) * D / Vt
     out:head("WACC")
     out:row("rD after tax", V.rd * (1 - Tc), "%", "rD x (1 - Tc)" .. ((Tc == 0) and " (no Tc: rD is used as typed)" or ""), "rdat")
