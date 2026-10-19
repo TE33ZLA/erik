@@ -208,20 +208,43 @@
       end
       U.index = ix
     end
+    -- question words that say nothing about the topic ("which of the following is TRUE about a firm's ...")
+    local STOP = {}
+    for w in ("which what the of following are is a an in to for and or does do did its it this that these be by on" ..
+              " with as at from will would should not true false statement statements correct best describes about"):gmatch("%S+") do STOP[w] = true end
+    local function findWord(text, w)
+      if #w <= 3 then   -- a short word (no, npv, pi) only as a whole word, not inside 'now' or 'pick'
+        return text:find("%f[%w]" .. w:gsub("%W", "%%%0") .. "%f[%W]")
+      end
+      local a = text:find(w, 1, true)
+      if not a and #w > 4 then   -- included -> includ, dividends -> dividend, paying -> pay
+        local stem = w:gsub("ing$", ""):gsub("ed$", ""):gsub("es$", ""):gsub("s$", "")
+        if #stem >= 3 and stem ~= w then a = text:find(stem, 1, true) end
+      end
+      return a
+    end
     local function runSearch()
       U.hits, U.hsel = {}, 1
-      local toks = {}
-      for w in U.q:lower():gmatch("[%w%-/%%]+") do if #w >= 2 or tonumber(w) then toks[#toks + 1] = w end end
+      local toks, seen = {}, {}
+      for w in U.q:lower():gmatch("[%w%-/%%]+") do
+        if (#w >= 2 or tonumber(w)) and not STOP[w] and not seen[w] then toks[#toks + 1] = w; seen[w] = true end
+      end
       if #toks == 0 then return end
       if not U.index then buildIndex() end
+      -- one or two words: every one must be there; more (words typed from the question): most of them, best first
+      local need = (#toks <= 2) and #toks or math.max(2, math.ceil(#toks / 2))
       for _, e in ipairs(U.index) do
-        local sc, all = 0, true
+        local sc, m = 0, 0
+        local tl = e.t:lower()
         for _, w in ipairs(toks) do
-          local a = e.text:find(w, 1, true)
-          if not a then all = false; break end
-          sc = sc + #w + ((a == 1 or e.text:sub(a - 1, a - 1):find("[%s%(]")) and 3 or 0)
+          local a = findWord(e.text, w)
+          if a then
+            m = m + 1
+            sc = sc + #w + ((a == 1 or e.text:sub(a - 1, a - 1):find("[%s%(]")) and 3 or 0)
+            if findWord(tl, w) then sc = sc + 4 end   -- the word is in the question / name itself
+          end
         end
-        if all then U.hits[#U.hits + 1] = { e = e, sc = sc * 10 - e.kind } end
+        if m >= need then U.hits[#U.hits + 1] = { e = e, sc = m * 1000 + sc * 10 - e.kind } end
       end
       table.sort(U.hits, function(a, b) return a.sc > b.sc end)
       while #U.hits > 40 do table.remove(U.hits) end
@@ -229,9 +252,11 @@
     local function paintSearch(gc)
       title(gc, "SEARCH - type a word, ENTER opens")
       setc(gc, COL.val); gc:setFont("sansserif", "b", 11)
-      gc:drawString("> " .. U.q .. "_", 6, 24, "top")
+      local shown = U.q
+      while #shown > 4 and gc:getStringWidth("> .." .. shown .. "_") > SW - 12 do shown = shown:sub(2) end   -- a long question: show its end
+      gc:drawString("> " .. ((shown ~= U.q) and ".." or "") .. shown .. "_", 6, 24, "top")
       if U.q == "" then
-        note(gc, "Type a word from the question, e.g. COUPON, PERPETUITY, BETA, BREAK-EVEN, 2/10. Letters and numbers both work.", 44)
+        note(gc, "Type 1-3 key words from the question, e.g. CAPITAL STRUCTURE, COUPON, BETA, 2/10. THEORY lines answer 'which of the following' and true/false.", 44)
       elseif #U.hits == 0 then
         setc(gc, COL.need); gc:setFont("sansserif", "r", 10); gc:drawString("nothing found - try a shorter word", 6, 44, "top")
       else
@@ -471,7 +496,7 @@
       if ch == "\226\136\146" then ch = "-" end
       local cl = ch:lower()
       if scr == "search" then
-        if ch:find("^[%w%s%-/%%%.]$") and #U.q < 24 then U.q = U.q .. ch; runSearch(); inval() end
+        if ch:find("^[%w%s%-/%%%.']$") and #U.q < 90 then U.q = U.q .. ch; runSearch(); inval() end
         return
       end
       if scr == "home" then

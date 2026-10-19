@@ -32,7 +32,9 @@ The home screen:
 - **T  Theory + what-ifs.** The questions without numbers, by week and topic: first the WHAT-IF rules
   ("rates UP -> bond price DOWN"), then each question with its answer, why, and the trap. A week number jumps to that week.
 - **S  Search.** Type a word from the question (COUPON, PERPETUITY, 2/10, BETA) and open the match: a solver, a theory
-  card, a rule or a glossary word.
+  card, a rule or a glossary word. A whole question works too ("Which of the following are included in a firm's
+  capital structure?"): filler words are dropped and the cards matching most of the rest come first. THEORY lines are
+  the answers to 'which of the following' and true/false questions.
 - **G  Glossary** of every finance word and question wording, each linked to its solver. **H** help.
 
 Filling in a question: up/down (or tab) moves between boxes, the grey line at the bottom says what each box is and how

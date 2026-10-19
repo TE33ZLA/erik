@@ -324,9 +324,14 @@ R  Root formulas: every line of the
 1-8  pick a week, then a question type.
 T  Theory: 'what happens if', true or
    false, explain why - by topic.
-S  Search: type a word from the
+S  Search: type 1-3 key words from the
    question (e.g. COUPON) + ENTER.
-G  Glossary of every finance word.
+   'Which of the following...' or
+   true/false? S, then the topic words,
+   e.g. CAPITAL STRUCTURE: the THEORY
+   lines are the answers.
+G  Glossary: what each word means
+   (theory answers: S or T).
 
 FILLING IN A QUESTION
 - up/down or TAB: move between boxes

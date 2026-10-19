@@ -124,6 +124,18 @@ for w in ['coupon', 'perpetuity', 'break-even', 'beta', '2/10', 'sunk', 'wacc', 
     if w != 'zzzz' and 'nothing found' in t: fails.append(f'search {w}: nothing found')
     key('enterKey'); check_screen(f'search {w} opened')
 
+# a whole question typed in: the theory card that answers it comes first, and ENTER shows its answer
+for q, want in [("Which of the following are included in a firm's capital structure?", 'included in a firm'),
+                ('which of the following is NOT part of capital structure', 'included in a firm'),
+                ('true or false: with no taxes more debt does not change firm value', 'no tax')]:
+    for _ in range(4): key('escapeKey')
+    key('charIn', 's')
+    app.type(q)
+    top = G.CORE.U.hits[1].e.t if len(G.CORE.U.hits) else ''
+    if want.lower() not in str(top).lower(): fails.append(f'search {q!r}: first hit is {top!r}')
+    key('enterKey'); t = check_screen(f'search {q!r} opened')
+    if want == 'included in a firm' and 'NOT IN' not in t: fails.append(f'search {q!r}: the answer is not on the page')
+
 # glossary: jump through letters and open one entry per letter
 for _ in range(4): key('escapeKey')
 key('charIn', 'g')

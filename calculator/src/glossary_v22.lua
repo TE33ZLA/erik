@@ -42,6 +42,18 @@ required return = rf + beta x
 (E[RM] - rf). Only market risk
 (beta) earns a reward.
 -> TYPE 19
+## capital structure
+the mix of money raised from INVESTORS:
+debt (loans, bonds), preference shares
+and ordinary shares (equity).
+NOT IN: accounts payable and other
+bills, the assets, revenue.
+Leverage = D / (E + D).
+IN QUESTIONS: 'which of the following
+are included in capital structure'.
+THEORY: home T, Wk 10-11 Capital
+structure: no taxes.
+-> TYPE 20
 ## cash conversion cycle (cash cycle)
 days that cash is tied up:
 inventory days + A/R days - A/P days.

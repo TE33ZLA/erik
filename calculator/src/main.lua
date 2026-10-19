@@ -4998,7 +4998,7 @@ if platform then
                 "up/down scroll, left/right page | N notes | ESC")
     elseif scr == "glossary" then
       paintList(gc, glines, scrollG, "GLOSSARY - pick a word, ENTER opens its solver",
-                "letter = jump | up/down pick | ENTER or click | ESC")
+                "letter jump | ENTER solver | ESC | theory Qs: home S")
     elseif scr == "help" then
       paintList(gc, hlines, scrollH, "HELP", "arrows scroll | ESC back")
     end
