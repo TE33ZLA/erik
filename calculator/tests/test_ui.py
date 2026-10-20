@@ -80,6 +80,15 @@ for want_txt in ('required return', 'find beta', 'buy or sell'):
     if want_txt not in t: fails.append(f'CAPM list: {want_txt!r} not shown')
 key('charIn', '2'); t = check_screen('CAPM find beta page')
 if 'find beta' not in t or 'beta of the share' in t: fails.append('CAPM find beta: wrong page (or a beta box on it)')
+# D clears every box but keeps the kind of question that was picked
+capm = [s for s in TYPES[19].slots.values() if s.key == 'mode'][0]
+for s in TYPES[19].slots.values():
+    if s.kind != 'choice': s.buf = '5'
+key('charIn', 'd')
+if capm.idx != 2: fails.append('D on a kind page: the kind changed')
+if any(s.buf != s.defBuf for s in TYPES[19].slots.values() if s.kind != 'choice'): fails.append('D on a kind page: a box was not cleared')
+key('charIn', '7')
+if not any(s.buf == '7' for s in TYPES[19].slots.values() if s.kind != 'choice'): fails.append('D on a kind page: the cursor is not on a box')
 for _ in range(4): key('escapeKey')
 
 # the finder: every route to a leaf
@@ -127,7 +136,18 @@ for w in ['coupon', 'perpetuity', 'break-even', 'beta', '2/10', 'sunk', 'wacc', 
 # a whole question typed in: the theory card that answers it comes first, and ENTER shows its answer
 for q, want in [("Which of the following are included in a firm's capital structure?", 'included in a firm'),
                 ('which of the following is NOT part of capital structure', 'included in a firm'),
-                ('true or false: with no taxes more debt does not change firm value', 'no tax')]:
+                ('true or false: with no taxes more debt does not change firm value', 'no tax'),
+                ('why can earnings differ from cash flows', 'incremental EARNINGS'),
+                ('which conditions must hold to use the wacc for a project', 'conditions must hold'),
+                ('which is the least risky investment', 'LEAST risky'),
+                ('how are covariance and correlation related', 'covariance and the correlation'),
+                ('with no taxes what is the optimal capital structure', 'optimal capital structure'),
+                ('why is the cost of equity higher but the wacc lower with debt', 'cost of equity HIGHER'),
+                ('projects with the same risk as the firm which to accept', 'Several projects'),
+                ('a firm borrows short-term and long-term to buy inventory', 'for 6 months'),
+                ('does the cost of equity rise or fall as d/e rises', 'rise, fall'),
+                ('old machine sold below book value', 'LESS than its book value'),
+                ('overhaul avoided by replacing', 'overhaul')]:
     for _ in range(4): key('escapeKey')
     key('charIn', 's')
     app.type(q)

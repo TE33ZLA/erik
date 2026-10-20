@@ -151,14 +151,54 @@ do
     end
     out:note("sunk costs (money already spent) and interest stay OUT of these cash flows")
 
-    -- Excel and the TI
+    -- Excel and the TI: the table row by row (labels in column A, year 0 in B, year t in the next columns)
     local last = col(n)
+    local xr, rn = {}, 1
+    local function add(label, how) rn = rn + 1; xr[#xr + 1] = "row " .. rn .. " " .. label .. ": " .. how; return rn end
+    local rFirst0 = add("new asset cost", "B" .. (rn + 1) .. " = -" .. P(newC))
+    if V.saleO or bvO then
+      add("old asset sold now", "B" .. (rn + 1) .. " = " .. P(saleO))
+      add("tax on that sale", "B" .. (rn + 1) .. " = (" .. P(bvO or 0) .. "-" .. P(saleO) .. ")*" .. P(Tc) .. "  (+ saved on a loss, - paid on a gain)")
+    end
+    if nwc ~= 0 then add("NWC put in", "B" .. (rn + 1) .. " = -" .. P(nwc)) end
+    local rLast0 = rn
+    local rOp1 = rn + 1
+    if save ~= 0 then add("cost saving", "C to " .. last .. " = " .. P(save)) end
+    if rev ~= 0 then add("extra revenue", "C to " .. last .. " = " .. P(rev)) end
+    if V.avoid and V.avYr and V.avYr >= 1 and V.avYr <= n then
+      add("one-off cost avoided", "only " .. col(math.floor(V.avYr + 1e-9)) .. " (year " .. P(V.avYr) .. ") = " .. P(V.avoid))
+    end
+    -- incremental depreciation as a minus, in runs of equal years
+    local segs, t0 = {}, 1
+    for t = 1, n do
+      if t == n or math.abs(rowsT[t + 1].inc - rowsT[t].inc) > 0.005 then
+        segs[#segs + 1] = ((t0 == t) and col(t) or (col(t0) .. " to " .. col(t))) .. " = " .. P(-rowsT[t].inc)
+        t0 = t + 1
+      end
+    end
+    local rDep = add("depreciation, new - old, as a MINUS", table.concat(segs, "; "))
+    local rE = add("EBIT", "C" .. (rn + 1) .. " =SUM(C" .. rOp1 .. ":C" .. rDep .. "), copy right")
+    local rT = add("tax", "C" .. (rn + 1) .. " =-C" .. rE .. "*" .. P(Tc) .. ", copy right")
+    local rNp = add("NOPAT", "C" .. (rn + 1) .. " =C" .. rE .. "+C" .. rT .. ", copy right")
+    add("add back depreciation", "C" .. (rn + 1) .. " =-C" .. rDep .. ", copy right")
+    if nwcY ~= 0 and n > 1 then add("more NWC", "C to " .. col(n - 1) .. " = -" .. P(nwcY)) end
+    if saleN ~= 0 then
+      add("new asset sold at the end", "only " .. last .. " = " .. P(saleN))
+      add("tax on that sale", "only " .. last .. " =-(" .. P(saleN) .. "-" .. P(bvNend) .. ")*" .. P(Tc))
+    end
+    if math.abs(atsO) > 0.005 then add("old asset's end value given up", "only " .. last .. " = " .. P(-atsO)) end
+    if rec ~= 0 then add("NWC back", "only " .. last .. " = " .. P(rec)) end
+    local rEnd = rn
+    local rF = add("FCF, year 0", "B" .. (rn + 1) .. " =SUM(B" .. rFirst0 .. ":B" .. rLast0 .. ")")
+    xr[#xr + 1] = "row " .. rF .. " FCF, years 1 on: C" .. rF .. " =SUM(C" .. rNp .. ":C" .. rEnd .. "), copy right"
     out:head("EXCEL: YEARS ACROSS THE COLUMNS")
-    out:note("row 1: Year 0, 1, ..., " .. n .. " in columns B to " .. last)
-    out:note("rows 2-10: savings | incremental dep | EBIT | tax | NOPAT | add back dep | capex/salvage | NWC | FCF")
-    if r then out:xl("=NPV(" .. P(r) .. ", C10:" .. last .. "10) + B10") end
-    out:xl("=IRR(B10:" .. last .. "10)")
-    out:note("NPV() starts at year 1, so add year 0 (B10) outside it")
+    out:note("column A: the labels. Row 1: 'Year', then 0 in B1, 1 in C1 ... " .. n .. " in " .. last .. "1")
+    for _, ln in ipairs(xr) do out:xl(ln) end
+    if r then out:xl("NPV: =NPV(" .. P(r) .. ",C" .. rF .. ":" .. last .. rF .. ")+B" .. rF) end
+    out:xl("IRR: =IRR(B" .. rF .. ":" .. last .. rF .. ")")
+    out:note("NPV() starts at year 1, so add year 0 (B" .. rF .. ") outside it")
+    out:note("signs: costs, tax paid and money put in are MINUS; savings, sales and tax saved are PLUS")
+    out:note("check: each FCF cell should equal the FCF lines above (T shows the table)")
     if r then
       local t2 = {}
       for t = 1, n do t2[#t2 + 1] = P(cfs[t]) end
@@ -249,9 +289,38 @@ changes the tax. Once the new asset is
 fully depreciated and the old one would
 still be, the difference is NEGATIVE.
 
-EXCEL: years across the columns
-=NPV(rate, year 1:year n) + year 0
-=IRR(year 0:year n)]],
+EXCEL: STEP BY STEP (years across)
+1. Column A: one label per row.
+2. Row 1: 'Year'. 0 in B1, then 1, 2,
+   ... up to the last year.
+3. Year 0 (column B), one row each:
+   new asset cost (MINUS), old asset
+   sold now (PLUS), tax on that sale
+   =(book value - sale price)*Tc
+   (PLUS on a loss), NWC put in (MINUS).
+4. Years 1 on (column C onwards), one
+   row each: cost saving, extra
+   revenue, one-off cost avoided (only
+   in its year).
+5. Depreciation row: new dep - old dep,
+   typed as a MINUS. It turns PLUS once
+   the new asset is fully depreciated.
+6. EBIT: =SUM(saving row:dep row).
+   Copy it right.
+7. Tax: =-EBIT cell*Tc. NOPAT: =EBIT
+   cell + tax cell.
+8. Add back depreciation: =- the dep
+   cell (so it is PLUS again).
+9. Last year only: new asset sale, its
+   tax =-(sale - book value)*Tc, any
+   old end value given up, NWC back.
+10. FCF row: year 0 =SUM(the year 0
+   rows); years 1 on =SUM(NOPAT row
+   down to the last row). Copy right.
+11. =NPV(r, year 1 FCF:last FCF)
+   + year 0 FCF. =IRR(year 0:last).
+12. Solve here and press T: each FCF
+   should match your Excel row.]],
     assume = STEPS_COMMON .. [[
 THIS TYPE:
 1. year 0: new cost, old asset's after-

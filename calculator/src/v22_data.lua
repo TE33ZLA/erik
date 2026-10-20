@@ -348,7 +348,8 @@ FILLING IN A QUESTION
   50000-40000, (3+4)*2
 - a NEGATIVE number: the (-) key
 - ENTER = SOLVE, ESC = back
-- D (or C) clears every box
+- D (or C) clears every box (the kind
+  of question you picked stays)
 - DEL clears one box
 
 ON THE ANSWER PAGE

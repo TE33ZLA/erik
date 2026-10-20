@@ -334,6 +334,16 @@ NPV new = $231,818.18]],
     else
       out:add("ok", "COMMIT NOW: its NPV is " .. fmtU(npvNow - npvWait, "$") .. " higher than waiting")
     end
+    -- Excel: the tree left to right, then one formula per value (r is an EAR, so the power is the years)
+    local pw = V.tm and ("(" .. P(V.tm) .. "/12)") or P(t)
+    out:head("EXCEL: THE TREE, THEN ONE CELL PER VALUE")
+    out:note("row 1: the timeline - 0 (today) in one column, " .. (V.tm and (P(V.tm) .. " months") or (P(t) .. " years")) .. " a few columns right")
+    out:note("today: 'commit now' with the cost " .. P(-V.c0) .. "; 'wait' with 0. Later: each outcome's value, its chance on the branch")
+    out:xl("now, expected value: =" .. P(p) .. "*" .. P(V.vg) .. "+" .. P(1 - p) .. "*" .. P(vb))
+    out:xl("now, NPV: =(that cell)/(1+" .. P(r) .. ")^" .. pw .. "-" .. P(V.c0))
+    out:xl("wait, expected value: =" .. P(p) .. "*MAX(" .. P(V.vg) .. "-" .. P(V.cw) .. ",0)+" .. P(1 - p) .. "*MAX(" .. P(vb) .. "-" .. P(V.cw) .. ",0)")
+    out:xl("wait, NPV: =(that cell)/(1+" .. P(r) .. ")^" .. pw)
+    out:note("last cell: the decision (the higher NPV) and one line saying why")
     out:uses("pv", "npv"); out:off("waitnow"); out:off("wait")
   end
 
@@ -494,7 +504,31 @@ act now: NPV = PV(p*Vgood + (1 - p)*Vbad)
 - cost now
 wait: NPV = PV(p*max(Vgood - cost later,
 0) + (1 - p)*max(Vbad - cost later, 0))
-you pay later ONLY if it went well.]],
+you pay later ONLY if it went well.
+
+EXCEL: A DECISION TREE, STEP BY STEP
+1. Row 1: the timeline. 'Months' (or
+   'Years'), 0 in one column, the later
+   date a few columns to the right.
+2. Today's column: one cell per choice.
+   'Act now': the cost now as a MINUS.
+   'Wait': 0 (nothing paid yet).
+3. Later column: one cell per outcome
+   with its value. Put each chance (%)
+   beside its branch.
+4. Wait branches: value - later cost if
+   you go ahead; 0 if you walk away.
+5. Lines: Insert > Shapes > Line, or
+   arrows typed in cells. Square =
+   decision, circle = chance.
+6. Under the tree, one cell each:
+   expected value =p*V1 + (1 - p)*V2.
+7. NPV: =expected value cell/(1 + r)^
+   (months/12) - cost now. r is an EAR.
+8. Last cell: the decision (the higher
+   NPV) and one line saying why.
+9. Then solve here: the NPVs should
+   match your Excel cells.]],
     assume = STEPS_COMMON .. [[
 THIS TYPE:
 1. draw the tree: squares = decisions,

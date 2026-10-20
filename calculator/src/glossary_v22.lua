@@ -652,6 +652,14 @@ because of their tax position, e.g.
 low-tax super funds like fully franked
 dividends. Firms attract the clientele
 their policy suits.
+## Treasury bills (T-bills)
+short-term debt of the government:
+the safest asset class (lowest SD of
+returns). Ranked by risk, low to high:
+T-bills, corporate bonds, large stocks
+(e.g. the S&P 500), small stocks.
+IN QUESTIONS: 'the safest kind of
+investment' -> T-bills.
 ## underreaction
 a biased price response: the first
 move is too small and later CONTINUES

@@ -271,9 +271,22 @@ do
     out:row("rD after tax", V.rd * (1 - Tc), "%", "rD x (1 - Tc)" .. ((Tc == 0) and " (no Tc: rD is used as typed)" or ""), "rdat")
     out:row("WACC", w, "%", "rE(E/V) + rP(P/V) + rD(1 - Tc)(D/V)", "wacc")
     out:uses("v", "wacc")
-    if V.irr then
-      out:head("THE PROJECT (same risk as the firm)")
-      out:add(V.irr >= w and "ok" or "bad", V.irr >= w and "IRR >= WACC: accept" or "IRR < WACC: reject")
+    -- projects with the firm's own risk: each return (IRR) against the WACC
+    local np = 0
+    for k = 1, 5 do
+      local ir = V[(k == 1) and "irr" or ("irr" .. k)]
+      if ir then
+        if np == 0 then out:head("PROJECTS (same risk as the firm)") end
+        np = np + 1
+        local ok = ir >= w - 1e-12
+        out.vals["acc" .. k] = ok and 1 or 0
+        out:add(ok and "ok" or "bad", "project " .. k .. ": " .. pct(ir) .. "% " .. (ok and ">=" or "<") .. " WACC " .. pct(w) .. "%: " ..
+                (ok and "ACCEPT" or "REJECT"))
+      end
+    end
+    if np > 0 then
+      out:note("same risk as the firm: the WACC is the hurdle rate. Return above it -> NPV > 0 -> accept")
+      out:note("no limit on money: accept EVERY project above the WACC (limited money: rank by PI)")
     end
   end
   local slots20 = {
@@ -288,7 +301,9 @@ do
       S("rd", "rD pre-tax cost of debt (%)", "pct"),
       S("rp", "rP cost of preference (%)", "pct"),
       S("Tc", "Tc company tax (%)", "pct"),
-      S("irr", "project IRR (%) (optional)", "pct"),
+      S("irr", "project 1: IRR or return (%)", "pct"),
+      S("irr2", "project 2: IRR or return (%)", "pct"), S("irr3", "project 3: IRR or return (%)", "pct"),
+      S("irr4", "project 4: IRR or return (%)", "pct"), S("irr5", "project 5: IRR or return (%)", "pct"),
       S("rf", "rf risk-free (%)", "pct"), S("beta", "equity beta", "num"),
       S("rm", "E[RM] market return (%)", "pct"), S("mrp", "or: market risk premium (%)", "pct"),
       S("D0", "D0 dividend just paid ($)", "money"), S("D1", "or: D1 next dividend ($)", "money"),
@@ -330,7 +345,7 @@ do
       if m == MODES20[6] then return { "mode", "F1", "c1", "n1", "q1", "F2", "c2", "n2", "q2", "m", "Tc" } end
       if m == MODES20[7] then return { "mode", "rf", "rm", "mrp", "wacc", "b1", "r1", "b2", "r2", "b3", "r3", "b4", "r4" } end
       if m == MODES20[8] then return { "mode", "wacc", "adj", "FCF1", "gp", "cost", "fees" } end
-      return { "mode", "E", "nE", "pE", "D", "nD", "pD", "DE", "Pv", "re", "rd", "rp", "Tc", "irr" }
+      return { "mode", "E", "nE", "pE", "D", "nD", "pD", "DE", "Pv", "re", "rd", "rp", "Tc", "irr", "irr2", "irr3", "irr4", "irr5" }
     end,
     hints = {
       mode = "left/right changes the kind; ESC: back to the list",
@@ -342,7 +357,11 @@ do
       re = "cost of equity (work it out in the equity kind)",
       rd = "PRE-tax rD = the YTM; given AFTER tax? type it, Tc blank",
       Tc = "company tax rate, e.g. 30",
-      irr = "the project's IRR: accept if it beats the WACC",
+      irr = "optional: a same-risk project's IRR or return (accept if above the WACC)",
+      irr2 = "optional: another same-risk project's return",
+      irr3 = "optional: another same-risk project's return",
+      irr4 = "optional: another same-risk project's return",
+      irr5 = "optional: another same-risk project's return",
       beta = "the EQUITY beta",
       D0 = "dividend JUST paid (D1 = D0 x (1 + g))",
       h1 = "oldest first; g = average yearly % change",
@@ -428,6 +447,10 @@ IF THE QUESTION SAYS...
   7 projects vs the SML
 - "adjustment factor +2%", "issue
   costs" -> 8 project NPV
+- "projects with the SAME risk as the
+  firm: which to accept?" -> 1 WACC,
+  then each project's return in the
+  project boxes (up to 5)
 
 TRAPS
 - book values instead of market values
@@ -461,6 +484,18 @@ PICK: 2 cost of equity
 ENTER: past dividends 1 to 5 | P0 30
 g = average % change = 5.74%
 rE = 1.25 x 1.0574/30 + 5.74% = 10.15%
+
+## Same-risk projects against the WACC
+Q: weights equity 70%, debt 30%; rE
+13%, rD 7%, tax 30%. Projects (same
+risk): X returns 12%, Y 10%, Z 9%.
+PICK: 1 WACC
+ENTER: E 70 | D 30 | rE 13 | rD 7 |
+Tc 30 | project 1: 12 | 2: 10 | 3: 9
+WACC = 0.7 x 13% + 0.3 x 7% x 0.7
+= 10.57% -> accept X; reject Y and Z
+(no limit on money: every project
+above the WACC is accepted)
 
 ## Cost of preference shares
 Q: par $20, pays 10% of par, price

@@ -5393,9 +5393,10 @@ if platform then
       if cl == "d" or cl == "c" then
         for _, sl2 in ipairs(TYPES[curT].slots) do
           sl2.buf = sl2.defBuf
-          sl2.idx = sl2.defIdx
+          if sl2.key ~= "mode" then sl2.idx = sl2.defIdx end   -- the kind of question stays as picked
         end
         sel = 1
+        for i, sl3 in ipairs(visSlots()) do if sl3.kind ~= "choice" then sel = i; break end end   -- the cursor on the first box
         scrollI = 0
         inval()
         return

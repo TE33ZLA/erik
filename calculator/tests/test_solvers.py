@@ -180,6 +180,8 @@ CASES = [
   (20, 'WACC', dict(E=612.5, Pv=58.5, D=128.7, re=.1425, rp=.0675, rd=.045, Tc=.3), dict(wacc=.1191)),
   (20, 'YTM from the bond', dict(mode='cost of debt (bond YTM)', face=1000, cpn=.09, yrs=3, price=1025.77, Tc=.3), dict(rd=.08, rdat=.056)),
   (20, 'accept vs WACC', dict(E=50, D=50, re=.15, rd=.07, Tc=.3, irr=.0895), dict(wacc=.0995)),
+  (20, 'same-risk projects vs the WACC (five boxes)', dict(E=70, D=30, re=.13, rd=.07, Tc=.3, irr=.12, irr2=.10, irr3=.09),
+   dict(wacc=.1057, acc1=1, acc2=0, acc3=0)),
   # ---- 21 MM
   (21, 'unlevered cost', dict(mode='unlevered cost rU', re=.095, rd=.06, E=520, D=390), dict(rU=.08)),
   (21, 'rE no tax', dict(rU=.08, rd=.06, D=390, E=520), dict(re=.095, wacc=.08)),
@@ -248,6 +250,17 @@ CASES = [
   (21, 'v23 FCF given directly', dict(mode='value from cash flows (EBIT or FCF)', FCF=900, Tc=.3, rU=.12, D=1000), dict(VU=7500, VL=7800, E=6800)),
 ]
 
+# Excel layouts on the result page: rebuilt as a spreadsheet (tests/excel_rows.py) they must match the solver
+EXCEL_CASES = [
+  (22, 'IFC unit (NWC, revenue, saving)', dict(n=5, r=.12, Tc=.3, newC=750000, lifeN=5, saleN=75000, bvO=250000, saleO=275000,
+                                                depO=50000, save=20000, rev=100000, nwc=40000, nwcY=10000)),
+  (22, 'own numbers: dep turns plus, a cost avoided, old asset worth something at the end',
+   dict(n=8, r=.10, Tc=.3, newC=90000, lifeN=4, saleN=11000, bvO=24000, saleO=15000, depO=3000, endO=2000, save=18000,
+        avoid=25000, avYr=3)),
+  (12, 'act now or wait (concert)', dict(mode='act now or wait (option to wait)', c0=500, vg=900, pg=.7, cw=750, tm=6, r=.10)),
+  (12, 'own numbers: waiting wins', dict(mode='act now or wait (option to wait)', c0=800, vg=2000, pg=.5, cw=1200, tm=3, r=.09)),
+]
+
 def close(got, want):
     tol = max(0.006 * abs(want), 0.00006) if abs(want) < 5 else max(0.0005 * abs(want), 0.02)
     return abs(got - want) <= tol
@@ -297,6 +310,25 @@ def main():
         if miss or bad_rows:
             fails += 1
             print(f'FAIL type {t} {name}: ' + '; '.join(miss + bad_rows))
+    # the EXCEL lines of a result page, typed into a spreadsheet, must give the solver's own numbers
+    import excel_rows
+    for t, name, V in EXCEL_CASES:
+        out = CORE.run(t, lua.table_from(V))
+        texts = [str(r.text) for r in out.rows.values() if r.text is not None and r.kind in ('note', 'xl')]
+        try:
+            if t == 22:
+                got = excel_rows.replacement(texts)
+                want_cf = [out.vals['CF0']] + [out.vals['FCF' + str(k)] for k in range(1, int(V['n']) + 1)]
+                ok = len(got['FCF']) == len(want_cf) and all(abs(a - b) < 0.01 for a, b in zip(got['FCF'], want_cf))
+                ok = ok and (got['NPV'] is None or abs(got['NPV'] - out.vals['NPV']) < 0.01)
+            else:
+                got = excel_rows.wait_tree(texts)
+                ok = abs(got['now'] - out.vals['npvNow']) < 0.01 and abs(got['wait'] - out.vals['npvWait']) < 0.01
+        except Exception as e:
+            ok, got = False, repr(e)
+        if not ok:
+            fails += 1
+            print(f'FAIL excel rows type {t} {name}: {got}')
     pfails = 0
     for text, kind, want, note in PARSE:
         res = CORE.parseBuf(text, kind)
@@ -307,7 +339,7 @@ def main():
         if not ok:
             pfails += 1
             print(f'FAIL parse {text!r} ({kind}): got {x}, note {cnote!r}, error {err!r}; want {want}, note {note!r}')
-    print(f'{len(CASES) - fails} passed, {fails} failed; number boxes: {len(PARSE) - pfails} passed, {pfails} failed')
+    print(f'{len(CASES) + len(EXCEL_CASES) - fails} passed, {fails} failed; number boxes: {len(PARSE) - pfails} passed, {pfails} failed')
     sys.exit(1 if fails or pfails else 0)
 
 if __name__ == '__main__':
