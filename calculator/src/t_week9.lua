@@ -336,8 +336,11 @@ avg 8.75%; SD = 23.51%
       for k2 = 1, #ra do sa = sa + (ra[k2] - mA) ^ 2; sb = sb + (rb[k2] - mB) ^ 2; sc = sc + (ra[k2] - mA) * (rb[k2] - mB) end
       local n1 = #ra - 1
       out:head("PAST RETURNS (SAMPLE, n = " .. #ra .. ")")
-      out:row("average A", mA, "%", "sum RA / n", "mA"); out:row("average B", mB, "%", "sum RB / n", "mB")
-      out:row("SD A", sqrt(sa / n1), "%", "sqrt(sum (RA - avg)^2/(n - 1))", "sA"); out:row("SD B", sqrt(sb / n1), "%", "sqrt(sum (RB - avg)^2/(n - 1))", "sB")
+      out:row("average return A (Rbar)", mA, "%", "sum RA / n", "mA"); out:row("average return B (Rbar)", mB, "%", "sum RB / n", "mB")
+      out:row("variance A", sa / n1, "", "sum (RA - avg)^2/(n - 1) = " .. P(sa) .. "/" .. n1, "varA")
+      out:row("variance B", sb / n1, "", "sum (RB - avg)^2/(n - 1) = " .. P(sb) .. "/" .. n1, "varB")
+      out:row("SD A (volatility)", sqrt(sa / n1), "%", "square root of the variance A", "sA"); out:row("SD B (volatility)", sqrt(sb / n1), "%", "square root of the variance B", "sB")
+      out:note("variance is a decimal (no %); the averages and SDs are in %")
       out:row("covariance", sc / n1, "", "sum (RA - avgA)(RB - avgB)/(n - 1) = " .. P(sc) .. "/" .. n1, "cov")
       out:row("correlation", (sc / n1) / (sqrt(sa / n1) * sqrt(sb / n1)), "", "Cov/(sA x sB)", "rho")
       out:uses("mean", "vars", "covs", "corr"); out:off("sd")

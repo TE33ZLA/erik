@@ -135,7 +135,7 @@ CASES = [
   (18, 'with the risk-free asset', dict(mode='one share + the risk-free asset', wA=.55, sA=.45), dict(sdp=.2475)),
   (18, 'weights', dict(mode='weights from holdings', n1=490, px1=57.5, n2=285, px2=35.5), dict(w1=.7358)),
   (18, 'forecast correlation', dict(mode='forecast table (states)', p1=.2, A1=-.022, B1=.028, p2=.55, A2=.082, B2=.06, p3=.25, A3=.198, B3=.114), dict(rho=.9896)),
-  (18, 'sample covariance', dict(mode='past returns (a sample)', A1=.03, B1=.03, A2=-.01, B2=.02, A3=.01, B3=-.02, A4=-.07, B4=-.1), dict(cov=.002267)),
+  (18, 'sample covariance', dict(mode='past returns (a sample)', A1=.03, B1=.03, A2=-.01, B2=.02, A3=.01, B3=-.02, A4=-.07, B4=-.1), dict(cov=.002267, varA=.00186667, varB=.00349167, mA=-.01, mB=-.0175)),
   (18, 'v23 two shares + rf: budget, variances', dict(mode='two shares + the risk-free asset', amtA=30000, amtB=50000, amtT=100000,
    vA=.04, vB=.09, cov=.012, ERA=.10, ERB=.14, rf=.04), dict(wA=.3, wB=.5, wF=.2, sA=.2, sB=.3, rho=.2, ERp=.108, varp=.0297,
    sdp=.172337, shp=.394576, _sheet='erp,varpf,sharpe', _off='Var(p) = wA^2*VarA')),
