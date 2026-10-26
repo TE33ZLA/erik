@@ -16,6 +16,20 @@ value of money.
 IN QUESTIONS: 'accounting break-even',
 'EBIT break-even', 'SG&A'.
 -> TYPE 11
+## accounting equation (balance sheet)
+Assets = Liabilities + Equity.
+Left side: what the firm OWNS. Right
+side: how it was PAID for (lenders +
+owners). Both sides always balance.
+Equity = Assets - Liabilities.
+e.g. assets $500k, liabilities $300k
+-> equity $200k.
+Current part: NWC = current assets -
+current liabilities.
+Market values (MM): A = D + E, the
+same idea at today's prices.
+IN QUESTIONS: 'balance sheet', 'book
+value of equity', 'net worth'.
 ## after-tax cost of debt
 rD x (1 - Tc): interest is tax
 deductible, so debt costs less after
