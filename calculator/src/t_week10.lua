@@ -228,6 +228,7 @@ do
         out:row("face value to issue", face, "$", "money needed/(1 - issue %) = " .. P(fin) .. "/(1 - " .. P(V.fpct) .. ")", "face")
         out:row("issue costs", fees, "$", "face - money needed = " .. P(face) .. " - " .. P(fin), "fees")
         out:note("the costs come out of what you raise, so you issue MORE than you need")
+        out:off("issuepct")
         out:note("if the % is of the money NEEDED (not the face): costs = " .. P(fin) .. " x " .. P(V.fpct) .. " = " .. P(fin * V.fpct))
       end
       if V.npv0 then
@@ -476,7 +477,16 @@ $$r_D = (1 + y)^2 - 1
 two issues: weight each yield by its
 market value.
 a project (growing forever):
-$$NPV = (FCF_1)/(r - g) - cost - issue costs]],
+$$NPV = (FCF_1)/(r - g) - cost - issue costs
+issue costs as a % of FACE value
+(textbook, NOT on the sheet): the
+costs come out of what you raise,
+so raise MORE than you need:
+Face = needed/(1 - issue %)
+issue costs = Face - needed
+NPV = NPV before - issue costs
+(% of the money NEEDED instead?
+costs = needed x issue %)]],
     assume = STEPS_COMMON .. [[
 THIS TYPE:
 1. market values: E, P, D and V
@@ -611,7 +621,18 @@ Q: WACC 9%, risk +2%, FCF1 $2m growing
 3%, cost $20m, issue costs $1m.
 PICK: 8 project NPV
 PV = 2m/(0.11 - 0.03) = 25m
-NPV = 25m - 20m - 1m = 4m: accept]],
+NPV = 25m - 20m - 1m = 4m: accept
+
+## Issue costs as a % of face value
+Q: NPV $10m before financing costs;
+the project needs $12m; issue costs
+4% of face value.
+PICK: 8 project NPV
+ENTER: NPV before 10m | money needed
+12m | issue % 4
+Face = 12m/(1 - 0.04) = 12.5m
+issue costs = 12.5m - 12m = 0.5m
+NPV = 10m - 0.5m = 9.5m]],
   })
 
   ------------------------------------------------------------------

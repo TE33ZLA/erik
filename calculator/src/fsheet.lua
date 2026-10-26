@@ -196,6 +196,7 @@ do
     smlhurdle = { "accept if the return > rf + Beta*(E[RM] - rf), with the project's own Beta", "the CAPM line used as each project's hurdle rate" },
     adjrate = { "rate = WACC + adjustment (riskier +, safer -)", "the subjective approach (lectures), not on the sheet" },
     floatcost = { "NPV = PV - cost - issue costs", "costly external financing (lectures), not on the sheet" },
+    issuepct = { "Face = money needed/(1 - issue %); issue costs = Face - money needed", "issue costs as a % of face value (textbook), not on the sheet" },
     dfromint = { "D = interest/rD", "interest = rD*D (permanent debt), solved for D" },
     itsann = { "PV(Interest tax shield) = Tc*interest*(1 - 1/(1 + rD)^n)/rD", "the PV of an annuity line, with C = Tc*interest and r = rD (debt for n years)" },
     pricerecap = { "price = VL/shares (before the buyback); shares bought = D/price", "MM with tax: the old shares get the tax-shield gain (textbook)" },
