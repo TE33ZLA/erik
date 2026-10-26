@@ -8,7 +8,8 @@
                 tsel = 1, tlines = {}, tscroll = 0, topic = nil, q = "", hits = {}, hsel = 1, index = nil, mt = nil, msel = 1,
                 rlev = 1, rg = 1, rsel = 1 }
     local HOME = { { k = "F", t = "Find my question type", s = "answer 2 short questions: start here" },
-                   { k = "R", t = "Root formulas: fill the slots", s = "every formula-sheet line: fill what you know, leave ONE slot blank" } }
+                   { k = "R", t = "Root formulas: fill the slots", s = "every formula-sheet line: fill what you know, leave ONE slot blank" },
+                   { k = "L", t = "Legend: every letter on the sheet", s = "what each letter of the formula sheet means, in the sheet's order" } }
     for gi, g in ipairs(GROUPS) do HOME[#HOME + 1] = { k = tostring(gi), t = g.t, s = g.s, g = gi } end
     HOME[#HOME + 1] = { k = "T", t = "Theory + what-ifs (no numbers)", s = "'what happens if', true or false, explain" }
     HOME[#HOME + 1] = { k = "S", t = "Search a word from the question", s = "e.g. COUPON, BREAK-EVEN, BETA" }
@@ -47,7 +48,7 @@
     ------------------------------------------------------------------ home
     local function paintHome(gc)
       title(gc, "BFC2140 SOLVER " .. VERSION .. " - all weeks")
-      local y = drawRows(gc, HOME, U.homeSel, 23, 13, SH - 27, function(i, r) return r.k end)
+      local y = drawRows(gc, HOME, U.homeSel, 23, 12, SH - 27, function(i, r) return r.k end)
       note(gc, HOME[U.homeSel].s, SH - 26)
       footer(gc, "key or arrows + ENTER | H help | G glossary")
     end
@@ -401,6 +402,7 @@
       if h.k == "F" then U.fstack, U.fsel = {}, 1; scr = "finder"
       elseif h.k == "T" then scr = "theory"
       elseif h.k == "R" then U.rlev, U.rsel = 1, 1; scr = "roots"
+      elseif h.k == "L" then toLegend(); return
       elseif h.k == "S" then U.q, U.hits = "", {}; scr = "search"
       else U.group, U.gsel = h.g, 1; scr = "menu" end
       inval()
@@ -524,12 +526,13 @@
         end
         if cl == "h" then toHelp(); return end
         if cl == "g" then toGlossary(); return end
+        if cl == "l" then toLegend(); return end
         return
       end
       if scr == "roots" then
         local d = tonumber(ch)
         if d and d > 0 then rootPick(d); return end
-        if cl == "h" then toHelp() elseif cl == "g" then toGlossary() end
+        if cl == "h" then toHelp() elseif cl == "g" then toGlossary() elseif cl == "l" then toLegend() end
         return
       end
       if scr == "modes" then
@@ -537,19 +540,19 @@
         if d then pickMode(d); return end
         curT = U.mt
         if cl == "n" then toNotes() elseif cl == "a" then toAssume() elseif cl == "w" then toWorked()
-        elseif cl == "h" then toHelp() elseif cl == "g" then toGlossary()
+        elseif cl == "h" then toHelp() elseif cl == "g" then toGlossary() elseif cl == "l" then toLegend()
         elseif cl == "y" then local ti = topicForType(U.mt); if ti then openTopic(ti) end end
         return
       end
       if scr == "finder" then
         local d = tonumber(ch)
         if d then finderPick(d == 0 and 10 or d) end
-        if cl == "h" then toHelp() end
+        if cl == "h" then toHelp() elseif cl == "l" then toLegend() end
         return
       end
       if scr == "theory" or scr == "tpage" then
         if cl == "s" then U.q, U.hits = "", {}; scr = "search"; inval() end
-        if cl == "h" then toHelp() end
+        if cl == "h" then toHelp() elseif cl == "l" then toLegend(); return end
         local d = tonumber(ch)
         if d and scr == "theory" and d > 0 then   -- a week number jumps to that week's first topic
           local wk = tostring(d)
@@ -581,7 +584,7 @@
         return
       end
       if scr == "home" then
-        local i = math.floor((my - 23) / 13) + 1
+        local i = math.floor((my - 23) / 12) + 1
         if HOME[i] and my >= 23 then if i == U.homeSel then homePick(i) else U.homeSel = i; inval() end end
         return
       end

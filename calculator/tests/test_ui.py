@@ -173,6 +173,23 @@ for v in ['50', '', '', '40', '', '', '', '10', '14', '8', '10', '30']:   # E, D
 key('enterKey'); t = check_screen('WACC first screen')
 if 'WACC = 10.24' not in t: fails.append('WACC kind: the WACC is not on the first answer screen')
 
+# the legend (L): opens from home and from a boxes page, ESC goes back; the sheet's sections in the sheet's order
+order = ['Financial Mathematics', 'Valuation of Bonds and Shares', 'Capital Budgeting', 'Working Capital', 'Risk and Return',
+         'Cost of Capital', 'Capital Structure - No Tax World', 'Capital Structure - Tax World']
+pos = [str(G.LEGEND).find('@@' + n) for n in order]
+if min(pos) < 0 or pos != sorted(pos): fails.append(f'legend: sections missing or out of the sheet order {pos}')
+for _ in range(5): key('escapeKey')
+key('charIn', 'l'); t = check_screen('legend from home')
+if 'LEGEND' not in t: fails.append('L on home does not open the legend')
+for _ in range(40): key('arrowKey', 'right')
+check_screen('legend scrolled to the end')
+key('escapeKey')
+if 'Find my question' not in check_screen('legend back home'): fails.append('ESC from the legend does not go back home')
+key('charIn', '6'); key('charIn', '1'); key('charIn', '1'); key('charIn', 'l')
+if 'LEGEND' not in check_screen('legend from a boxes page'): fails.append('L on a boxes page does not open the legend')
+key('escapeKey')
+if 'ENTER solve' not in check_screen('legend back to the boxes'): fails.append('ESC from the legend does not go back to the boxes')
+
 # glossary: jump through letters and open one entry per letter
 for _ in range(4): key('escapeKey')
 key('charIn', 'g')

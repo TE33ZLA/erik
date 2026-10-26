@@ -307,6 +307,7 @@ for _, part in ipairs({ THEORY_A or {}, THEORY_B or {}, THEORY_C or {} }) do
   for _, t in ipairs(part) do THEORY[#THEORY + 1] = t end
 end
 
+--@include legend.lua
 HELP = [[BFC2140 SOLVER ]] .. VERSION .. [[ - HOW TO USE
 Every week of the unit, the maths AND
 the questions without numbers.
@@ -325,6 +326,9 @@ R  Root formulas: every line of the
 1-8  pick a week, then a question type.
 T  Theory: 'what happens if', true or
    false, explain why - by topic.
+L  Legend: every letter on the formula
+   sheet and what it means, in the
+   sheet's order (from any page).
 S  Search: type 1-3 key words from the
    question (e.g. COUPON) + ENTER.
    'Which of the following...' or

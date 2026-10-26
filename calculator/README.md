@@ -37,6 +37,9 @@ The home screen:
   card, a rule or a glossary word. A whole question works too ("Which of the following are included in a firm's
   capital structure?"): filler words are dropped and the cards matching most of the rest come first. THEORY lines are
   the answers to 'which of the following' and true/false questions.
+- **L  Legend** (from any page): every letter on the exam formula sheet and what it means, section by section in
+  the sheet's order (Financial Mathematics, Bonds and Shares, Capital Budgeting, Working Capital, Risk and Return,
+  Cost of Capital, No Tax World, Tax World). In our own words.
 - **G  Glossary** of every finance word and question wording, each linked to its solver. **H** help.
 
 Filling in a question: up/down (or tab) moves between boxes, the grey line at the bottom says what each box is and how

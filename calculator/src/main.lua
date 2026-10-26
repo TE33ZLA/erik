@@ -4246,6 +4246,7 @@ if platform then
   local sel = 1
   local scrollI, scrollR, scrollN, scrollA, scrollH, scrollT, scrollW, scrollG = 0, 0, 0, 0, 0, 0, 0, 0
   local rlines, nlines, alines, hlines, wlines, glines = {}, {}, {}, {}, {}, {}
+  local llines, scrollL = {}, 0   -- the legend (key L): every letter on the formula sheet
   local inputTop = 24         -- y where the slot list starts (below the formula strip)
   local gEntries, gSel, gHits = {}, 1, {}   -- glossary entries, selection, click targets
   local rSelList, rSelIdx, rHits, ilines, scrollI2 = {}, 1, {}, {}, 0  -- result-row picking + inspect page
@@ -5001,6 +5002,8 @@ if platform then
                 "letter jump | ENTER solver | ESC | theory Qs: home S")
     elseif scr == "help" then
       paintList(gc, hlines, scrollH, "HELP", "arrows scroll | ESC back")
+    elseif scr == "legend" then
+      paintList(gc, llines, scrollL, "LEGEND - every letter on the sheet", "up/down scroll | left/right a page | ESC back")
     end
   end
 
@@ -5030,7 +5033,7 @@ if platform then
     inval()
   end
 
-  local OVERLAY = { notes = true, assume = true, help = true, worked = true, glossary = true, inspect = true }
+  local OVERLAY = { notes = true, assume = true, help = true, worked = true, glossary = true, inspect = true, legend = true }
 
   local STOP = { the = 1, of = 1, at = 1, to = 1, ["in"] = 1, per = 1, one = 1, ["and"] = 1, ["or"] = 1,
                  before = 1, after = 1, ["for"] = 1, with = 1, from = 1, today = 1, given = 1, ["if"] = 1,
@@ -5181,6 +5184,15 @@ if platform then
     inval()
   end
 
+  -- the legend: every letter on the exam formula sheet, section by section (LEGEND in legend.lua)
+  local function toLegend()
+    if not OVERLAY[scr] then prevScr = scr end
+    llines = buildDoc(LEGEND or "## No legend in this build")
+    scrollL = 0
+    scr = "legend"
+    inval()
+  end
+
   local function scrollList(key, cur, n)
     local maxs = math.max(0, n - 5)
     if key == "up" then return math.max(0, cur - 1)
@@ -5227,6 +5239,7 @@ if platform then
       else gSel = math.min(#gEntries, gSel + step) end
       glossaryShow()
     elseif scr == "help" then scrollH = scrollList(key, scrollH, #hlines)
+    elseif scr == "legend" then scrollL = scrollList(key, scrollL, #llines)
     end
     inval()
   end
@@ -5366,6 +5379,7 @@ if platform then
       return
     end
     if cl == "g" then toGlossary(); return end
+    if cl == "l" then if scr ~= "legend" then toLegend() end; return end
     if cl == "i" and scr == "result" then toInspect(); return end
     if scr == "menu" then
       if cl == "n" then toNotes(); return end
