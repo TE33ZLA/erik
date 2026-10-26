@@ -139,6 +139,12 @@ do
   local MODES11 = { "NPV + break-even", "sensitivity: one input", "scenario: worst/base/best" }
   table.insert(TYPES, {
     name = "Break-even, sensitivity, scenarios", group = 4, solve = solveBE,
+    -- one line per kind: when to pick it (shown under the list of kinds)
+    modeHelp = {
+      "'break-even units', 'accounting / EBIT / NPV break-even': price, costs, units",
+      "'what if sales were 10% lower?': the NPV with ONE input changed",
+      "'worst case / best case': several inputs change together",
+    },
     desc = "units x margin projects: EBIT and NPV break-even, change one input, worst/base/best",
     looks = "break-even units | how many units make NPV zero | if the price falls to | worst case NPV | best case",
     slots = {
@@ -415,6 +421,14 @@ NPV new = $231,818.18]],
 
   table.insert(TYPES, {
     name = "Expected values, trees, options", group = 4, solve = solveTree,
+    -- one line per kind: when to pick it (shown under the list of kinds)
+    modeHelp = {
+      "'expected value': each outcome x its probability, added up",
+      "a choice between options: pick the best expected value",
+      "a project whose cash flow depends on demand: expected cash flow, then NPV",
+      "'can sell the assets for $X after a bad year': the abandonment option",
+      "'invest now, or wait a year to learn demand?': the option to wait",
+    },
     desc = "chance nodes, decision nodes, projects with uncertain cash flow, sell (abandon) or keep, act now or wait",
     looks = "probability | expected cash flow | chance node | decision node | tree | abandon | sell the asset | option | act now or wait | option to wait | wait and see | book now or wait | timing option | delay",
     slots = {
@@ -649,6 +663,11 @@ PV = 105/1.1^0.5 = $100.11
   end
   table.insert(TYPES, {
     name = "Probabilities over two years", group = 4, solve = solveProb,
+    -- one line per kind: when to pick it (shown under the list of kinds)
+    modeHelp = {
+      "the four path (joint) probabilities are given, e.g. P(high, then high)",
+      "year-1 probabilities plus 'given' (conditional) ones for year 2",
+    },
     desc = "joint (path) probabilities, chance of year 1, and 'given year 1' conditional probabilities",
     looks = "joint probability | given | conditional | chance of high demand in year 1 | path not given",
     slots = {

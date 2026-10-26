@@ -133,6 +133,14 @@ do
 
   table.insert(TYPES, {
     name = "Payout: dividends, buy-backs, tax", group = 8, solve = solvePayout,
+    -- one line per kind: when to pick it (shown under the list of kinds)
+    modeHelp = {
+      "'ex-dividend', 'cum-dividend': the share price before and after the dividend",
+      "'repurchase / buy back shares': the price and the value after",
+      "an investor sells some shares to make their own dividend",
+      "'franked dividend', 'franking credit', 'imputation': the tax on the dividend",
+      "'capital gain', '50% discount': tax on shares held over 12 months",
+    },
     desc = "ex-dividend price, share buy-backs, homemade dividends, franked dividends (imputation) vs classical tax, capital gains tax with the 50% discount",
     looks = "dividend | ex-dividend | cum dividend | record date | declaration | share repurchase | buy-back | buyback | open market repurchase | market capitalisation | excess cash | homemade dividend | prefers a dividend | imputation | franked | franking credit | classical tax | capital gains tax | CGT discount | payout policy",
     slots = {

@@ -115,6 +115,14 @@ do
   end
   table.insert(TYPES, {
     name = "One share: return and risk", group = 6, solve = solveOne,
+    -- one line per kind: when to pick it (shown under the list of kinds)
+    modeHelp = {
+      "'bought at, sold at, dividend': one year's realised return",
+      "returns over several years: the average yearly (annualised) return",
+      "a table of states (boom, normal, bust) with probabilities: E[R] and SD",
+      "past yearly returns of ONE share: the average, variance and SD",
+      "risk per unit of return (CV), or extra return per unit of risk (Sharpe)",
+    },
     desc = "realised return, annualised return, expected return and SD (forecast or past data), CV, Sharpe",
     looks = "realised return | dividend yield | annualised | expected return | standard deviation | states of the economy | sample | CV | Sharpe",
     slots = slots17,
@@ -389,6 +397,16 @@ avg 8.75%; SD = 23.51%
   end
   table.insert(TYPES, {
     name = "Two shares: portfolio risk", group = 6, solve = solvePort,
+    -- one line per kind: when to pick it (shown under the list of kinds)
+    modeHelp = {
+      "two shares' E[R], SDs and correlation (or covariance) are given",
+      "two shares' returns in states with probabilities",
+      "past returns of TWO shares: averages, variances, SDs, covariance, portfolio",
+      "one risky share mixed with T-bills (the risk-free asset)",
+      "'owns 200 shares at $30 and...': each holding's weight",
+      "$ in A, $ in B and $ in T-bills: the portfolio E[R] and SD",
+      "n shares in equal weights, same SD and correlation: the portfolio SD",
+    },
     desc = "portfolio return and SD, covariance and correlation (forecast or past data), risk-free mixes (one or two shares), weights",
     looks = "portfolio | weight | correlation | covariance | standard deviation of the portfolio | risk-free asset | invest $ | variance-covariance matrix | covariance matrix | variance | total budget | treasury bills",
     slots = slots18,

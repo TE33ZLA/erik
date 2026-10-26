@@ -274,9 +274,10 @@ FINDER = {
     { t = "WACC and capital structure", s = "'WACC', 'cost of debt', 'MM'", kids = {
       q = "What do they ask for?", opts = {
         { t = "the WACC", go = { type = 20 } },
-        { t = "cost of equity", go = { type = 20, set = { mode = "cost of equity" } } },
-        { t = "cost of debt (after tax)", go = { type = 20, set = { mode = "cost of debt" } } },
-        { t = "cost of preference shares", go = { type = 20, set = { mode = "cost of pref" } } },
+        { t = "the weights for the WACC", go = { type = 20, set = { mode = "the weights" } } },
+        { t = "cost of equity", go = { type = 20, set = { mode = "rE:" } } },
+        { t = "cost of debt (after tax)", go = { type = 20, set = { mode = "rD: cost of debt (one" } } },
+        { t = "cost of preference shares", go = { type = 20, set = { mode = "rP:" } } },
         { t = "cost of equity with debt (MM)", go = { type = 21 } },
         { t = "unlevered cost of capital", go = { type = 21, set = { mode = "unlev" } } },
         { t = "tax shield, levered value", go = { type = 21, set = { mode = "tax" } } },

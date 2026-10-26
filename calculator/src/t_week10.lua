@@ -4,9 +4,12 @@
 --   21 capital structure: Modigliani-Miller with and without tax
 ----------------------------------------------------------------------
 do
-  local MODES20 = { "WACC (the costs are known)", "cost of equity (CAPM or DDM)", "cost of debt (bond YTM)", "cost of preference shares",
-                    "weights: book and market values", "cost of debt: two bond issues", "projects vs the SML and WACC",
-                    "project NPV at the WACC" }
+  -- the kinds, named by what the question ASKS for (the list that opens first)
+  local M20 = { wacc = "the WACC", weights = "the weights (E/V, P/V, D/V)", re = "rE: cost of equity",
+                rd = "rD: cost of debt (one bond)", rd2 = "rD: cost of debt (two bond issues)", rp = "rP: cost of preference shares",
+                bookmv = "book AND market weights", proj = "which projects to accept (betas)",
+                npv = "a project's NPV (WACC, issue costs)" }
+  local MODES20 = { M20.wacc, M20.weights, M20.re, M20.rd, M20.rd2, M20.rp, M20.bookmv, M20.proj, M20.npv }
   local function mCount(s) return tonumber(tostring(s or "1"):match("^%d+")) or 1 end
   -- a bond's yield per coupon period, from its price as a fraction of face (0.95 = 95%)
   local function yieldOf(cpn, yrs, frac, m)
@@ -15,8 +18,8 @@ do
     return findRoot(fy, 0.00001, 2, 0.001)
   end
   local function solveWACC(V, out)
-    local mode = V.mode or MODES20[1]
-    if mode == MODES20[2] then
+    local mode = V.mode or M20.wacc
+    if mode == M20.re then
       local any = false
       if V.rf and V.beta and (V.rm or V.mrp) then
         local mrp = V.mrp or (V.rm - V.rf)
@@ -56,7 +59,7 @@ do
       if not any then out:need("rf, beta and E[RM] (CAPM) or D0/D1, P0 and g or past dividends (DDM)") end
       return
     end
-    if mode == MODES20[3] then
+    if mode == M20.rd then
       local rd, apr = V.rd, nil
       if not rd then
         local face = V.face or 1000
@@ -98,7 +101,7 @@ do
       out:note("the cost of debt is the YIELD (what lenders earn now), not the coupon rate")
       return
     end
-    if mode == MODES20[4] then
+    if mode == M20.rp then
       local div = V.divp
       if not div and V.divpct and V.par then
         div = V.divpct * V.par
@@ -118,7 +121,7 @@ do
       out:note("no tax adjustment: preference dividends are NOT tax-deductible")
       return
     end
-    if mode == MODES20[5] then
+    if mode == M20.bookmv then
       -- book weights (face values, book equity) vs market weights (prices)
       local Em = V.E or ((V.nE and V.pE) and V.nE * V.pE)
       local Eb = V.BE or ((V.nE and V.bvps) and V.nE * V.bvps)
@@ -150,7 +153,7 @@ do
       out:off("bookmv")
       return
     end
-    if mode == MODES20[6] then
+    if mode == M20.rd2 then
       -- the cost of debt of several issues: each yield, weighted by market value
       local m = mCount(V.m)
       local tot, sumE, sumA, n = 0, 0, 0, 0
@@ -185,7 +188,7 @@ do
       out:off("rdmix"); out:off("ytm")
       return
     end
-    if mode == MODES20[7] then
+    if mode == M20.proj then
       -- each project against the SML (its own beta) and against the firm's single WACC
       local rm = V.rm or ((V.mrp and V.rf) and V.rf + V.mrp)
       if not (V.rf and rm) then out:need("rf and E[RM] (or the market risk premium)"); return end
@@ -212,7 +215,7 @@ do
       out:uses("capm"); out:off("smlhurdle")
       return
     end
-    if mode == MODES20[8] then
+    if mode == M20.npv then
       -- issue costs as a % of FACE value (textbook): issue enough that the money needed is left after the costs
       local fees = V.fees
       local fin = V.fin or V.cost   -- the money needed: the financing, or else the project's cost
@@ -371,18 +374,31 @@ do
   }
   table.insert(TYPES, {
     name = "Cost of capital and WACC", group = 7, solve = solveWACC,
+    -- one line per kind: when to pick it (shown under the list of kinds)
+    modeHelp = {
+      "'what is the WACC?': costs given, with values, weights (67%/33%) or D/E. Effective rD = after tax: Tc blank",
+      "'what weights should it use?': shares x price, debt and preference values. A BOOK value is the trap",
+      "'cost of equity', 'required return on its shares': beta (CAPM), or dividend + price + growth",
+      "'cost of debt', 'pre-tax / after-tax': the YTM, or one bond's price, coupon and years LEFT",
+      "two bond issues: each one's yield, weighted by its market value (face x price %)",
+      "'cost of preference shares': the preference dividend / its price (issue costs: net proceeds)",
+      "'book-value AND market-value weights': book value per share, bonds' face and price %",
+      "projects with their OWN betas: the SML vs the WACC. Same risk as the firm? 1 the WACC",
+      "a project's cash flows at the WACC (+/- a risk adjustment), or a given NPV less issue costs",
+    },
     desc = "WACC, cost of equity (CAPM or dividend growth), cost of debt (YTM, effective, after tax), preference shares, book vs market weights, several bond issues, projects vs the SML, project NPV at the WACC",
     looks = "WACC | cost of equity | cost of debt | after-tax | pretax | preference shares | market values | book values | capital structure weights | target capital structure | two bond issues | percent of par | security market line | hurdle rate | incorrectly accepted | incorrectly rejected | adjustment factor | flotation costs | issuance costs | cost savings grow",
     slots = slots20,
     vis = function(Sm)
       local m = Sm.mode.opts[Sm.mode.idx]
-      if m == MODES20[2] then return { "mode", "rf", "beta", "rm", "mrp", "D0", "D1", "P0", "g", "h1", "h2", "h3", "h4", "h5" } end
-      if m == MODES20[3] then return { "mode", "rd", "cpn", "yrs", "price", "ppct", "face", "m", "Tc" } end
-      if m == MODES20[4] then return { "mode", "divp", "divpct", "par", "pp", "pfc" } end
-      if m == MODES20[5] then return { "mode", "nE", "pE", "bvps", "BE", "F1", "q1", "F2", "q2" } end
-      if m == MODES20[6] then return { "mode", "F1", "c1", "n1", "q1", "F2", "c2", "n2", "q2", "m", "Tc" } end
-      if m == MODES20[7] then return { "mode", "rf", "rm", "mrp", "wacc", "b1", "r1", "b2", "r2", "b3", "r3", "b4", "r4" } end
-      if m == MODES20[8] then return { "mode", "npv0", "fin", "fpct", "wacc", "adj", "FCF1", "gp", "cost", "fees" } end
+      if m == M20.weights then return { "mode", "E", "nE", "pE", "D", "nD", "pD", "DE", "Pv" } end
+      if m == M20.re then return { "mode", "rf", "beta", "rm", "mrp", "D0", "D1", "P0", "g", "h1", "h2", "h3", "h4", "h5" } end
+      if m == M20.rd then return { "mode", "rd", "cpn", "yrs", "price", "ppct", "face", "m", "Tc" } end
+      if m == M20.rp then return { "mode", "divp", "divpct", "par", "pp", "pfc" } end
+      if m == M20.bookmv then return { "mode", "nE", "pE", "bvps", "BE", "F1", "q1", "F2", "q2" } end
+      if m == M20.rd2 then return { "mode", "F1", "c1", "n1", "q1", "F2", "c2", "n2", "q2", "m", "Tc" } end
+      if m == M20.proj then return { "mode", "rf", "rm", "mrp", "wacc", "b1", "r1", "b2", "r2", "b3", "r3", "b4", "r4" } end
+      if m == M20.npv then return { "mode", "npv0", "fin", "fpct", "wacc", "adj", "FCF1", "gp", "cost", "fees" } end
       return { "mode", "E", "nE", "pE", "D", "nD", "pD", "DE", "Pv", "re", "rd", "rp", "Tc", "irr", "irr2", "irr3", "irr4", "irr5" }
     end,
     hints = {
@@ -439,23 +455,27 @@ do
 HOW TO USE
 Pick what they ask for from the list
 (7, 1, then the number):
-1 WACC: costs and values (or the
-  weights, or D/E) are known
-2 cost of equity: CAPM, or dividend
-  growth (DCF), or past dividends
-3 cost of debt from one bond
-4 cost of preference shares
-5 weights: book AND market values
-6 cost of debt from two bond issues
-7 projects: the SML vs the WACC
-8 a project's NPV at the WACC, or a
-  given NPV less issue costs
+Pick by what the question ASKS for:
+1 the WACC (costs are given)
+2 the weights only ('what weights
+  should it use?')
+3 rE: the cost of equity
+4 rD: the cost of debt (one bond)
+5 rD: two bond issues
+6 rP: the cost of preference shares
+7 book AND market weights (both)
+8 which projects to accept (each
+  with its own beta)
+9 a project's NPV (WACC, or a given
+  NPV less issue costs)
+The grey line under the list says
+when to pick each one.
 
 WHICH FORMULA WHEN
 - preference shares? use the WACC
   with P: V = E + P + D. None: leave
   P blank (same as the Tax World line)
-- rE: beta given -> CAPM (2);
+- rE: beta given -> CAPM (3);
   dividend + price + g -> D1/P0 + g
 - rD = the PRE-tax YTM: the WACC
   takes the tax off. Given AFTER tax?
@@ -498,7 +518,7 @@ IF THE QUESTION SAYS...
 - "coupon rate 10%, YTM 4.25%" -> rD is
   the YTM (4.25%)
 - "semi-annual", "sells for 95% of
-  face" -> 3 cost of debt: years LEFT,
+  face" -> 4 rD (one bond): years LEFT,
   price % 95, coupons a year 2
 - "just paid a dividend" -> D1 = D0(1 + g)
 - "target capital structure 65%
@@ -508,11 +528,16 @@ IF THE QUESTION SAYS...
   D/E 0.6
 - "after-tax cost of debt 4.5%" -> rD
   4.5 and leave Tc BLANK
-- "book value per share" -> 5 weights
+- "EFFECTIVE cost of debt" = after
+  tax: type it in rD, leave Tc BLANK
+- "what weights should it use?" -> 2
+  the weights (market values)
+- "book value per share" -> 7 book AND
+  market weights
 - "project betas", "hurdle rate" ->
-  7 projects vs the SML
+  8 which projects (betas)
 - "adjustment factor +2%", "issue
-  costs" -> 8 project NPV
+  costs" -> 9 project NPV
 - "NPV $15m, issue costs 3% of face
   value" -> 8: NPV before issue costs,
   money needed, issue % (skip the
@@ -532,7 +557,7 @@ TRAPS
   risk]],
     worked = [[## After-tax cost of debt
 Q: coupon 10%, YTM 4.25%, tax 30%.
-PICK: 3 cost of debt
+PICK: 4 rD (one bond)
 ENTER: rD 4.25 | Tc 30
 4.25% x 0.7 = 2.98%
 
@@ -540,7 +565,7 @@ ENTER: rD 4.25 | Tc 30
 Q: 20-year 7% semi-annual bond issued
 5 years ago; price 95% of face; tax
 30%.
-PICK: 3 cost of debt
+PICK: 4 rD (one bond)
 ENTER: coupon 7 | years 15 | price %
 95 | coupons a year 2 | Tc 30
 y = 3.78% a half-year
@@ -550,7 +575,7 @@ after tax: 7.71% x 0.7 = 5.39%
 ## Cost of equity from past dividends
 Q: dividends 1.00, 1.05, 1.12, 1.17,
 1.25; price $30.
-PICK: 2 cost of equity
+PICK: 3 rE
 ENTER: past dividends 1 to 5 | P0 30
 g = average % change = 5.74%
 rE = 1.25 x 1.0574/30 + 5.74% = 10.15%
@@ -570,7 +595,7 @@ above the WACC is accepted)
 ## Cost of preference shares
 Q: par $20, pays 10% of par, price
 $22.86.
-PICK: 4 preference shares
+PICK: 6 rP
 ENTER: divpct 10 | par 20 | pp 22.86
 2/22.86 = 8.75%
 
@@ -594,7 +619,7 @@ WACC = 12% x 0.625 + 4.5% x 0.375
 Q: 5m shares at $12, book value $3 a
 share; bonds $40m at 98% and $20m at
 105% of face.
-PICK: 5 weights
+PICK: 7 book AND market weights
 ENTER: shares 5m | price 12 | bvps 3 |
 F1 40m | q1 98 | F2 20m | q2 105
 book: E 20%, D 80%
@@ -603,14 +628,14 @@ market: E 49.92%, D 50.08%
 ## Two bond issues
 Q: $40m, 6%, 8 years, 98%; $20m, 8%,
 5 years, 105%; semi-annual; tax 30%.
-PICK: 6 two bond issues
+PICK: 5 rD (two bond issues)
 rD = 6.60% (APR 6.49%)
 after tax 4.62%
 
 ## Projects vs the SML
 Q: rf 4%, E[RM] 11%, WACC 11%.
 Betas/returns: 0.5/9%, 1.3/12%.
-PICK: 7 projects
+PICK: 8 which projects
 0.5: needs 7.5% -> accept (the WACC
 would wrongly REJECT it)
 1.3: needs 13.1% -> reject (the WACC
@@ -619,7 +644,7 @@ would wrongly ACCEPT it)
 ## Project NPV at the WACC
 Q: WACC 9%, risk +2%, FCF1 $2m growing
 3%, cost $20m, issue costs $1m.
-PICK: 8 project NPV
+PICK: 9 project NPV
 PV = 2m/(0.11 - 0.03) = 25m
 NPV = 25m - 20m - 1m = 4m: accept
 
@@ -627,7 +652,7 @@ NPV = 25m - 20m - 1m = 4m: accept
 Q: NPV $10m before financing costs;
 the project needs $12m; issue costs
 4% of face value.
-PICK: 8 project NPV
+PICK: 9 project NPV
 ENTER: NPV before 10m | money needed
 12m | issue % 4
 Face = 12m/(1 - 0.04) = 12.5m
@@ -952,6 +977,18 @@ NPV = 10m - 0.5m = 9.5m]],
   end
   table.insert(TYPES, {
     name = "Capital structure: MM", group = 7, solve = solveMM,
+    -- one line per kind: when to pick it (shown under the list of kinds)
+    modeHelp = {
+      "'cost of equity' at a D/E or after borrowing: from rU, rD and D/E (Tc if tax). The WACC too",
+      "'unlevered cost of capital', 'cost of capital with no debt': from rE, rD, E and D",
+      "'interest tax shield', 'value with debt': Tc x interest, VL = VU + PV(shield)",
+      "the firm CHANGES its D/E (borrows to buy back shares): the new rE and WACC",
+      "'EBIT of $X forever', 'share price after borrowing': VU, VL, equity, price",
+      "weak / normal / strong states: equity returns with and without debt",
+      "two firms identical except their debt: which is the better buy?",
+      "strategies with payoffs and debt due: which one shareholders would pick",
+      "'would shareholders fund the project?': the debt takes the gain",
+    },
     desc = "Modigliani-Miller: cost of equity with leverage, unlevered cost, tax shield (forever or n years), levered value, recapitalisation, value and share price from cash flows, levered returns by state, which firm is the better buy, agency costs, debt overhang",
     looks = "Modigliani | MM | unlevered | levered | tax shield | permanent debt | buy back shares | debt-to-equity | share price after borrowing | value of the firm | EBIT forever | interest expense | unlevered free cash flow | financial distress | trade-off | identical except capital structure | better buy | homemade leverage | strategies payoff equity holders | agency cost | debt overhang | under-investment | develop the land | demand weak strong",
     slots = {

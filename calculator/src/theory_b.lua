@@ -1485,7 +1485,7 @@ THEORY_B = {
         words = "wacc rd pre-tax after-tax before after tax which one cost of debt twice" },
       { q = "rE: when CAPM and when the dividend growth model?",
         a = "CAPM when they give beta, rf and the market return (or premium). Dividend growth when they give the dividend, the share price and g.",
-        why = "CAPM: rE = rf + beta(E[RM] - rf). Dividend growth: rE = D1/P0 + g, with D1 = D0(1 + g) if the dividend was 'just paid'. On the solver: 7, 1, 2.",
+        why = "CAPM: rE = rf + beta(E[RM] - rf). Dividend growth: rE = D1/P0 + g, with D1 = D0(1 + g) if the dividend was 'just paid'. On the solver: 7, 1, 3.",
         trap = "Using D0 instead of D1 in the dividend growth model.",
         words = "cost of equity capm or dividend growth model ddm which one when to use beta dividend" },
       { q = "The firm changes its debt-equity ratio. What are the steps for the new rE?",

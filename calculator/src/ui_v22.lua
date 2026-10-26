@@ -91,8 +91,10 @@
       local rows = {}
       for _, o in ipairs(sl.opts) do rows[#rows + 1] = { t = o } end
       if U.msel > #rows then U.msel = #rows end
-      drawRows(gc, rows, U.msel, 40, 15, SH - 27, function(i) return tostring(i) end)
-      note(gc, (qt.modeHelp and qt.modeHelp[U.msel]) or "ENTER opens a page with only the boxes this kind needs", SH - 26)
+      drawRows(gc, rows, U.msel, 40, 14, SH - 39, function(i) return tostring(i) end)
+      -- when to pick the highlighted kind (two lines), so the right one is clear
+      setc(gc, COL.dim); gc:drawLine(2, SH - 39, SW - 2, SH - 39)
+      note(gc, (qt.modeHelp and qt.modeHelp[U.msel]) and ("PICK WHEN: " .. qt.modeHelp[U.msel]) or "ENTER opens a page with only the boxes this kind needs", SH - 37)
       footer(gc, "number or ENTER | N notes | W worked | ESC back")
     end
     ------------------------------------------------------------------ root formulas: the sheet's lines as pages of slots
@@ -594,7 +596,7 @@
         return
       end
       if scr == "modes" then
-        local i = math.floor((my - 40) / 15) + 1
+        local i = math.floor((my - 40) / 14) + 1
         if my >= 40 and modeSlotOf(U.mt).opts[i] then pickMode(i) end
         return
       end

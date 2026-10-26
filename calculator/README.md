@@ -27,7 +27,9 @@ The home screen:
 - **F  Find my question type.** Answer two short questions ("What is it about?", "What do they ask for?"). The right
   solver opens with the answer box marked **FIND** and any choices already set.
 - **1-8** pick a week, then a question type (23 types). A type that covers several kinds of question opens a numbered
-  list first ("What does the question ask for?"): press its number and the page shows only the boxes that kind needs;
+  list first ("What does the question ask for?"): press its number and the page shows only the boxes that kind needs.
+  Each kind is named by what the question asks for, and a PICK WHEN line under the list gives the question's giveaway
+  words for the highlighted kind;
   ESC goes back to the list.
 - **T  Theory + what-ifs.** The questions without numbers, by week and topic: first the WHAT-IF rules
   ("rates UP -> bond price DOWN"), then each question with its answer, why, and the trap. A week number jumps to that week.
