@@ -416,6 +416,20 @@ Pick what they ask for from the list
 7 projects: the SML vs the WACC
 8 a project's NPV at the WACC
 
+WHICH FORMULA WHEN
+- preference shares? use the WACC
+  with P: V = E + P + D. None: leave
+  P blank (same as the Tax World line)
+- rE: beta given -> CAPM (2);
+  dividend + price + g -> D1/P0 + g
+- rD = the PRE-tax YTM: the WACC
+  takes the tax off. Given AFTER tax?
+  type it and leave Tc blank
+- the WACC is ONLY for projects with
+  the firm's AVERAGE risk
+- more: S, type CHOOSER: the page
+  'Formula chooser: WACC and MM'
+
 FORMULAS
 $$r_E = r_f + beta*(E[R_M] - r_f)
 $$r_E = (D_1)/(P_0) + g
@@ -977,6 +991,22 @@ Pick what they ask for from the list
 8 agency: risky strategies + debt
 9 debt overhang: fund the project?
 No tax: leave Tc blank.
+
+WHICH FORMULA WHEN
+- NO tax rate in the question ->
+  no-tax world: VL = VU, WACC = rU,
+  rE = rU + D/E(rU - rD)
+- tax rate given -> tax world:
+  VL = VU + Tc x D (debt forever),
+  rE = rU + D/E(rU - rD)(1 - Tc),
+  the WACC falls as debt rises
+- given rE and a NEW D/E: unlever to
+  rU (2), then relever (1), or use 4
+- rE: what shareholders want. rU: the
+  assets, no debt. WACC: projects of
+  the firm's average risk
+- more: S, type CHOOSER: the page
+  'Formula chooser: WACC and MM'
 
 FORMULAS
 $$r_U = r_E*(E)/(E + D) + r_D*(D)/(E + D)

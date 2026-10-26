@@ -156,6 +156,14 @@ for q, want in [("Which of the following are included in a firm's capital struct
     key('enterKey'); t = check_screen(f'search {q!r} opened')
     if want == 'included in a firm' and 'NOT IN' not in t: fails.append(f'search {q!r}: the answer is not on the page')
 
+# a topic page found by its name: CHOOSER opens 'Formula chooser: WACC and MM' (the Weeks 10-11 which-formula page)
+for _ in range(4): key('escapeKey')
+key('charIn', 's'); app.type('chooser')
+top = G.CORE.U.hits[1].e.t if len(G.CORE.U.hits) else ''
+if 'Formula chooser' not in str(top): fails.append(f'search chooser: first hit is {top!r}')
+key('enterKey'); t = check_screen('chooser topic opened')
+if 'Tax rate in the question' not in t: fails.append('chooser: the topic page does not open at its rules')
+
 # the WACC kind: the WACC itself is on the first answer screen (not below the weights)
 for _ in range(4): key('escapeKey')
 key('charIn', '7'); key('charIn', '1'); key('charIn', '1')

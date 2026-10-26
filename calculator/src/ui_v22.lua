@@ -192,6 +192,8 @@
         ix[#ix + 1] = { kind = 1, t = "SOLVE: " .. qt.name, text = table.concat(parts, " "):lower(), ti = ti }
       end
       for ti, t in ipairs(THEORY) do
+        -- the whole topic page, found by its name ('formula when', 'no taxes')
+        ix[#ix + 1] = { kind = 2, rank = 1.5, notitle = true, t = "TOPIC: Wk " .. t.week .. " " .. t.topic, text = t.topic:lower(), topic = ti }
         for ii, it in ipairs(t.items) do
           ix[#ix + 1] = { kind = 2, t = "THEORY: " .. it.q, text = (it.q .. " " .. it.a .. " " .. (it.words or "") .. " " .. t.topic):lower(), topic = ti, item = ii }
         end
@@ -241,10 +243,10 @@
           if a then
             m = m + 1
             sc = sc + #w + ((a == 1 or e.text:sub(a - 1, a - 1):find("[%s%(]")) and 3 or 0)
-            if findWord(tl, w) then sc = sc + 4 end   -- the word is in the question / name itself
+            if not e.notitle and findWord(tl, w) then sc = sc + 4 end   -- the word is in the question / name itself
           end
         end
-        if m >= need then U.hits[#U.hits + 1] = { e = e, sc = m * 1000 + sc * 10 - e.kind } end
+        if m >= need then U.hits[#U.hits + 1] = { e = e, sc = m * 1000 + sc * 10 - (e.rank or e.kind) } end
       end
       table.sort(U.hits, function(a, b) return a.sc > b.sc end)
       while #U.hits > 40 do table.remove(U.hits) end
