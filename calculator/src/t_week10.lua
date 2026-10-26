@@ -675,7 +675,8 @@ NPV = 10m - 0.5m = 9.5m]],
     end
   end
   -- v23: value the firm from its cash flow forever: VU = FCF/rU, VL = VU + Tc x D (- PV of distress costs), E = VL - D
-  local function solveValue(V, out, Tc)
+  -- onlyRU: kind 2 asks only for rU, so a blank D is not missing (a note, not a 'Need')
+  local function solveValue(V, out, Tc, onlyRU)
     local tax = Tc > 0
     debtOf(V, out)
     local fcf = V.FCF
@@ -714,6 +715,7 @@ NPV = 10m - 0.5m = 9.5m]],
         out:note("give D in $ as well to value the levered firm and its shares")
         return
       end
+      if onlyRU then out:note("rU is the answer. A levered firm's rE and WACC: ESC, then kind 1"); return end
       out:need("D: the permanent debt, to value the levered firm"); return
     end
     out:head(tax and "LEVERED FIRM (with tax)" or "LEVERED FIRM (no tax)")
@@ -775,7 +777,7 @@ NPV = 10m - 0.5m = 9.5m]],
       if not rU then
         if mode == MODES21[2] and not (V.re and V.rd and V.E and V.D) and (V.EBIT or V.FCF) and V.VU then
           -- rU from the cash flow and the all-equity value: rU = FCF/VU, FCF = EBIT*(1 - Tc)
-          solveValue(V, out, Tc)
+          solveValue(V, out, Tc, true)
           return
         end
         if not (V.re and V.rd and V.E and V.D) then

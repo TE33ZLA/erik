@@ -2,7 +2,7 @@
    node calculator/tools/build.js && python3 calculator/tests/test_solvers.py
 Each case: type number, inputs (rates as decimals, like the app after parsing), expected results by value key.
 Special keys in the expected dict: '_sheet' = formula-sheet ids the answer must list (comma separated),
-'_off' = text that must appear in a NOT ON THE SHEET line. Every case must end with a FORMULA SHEET section
+'_off' = text that must appear in a NOT ON THE SHEET line, '_clean' = True: no 'Need' line either. Every case must end with a FORMULA SHEET section
 that lists only known formulas, all of them on the type's N-page list (FSHEET.types).
 The v23 cases' numbers were worked out independently (Python) before they were written here."""
 import os, sys
@@ -200,6 +200,7 @@ CASES = [
   (21, 'v23 no tax: VL = VU, WACC = rU', dict(mode='value from cash flows (EBIT or FCF)', EBIT=1000, rU=.10, D=2000, shares=400, rd=.05),
    dict(VU=10000, VL=10000, E=8000, price=20, re=.1125, wacc=.10, _sheet='mm1,re,ru')),
   (21, 'v24 rU from EBIT and VU in the rU mode', dict(mode='unlevered cost rU', EBIT=2500, Tc=.25, VU=15000), dict(FCF=1875, rU=.125, _off='rU = FCF/VU')),
+  (21, 'rU mode, D blank: no Need line (rU is the answer)', dict(mode='unlevered cost rU', EBIT=840, Tc=.25, VU=4500), dict(FCF=630, rU=.14, _clean=True)),
   # ---- v24: Weeks 10-12 (own numbers, worked out in Python first)
   (20, 'v24 cost of debt: semi-annual bond, effective and APR', dict(mode='rD: cost of debt (one bond)', cpn=.07, yrs=15, ppct=.95, m='2 (semi-annual)', Tc=.3),
    dict(price=950, y=.037815, rd=.077061, rdApr=.075631, rdat=.053942, rdatApr=.052941, _sheet='ear')),
@@ -289,10 +290,11 @@ def main():
     for t, name, V, want0 in CASES:
         want = dict(want0)
         sheet, offtxt = want.pop('_sheet', None), want.pop('_off', None)
+        clean = want.pop('_clean', False)   # True: the page must show no 'Need' line either
         vt = lua.table_from(V)
         out = CORE.run(t, vt)
         vals = out.vals
-        bad_rows = [r.text for r in out.rows.values() if r.kind in ('err',)]
+        bad_rows = [r.text for r in out.rows.values() if r.kind in (('err', 'need') if clean else ('err',))]
         miss = []
         for k, w in want.items():
             g = vals[k]
