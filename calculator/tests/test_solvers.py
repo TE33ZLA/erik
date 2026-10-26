@@ -216,6 +216,7 @@ CASES = [
    dict(req1=.075, req2=.131, _sheet='capm')),
   (20, 'v24 project NPV at the WACC (+2%, issue costs)', dict(mode="a project's NPV (WACC, issue costs)", wacc=.09, adj=.02, FCF1=2e6, gp=.03, cost=20e6, fees=1e6),
    dict(rate=.11, pv=25e6, npv=4e6, _sheet='gperp')),
+  (21, 'tax shield: a loan repaid each year', dict(mode='tax shield and levered value', D=60e6, rd=.10, Tc=.30, repay=20e6), dict(pvts=3078888.0, its1=1.8e6, its3=.6e6)),
   (20, 'NPV given, issue costs as % of face', dict(mode="a project's NPV (WACC, issue costs)", npv0=10e6, fin=12e6, fpct=.04), dict(face=12.5e6, fees=.5e6, npv=9.5e6)),
   (20, 'project NPV at the WACC, issue costs as % of face', dict(mode="a project's NPV (WACC, issue costs)", wacc=.10, FCF1=1.5e6, gp=.02, cost=15e6, fpct=.05), dict(pv=18.75e6, fees=789473.68, npv=2960526.32)),
   (20, 'v24 project: highest cost worth paying', dict(mode="a project's NPV (WACC, issue costs)", wacc=.09, adj=.02, FCF1=2e6, gp=.03, fees=1e6), dict(maxcost=24e6)),

@@ -800,9 +800,32 @@ NPV = 10m - 0.5m = 9.5m]],
       if not (D or int) then out:need("the debt D (or the interest a year and rD)"); return end
       if not tax then out:need("the company tax rate Tc (without tax there is no tax shield)"); return end
       out:head("INTEREST TAX SHIELD")
-      if int then out:row("tax shield each year", Tc * int, "$", "Tc x interest = " .. P(Tc) .. " x " .. P(int), "its"); out:uses("its") end
+      -- (a loan paid down each year has a different shield every year: listed year by year below)
+      if int and not V.repay then out:row("tax shield each year", Tc * int, "$", "Tc x interest = " .. P(Tc) .. " x " .. P(int), "its"); out:uses("its") end
       local pvts
-      if V.yrsD then
+      if V.repay then
+        -- a loan paid down by the same amount each year: interest on the balance owed at the START of each year,
+        -- so each year's shield is smaller; every shield is discounted at rD (as risky as the loan)
+        if not (D and V.rd) then out:need("the debt D and rD, for a loan repaid each year"); return end
+        if V.repay <= 0 then out:err("the amount repaid each year must be above 0"); return end
+        local bal, t, sched = D, 0, {}
+        pvts = 0
+        while bal > 1e-9 and t < 60 do
+          t = t + 1
+          local intT = bal * V.rd
+          local pvT = Tc * intT / (1 + V.rd) ^ t
+          sched[#sched + 1] = { t = t, bal = bal, sh = Tc * intT, pv = pvT }
+          pvts = pvts + pvT
+          bal = bal - math.min(V.repay, bal)
+        end
+        out:row("PV of the tax shield", pvts, "$", "each year's shield, discounted at rD, added (" .. t .. " years)", "pvts")
+        out:note("the loan is repaid " .. P(V.repay) .. " a year, so it lasts " .. t .. " years and the interest falls each year")
+        for _, y in ipairs(sched) do
+          out:row("year " .. y.t .. ": tax shield", y.sh, "$", "Tc x rD x balance owed = " .. P(Tc) .. " x " .. P(V.rd) .. " x " .. P(y.bal) ..
+                  "; PV = " .. P(y.sh) .. "/" .. P(1 + V.rd) .. "^" .. y.t .. " = " .. P(y.pv), "its" .. y.t)
+        end
+        out:uses("its"); out:off("itsamort")
+      elseif V.yrsD then
         -- debt for n years only: the shields are an annuity, discounted at rD (as risky as the debt)
         if not (int and V.rd) then out:need("the interest (or D) and rD, for debt that lasts " .. P(V.yrsD) .. " years"); return end
         pvts = Tc * int * annFac(V.rd, V.yrsD)
@@ -828,7 +851,7 @@ NPV = 10m - 0.5m = 9.5m]],
           out:row("shares left", V.shares - D / pr, "", "shares - bought back", "nleft")
           out:off("pricerecap")
         end
-        if V.rU and V.rd and not V.yrsD then
+        if V.rU and V.rd and not V.yrsD and not V.repay then
           local E2 = VL - D
           local re2 = reOf(V.rU, V.rd, D / E2)
           out:row("rE after", re2, "%", "rU + D/E (rU - rD)(1 - Tc) = " .. pct(V.rU) .. "% + " .. P(D / E2) .. " x " .. pct(V.rU - V.rd) .. "% x " .. P(1 - Tc), "re2")
@@ -981,7 +1004,7 @@ NPV = 10m - 0.5m = 9.5m]],
     modeHelp = {
       "'cost of equity' at a D/E or after borrowing: from rU, rD and D/E (Tc if tax). The WACC too",
       "'unlevered cost of capital', 'cost of capital with no debt': from rE, rD, E and D",
-      "'interest tax shield', 'value with debt': Tc x interest, VL = VU + PV(shield)",
+      "'interest tax shield', 'value with debt': Tc x interest, VL = VU + PV(shield). Loan paid down each year? 'repaid'",
       "the firm CHANGES its D/E (borrows to buy back shares): the new rE and WACC",
       "'EBIT of $X forever', 'share price after borrowing': VU, VL, equity, price",
       "weak / normal / strong states: equity returns with and without debt",
@@ -1003,6 +1026,7 @@ NPV = 10m - 0.5m = 9.5m]],
       S("Tc", "Tc tax (%) (blank = no tax)", "pct"),
       S("VU", "VU all-equity value ($)", "money"),
       S("yrsD", "years of debt (blank = forever)", "num"),
+      S("repay", "or: debt repaid each year ($)", "money"),
       S("newDE", "new D/E after recap", "num"),
       S("EBIT", "EBIT each year ($)", "money"),
       S("FCF", "or: unlevered FCF a year ($)", "money"),
@@ -1028,7 +1052,7 @@ NPV = 10m - 0.5m = 9.5m]],
       local m = Sm.mode.opts[Sm.mode.idx]
       if m == MODES21[1] then return { "mode", "rU", "rd", "E", "D", "DE", "Tc" } end
       if m == MODES21[2] then return { "mode", "re", "rd", "E", "D", "EBIT", "FCF", "Tc", "VU" } end
-      if m == MODES21[3] then return { "mode", "D", "int", "rd", "Tc", "yrsD", "VU", "rU", "shares" } end
+      if m == MODES21[3] then return { "mode", "D", "int", "rd", "Tc", "yrsD", "repay", "VU", "rU", "shares" } end
       if m == MODES21[5] then return { "mode", "EBIT", "FCF", "Tc", "rU", "VU", "D", "int", "DE", "rd", "shares", "PVd" } end
       if m == MODES21[6] then return { "mode", "cf1", "pr1", "cf2", "pr2", "cf3", "pr3", "Vf", "rU", "D", "rd" } end
       if m == MODES21[7] then return { "mode", "EBIT", "Tc", "D", "int", "rd", "nL", "pL", "nU", "pU" } end
@@ -1046,6 +1070,7 @@ NPV = 10m - 0.5m = 9.5m]],
       Tc = "'there are no taxes' -> leave blank",
       VU = "value of the firm with no debt",
       yrsD = "'8-year bonds' -> 8: the shields are an annuity",
+      repay = "'repay $21m of the balance each year': each shield is smaller",
       newDE = "'until its debt-to-equity ratio is 1.5'",
       EBIT = "EBIT each year, forever; distress cuts it? type the LOWER one",
       FCF = "or the after-tax cash flow of the all-equity firm (the lower one if distress cuts it)",
@@ -1142,6 +1167,9 @@ IF THE QUESTION SAYS...
   from cash flows: VU = EBIT(1 - Tc)/rU
 - "interest expense $X" -> type it in
   'interest a year' (D = interest/rD)
+- "repay $X of the balance each year"
+  -> 3: D, rD, Tc and 'repaid each
+  year' (each year's shield is smaller)
 - "price per share" -> (VL - D)/shares
 - "costs of financial distress" (trade-off)
   -> take their PV off VL

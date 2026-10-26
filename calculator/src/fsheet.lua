@@ -198,6 +198,7 @@ do
     floatcost = { "NPV = PV - cost - issue costs", "costly external financing (lectures), not on the sheet" },
     issuepct = { "Face = money needed/(1 - issue %); issue costs = Face - money needed", "issue costs as a % of face value (textbook), not on the sheet" },
     dfromint = { "D = interest/rD", "interest = rD*D (permanent debt), solved for D" },
+    itsamort = { "PV(Interest tax shield) = sum of Tc*rD*(balance owed at the start of year t)/(1 + rD)^t", "each year's shield on a loan paid down each year, discounted at rD (not on the sheet)" },
     itsann = { "PV(Interest tax shield) = Tc*interest*(1 - 1/(1 + rD)^n)/rD", "the PV of an annuity line, with C = Tc*interest and r = rD (debt for n years)" },
     pricerecap = { "price = VL/shares (before the buyback); shares bought = D/price", "MM with tax: the old shares get the tax-shield gain (textbook)" },
     eqstate = { "cash to equity = firm cash flow - D*(1 + rD); return = cash/E - 1", "MM I: E = V - D (lectures), not on the sheet" },
