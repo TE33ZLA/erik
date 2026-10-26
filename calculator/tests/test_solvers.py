@@ -216,6 +216,8 @@ CASES = [
    dict(req1=.075, req2=.131, _sheet='capm')),
   (20, 'v24 project NPV at the WACC (+2%, issue costs)', dict(mode='project NPV at the WACC', wacc=.09, adj=.02, FCF1=2e6, gp=.03, cost=20e6, fees=1e6),
    dict(rate=.11, pv=25e6, npv=4e6, _sheet='gperp')),
+  (20, 'NPV given, issue costs as % of face', dict(mode='project NPV at the WACC', npv0=10e6, fin=12e6, fpct=.04), dict(face=12.5e6, fees=.5e6, npv=9.5e6)),
+  (20, 'project NPV at the WACC, issue costs as % of face', dict(mode='project NPV at the WACC', wacc=.10, FCF1=1.5e6, gp=.02, cost=15e6, fpct=.05), dict(pv=18.75e6, fees=789473.68, npv=2960526.32)),
   (20, 'v24 project: highest cost worth paying', dict(mode='project NPV at the WACC', wacc=.09, adj=.02, FCF1=2e6, gp=.03, fees=1e6), dict(maxcost=24e6)),
   (21, 'v24 tax shield on 8-year debt', dict(mode='tax shield and levered value', D=500e6, rd=.07, Tc=.3, yrsD=8), dict(its=10.5e6, pvts=62698634.3, _sheet='pva')),
   (21, 'v24 recap: price, shares bought, rE and WACC after', dict(mode='tax shield and levered value', D=4e5, rd=.08, Tc=.3, VU=1e6, rU=.12, shares=50000),

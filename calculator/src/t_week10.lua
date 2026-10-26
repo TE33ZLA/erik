@@ -213,8 +213,35 @@ do
       return
     end
     if mode == MODES20[8] then
-      -- a project worth FCF1/(r - g), at the WACC (+ an adjustment for its risk), less its cost and any issue costs
-      if not (V.wacc and V.FCF1) then out:need("the WACC and the first year's cash flow FCF1"); return end
+      -- issue costs as a % of FACE value (textbook): issue enough that the money needed is left after the costs
+      local fees = V.fees
+      local fin = V.fin or V.cost   -- the money needed: the financing, or else the project's cost
+      local face
+      if not fees and V.fpct and fin then
+        if V.fpct >= 1 then out:err("the issue cost % must be below 100"); return end
+        face = fin / (1 - V.fpct)
+        fees = face - fin
+      end
+      local function issueRows()
+        if not face then return end
+        out:head("ISSUE COSTS (% of face value)")
+        out:row("face value to issue", face, "$", "money needed/(1 - issue %) = " .. P(fin) .. "/(1 - " .. P(V.fpct) .. ")", "face")
+        out:row("issue costs", fees, "$", "face - money needed = " .. P(face) .. " - " .. P(fin), "fees")
+        out:note("the costs come out of what you raise, so you issue MORE than you need")
+        out:note("if the % is of the money NEEDED (not the face): costs = " .. P(fin) .. " x " .. P(V.fpct) .. " = " .. P(fin * V.fpct))
+      end
+      if V.npv0 then
+        -- the NPV before financing costs is given: take the issue costs off it
+        if not fees then out:need("the issue costs ($), or the issue % of face and the money needed"); return end
+        local npv = V.npv0 - fees
+        out:head("THE PROJECT")
+        out:row("NPV with issue costs", npv, "$", "NPV - issue costs = " .. P(V.npv0) .. " - " .. P(fees), "npv")
+        out:add(npv >= 0 and "ok" or "bad", npv >= 0 and "NPV >= 0: still worth doing" or "NPV < 0: the issue costs make it not worth doing")
+        issueRows()
+        out:off("floatcost")
+        return
+      end
+      if not (V.wacc and V.FCF1) then out:need("the WACC and the first year's cash flow FCF1 (or the NPV before issue costs)"); return end
       local r, g = V.wacc + (V.adj or 0), V.gp or 0
       if r <= g then out:err("the rate must be above the growth rate"); return end
       out:head("THE PROJECT")
@@ -227,7 +254,7 @@ do
         out:row("PV of the cash flows", pv, "$", "FCF/r = " .. P(V.FCF1) .. "/" .. P(r) .. "  (perpetuity)", "pv")
         out:uses("perp")
       end
-      local fees = V.fees or 0
+      fees = fees or 0
       if V.cost then
         local npv = pv - V.cost - fees
         out:row("NPV", npv, "$", "PV - cost" .. ((fees > 0) and " - issue costs" or "") .. " = " .. P(pv) .. " - " .. P(V.cost) ..
@@ -237,6 +264,7 @@ do
         out:row("highest cost worth paying", pv - fees, "$", "PV" .. ((fees > 0) and (" - issue costs = " .. P(pv) .. " - " .. P(fees)) or ""), "maxcost")
         out:note("take the project if its cost today is BELOW this")
       end
+      issueRows()
       if fees > 0 then out:off("floatcost") end
       return
     end
@@ -337,6 +365,8 @@ do
       S("adj", "risk adjustment (+/- %)", "pct"),
       S("FCF1", "FCF in year 1 ($)", "money"), S("gp", "growth of the FCF (%)", "pct"),
       S("cost", "project cost today ($)", "money"), S("fees", "issue (flotation) costs ($)", "money"),
+      S("npv0", "NPV before issue costs ($)", "money"), S("fin", "money needed (financing) ($)", "money"),
+      S("fpct", "issue costs (% of face value)", "pct"),
   }
   table.insert(TYPES, {
     name = "Cost of capital and WACC", group = 7, solve = solveWACC,
@@ -351,7 +381,7 @@ do
       if m == MODES20[5] then return { "mode", "nE", "pE", "bvps", "BE", "F1", "q1", "F2", "q2" } end
       if m == MODES20[6] then return { "mode", "F1", "c1", "n1", "q1", "F2", "c2", "n2", "q2", "m", "Tc" } end
       if m == MODES20[7] then return { "mode", "rf", "rm", "mrp", "wacc", "b1", "r1", "b2", "r2", "b3", "r3", "b4", "r4" } end
-      if m == MODES20[8] then return { "mode", "wacc", "adj", "FCF1", "gp", "cost", "fees" } end
+      if m == MODES20[8] then return { "mode", "npv0", "fin", "fpct", "wacc", "adj", "FCF1", "gp", "cost", "fees" } end
       return { "mode", "E", "nE", "pE", "D", "nD", "pD", "DE", "Pv", "re", "rd", "rp", "Tc", "irr", "irr2", "irr3", "irr4", "irr5" }
     end,
     hints = {
@@ -390,7 +420,10 @@ do
       FCF1 = "cash flow (or saving) at the END of year 1",
       gp = "growth a year forever (blank = no growth)",
       cost = "upfront cost (blank: find the most you can pay)",
-      fees = "costs of raising the money (issue costs)",
+      fees = "costs of raising the money (issue costs) in $",
+      npv0 = "the project's NPV is GIVEN? type it (skip WACC and FCF)",
+      fin = "the financing the project needs, e.g. 20.1m",
+      fpct = "issue costs as a % of face value, e.g. 2.7",
     },
     formula = { "r_WACC = r_E*(E/V) + r_P*(P/V) + r_D*(1 - T_c)*(D/V)", "r_E = r_f + beta*(E[R_M] - r_f) or D_1/P_0 + g   r_P = (DIV_p)/(P_p)" },
     words = "the WACC is the average cost of the firm's money, weighted by market values, with debt made cheaper by tax",
@@ -414,7 +447,8 @@ Pick what they ask for from the list
 5 weights: book AND market values
 6 cost of debt from two bond issues
 7 projects: the SML vs the WACC
-8 a project's NPV at the WACC
+8 a project's NPV at the WACC, or a
+  given NPV less issue costs
 
 WHICH FORMULA WHEN
 - preference shares? use the WACC
@@ -469,6 +503,10 @@ IF THE QUESTION SAYS...
   7 projects vs the SML
 - "adjustment factor +2%", "issue
   costs" -> 8 project NPV
+- "NPV $15m, issue costs 3% of face
+  value" -> 8: NPV before issue costs,
+  money needed, issue % (skip the
+  WACC and FCF boxes)
 - "projects with the SAME risk as the
   firm: which to accept?" -> 1 WACC,
   then each project's return in the
