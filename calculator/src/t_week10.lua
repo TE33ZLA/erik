@@ -252,6 +252,17 @@ do
     if not (E and D) then out:need("E and D: market values (shares x price, bonds x price), or the weights, or D/E - then the costs rE and rD for the WACC"); return end
     local Tc = V.Tc or 0
     local Vt = E + D + Pv
+    local w = (V.re and V.rd) and (V.re * E / Vt + (V.rp or 0) * Pv / Vt + V.rd * (1 - Tc) * D / Vt)
+    if w then
+      -- the answer first: the weights it is built from follow underneath
+      out:head("WACC")
+      out:row("WACC", w, "%", "rE(E/V) + rP(P/V) + rD(1 - Tc)(D/V) = " .. pct(V.re) .. "% x " .. pct(E / Vt) .. "%" ..
+              ((Pv > 0) and (" + " .. pct(V.rp or 0) .. "% x " .. pct(Pv / Vt) .. "%") or "") ..
+              " + " .. pct(V.rd * (1 - Tc)) .. "% x " .. pct(D / Vt) .. "%", "wacc")
+      out:row("rD after tax", V.rd * (1 - Tc), "%", "rD x (1 - Tc) = " .. pct(V.rd) .. "% x " .. P(1 - Tc) ..
+              ((Tc == 0) and " (no Tc: rD is used as typed)" or ""), "rdat")
+      if Pv > 0 and not V.rp then out:add("bad", "CHECK: there are preference shares but no rP: type it in the rP box") end
+    end
     out:head("MARKET-VALUE WEIGHTS")
     if not V.E and not V.DE then out:row("E", E, "$", "shares x price = " .. P(V.nE) .. " x " .. P(V.pE), "E"); out:off("mv") end
     if not V.D and not V.DE then out:row("D", D, "$", "bonds x price = " .. P(V.nD) .. " x " .. P(V.pD), "D"); out:off("mv") end
@@ -266,10 +277,6 @@ do
       out:need("rE and rD (and rP if there are preference shares) to go on to the WACC itself")
       return
     end
-    local w = V.re * E / Vt + (V.rp or 0) * Pv / Vt + V.rd * (1 - Tc) * D / Vt
-    out:head("WACC")
-    out:row("rD after tax", V.rd * (1 - Tc), "%", "rD x (1 - Tc)" .. ((Tc == 0) and " (no Tc: rD is used as typed)" or ""), "rdat")
-    out:row("WACC", w, "%", "rE(E/V) + rP(P/V) + rD(1 - Tc)(D/V)", "wacc")
     out:uses("v", "wacc")
     -- projects with the firm's own risk: each return (IRR) against the WACC
     local np = 0
@@ -356,6 +363,7 @@ do
       Pv = "market value of preference shares (blank if none)",
       re = "cost of equity (work it out in the equity kind)",
       rd = "PRE-tax rD = the YTM; given AFTER tax? type it, Tc blank",
+      rp = "cost of preference shares, e.g. 9.6 (blank if none)",
       Tc = "company tax rate, e.g. 30",
       irr = "optional: a same-risk project's IRR or return (accept if above the WACC)",
       irr2 = "optional: another same-risk project's return",

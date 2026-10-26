@@ -156,6 +156,15 @@ for q, want in [("Which of the following are included in a firm's capital struct
     key('enterKey'); t = check_screen(f'search {q!r} opened')
     if want == 'included in a firm' and 'NOT IN' not in t: fails.append(f'search {q!r}: the answer is not on the page')
 
+# the WACC kind: the WACC itself is on the first answer screen (not below the weights)
+for _ in range(4): key('escapeKey')
+key('charIn', '7'); key('charIn', '1'); key('charIn', '1')
+for v in ['50', '', '', '40', '', '', '', '10', '14', '8', '10', '30']:   # E, D, P, rE, rD, rP, Tc (own numbers)
+    if v: app.type(v)
+    key('arrowKey', 'down')
+key('enterKey'); t = check_screen('WACC first screen')
+if 'WACC = 10.24' not in t: fails.append('WACC kind: the WACC is not on the first answer screen')
+
 # glossary: jump through letters and open one entry per letter
 for _ in range(4): key('escapeKey')
 key('charIn', 'g')
