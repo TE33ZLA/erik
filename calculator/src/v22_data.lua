@@ -316,11 +316,24 @@ for _, part in ipairs({ THEORY_A or {}, THEORY_B or {}, THEORY_C or {} }) do
 end
 
 --@include legend.lua
+--@include partc.lua
 HELP = [[BFC2140 SOLVER ]] .. VERSION .. [[ - HOW TO USE
 Every week of the unit, the maths AND
 the questions without numbers.
 
 START HERE (home screen)
+Pick the exam's PART first:
+A  Part A, multiple choice: type 2-3
+   words from the question; definitions
+   (WORD) and question cards (THEORY)
+   come first, with a preview.
+B  Part B, numbers: every way to the
+   right page (finder, multi-step,
+   search, weeks, root formulas).
+C  Part C, written + Excel: how to
+   answer number and 'why' parts, how to
+   lay out an Excel table or tree.
+W  the weeks list (or press 1-8 on home)
 F  Find my question: answer 2 short
    questions; the right solver opens
    with the answer box marked FIND.

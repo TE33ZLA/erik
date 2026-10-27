@@ -4,16 +4,21 @@
   -- Screens v21 already had are passed through to its handlers.
   ------------------------------------------------------------------
   do
-    local U = { homeSel = 1, group = 1, gsel = 1, fstack = {}, fsel = 1, want = nil, say = nil, qsel = 1, ssel = 1,
+    local U = { wsel = 1, bsel = 1, csel = 1, smode = nil, homeSel = 1, group = 1, gsel = 1, fstack = {}, fsel = 1, want = nil, say = nil, qsel = 1, ssel = 1,
                 tsel = 1, tlines = {}, tscroll = 0, topic = nil, q = "", hits = {}, hsel = 1, index = nil, mt = nil, msel = 1,
                 rlev = 1, rg = 1, rsel = 1 }
-    local HOME = { { k = "F", t = "Find my question type", s = "answer 2 short questions: start here" },
+    -- home: the exam's parts first (A multiple choice, B numbers, C written + Excel), then the other ways in;
+    -- the week digits 1-8 still work as keys on home
+    local HOME = { { k = "A", t = "Part A: multiple choice -> definitions", s = "type 2-3 words from the question: definitions and rules first" },
+                   { k = "B", t = "Part B: numbers -> the right page", s = "all the ways to find a page: finder, multi-step, search, weeks" },
+                   { k = "C", t = "Part C: written + Excel answers", s = "how to answer 'why' parts and Excel tables / trees; the number pages" },
+                   { k = "F", t = "Find my question type", s = "answer 2 short questions" },
+                   { k = "M", t = "Multi-step: questions that mix topics", s = "e.g. a cash flow, then its PV; rE + rD + rP, then the WACC" },
+                   { k = "W", t = "Weeks 1-8 (or press the week number)", s = "1 Wk1-2 TVM, 2 bonds/shares, 3 projects, 4 risk, 5 WC, 6 CAPM, 7 WACC/MM, 8 payout" },
                    { k = "R", t = "Root formulas: fill the slots", s = "every formula-sheet line: fill what you know, leave ONE slot blank" },
                    { k = "L", t = "Legend: every letter on the sheet", s = "what each letter of the formula sheet means, in the sheet's order" },
-                   { k = "M", t = "Multi-step: questions that mix topics", s = "e.g. a cash flow, then its PV; rE + rD + rP, then the WACC" } }
-    for gi, g in ipairs(GROUPS) do HOME[#HOME + 1] = { k = tostring(gi), t = g.t, s = g.s, g = gi } end
-    HOME[#HOME + 1] = { k = "T", t = "Theory + what-ifs (no numbers)", s = "'what happens if', true or false, explain" }
-    HOME[#HOME + 1] = { k = "S", t = "Search a word from the question", s = "e.g. COUPON, BREAK-EVEN, BETA" }
+                   { k = "T", t = "Theory + what-ifs (no numbers)", s = "'what happens if', true or false, explain" },
+                   { k = "S", t = "Search a word from the question", s = "e.g. COUPON, BREAK-EVEN, BETA" } }
     scr = "home"
 
     local function setc(gc, c) gc:setColorRGB(c[1], c[2], c[3]) end
@@ -49,7 +54,7 @@
     ------------------------------------------------------------------ home
     local function paintHome(gc)
       title(gc, "BFC2140 SOLVER " .. VERSION .. " - all weeks")
-      local y = drawRows(gc, HOME, U.homeSel, 23, 11.5, SH - 27, function(i, r) return r.k end)
+      local y = drawRows(gc, HOME, U.homeSel, 23, 13, SH - 27, function(i, r) return r.k end)
       note(gc, HOME[U.homeSel].s, SH - 26)
       footer(gc, "key or arrows + ENTER | H help | G glossary")
     end
@@ -200,7 +205,8 @@
         -- the whole topic page, found by its name ('formula when', 'no taxes')
         ix[#ix + 1] = { kind = 2, rank = 1.5, notitle = true, t = "TOPIC: Wk " .. t.week .. " " .. t.topic, text = t.topic:lower(), topic = ti }
         for ii, it in ipairs(t.items) do
-          ix[#ix + 1] = { kind = 2, t = "THEORY: " .. it.q, text = (it.q .. " " .. it.a .. " " .. (it.words or "") .. " " .. t.topic):lower(), topic = ti, item = ii }
+          ix[#ix + 1] = { kind = 2, t = "THEORY: " .. it.q, text = (it.q .. " " .. it.a .. " " .. (it.words or "") .. " " .. t.topic):lower(), topic = ti, item = ii,
+                          prev = it.a }
         end
         for _, r in ipairs(t.rules) do ix[#ix + 1] = { kind = 2, t = "RULE: " .. r, text = (r .. " " .. t.topic):lower(), topic = ti } end
       end
@@ -216,7 +222,8 @@
         while glines[k2] and not (type(glines[k2]) == "table" and glines[k2].kind == "head") do
           local g2 = glines[k2]; body[#body + 1] = type(g2) == "table" and (g2.text or "") or g2; k2 = k2 + 1
         end
-        ix[#ix + 1] = { kind = 3, t = "WORD: " .. e.head, text = (e.head .. " " .. table.concat(body, " ")):lower(), gi = gi }
+        ix[#ix + 1] = { kind = 3, t = "WORD: " .. e.head, text = (e.head .. " " .. table.concat(body, " ")):lower(), gi = gi,
+                        prev = table.concat(body, " "):gsub("%-> TYPE %d+", "") }
       end
       U.index = ix
     end
@@ -238,44 +245,50 @@
     local function runSearch()
       U.hits, U.hsel = {}, 1
       local toks, seen = {}, {}
-      for w in U.q:lower():gmatch("[%w%-/%%]+") do
+      for w in U.q:lower():gsub("(%a)&(%a)", "%1%2"):gmatch("[%w%-/%%]+") do   -- M&M -> mm
         if (#w >= 2 or tonumber(w)) and not STOP[w] and not seen[w] then toks[#toks + 1] = w; seen[w] = true end
       end
       if #toks == 0 then return end
       if not U.index then buildIndex() end
       -- one or two words: every one must be there; more (words typed from the question): most of them, best first
       local need = (#toks <= 2) and #toks or math.max(2, math.ceil(#toks / 2))
+      local partA = (U.smode == "A")   -- Part A: definitions and theory only, glossary words first
       for _, e in ipairs(U.index) do
-        local sc, m = 0, 0
-        local tl = e.t:lower()
-        for _, w in ipairs(toks) do
-          local a = findWord(e.text, w)
-          if a then
-            m = m + 1
-            sc = sc + #w + ((a == 1 or e.text:sub(a - 1, a - 1):find("[%s%(]")) and 3 or 0)
-            if not e.notitle and findWord(tl, w) then sc = sc + 4 end   -- the word is in the question / name itself
+        if not (partA and (e.kind == 1 or e.kind == 4)) then
+          local sc, m = 0, 0
+          local tl = e.t:lower()
+          for _, w in ipairs(toks) do
+            local a = findWord(e.text, w)
+            if a then
+              m = m + 1
+              sc = sc + #w + ((a == 1 or e.text:sub(a - 1, a - 1):find("[%s%(]")) and 3 or 0)
+              if not e.notitle and findWord(tl, w) then sc = sc + 4 end   -- the word is in the question / name itself
+            end
           end
+          if m >= need then U.hits[#U.hits + 1] = { e = e, sc = m * 1000 + sc * 10 - (e.rank or e.kind) + ((partA and e.kind == 3) and 500 or 0) } end
         end
-        if m >= need then U.hits[#U.hits + 1] = { e = e, sc = m * 1000 + sc * 10 - (e.rank or e.kind) } end
       end
       table.sort(U.hits, function(a, b) return a.sc > b.sc end)
       while #U.hits > 40 do table.remove(U.hits) end
     end
     local function paintSearch(gc)
-      title(gc, "SEARCH - type a word, ENTER opens")
+      title(gc, (U.smode == "A") and "PART A - words from the question" or "SEARCH - type a word, ENTER opens")
       setc(gc, COL.val); gc:setFont("sansserif", "b", 11)
       local shown = U.q
       while #shown > 4 and gc:getStringWidth("> .." .. shown .. "_") > SW - 12 do shown = shown:sub(2) end   -- a long question: show its end
       gc:drawString("> " .. ((shown ~= U.q) and ".." or "") .. shown .. "_", 6, 24, "top")
       if U.q == "" then
-        note(gc, "Type 1-3 key words from the question, e.g. CAPITAL STRUCTURE, COUPON, BETA, 2/10. THEORY lines answer 'which of the following' and true/false.", 44)
+        note(gc, (U.smode == "A") and "Type 2-3 key words, e.g. SHORT-TERM LONG-TERM, M&M, LOWEST RISK. WORD = a definition; THEORY = a question card with its answer."
+                 or "Type 1-3 key words from the question, e.g. CAPITAL STRUCTURE, COUPON, BETA, 2/10. THEORY lines answer 'which of the following' and true/false.", 44)
       elseif #U.hits == 0 then
         setc(gc, COL.need); gc:setFont("sansserif", "r", 10); gc:drawString("nothing found - try a shorter word", 6, 44, "top")
       else
         local rows = {}
         for _, h in ipairs(U.hits) do rows[#rows + 1] = { t = h.e.t } end
         drawRows(gc, rows, U.hsel, 44, 15, SH - 40)
-        note(gc, U.hits[U.hsel].e.t, SH - 38)   -- the whole of the picked line (the list cuts long ones)
+        local e = U.hits[U.hsel].e
+        -- Part A: a preview of the definition (or the card's answer); else the whole of the picked line
+        note(gc, (U.smode == "A" and e.prev) and (e.t:gsub("^%u+: ", "") .. ": " .. e.prev) or e.t, SH - 38)
       end
       footer(gc, "type | up/down pick | ENTER open | ESC home")
     end
@@ -534,16 +547,63 @@
     end
     openRecipes = function() U.rec = nil; U.qsel = U.qsel or 1; scr = "recipes"; inval() end
     openRecipe = function(ri) U.rec = nil; U.qsel, U.ssel = ri, 1; scr = "recipe"; inval() end
+    ------------------------------------------------------------------ exam parts B and C, and the weeks list
+    local XP = {}   -- (one table: the main chunk is near Lua 5.1's limit of 200 locals)
+    XP.PARTB = { { k = "F", t = "Find my question type", s = "2 short questions -> the page, the answer box marked" },
+                    { k = "M", t = "Multi-step (topics mixed)", s = "a cash flow then its PV, costs then the WACC, ..." },
+                    { k = "S", t = "Search words from the question", s = "solver pages and multi-step questions first" },
+                    { k = "W", t = "By week (1-8)", s = "the week's page types, then the kind of question" },
+                    { k = "R", t = "Root formulas: fill the slots", s = "one formula-sheet line, leave ONE slot blank" },
+                    { k = "L", t = "Legend: what a letter means", s = "every letter on the formula sheet" } }
+    XP.PARTC = { { t = "How to answer: number and 'why' parts", s = "formula -> numbers -> answer; claim -> cause -> rule" },
+                    { t = "Excel parts: cash-flow table, decision tree", s = "the file, the rows in order, the tree, formulas in cells" },
+                    { t = "The number pages (as Part B)", s = "finder, multi-step, search, weeks" },
+                    { t = "'Why' content: words from the question", s = "definitions and question cards (as Part A)" },
+                    { t = "Theory topics, week by week", s = "the WHAT IF rules and the cards of each topic" } }
+    function XP.paintList2(gc, head, q, rows, sel, keyFn)
+      title(gc, head)
+      setc(gc, COL.head); gc:setFont("sansserif", "b", 10); gc:drawString(q, 6, 23, "top")
+      drawRows(gc, rows, sel, 40, 15, SH - 39, keyFn)
+      setc(gc, COL.dim); gc:drawLine(2, SH - 39, SW - 2, SH - 39)
+      note(gc, rows[sel] and rows[sel].s or "", SH - 37)
+      footer(gc, "key or ENTER | ESC home")
+    end
+    function XP.paintWeeks(gc) XP.paintList2(gc, "WEEK BY WEEK", "Which week's topic?", GROUPS, U.wsel, function(i) return tostring(i) end) end
+    function XP.paintPartB(gc) XP.paintList2(gc, "PART B - NUMBERS", "How do you want to find the page?", XP.PARTB, U.bsel, function(i, r) return r.k end) end
+    function XP.paintPartC(gc) XP.paintList2(gc, "PART C - WRITTEN + EXCEL", "What do you need?", XP.PARTC, U.csel, function(i) return tostring(i) end) end
+    function XP.openPartA() U.q, U.hits, U.smode = "", {}, "A"; scr = "search"; inval() end
+    function XP.openSearch() U.q, U.hits, U.smode = "", {}, nil; scr = "search"; inval() end
+    function XP.openGroup(gi) if GROUPS[gi] then U.group, U.gsel = gi, 1; scr = "menu"; inval() end end
+    function XP.partBPick(i)
+      local r = XP.PARTB[i]; if not r then return end
+      if r.k == "F" then U.fstack, U.fsel = {}, 1; scr = "finder"; inval()
+      elseif r.k == "M" then openRecipes()
+      elseif r.k == "S" then XP.openSearch()
+      elseif r.k == "W" then U.wsel = 1; scr = "weeks"; inval()
+      elseif r.k == "R" then U.rlev, U.rsel = 1, 1; scr = "roots"; inval()
+      elseif r.k == "L" then toLegend() end
+    end
+    function XP.partCPick(i)
+      if i == 1 then toDoc("PART C - HOW TO ANSWER", PARTC_WRITTEN)
+      elseif i == 2 then toDoc("PART C - EXCEL PARTS", PARTC_EXCEL)
+      elseif i == 3 then U.bsel = 1; scr = "partB"; inval()
+      elseif i == 4 then XP.openPartA()
+      elseif i == 5 then U.tsel = 1; scr = "theory"; inval() end
+    end
     local function homePick(i)
       local h = HOME[i]
       if not h then return end
       U.rec = nil   -- any new start from home ends a multi-step question
-      if h.k == "F" then U.fstack, U.fsel = {}, 1; scr = "finder"
+      if h.k == "A" then XP.openPartA(); return
+      elseif h.k == "B" then U.bsel = 1; scr = "partB"
+      elseif h.k == "C" then U.csel = 1; scr = "partC"
+      elseif h.k == "W" then U.wsel = 1; scr = "weeks"
+      elseif h.k == "F" then U.fstack, U.fsel = {}, 1; scr = "finder"
       elseif h.k == "T" then scr = "theory"
       elseif h.k == "R" then U.rlev, U.rsel = 1, 1; scr = "roots"
       elseif h.k == "L" then toLegend(); return
       elseif h.k == "M" then openRecipes(); return
-      elseif h.k == "S" then U.q, U.hits = "", {}; scr = "search"
+      elseif h.k == "S" then U.q, U.hits, U.smode = "", {}, nil; scr = "search"
       else U.group, U.gsel = h.g, 1; scr = "menu" end
       inval()
     end
@@ -552,7 +612,7 @@
     local old = { paint = on.paint, arrowKey = on.arrowKey, enterKey = on.enterKey, escapeKey = on.escapeKey,
                   charIn = on.charIn, backspaceKey = on.backspaceKey, mouseDown = on.mouseDown, deleteKey = on.deleteKey }
     local NEW = { home = true, menu = true, finder = true, theory = true, search = true, input = true, modes = true, roots = true,
-                  recipes = true, recipe = true }
+                  recipes = true, recipe = true, weeks = true, partB = true, partC = true }
 
     function on.paint(gc)
       if NEW[scr] then
@@ -564,6 +624,9 @@
         elseif scr == "roots" then paintRoots(gc)
         elseif scr == "finder" then paintFinder(gc)
         elseif scr == "recipes" then paintRecipes(gc)
+        elseif scr == "weeks" then XP.paintWeeks(gc)
+        elseif scr == "partB" then XP.paintPartB(gc)
+        elseif scr == "partC" then XP.paintPartC(gc)
         elseif scr == "recipe" then paintRecipe(gc)
         elseif scr == "theory" then paintTheory(gc)
         elseif scr == "search" then paintSearch(gc)
@@ -591,6 +654,9 @@
       elseif scr == "roots" then U.rsel = move(U.rsel, #rootRows(), key)
       elseif scr == "finder" then U.fsel = move(U.fsel, #fnode().opts, key)
       elseif scr == "recipes" then U.qsel = move(U.qsel, #RECIPES, key)
+      elseif scr == "weeks" then U.wsel = move(U.wsel, #GROUPS, key)
+      elseif scr == "partB" then U.bsel = move(U.bsel, #XP.PARTB, key)
+      elseif scr == "partC" then U.csel = move(U.csel, #XP.PARTC, key)
       elseif scr == "recipe" then U.ssel = move(U.ssel, #RECIPES[U.qsel].steps, key)
       elseif scr == "theory" and #THEORY > 0 then U.tsel = move(U.tsel, #THEORY, key)
       elseif scr == "search" and #U.hits > 0 then U.hsel = move(U.hsel, #U.hits, key)
@@ -605,6 +671,9 @@
       elseif scr == "roots" then rootPick(U.rsel)
       elseif scr == "finder" then finderPick(U.fsel)
       elseif scr == "recipes" then U.ssel = 1; scr = "recipe"; inval()
+      elseif scr == "weeks" then XP.openGroup(U.wsel)
+      elseif scr == "partB" then XP.partBPick(U.bsel)
+      elseif scr == "partC" then XP.partCPick(U.csel)
       elseif scr == "recipe" then startStep(U.qsel, U.ssel)
       elseif scr == "theory" then if #THEORY > 0 then openTopic(U.tsel) end
       elseif scr == "search" then openHit(U.hits[U.hsel])
@@ -614,7 +683,7 @@
     function on.returnKey() on.enterKey() end
     function on.escapeKey()
       if scr == "home" then return end
-      if scr == "menu" or scr == "theory" or scr == "search" or scr == "recipes" then scr = "home"; U.rec = nil
+      if scr == "menu" or scr == "theory" or scr == "search" or scr == "recipes" or scr == "weeks" or scr == "partB" or scr == "partC" then scr = "home"; U.rec = nil
       elseif scr == "recipe" then scr = "recipes"; U.rec = nil
       elseif scr == "modes" then scr = "menu"
       elseif scr == "roots" then
@@ -654,13 +723,23 @@
       if ch == "\226\136\146" then ch = "-" end
       local cl = ch:lower()
       if scr == "search" then
-        if ch:find("^[%w%s%-/%%%.']$") and #U.q < 90 then U.q = U.q .. ch; runSearch(); inval() end
+        if ch:find("^[%w%s%-/%%%.'&]$") and #U.q < 90 then U.q = U.q .. ch; runSearch(); inval() end
         return
       end
       if scr == "home" then
         if cl == "h" then toHelp(); return end
         if cl == "g" then toGlossary(); return end
         for i, h in ipairs(HOME) do if h.k:lower() == cl then U.homeSel = i; homePick(i); return end end
+        local d = tonumber(ch)
+        if d and GROUPS[d] then U.rec = nil; XP.openGroup(d) end   -- a week number: straight to that week
+        return
+      end
+      if scr == "weeks" or scr == "partB" or scr == "partC" then
+        local d = tonumber(ch)
+        if scr == "weeks" and d and GROUPS[d] then XP.openGroup(d); return end
+        if scr == "partC" and d then XP.partCPick(d); return end
+        if scr == "partB" then for i, r in ipairs(XP.PARTB) do if r.k:lower() == cl then XP.partBPick(i); return end end end
+        if cl == "h" then toHelp() elseif cl == "l" then toLegend() elseif cl == "g" then toGlossary() end
         return
       end
       if scr == "menu" then
@@ -748,7 +827,7 @@
         return
       end
       if scr == "home" then
-        local i = math.floor((my - 23) / 11.5) + 1
+        local i = math.floor((my - 23) / 13) + 1
         if HOME[i] and my >= 23 then if i == U.homeSel then homePick(i) else U.homeSel = i; inval() end end
         return
       end

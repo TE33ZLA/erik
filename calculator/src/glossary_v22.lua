@@ -22,8 +22,8 @@ Left side: what the firm OWNS. Right
 side: how it was PAID for (lenders +
 owners). Both sides always balance.
 Equity = Assets - Liabilities.
-e.g. assets $500k, liabilities $300k
--> equity $200k.
+e.g. assets 500k, liabilities 300k
+-> equity 200k.
 Current part: NWC = current assets -
 current liabilities.
 Market values (MM): A = D + E, the
@@ -56,6 +56,33 @@ required return = rf + beta x
 (E[RM] - rf). Only market risk
 (beta) earns a reward.
 -> TYPE 19
+## short-term vs long-term (loans, assets)
+short-term = due within ONE year:
+current assets (cash, receivables,
+inventory) and current liabilities
+(payables, short-term loans). They are
+part of NWC = current assets - current
+liabilities.
+long-term = more than a year (bonds, a
+5-year loan, machines): NOT in NWC.
+e.g. borrow 50k for 6 months, buy
+stock: CA +50k and CL +50k: NWC same.
+Borrow it for 5 years: CA +50k only:
+NWC UP 50k. Cash: same either way.
+IN QUESTIONS: 'borrows short-term',
+'long-term loan', 'invests in inventory'.
+-> TYPE 14
+## risk ranking of investments
+lowest to highest risk (long-run
+history, by the SD of yearly returns):
+1 Treasury bills (T-bills): lowest
+2 corporate bonds
+3 large shares (an index, e.g. S&P 500)
+4 small shares (small stocks): highest
+More risk -> a higher average return.
+IN QUESTIONS: 'lowest level of risk',
+'least risky', 'most volatile'.
+-> TYPE 17
 ## capital structure
 the mix of money raised from INVESTORS:
 debt (loans, bonds), preference shares
@@ -187,7 +214,7 @@ the WACC uses MARKET values: shares x
 share price, bonds x bond price; not
 book values.
 -> TYPE 20
-## Modigliani-Miller (MM)
+## Modigliani-Miller (MM, M&M)
 no tax: capital structure does not
 change firm value; rE = rU + D/E
 (rU - rD); the WACC stays rU.

@@ -309,6 +309,37 @@ key('escapeKey'); key('charIn', 'n')
 if 'OFTEN COMES WITH' not in G.CORE.ntext(): fails.append('type 9 notes: no OFTEN COMES WITH section')
 for _ in range(6): key('escapeKey')
 
+# exam parts: A (definitions first), B (ways to the page), C (how to answer written + Excel); week digits on home
+def home():
+    for _ in range(7): key('escapeKey')
+for q, want in [('short-term long-term inventory', 'short-term vs long-term'), ('M&M', 'Modigliani-Miller'),
+                ('lowest risk', 'risk ranking of investments')]:
+    home(); key('charIn', 'a'); app.type(q)
+    t = check_screen(f'part A {q}')
+    top = G.CORE.U.hits[1].e.t if len(G.CORE.U.hits) else ''
+    if 'PART A' not in t: fails.append('A does not open the Part A search')
+    if want not in str(top): fails.append(f'part A {q!r}: first hit is {top!r}, not the definition {want!r}')
+    if any(str(G.CORE.U.hits[i].e.t).startswith(('SOLVE', 'MULTI')) for i in range(1, len(G.CORE.U.hits) + 1)):
+        fails.append(f'part A {q!r}: solver pages listed (Part A shows definitions and cards only)')
+    key('enterKey'); check_screen(f'part A {q} opened')
+home(); key('charIn', 'b'); t = check_screen('part B')
+if 'PART B' not in t: fails.append('B does not open Part B')
+key('charIn', 'm'); t = check_screen('part B -> M')
+if 'MULTI-STEP' not in t: fails.append('Part B: M does not open the multi-step questions')
+home(); key('charIn', 'c'); t = check_screen('part C')
+if 'PART C' not in t: fails.append('C does not open Part C')
+for d, want in [('1', 'HOW TO ANSWER'), ('2', 'EXCEL PARTS')]:
+    key('charIn', d); t = check_screen(f'part C {d}')
+    if want not in t: fails.append(f'Part C {d}: the guide {want!r} does not open')
+    for _ in range(30): key('arrowKey', 'down')
+    check_screen(f'part C {d} scrolled')
+    key('escapeKey')
+    if 'PART C' not in check_screen(f'part C {d} back'): fails.append(f'Part C {d}: ESC does not go back to Part C')
+home(); key('charIn', '7')
+if 'WACC' not in check_screen('home 7'): fails.append('the week number 7 on home does not open Weeks 10-11')
+home(); key('charIn', 'w'); key('charIn', '6')
+if 'Risk and return' not in check_screen('weeks 6'): fails.append('W then 6 does not open Week 9')
+
 # glossary: jump through letters and open one entry per letter
 for _ in range(4): key('escapeKey')
 key('charIn', 'g')
