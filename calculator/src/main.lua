@@ -11,7 +11,7 @@
 ----------------------------------------------------------------------
 
 if platform then platform.apilevel = "2.0" end
-local VERSION = "v26"
+local VERSION = "v27"
 
 ----------------------------------------------------------------------
 -- 1. SMALL HELPERS + NUMBER FORMATTING
@@ -4066,6 +4066,7 @@ RESULTS
 --@include v22_data.lua
 --@include fsheet.lua
 --@include roots.lua
+--@include everything.lua
 
 ----------------------------------------------------------------------
 -- 7. INPUT PARSING + SOLVE ORCHESTRATION
@@ -4173,14 +4174,15 @@ local function solveFromSlots(qt)
   local out = newOut()
   local V = {}
   local convs, errs = {}, {}
-  local vis = {}
+  local vis, seen = {}, {}
   if qt.vis then
     local map = {}
     for _, sl in ipairs(qt.slots) do map[sl.key] = sl end
     for _, key in ipairs(qt.vis(map)) do vis[key] = true end
   end
   for _, sl in ipairs(qt.slots) do
-    if (not qt.vis) or vis[sl.key] then
+    if ((not qt.vis) or vis[sl.key]) and not seen[sl] then
+      seen[sl] = true
       if sl.kind == "choice" then
         V[sl.key] = sl.opts[sl.idx]
       else
@@ -4195,7 +4197,8 @@ local function solveFromSlots(qt)
     end
   end
   for _, sl in ipairs(qt.slots) do
-    if sl.kind == "pct" and ((not qt.vis) or vis[sl.key]) and sl.buf ~= "" then
+    if sl.kind == "pct" and ((not qt.vis) or vis[sl.key]) and sl.buf ~= "" and seen[sl] ~= 2 then
+      seen[sl] = 2
       local raw = tonumber((sl.buf:gsub(",", ".")))
       if raw and raw > 0 and raw < 0.5 and sl.buf:find("^%-?0?%.") then
         out:add("bad", "CHECK " .. sl.label:match("^%S+") .. " = " .. sl.buf .. " % - rates go in as PERCENT (7 = 7%). Did you mean " .. fmtN(raw * 100) .. "?")
@@ -4620,12 +4623,12 @@ if platform then
     if #rlines == 0 then
       table.insert(rlines, { kind = "note", text = "Nothing to solve yet - fill some slots." })
     end
-    -- the formula block goes LAST so the answers come first
-    table.insert(rlines, { kind = "head", text = "FORMULA + MEANINGS" })
+    -- the formula block goes LAST so the answers come first (the Everything page has none: I explains each line)
+    if not TYPES[curT].every then table.insert(rlines, { kind = "head", text = "FORMULA + MEANINGS" }) end
     for _, f in ipairs(TYPES[curT].formula or {}) do
       table.insert(rlines, { kind = "dmath", text = f })
     end
-    for _, wl in ipairs(wrap("in words: " .. (TYPES[curT].words or ""), 46)) do
+    for _, wl in ipairs(TYPES[curT].every and {} or wrap("in words: " .. (TYPES[curT].words or ""), 46)) do
       table.insert(rlines, { kind = "note", text = wl })
     end
     for _, lt in ipairs(TYPES[curT].acronyms or {}) do
@@ -5070,7 +5073,11 @@ if platform then
     local m = ln.meta
     table.insert(ilines, { kind = "head", text = m.label })
     table.insert(ilines, { kind = "val", text = "= " .. fmtU(lastVals[m.key], m.unit) })
-    if m.formula and m.formula ~= "" then
+    if m.explain then
+      for _, e in ipairs(m.explain) do
+        for _, wl in ipairs(wrap(e[2], (e[1] == "head") and 40 or 46)) do table.insert(ilines, { kind = e[1], text = wl }) end
+      end
+    elseif m.formula and m.formula ~= "" then
       table.insert(ilines, { kind = "note", text = "how it was worked out:" })
       for _, wl in ipairs(wrap(m.formula, 46)) do table.insert(ilines, { kind = "frm", text = wl }) end
     end
@@ -5429,7 +5436,7 @@ if platform then
         return
       end
       local sl = visSlots()[sel]
-      if not sl or sl.kind == "choice" then return end
+      if not sl or sl.kind == "choice" or sl.kind == "sec" then return end
       -- v23: a box takes a simple sum too: + - * / ^ ( ) (the TI's times, divide and squared keys work)
       if ch == "\195\151" then ch = "*" elseif ch == "\195\183" then ch = "/" elseif ch == "\194\178" then ch = "^2" end
       if ch:find("^[%d%.%-,%+%*/%^%(%)]$") or ch == "^2" then
@@ -5443,5 +5450,6 @@ if platform then
   end
 
 --@include ui_v22.lua
+--@include ui_every.lua
 
 end -- if platform

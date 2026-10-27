@@ -18,7 +18,8 @@
                    { k = "R", t = "Root formulas: fill the slots", s = "every formula-sheet line: fill what you know, leave ONE slot blank" },
                    { k = "L", t = "Legend: every letter on the sheet", s = "what each letter of the formula sheet means, in the sheet's order" },
                    { k = "T", t = "Theory + what-ifs (no numbers)", s = "'what happens if', true or false, explain" },
-                   { k = "S", t = "Search a word from the question", s = "e.g. COUPON, BREAK-EVEN, BETA" } }
+                   { k = "S", t = "Search a word from the question", s = "e.g. COUPON, BREAK-EVEN, BETA" },
+                   { k = "E", t = "Everything: type all you know", s = "a box for every letter on the sheet: every answer listed, I explains" } }
     scr = "home"
 
     local function setc(gc, c) gc:setColorRGB(c[1], c[2], c[3]) end
@@ -198,7 +199,7 @@
       local ix = {}
       for ti, qt in ipairs(TYPES) do
         local parts = { qt.name, qt.desc or "", qt.looks or "", qt.words or "" }
-        for _, sl in ipairs(qt.slots) do parts[#parts + 1] = sl.label end
+        if not qt.every then for _, sl in ipairs(qt.slots) do parts[#parts + 1] = sl.label end end
         ix[#ix + 1] = { kind = 1, t = "SOLVE: " .. qt.name, text = table.concat(parts, " "):lower(), ti = ti }
       end
       for ti, t in ipairs(THEORY) do
@@ -299,6 +300,7 @@
       local y = 23
       setc(gc, COL.head)
       for _, f in ipairs(qt.formula or {}) do y = y + drawMathLine(gc, f, 6, y, 10, SW - 10) end
+      if qt.topline then setc(gc, COL.note); gc:setFont("sansserif", "r", 9); gc:drawString(qt.topline, 6, y, "top"); y = y + 12 end
       local list = visSlots()
       if U.want or U.say then
         gc:setFont("sansserif", "b", 9)
@@ -317,12 +319,31 @@
       local visN = math.max(1, math.floor((SH - inputTop - 27) / rowH))
       if sel - 1 < scrollI then scrollI = sel - 1 end
       if sel > scrollI + visN then scrollI = sel - visN end
+      local ntyped = {}   -- the Everything page: how many boxes are typed in each section (shown on its title row)
+      if qt.every then
+        local h
+        for _, sl in ipairs(list) do
+          if sl.kind == "sec" then h = sl; ntyped[h] = 0 elseif h and sl.buf ~= "" then ntyped[h] = ntyped[h] + 1 end
+        end
+      end
       for i = scrollI + 1, math.min(#list, scrollI + visN) do
         local sl = list[i]
         if i == sel then hiRow(gc, y, rowH) end
         gc:setFont("sansserif", "r", 10)
         setc(gc, (sl.key == U.want) and COL.need or COL.text)
+        if sl.kind == "sec" then
+          -- a section title: a tinted band, bold, not a box (the cursor skips it)
+          gc:setColorRGB(214, 226, 242); gc:fillRect(2, y - 1, SW - 4, rowH - 1)
+          setc(gc, COL.head); gc:setFont("sansserif", "b", 10); gc:drawString(sl.label, 6, y, "top")
+          if (ntyped[sl] or 0) > 0 then
+            setc(gc, COL.val); gc:setFont("sansserif", "r", 9)
+            local tt = ntyped[sl] .. " typed"
+            gc:drawString(tt, SW - 8 - gc:getStringWidth(tt), y + 1, "top")
+          end
+        else
+        if qt.every and gc:getStringWidth(sl.label) > 176 then gc:setFont("sansserif", "r", 9) end
         gc:drawString(sl.label, 8, y, "top")
+        gc:setFont("sansserif", "r", 10)
         if sl.kind == "choice" then
           -- right-aligned, so a long choice can use the space after a short label; smaller if it still does not fit
           local txt = "< " .. sl.opts[sl.idx] .. " >"
@@ -343,12 +364,13 @@
           end
           gc:drawString(shown, 188, y, "top")
         end
+        end
         y = y + rowH
       end
       local cur = list[sel]
       setc(gc, COL.note); gc:setFont("sansserif", "r", 9)
       gc:drawString((cur and cur.hint) and ("? " .. cur.hint) or "", 4, SH - 25, "top")
-      footer(gc, "ENTER solve | D clear | N notes | W worked | H help")
+      footer(gc, qt.every and "ENTER solve all | left/right section | D clear | N notes" or "ENTER solve | D clear | N notes | W worked | H help")
       if scrollI + visN < #list then setc(gc, COL.dim); gc:drawString("v more", SW - 45, SH - 13, "top") end
     end
 
@@ -373,7 +395,7 @@
       firstBox()   -- the cursor starts on the first box the question gives (not the unknown)
     end
     function firstBox()
-      for i, sl in ipairs(visSlots()) do if sl.kind ~= "choice" and sl.key ~= U.want then sel = i; return end end
+      for i, sl in ipairs(visSlots()) do if sl.kind ~= "choice" and sl.kind ~= "sec" and sl.key ~= U.want then sel = i; return end end
     end
     local function openModes(ti)
       local sl = modeSlotOf(ti)
@@ -554,7 +576,8 @@
                     { k = "S", t = "Search words from the question", s = "solver pages and multi-step questions first" },
                     { k = "W", t = "By week (1-8)", s = "the week's page types, then the kind of question" },
                     { k = "R", t = "Root formulas: fill the slots", s = "one formula-sheet line, leave ONE slot blank" },
-                    { k = "L", t = "Legend: what a letter means", s = "every letter on the formula sheet" } }
+                    { k = "L", t = "Legend: what a letter means", s = "every letter on the formula sheet" },
+                    { k = "E", t = "Everything: type all you know", s = "every letter on the sheet in one page; every answer listed" } }
     XP.PARTC = { { t = "How to answer: number and 'why' parts", s = "formula -> numbers -> answer; claim -> cause -> rule" },
                     { t = "Excel parts: cash-flow table, decision tree", s = "the file, the rows in order, the tree, formulas in cells" },
                     { t = "The number pages (as Part B)", s = "finder, multi-step, search, weeks" },
@@ -581,7 +604,8 @@
       elseif r.k == "S" then XP.openSearch()
       elseif r.k == "W" then U.wsel = 1; scr = "weeks"; inval()
       elseif r.k == "R" then U.rlev, U.rsel = 1, 1; scr = "roots"; inval()
-      elseif r.k == "L" then toLegend() end
+      elseif r.k == "L" then toLegend()
+      elseif r.k == "E" then EVERY.open() end
     end
     function XP.partCPick(i)
       if i == 1 then toDoc("PART C - HOW TO ANSWER", PARTC_WRITTEN)
@@ -603,6 +627,7 @@
       elseif h.k == "R" then U.rlev, U.rsel = 1, 1; scr = "roots"
       elseif h.k == "L" then toLegend(); return
       elseif h.k == "M" then openRecipes(); return
+      elseif h.k == "E" then EVERY.open(); return
       elseif h.k == "S" then U.q, U.hits, U.smode = "", {}, nil; scr = "search"
       else U.group, U.gsel = h.g, 1; scr = "menu" end
       inval()

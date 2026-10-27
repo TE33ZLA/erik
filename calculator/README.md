@@ -24,6 +24,17 @@ The home screen:
   letter. Some boxes can come from a helper (D0 for D1, the market risk premium for E[RM], yearly COGS for daily
   COGS, variances and a covariance for SDs and the correlation); list formulas (NPV, IRR, expected return, variance,
   covariance) take one value per box.
+- **E  Everything: type all you know.** The fall back: one page with a box for every letter on the formula sheet,
+  grouped under the sheet's section titles in the sheet's order (the cursor skips the titles; left/right jumps a
+  section). The same letter in different sections is a different box (C payment vs C coupon, r, n, g, PV); Tc is one
+  box shared by Cost of Capital and the Tax World. ENTER solves every sheet line that has exactly one blank letter,
+  again and again, and lists each answer as "formula: letter = answer" under its section; I (or clicking the line)
+  explains it: the formula, the formula solved for that letter, the numbers in it, the answer and a check.
+  Alternatives (annuity / annuity due / perpetuity, bond / zero-coupon bond, the share price lines, the two covariances)
+  are listed separately and never feed each other; an answer is passed on only when one line gave it, and it then says
+  "(uses X from ...)". A few links cross sections: CAPM's E[Ri] -> re and rE, SD = sqrt(variance), and rU, rE, rD, E, D
+  typed in one capital-structure world are used in the other. Nothing solvable? ONE VALUE SHORT says what each
+  formula still needs. `src/everything.lua`, `src/ui_every.lua`, tested by `tests/test_everything.py`.
 - **F  Find my question type.** Answer two short questions ("What is it about?", "What do they ask for?"). The right
   solver opens with the answer box marked **FIND** and any choices already set.
 - **1-8** pick a week, then a question type (23 types). A type that covers several kinds of question opens a numbered
@@ -97,7 +108,7 @@ and tests use their own numbers.
 - `src/main.lua` is the app (the v21 code, extended). `--@include` lines pull in `src/t_week7.lua` ... `t_week10.lua`
   (the Weeks 7-11 solvers), `t_replace.lua` (type 22, replacement decisions), `t_week12.lua` (type 23, payout policy), `v22_data.lua` (groups, hints, the finder,
   the Finance Solver checks, the help), `glossary_v22.lua`, `theory_a.lua` / `theory_b.lua` / `theory_c.lua` (the theory cards),
-  `fsheet.lua` (the exam formula sheet and the FORMULA SHEET section), `roots.lua` (the R pages) and `ui_v22.lua` (the new screens).
+  `fsheet.lua` (the exam formula sheet and the FORMULA SHEET section), `roots.lua` (the R pages), `everything.lua` (the E page), `ui_v22.lua` (the new screens) and `ui_every.lua` (the E page keys).
 - Lua 5.1 allows 200 local variables per function: new code goes in `do ... end` blocks or its own file.
 - `node calculator/tools/build.js` writes `build/bfc2140_solver.lua` and `BFC2140_SOLVER.tns`.
   `tools/tns.js` makes the .tns (the same file layout as the Luna converter) and can read the Lua back out
@@ -112,6 +123,9 @@ and tests use their own numbers.
     every N page starts with the sheet formulas;
   - `python3 calculator/tests/test_roots.py`: every root formula (R) solves its example, gets each box back when
     that box is left blank, every rearranged form checks numerically, and every R page opens;
+  - `python3 calculator/tests/test_everything.py`: the Everything page (E) gets back every letter of every root
+    formula's example left out of its boxes, never overwrites a typed box, lists alternatives separately and passes
+    an answer on only when one line gave it;
   - `python3 calculator/tests/check_theory.py calculator/src/theory_c.lua THEORY_C` (and `theory_a`/`theory_b`): the
     theory data format.
   `tests/mock/nspire_mock.py` is a small TI-Nspire Lua mock that draws the screen to SVG; `tests/ui_tour.py` saves

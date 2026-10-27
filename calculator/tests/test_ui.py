@@ -352,6 +352,108 @@ for letter in 'abcdefghijklmnopqrstuvwxyz':
     key('charIn', letter); check_screen(f'glossary {letter}')
 key('escapeKey')
 
+# the Everything page (home E): a box for every letter on the sheet, section titles skipped, left/right = sections,
+# ENTER lists every answer; I explains one (own numbers)
+EV = G.EVERY
+evslots = TYPES[EV.ti].slots
+def cur_label():
+    """The label of the highlighted box (the row drawn on the selection colour)."""
+    ops, col, hit = paint('everything'), None, False
+    for o in ops:
+        if o[0] == 'color': col = (o[1], o[2], o[3])
+        elif o[0] == 'fill' and col == (205, 227, 250): hit = True
+        elif o[0] == 'text' and hit: return o[1]
+    return None
+def ev_go(label):
+    for _ in range(len(evslots) + 2):
+        if cur_label() == label: return True
+        key('arrowKey', 'down')
+    fails.append(f'everything: no box {label!r}'); return False
+for _ in range(7): key('escapeKey')
+if 'Everything: type all you know' not in check_screen('home with E'): fails.append('home: no E row')
+key('charIn', 'e'); t = check_screen('everything page')
+if '1. Financial Mathematics' not in t or 'Type all you know' not in t: fails.append('E does not open the Everything page')
+if cur_label() != 'PV money today ($)': fails.append(f'everything: the cursor starts on {cur_label()!r}, not the first box')
+heads = [sl.label for sl in evslots.values() if sl.kind == 'sec']
+want_heads = ['Financial Mathematics', 'Valuation of Bonds and Shares', 'Capital Budgeting', 'Working Capital', 'Risk and Return',
+              'Cost of Capital', 'Capital Structure - No Tax World', 'Capital Structure - Tax World']
+if [h.split('. ', 1)[1] for h in heads] != want_heads: fails.append(f'everything: sections {heads}')
+# up/down never stop on a section title; one full round passes every box once
+labels_seen = set()
+for _ in range(sum(1 for sl in evslots.values() if sl.kind != 'sec')):   # Tc is listed twice: in Cost of Capital and the Tax World
+    lab = cur_label()
+    if lab in heads: fails.append(f'everything: the cursor stopped on the title {lab!r}'); break
+    labels_seen.add(lab)
+    key('arrowKey', 'down')
+if cur_label() != 'PV money today ($)': fails.append('everything: down does not wrap round to the first box')
+key('arrowKey', 'up')
+if cur_label() in heads: fails.append('everything: up stopped on a section title')
+# left/right: the first box of the next / previous section, its title on screen
+key('arrowKey', 'right')   # from the last box (Tax World): round to Financial Maths
+if cur_label() != 'PV money today ($)': fails.append(f'everything: right from the last section goes to {cur_label()!r}')
+key('arrowKey', 'right')
+if cur_label() != 'PBond bond price ($)': fails.append(f'everything: right goes to {cur_label()!r}, not the first Bonds box')
+if '2. Valuation of Bonds and Shares' not in check_screen('everything right'): fails.append('everything: the section title is not shown after right')
+key('arrowKey', 'left')
+if cur_label() != 'PV money today ($)': fails.append(f'everything: left goes to {cur_label()!r}')
+key('arrowKey', 'left')
+if cur_label() != 'VL levered value ($)' or 'Tax World' not in check_screen('everything left wraps'): fails.append('everything: left from the first section does not wrap to the last')
+# type: Financial Maths C 250, r 2, APR 6, m 12; Risk and Return rf 3, beta 1.2, E[RM] 9; Cost of Capital E 600, D 400, rd 6, Tc 30
+key('charIn', 'd')
+for lab, v in [('C payment each period ($)', '250'), ('r rate per period (%)', '2'), ('APR quoted yearly rate (%)', '6'),
+               ('m compounding a year', '12'), ('rf risk-free rate (%)', '3'), ('Beta(i) beta of share i', '1.2'),
+               ('E[RM] market return (%)', '9'), ('E equity market value ($)', '600'), ('rd PRE-tax cost of debt (%)', '6'),
+               ('Tc tax rate (%) - shared', '30'), ('D debt market value ($)', '400')]:
+    if ev_go(lab): app.type(v)
+if len({sl.key for sl in evslots.values() if sl.buf != ''}) != 11: fails.append('everything: the typed values did not all land in boxes')
+tc = [sl for sl in evslots.values() if sl.key == 'Tc']
+if len(tc) != 2 or tc[0].buf != '30' or tc[1].buf != '30': fails.append('everything: Tc is not one box in both sections')
+key('enterKey'); t = check_screen('everything answers')
+rt = G.CORE.rtext()
+for w in ['EVERY ANSWER', '1. Financial Mathematics', 'EAR from an APR: EAR = 6.1678 %', 'PV of a perpetuity: PV = $12,500.00',
+          '5. Risk and Return', 'CAPM (the SML): E[Ri] = 10.2 %', '6. Cost of Capital', 'WACC: rWACC = 7.8 %',
+          'uses re = E[Ri] from CAPM', 'FORMULA SHEET', 'EAR = (1 + APR/m)^m - 1']:
+    if w not in rt: fails.append(f'everything answers: {w!r} missing')
+if 'FORMULA + MEANINGS' in rt: fails.append('everything answers: an empty FORMULA + MEANINGS block')
+# I on the WACC line (clicked twice): the formula, the numbers in it, where re came from
+found = False
+for _ in range(40):
+    ops = paint('everything answers scrolled')
+    ys = [o[3] for o in ops if o[0] == 'text' and str(o[1]).startswith('WACC: rWACC')]
+    if ys: found = True; break
+    key('arrowKey', 'down')
+if found:
+    key('mouseDown', 40, ys[0] + 5); key('mouseDown', 40, ys[0] + 5)
+    t = check_screen('everything explain')
+    for w in ['EXPLAIN', 'WACC: rWACC', 'rWACC = re*E/V + rp*P/V + rd*(1 - Tc)*D/V', '0.102*600/1000', 'rWACC = 7.80%']:
+        if w not in t: fails.append(f'everything explain: {w!r} not shown')
+    for _ in range(12): key('arrowKey', 'down')
+    t = check_screen('everything explain scrolled')
+    if 'from CAPM' not in t: fails.append('everything explain: does not say re came from CAPM')
+    key('escapeKey')
+    if 'SOLVED' not in check_screen('everything explain back'): fails.append('everything: ESC from the explanation does not go back to the answers')
+else: fails.append('everything answers: the WACC line is not on screen')
+key('charIn', 'i'); t = check_screen('everything I')
+if 'EXPLAIN' not in t or 'the formula on the sheet' not in t: fails.append('everything: I does not explain the picked line')
+key('escapeKey'); key('escapeKey')
+for letter, want_txt in (('n', 'HOW IT WORKS'), ('w', 'EXAMPLE'), ('a', 'THE STEPS'), ('h', 'Everything: the fall back')):
+    key('charIn', letter)
+    for _ in range(60):
+        if want_txt in check_screen(f'everything {letter}'): break
+        key('arrowKey', 'down')
+    if want_txt not in check_screen(f'everything {letter}'): fails.append(f'everything: {letter.upper()} page has no {want_txt!r}')
+    key('escapeKey')
+key('escapeKey')
+if 'Find my question' not in check_screen('everything esc'): fails.append('everything: ESC does not go home')
+# nothing solvable: the lines one value short are named
+key('charIn', 'e'); key('charIn', 'd'); ev_go('C payment each period ($)'); app.type('100'); key('enterKey')
+rt = G.CORE.rtext()
+if 'ONE VALUE SHORT' not in rt or 'PV of a perpetuity: type PV or r' not in rt: fails.append('everything: no ONE VALUE SHORT lines')
+for _ in range(7): key('escapeKey')
+key('charIn', 'b'); key('charIn', 'e')
+if 'Everything: type all you know' not in check_screen('part B E'): fails.append('Part B: E does not open the Everything page')
+for _ in range(7): key('escapeKey')
+
 # every test case of test_solvers.py, typed into the boxes (rates as %) and solved as on the calculator
 sys.path.insert(0, HERE)
 from test_solvers import CASES, close

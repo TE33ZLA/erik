@@ -358,6 +358,18 @@ M  Multi-step questions that mix topics
 L  Legend: every letter on the formula
    sheet and what it means, in the
    sheet's order (from any page).
+E  Everything: the fall back. One page
+   with a box for EVERY letter on the
+   formula sheet, section by section
+   (left/right jumps a section). Type
+   all you know, ENTER: every formula
+   that can be solved is listed, as
+   "formula: letter = answer"; other
+   ways to the same letter (annuity,
+   annuity due, perpetuity) are listed
+   separately. I explains a line: the
+   formula, solved for the letter, your
+   numbers, the answer.
 S  Search: type 1-3 key words from the
    question (e.g. COUPON) + ENTER.
    'Which of the following...' or
