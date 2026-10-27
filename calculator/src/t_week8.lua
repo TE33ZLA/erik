@@ -76,7 +76,7 @@ do
       end
       pvf = pvf + pv
     end
-    out:row("PV of all the fees", pvf, "$", (V.feeM and V.feeY) and "monthly + yearly" or "as above", "pvfees")
+    out:row("PV of all the fees (value today of the charges)", pvf, "$", (V.feeM and V.feeY) and "monthly + yearly" or "as above", "pvfees")
     out:head("DECISION")
     local npv = freed - pvf
     out:row("NPV", npv, "$", "cash freed - PV(fees) = " .. P(freed) .. " - " .. P(pvf), "NPV")
@@ -179,7 +179,7 @@ do
       "'if it cut its receivable days by 5...': the cash freed (or tied up)",
       "current assets - current liabilities: NWC and its change",
       "next year's FCF growing forever: the firm's value (and a lasting saving)",
-      "'lockbox', 'billing firm', 'collects 3 days sooner for a fee': the float",
+      "'lockbox', 'billing firm', 'float cut by 3 days', 'value today of the charges (fees)': the float",
     },
     desc = "inventory, A/R and A/P days, operating and cash cycles, cash freed, NWC, firm value, float (faster collection)",
     looks = "inventory days | receivable days | payable days | cash conversion cycle | operating cycle | net working capital | billing firm | collection | lockbox | float | collection float | collect sooner | fee per month",

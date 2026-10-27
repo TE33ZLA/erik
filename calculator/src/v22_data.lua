@@ -79,8 +79,8 @@ local HINTS = {
   { k = "cost of capital as a %", kind = "benefits (EAA, higher wins) or costs (EAC, lower wins)",
     NPVA = "project A's NPV", tA = "project A's life in years", EAAA = "A's EAA if already given",
     NPVB = "project B's NPV", tB = "project B's life", EAAB = "B's EAA if given" },
-  { Tc = "company tax rate as a %", Rev = "revenue for the year", Costs = "operating costs (not depreciation)",
-    Dep = "depreciation for the year", CapEx = "equipment bought this year", dNWC = "increase in working capital",
+  { Tc = "company tax rate as a %", Rev = "the EXTRA revenue the project brings each year", Costs = "the INCREASE in costs only (new - current), not depreciation",
+    Dep = "depreciation of NEW assets only (an asset you already own: leave out)", CapEx = "money spent on new assets this year (sunk, already spent: leave out)", dNWC = "increase in working capital",
     EBIT = "EBIT if the question gives it (then revenue and costs are not needed)",
     lost = "sales lost on the firm's other products (erosion), before tax",
     ATS = "after-tax salvage (or other after-tax cash) to ADD this year",
@@ -174,9 +174,11 @@ end
 -- with the unknown marked and choices set
 --   go = { type, want = slot key, set = { slot = value or choice prefix }, say = banner }
 ----------------------------------------------------------------------
+--@include recipes.lua
 FINDER = {
   q = "What is the question about?",
   opts = {
+    { t = "SEVERAL STEPS: topics mixed", s = "'cash flows ... then the PV', 'rE, rD ... then the WACC': opens M", recipes = true },
     { t = "ONE amount: today and later", s = "'invest $4,750 today...'", kids = {
       q = "What do they ask for?", opts = {
         { t = "what it grows to (FV)", go = { type = 1, want = "FV" } },
@@ -326,6 +328,11 @@ R  Root formulas: every line of the
 1-8  pick a week, then a question type.
 T  Theory: 'what happens if', true or
    false, explain why - by topic.
+M  Multi-step questions that mix topics
+   (e.g. a cash flow, then its PV): pick
+   the question, then each step opens its
+   page; after ENTER press M for the next
+   step, the numbers carried in.
 L  Legend: every letter on the formula
    sheet and what it means, in the
    sheet's order (from any page).

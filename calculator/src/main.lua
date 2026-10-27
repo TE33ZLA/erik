@@ -4572,6 +4572,7 @@ if platform then
 
   local function buildResult()
     local out = solveFromSlots(TYPES[curT])
+    if RESULT_HOOK then pcall(RESULT_HOOK, out, curT) end   -- a multi-step question adds its next step (ui_v22)
     curTbl = out.tbl
     if curTbl and #curTbl.rows == 0 then curTbl = nil end
     tRow, tCol, scrollT = 1, 1, 0

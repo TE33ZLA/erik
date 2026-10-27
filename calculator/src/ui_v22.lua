@@ -4,12 +4,13 @@
   -- Screens v21 already had are passed through to its handlers.
   ------------------------------------------------------------------
   do
-    local U = { homeSel = 1, group = 1, gsel = 1, fstack = {}, fsel = 1, want = nil, say = nil,
+    local U = { homeSel = 1, group = 1, gsel = 1, fstack = {}, fsel = 1, want = nil, say = nil, qsel = 1, ssel = 1,
                 tsel = 1, tlines = {}, tscroll = 0, topic = nil, q = "", hits = {}, hsel = 1, index = nil, mt = nil, msel = 1,
                 rlev = 1, rg = 1, rsel = 1 }
     local HOME = { { k = "F", t = "Find my question type", s = "answer 2 short questions: start here" },
                    { k = "R", t = "Root formulas: fill the slots", s = "every formula-sheet line: fill what you know, leave ONE slot blank" },
-                   { k = "L", t = "Legend: every letter on the sheet", s = "what each letter of the formula sheet means, in the sheet's order" } }
+                   { k = "L", t = "Legend: every letter on the sheet", s = "what each letter of the formula sheet means, in the sheet's order" },
+                   { k = "M", t = "Multi-step: questions that mix topics", s = "e.g. a cash flow, then its PV; rE + rD + rP, then the WACC" } }
     for gi, g in ipairs(GROUPS) do HOME[#HOME + 1] = { k = tostring(gi), t = g.t, s = g.s, g = gi } end
     HOME[#HOME + 1] = { k = "T", t = "Theory + what-ifs (no numbers)", s = "'what happens if', true or false, explain" }
     HOME[#HOME + 1] = { k = "S", t = "Search a word from the question", s = "e.g. COUPON, BREAK-EVEN, BETA" }
@@ -48,7 +49,7 @@
     ------------------------------------------------------------------ home
     local function paintHome(gc)
       title(gc, "BFC2140 SOLVER " .. VERSION .. " - all weeks")
-      local y = drawRows(gc, HOME, U.homeSel, 23, 12, SH - 27, function(i, r) return r.k end)
+      local y = drawRows(gc, HOME, U.homeSel, 23, 11.5, SH - 27, function(i, r) return r.k end)
       note(gc, HOME[U.homeSel].s, SH - 26)
       footer(gc, "key or arrows + ENTER | H help | G glossary")
     end
@@ -377,11 +378,13 @@
       openType(ti)
       firstBox()
     end
+    local openRecipes   -- the multi-step list (defined further down)
     local function finderPick(i)
       local o = fnode().opts[i]
       if not o then return end
       if o.kids then table.insert(U.fstack, o.kids); U.fsel = 1; inval(); return end
       if o.go then openFrom(o.go); return end
+      if o.recipes then openRecipes(); return end
       if o.theory then
         local ti = type(o.theory) == "string" and findTopic(o.theory) or nil
         if ti then openTopic(ti) else U.tsel = 1; scr = "theory"; inval() end
@@ -396,13 +399,89 @@
       elseif e.kind == 2 then openTopic(e.topic, e.item)
       else gSel = e.gi; toGlossary() end
     end
+    ------------------------------------------------------------------ multi-step questions (key M): recipes
+    -- U.rec = { ri = recipe, k = step, bag = { box key = number } } while a recipe runs
+    local function carryBuf(sl, v)
+      local x = (sl.kind == "pct") and v * 100 or v
+      local s = string.format("%.6f", x):gsub("0+$", ""):gsub("%.$", "")
+      return s
+    end
+    local function startStep(ri, k)
+      local R = RECIPES[ri]
+      local st = R and R.steps[k]
+      if not st then return end
+      if not (U.rec and U.rec.ri == ri) then U.rec = { ri = ri, bag = {} } end
+      U.rec.k = k
+      local go = { type = st.go.type, want = st.go.want, set = {} }
+      for key, val in pairs(st.go.set or {}) do go.set[key] = val end
+      for _, sl in ipairs(TYPES[go.type].slots) do
+        local v = U.rec.bag[sl.key]
+        if v and sl.kind ~= "choice" then go.set[sl.key] = carryBuf(sl, v) end
+      end
+      go.say = "STEP " .. k .. "/" .. #R.steps .. ": " .. st.say
+      openFrom(go)
+    end
+    local function recipeNext()
+      local R = U.rec and RECIPES[U.rec.ri]
+      if R and R.steps[U.rec.k + 1] then startStep(U.rec.ri, U.rec.k + 1) end
+    end
+    -- after ENTER on a recipe step: keep the numbers later steps need, and say what comes next (top of the answer)
+    function RESULT_HOOK(out, ti)
+      local R = U.rec and RECIPES[U.rec.ri]
+      local st = R and R.steps[U.rec.k]
+      if not (st and st.go.type == ti) then return end
+      local carried = {}
+      for from, to in pairs(st.take or {}) do
+        local v = out.vals[from]
+        if type(v) == "number" then U.rec.bag[to] = v; carried[#carried + 1] = to .. " = " .. fmtN(v) end
+      end
+      local top = {}
+      local nx = R.steps[U.rec.k + 1]
+      if nx then
+        top[#top + 1] = { kind = "ok", text = "STEP " .. U.rec.k .. " of " .. #R.steps .. " done. Press M: step " .. (U.rec.k + 1) .. ", " .. nx.t }
+        if #carried > 0 then top[#top + 1] = { kind = "note", text = "carried to the next step: " .. table.concat(carried, ", ") } end
+      else
+        top[#top + 1] = { kind = "ok", text = "LAST STEP (" .. U.rec.k .. " of " .. #R.steps .. "): the answer is below" }
+      end
+      for i = #top, 1, -1 do table.insert(out.rows, 1, top[i]) end
+    end
+    local function paintRecipes(gc)
+      title(gc, "MULTI-STEP QUESTIONS (topics mixed)")
+      setc(gc, COL.head); gc:setFont("sansserif", "b", 10); gc:drawString("What does the question make you do?", 6, 23, "top")
+      local rows = {}
+      for _, R in ipairs(RECIPES or {}) do rows[#rows + 1] = { t = R.t } end
+      if U.qsel > #rows then U.qsel = #rows end
+      drawRows(gc, rows, U.qsel, 40, 14, SH - 39, function(i) return (i < 10) and tostring(i) or "" end)
+      setc(gc, COL.dim); gc:drawLine(2, SH - 39, SW - 2, SH - 39)
+      local R = RECIPES[U.qsel]
+      note(gc, R and ("PICK WHEN: " .. R.s) or "", SH - 37)
+      footer(gc, "number or ENTER | ESC home")
+    end
+    local function paintRecipe(gc)
+      local R = RECIPES[U.qsel]
+      title(gc, R.t)
+      local y = 23
+      setc(gc, COL.note); gc:setFont("sansserif", "r", 9)
+      for _, ln in ipairs(wrap(R.how, 62)) do gc:drawString(ln, 6, y, "top"); y = y + 11 end
+      setc(gc, COL.head); gc:setFont("sansserif", "b", 10); gc:drawString("Steps (each opens its page):", 6, y + 2, "top")
+      local rows = {}
+      for i, st in ipairs(R.steps) do rows[#rows + 1] = { t = st.t .. "   (" .. st.page .. ")" } end
+      if U.ssel > #rows then U.ssel = #rows end
+      drawRows(gc, rows, U.ssel, y + 18, 14, SH - 39, function(i) return tostring(i) end)
+      setc(gc, COL.dim); gc:drawLine(2, SH - 39, SW - 2, SH - 39)
+      note(gc, R.steps[U.ssel].say, SH - 37)
+      footer(gc, "number or ENTER: start that step | ESC back")
+    end
+    openRecipes = function() U.rec = nil; U.qsel = U.qsel or 1; scr = "recipes"; inval() end
     local function homePick(i)
       local h = HOME[i]
       if not h then return end
+      U.rec = nil   -- any new start from home ends a multi-step question
       if h.k == "F" then U.fstack, U.fsel = {}, 1; scr = "finder"
       elseif h.k == "T" then scr = "theory"
       elseif h.k == "R" then U.rlev, U.rsel = 1, 1; scr = "roots"
       elseif h.k == "L" then toLegend(); return
+      elseif h.k == "M" then openRecipes(); return
       elseif h.k == "S" then U.q, U.hits = "", {}; scr = "search"
       else U.group, U.gsel = h.g, 1; scr = "menu" end
       inval()
@@ -411,7 +490,8 @@
     ------------------------------------------------------------------ event plumbing
     local old = { paint = on.paint, arrowKey = on.arrowKey, enterKey = on.enterKey, escapeKey = on.escapeKey,
                   charIn = on.charIn, backspaceKey = on.backspaceKey, mouseDown = on.mouseDown, deleteKey = on.deleteKey }
-    local NEW = { home = true, menu = true, finder = true, theory = true, search = true, input = true, modes = true, roots = true }
+    local NEW = { home = true, menu = true, finder = true, theory = true, search = true, input = true, modes = true, roots = true,
+                  recipes = true, recipe = true }
 
     function on.paint(gc)
       if NEW[scr] then
@@ -422,6 +502,8 @@
         elseif scr == "modes" then paintModes(gc)
         elseif scr == "roots" then paintRoots(gc)
         elseif scr == "finder" then paintFinder(gc)
+        elseif scr == "recipes" then paintRecipes(gc)
+        elseif scr == "recipe" then paintRecipe(gc)
         elseif scr == "theory" then paintTheory(gc)
         elseif scr == "search" then paintSearch(gc)
         else paintInput2(gc) end
@@ -447,6 +529,8 @@
       elseif scr == "modes" then U.msel = move(U.msel, #modeSlotOf(U.mt).opts, key)
       elseif scr == "roots" then U.rsel = move(U.rsel, #rootRows(), key)
       elseif scr == "finder" then U.fsel = move(U.fsel, #fnode().opts, key)
+      elseif scr == "recipes" then U.qsel = move(U.qsel, #RECIPES, key)
+      elseif scr == "recipe" then U.ssel = move(U.ssel, #RECIPES[U.qsel].steps, key)
       elseif scr == "theory" and #THEORY > 0 then U.tsel = move(U.tsel, #THEORY, key)
       elseif scr == "search" and #U.hits > 0 then U.hsel = move(U.hsel, #U.hits, key)
       elseif scr == "tpage" then U.tscroll = scrollList(key, U.tscroll, #U.tlines)
@@ -459,6 +543,8 @@
       elseif scr == "modes" then pickMode(U.msel)
       elseif scr == "roots" then rootPick(U.rsel)
       elseif scr == "finder" then finderPick(U.fsel)
+      elseif scr == "recipes" then U.ssel = 1; scr = "recipe"; inval()
+      elseif scr == "recipe" then startStep(U.qsel, U.ssel)
       elseif scr == "theory" then if #THEORY > 0 then openTopic(U.tsel) end
       elseif scr == "search" then openHit(U.hits[U.hsel])
       elseif scr == "tpage" then return
@@ -467,7 +553,8 @@
     function on.returnKey() on.enterKey() end
     function on.escapeKey()
       if scr == "home" then return end
-      if scr == "menu" or scr == "theory" or scr == "search" then scr = "home"
+      if scr == "menu" or scr == "theory" or scr == "search" or scr == "recipes" then scr = "home"; U.rec = nil
+      elseif scr == "recipe" then scr = "recipes"; U.rec = nil
       elseif scr == "modes" then scr = "menu"
       elseif scr == "roots" then
         if U.rlev == 2 then U.rlev, U.rsel = 1, U.rg else scr = "home" end
@@ -480,6 +567,10 @@
         U.rlev, U.rg = 2, TYPES[curT].rootGroup     -- back to the list of that part of the sheet
         for i, ti in ipairs(ROOTMENU[U.rg].types) do if ti == curT then U.rsel = i end end
         scr = "roots"
+      elseif scr == "input" and U.rec then
+        U.want, U.say = nil, nil
+        U.ssel = U.rec.k
+        scr = "recipe"                               -- back to the recipe's steps (the carried numbers are kept)
       elseif scr == "input" then
         U.want, U.say = nil, nil
         U.group = TYPES[curT].group or U.group
@@ -544,6 +635,17 @@
         elseif cl == "y" then local ti = topicForType(U.mt); if ti then openTopic(ti) end end
         return
       end
+      if scr == "recipes" or scr == "recipe" then
+        local d = tonumber(ch)
+        if d and d > 0 then
+          if scr == "recipes" and RECIPES[d] then U.qsel, U.ssel = d, 1; scr = "recipe"; inval()
+          elseif scr == "recipe" and RECIPES[U.qsel].steps[d] then startStep(U.qsel, d) end
+          return
+        end
+        if cl == "h" then toHelp() elseif cl == "l" then toLegend() elseif cl == "g" then toGlossary() end
+        return
+      end
+      if cl == "m" and scr == "result" and U.rec then recipeNext(); return end
       if scr == "finder" then
         local d = tonumber(ch)
         if d then finderPick(d == 0 and 10 or d) end
@@ -584,7 +686,7 @@
         return
       end
       if scr == "home" then
-        local i = math.floor((my - 23) / 12) + 1
+        local i = math.floor((my - 23) / 11.5) + 1
         if HOME[i] and my >= 23 then if i == U.homeSel then homePick(i) else U.homeSel = i; inval() end end
         return
       end

@@ -378,9 +378,9 @@ avg 8.75%; SD = 23.51%
   local slots18 = { S("mode", "what you have", "choice", MODES18, 1),
     S("wA", "wA weight in A (%)", "pct"), S("amtA", "or: $ in A", "money"), S("amtB", "and $ in B", "money"),
     S("ERA", "E[RA] (%)", "pct"), S("ERB", "E[RB] (%)", "pct"), S("sA", "SD of A (%)", "pct"), S("sB", "SD of B (%)", "pct"),
-    S("rho", "correlation (e.g. 0.4)", "num"), S("cov", "or: covariance (e.g. 0.012)", "num"), S("rf", "rf risk-free (%)", "pct"),
+    S("rho", "correlation (e.g. 0.4)", "num"), S("cov", "or: Cov A,B (matrix: row B, col A)", "num"), S("rf", "rf risk-free (%)", "pct"),
     S("wB", "wB weight in B (%)", "pct"), S("amtT", "total $ (with risk-free)", "money"), S("amtF", "or: $ in the risk-free", "money"),
-    S("vA", "or: variance of A (0.04)", "num"), S("vB", "or: variance of B", "num"),
+    S("vA", "or: Var A (matrix: row A, col A)", "num"), S("vB", "or: Var B (matrix: row B, col B)", "num"),
     S("nN", "n shares (equal weights)", "num") }
   for k2 = 1, 4 do
     slots18[#slots18 + 1] = S("p" .. k2, "state " .. k2 .. ": probability (%)", "pct")
@@ -404,7 +404,7 @@ avg 8.75%; SD = 23.51%
       "past returns of TWO shares: averages, variances, SDs, covariance, portfolio",
       "one risky share mixed with T-bills (the risk-free asset)",
       "'owns 200 shares at $30 and...': each holding's weight",
-      "$ in A, $ in B and $ in T-bills: the portfolio E[R] and SD",
+      "$ in A, $ in B, the rest risk-free (often a variance-covariance matrix): the portfolio SD and E[R]",
       "n shares in equal weights, same SD and correlation: the portfolio SD",
     },
     desc = "portfolio return and SD, covariance and correlation (forecast or past data), risk-free mixes (one or two shares), weights",
@@ -413,7 +413,8 @@ avg 8.75%; SD = 23.51%
     vis = function(Sm)
       local m = Sm.mode.opts[Sm.mode.idx]
       if m == MODES18[1] then return { "mode", "wA", "amtA", "amtB", "ERA", "ERB", "sA", "vA", "sB", "vB", "rho", "cov" } end
-      if m == MODES18[6] then return { "mode", "amtA", "amtB", "amtT", "amtF", "wA", "wB", "ERA", "ERB", "rf", "sA", "vA", "sB", "vB", "cov", "rho" } end
+      -- the dollars, then the matrix boxes (the usual way it is asked), then the other ways to give the same thing
+      if m == MODES18[6] then return { "mode", "amtA", "amtB", "amtT", "vA", "vB", "cov", "amtF", "wA", "wB", "sA", "sB", "rho", "ERA", "ERB", "rf" } end
       if m == MODES18[2] then return { "mode", "p1", "A1", "B1", "p2", "A2", "B2", "p3", "A3", "B3", "p4", "A4", "B4", "wA", "rho" } end
       if m == MODES18[3] then return { "mode", "A1", "B1", "A2", "B2", "A3", "B3", "A4", "B4", "A5", "B5", "A6", "B6", "wA", "rho" } end
       if m == MODES18[4] then return { "mode", "wA", "ERA", "sA", "rf" } end
@@ -450,6 +451,21 @@ HOW TO USE
 Pick what the question gives you.
 Weights: a % for A, or the dollars in
 A and B. Correlation OR covariance.
+
+READING A VARIANCE-COVARIANCE MATRIX
+        A      B      Market
+A     VarA
+B     Cov    VarB
+Mkt   ...    ...    VarM
+- the DIAGONAL (same row and column
+  name) = the variances: Var A, Var B
+- off the diagonal = the covariances:
+  Cov A,B is row B, column A
+- the Market row is only for betas: a
+  portfolio SD does not need it
+- SD = the square root of the Var
+- with $ amounts and a risk-free part:
+  kind 6 (two shares + the risk-free)
 Forecast table: probability, A and B
 for each state. Past data: pairs.
 

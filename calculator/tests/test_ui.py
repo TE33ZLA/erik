@@ -190,6 +190,40 @@ if 'LEGEND' not in check_screen('legend from a boxes page'): fails.append('L on 
 key('escapeKey')
 if 'ENTER solve' not in check_screen('legend back to the boxes'): fails.append('ESC from the legend does not go back to the boxes')
 
+# multi-step questions (M): every recipe and every step opens its page; values carry forward (own numbers)
+R = G.RECIPES
+for ri in range(1, len(R) + 1):
+    for k in range(1, len(R[ri].steps) + 1):
+        for _ in range(6): key('escapeKey')
+        key('charIn', 'm'); key('charIn', str(ri)); key('charIn', str(k))
+        t = check_screen(f'recipe {ri} step {k}')
+        want = G.CORE.TYPES[R[ri].steps[k].go.type].name
+        if want not in t or f'STEP {k}/' not in t: fails.append(f'recipe {ri} step {k}: does not open {want!r} with its STEP banner')
+# recipe 1: FCF (Tc 30, revenue 100, costs 40, lost sales 10 -> FCF 35) carried into C on the PV page
+for _ in range(6): key('escapeKey')
+key('charIn', 'm'); key('charIn', '1'); key('charIn', '1')
+for v in ['30', '100', '40', '10']: app.type(v); key('arrowKey', 'down')
+key('enterKey'); t = check_screen('recipe 1 step 1 answer')
+if 'Press M' not in t or 'C = 35' not in t: fails.append('recipe 1: the answer page does not offer step 2 with C = 35')
+key('charIn', 'm'); t = check_screen('recipe 1 step 2')
+if 'Regular payments' not in t or '35' not in t: fails.append('recipe 1: step 2 does not open with C = 35 typed in')
+# recipe 5 (WACC from scratch): rE from CAPM (rf 4, beta 1.5, premium 6 -> 13%) is typed into the WACC page's rE box
+for _ in range(6): key('escapeKey')
+key('charIn', 'm'); key('charIn', '5'); key('charIn', '1')
+qt = G.CORE.TYPES[20]
+vis = [s.key for s in qt.slots.values() if s.key in ('rf', 'beta', 'mrp')]
+lab = {s.key: s for s in qt.slots.values()}
+for kk, v in [('rf', '4'), ('beta', '1.5'), ('mrp', '6')]: lab[kk].buf = v
+key('enterKey'); t = check_screen('recipe 5 step 1 answer')
+if 'Press M' not in t: fails.append('recipe 5: no next step offered after rE')
+key('escapeKey'); key('escapeKey'); key('charIn', '4')   # back to the steps, straight to step 4 (the WACC)
+if lab['re'].buf not in ('13', '13.0'): fails.append(f"recipe 5: the WACC page's rE box holds {lab['re'].buf!r}, not 13")
+# ESC from a recipe step goes back to its list of steps, then to the list of recipes, then home
+key('escapeKey'); t = check_screen('recipe esc')
+if 'Steps (each opens its page)' not in t: fails.append('ESC from a recipe step does not go back to its steps')
+key('escapeKey'); key('escapeKey')
+if 'Find my question' not in check_screen('recipe esc home'): fails.append('ESC from the recipes does not go home')
+
 # glossary: jump through letters and open one entry per letter
 for _ in range(4): key('escapeKey')
 key('charIn', 'g')
