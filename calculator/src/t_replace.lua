@@ -213,7 +213,7 @@ do
   table.insert(TYPES, {
     name = "Replacement: the whole cash flow table", group = 3, solve = solveReplace,
     desc = "replace an old machine: year 0, each year's savings, extra depreciation, tax, FCF, the final year, NPV, IRR, Excel",
-    looks = "replace the old machine | replacement | old machine | new machine | incremental depreciation | book value of the old | sold for | cost savings | avoided repair | cash flow table",
+    looks = "replace the old machine | replacement | old machine | new machine | old equipment | new equipment | existing plant | new plant | incremental depreciation | book value of the old | sold for | cost savings | avoided repair | cash flow table",
     slots = {
       S("n", "project life (years)", "num"),
       S("r", "r cost of capital (%)", "pct"),

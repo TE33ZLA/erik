@@ -74,7 +74,8 @@
       if U.fsel > #nd.opts then U.fsel = #nd.opts end
       drawRows(gc, nd.opts, U.fsel, 40, 15, SH - 27, function(i) return (i < 10) and tostring(i) or (i == 10 and "0" or " ") end)
       local o = nd.opts[U.fsel]
-      note(gc, o.s or (o.go and ("opens: " .. TYPES[o.go.type].name)) or (o.theory and "opens the theory pages") or "", SH - 26)
+      note(gc, o.s or (o.go and ("opens: " .. TYPES[o.go.type].name)) or (o.theory and "opens the theory pages")
+               or (o.recipe and "several steps: opens M, each step on its own page") or "", SH - 26)
       footer(gc, "number or ENTER | ESC back")
     end
     ------------------------------------------------------------------ kinds of question (a type with a mode)
@@ -203,6 +204,11 @@
         end
         for _, r in ipairs(t.rules) do ix[#ix + 1] = { kind = 2, t = "RULE: " .. r, text = (r .. " " .. t.topic):lower(), topic = ti } end
       end
+      -- the multi-step questions (M), found by the words such questions use
+      for ri, R in ipairs(RECIPES or {}) do
+        ix[#ix + 1] = { kind = 4, rank = 0.5, t = "MULTI-STEP (M " .. RECIPE_KEY(ri) .. "): " .. R.t,
+                        text = (R.t .. " " .. R.s .. " " .. R.how .. " " .. (R.words or "")):lower(), ri = ri }
+      end
       if #gEntries == 0 then buildGlossary() end
       for gi, e in ipairs(gEntries) do
         local body = {}
@@ -286,7 +292,8 @@
         local wl = nil
         for _, sl in ipairs(list) do if sl.key == U.want then wl = sl.label end end
         setc(gc, COL.need)
-        local msg = (wl and ("FIND: " .. wl:gsub("%s*%(.*$", "") .. " - leave its box blank") or "") .. ((wl and U.say) and " | " or "") .. (U.say or "")
+        local inStep = U.say and U.say:find("^STEP") ~= nil     -- a multi-step banner: keep it to two lines
+        local msg = (wl and ("FIND: " .. wl:gsub("%s*%(.*$", "") .. (inStep and "" or " - leave its box blank")) or "") .. ((wl and U.say) and " | " or "") .. (U.say or "")
         for _, ln in ipairs(wrap(msg, 60)) do gc:drawString(ln, 6, y, "top"); y = y + 11 end
       end
       setc(gc, COL.dim); gc:drawLine(2, y + 1, SW - 2, y + 1)
@@ -378,13 +385,16 @@
       openType(ti)
       firstBox()
     end
-    local openRecipes   -- the multi-step list (defined further down)
+    local openRecipes, openRecipe   -- the multi-step list and one recipe's steps (defined further down)
     local function finderPick(i)
       local o = fnode().opts[i]
       if not o then return end
       if o.kids then table.insert(U.fstack, o.kids); U.fsel = 1; inval(); return end
       if o.go then openFrom(o.go); return end
       if o.recipes then openRecipes(); return end
+      if o.recipe then   -- one multi-step question, by the start of its title
+        for ri, R in ipairs(RECIPES or {}) do if R.t:find(o.recipe, 1, true) == 1 then openRecipe(ri); return end end
+      end
       if o.theory then
         local ti = type(o.theory) == "string" and findTopic(o.theory) or nil
         if ti then openTopic(ti) else U.tsel = 1; scr = "theory"; inval() end
@@ -397,6 +407,7 @@
         openFrom({ type = e.ti })
         if modeSlotOf(e.ti) then openModes(e.ti) end
       elseif e.kind == 2 then openTopic(e.topic, e.item)
+      elseif e.kind == 4 then openRecipe(e.ri)
       else gSel = e.gi; toGlossary() end
     end
     ------------------------------------------------------------------ multi-step questions (key M): recipes
@@ -410,38 +421,87 @@
       local R = RECIPES[ri]
       local st = R and R.steps[k]
       if not st then return end
-      if not (U.rec and U.rec.ri == ri) then U.rec = { ri = ri, bag = {} } end
+      if not (U.rec and U.rec.ri == ri) then U.rec = { ri = ri, bag = {}, kept = {} } end
       U.rec.k = k
       local go = { type = st.go.type, want = st.go.want, set = {} }
       for key, val in pairs(st.go.set or {}) do go.set[key] = val end
       for _, sl in ipairs(TYPES[go.type].slots) do
         local v = U.rec.bag[sl.key]
-        if v and sl.kind ~= "choice" then go.set[sl.key] = carryBuf(sl, v) end
+        if v and sl.kind ~= "choice" then go.set[sl.key] = carryBuf(sl, v)
+        elseif U.rec.kept[sl.key] and sl.kind ~= "choice" then go.set[sl.key] = U.rec.kept[sl.key] end
       end
       go.say = "STEP " .. k .. "/" .. #R.steps .. ": " .. st.say
       openFrom(go)
     end
     local function recipeNext()
       local R = U.rec and RECIPES[U.rec.ri]
-      if R and R.steps[U.rec.k + 1] then startStep(U.rec.ri, U.rec.k + 1) end
+      local nk = R and (R.steps[U.rec.k].nxt or U.rec.k + 1)
+      if R and R.steps[nk] then startStep(U.rec.ri, nk) end
     end
     -- after ENTER on a recipe step: keep the numbers later steps need, and say what comes next (top of the answer)
     function RESULT_HOOK(out, ti)
       local R = U.rec and RECIPES[U.rec.ri]
       local st = R and R.steps[U.rec.k]
-      if not (st and st.go.type == ti) then return end
+      if not (st and st.go.type == ti) then
+        -- not in a multi-step question: say where the usual NEXT step is (before the formula sheet)
+        local nxt = {}
+        for ri, R2 in ipairs(RECIPES or {}) do
+          for k, st2 in ipairs(R2.steps) do
+            local nx = R2.steps[st2.nxt or (k + 1)]
+            if st2.go.type == ti and nx and nx.go.type ~= ti and #nxt < 2 then
+              nxt[#nxt + 1] = { kind = "note", text = "often next: " .. nx.t .. " (page " .. nx.page .. "), or home M " .. RECIPE_KEY(ri) .. " carries it" }
+            end
+          end
+        end
+        if #nxt > 0 then
+          local at = #out.rows + 1
+          for i, r in ipairs(out.rows) do if r.kind == "head" and r.text:find("^FORMULA SHEET") then at = i; break end end
+          table.insert(out.rows, at, { kind = "head", text = "MULTI-STEP? THE NEXT PAGE" })
+          for j, r in ipairs(nxt) do table.insert(out.rows, at + j, r) end
+        end
+        return
+      end
       local carried = {}
       for from, to in pairs(st.take or {}) do
         local v = out.vals[from]
-        if type(v) == "number" then U.rec.bag[to] = v; carried[#carried + 1] = to .. " = " .. fmtN(v) end
+        if type(v) == "number" then
+          U.rec.bag[to] = v
+          local shown = fmtN(v)
+          for k2 = U.rec.k + 1, #R.steps do             -- shown as it will be typed in the later box (rates in %)
+            for _, sl in ipairs(TYPES[R.steps[k2].go.type].slots) do
+              if sl.key == to and sl.kind ~= "choice" then shown = carryBuf(sl, v) .. ((sl.kind == "pct") and "%" or "") end
+            end
+          end
+          carried[#carried + 1] = to .. " = " .. shown
+        end
+      end
+      for _, key in ipairs(st.keep or {}) do          -- boxes typed on this page that later steps reuse (Tc, k)
+        for _, sl in ipairs(TYPES[ti].slots) do
+          if sl.key == key and sl.kind ~= "choice" and sl.buf ~= "" then
+            U.rec.kept[key] = sl.buf; carried[#carried + 1] = key .. " = " .. sl.buf
+          end
+        end
+      end
+      -- this step's answer line(s), copied to the top so the right number is easy to find
+      local ans = {}
+      local reads = type(st.read) == "table" and st.read or { st.read }
+      for _, key in ipairs(reads) do
+        for _, r in ipairs(out.rows) do
+          if r.kind == "val" and r.key == key then
+            ans[#ans + 1] = { kind = "ok", text = (r.text:find("^ANSWER") and "" or "ANSWER: ") .. r.text }; break
+          end
+        end
       end
       local top = {}
-      local nx = R.steps[U.rec.k + 1]
+      local nk = st.nxt or (U.rec.k + 1)
+      local nx = R.steps[nk]
       if nx then
-        top[#top + 1] = { kind = "ok", text = "STEP " .. U.rec.k .. " of " .. #R.steps .. " done. Press M: step " .. (U.rec.k + 1) .. ", " .. nx.t }
+        top[#top + 1] = { kind = "ok", text = "STEP " .. U.rec.k .. " of " .. #R.steps .. " done. Press M: step " .. nk .. ", " .. nx.t }
+        for _, a in ipairs(ans) do top[#top + 1] = a end
         if #carried > 0 then top[#top + 1] = { kind = "note", text = "carried to the next step: " .. table.concat(carried, ", ") } end
       else
-        top[#top + 1] = { kind = "ok", text = "LAST STEP (" .. U.rec.k .. " of " .. #R.steps .. "): the answer is below" }
+        top[#top + 1] = { kind = "ok", text = "LAST STEP (" .. U.rec.k .. " of " .. #R.steps .. ")" .. ((#ans > 0) and "" or ": the answer is below") }
+        for _, a in ipairs(ans) do top[#top + 1] = a end
       end
       for i = #top, 1, -1 do table.insert(out.rows, 1, top[i]) end
     end
@@ -451,11 +511,11 @@
       local rows = {}
       for _, R in ipairs(RECIPES or {}) do rows[#rows + 1] = { t = R.t } end
       if U.qsel > #rows then U.qsel = #rows end
-      drawRows(gc, rows, U.qsel, 40, 14, SH - 39, function(i) return (i < 10) and tostring(i) or "" end)
+      drawRows(gc, rows, U.qsel, 40, 14, SH - 39, function(i) return (i < 10) and tostring(i) or (i == 10 and "0" or "  ") end)
       setc(gc, COL.dim); gc:drawLine(2, SH - 39, SW - 2, SH - 39)
       local R = RECIPES[U.qsel]
       note(gc, R and ("PICK WHEN: " .. R.s) or "", SH - 37)
-      footer(gc, "number or ENTER | ESC home")
+      footer(gc, "number (0 = 10) or arrows + ENTER | ESC home")
     end
     local function paintRecipe(gc)
       local R = RECIPES[U.qsel]
@@ -473,6 +533,7 @@
       footer(gc, "number or ENTER: start that step | ESC back")
     end
     openRecipes = function() U.rec = nil; U.qsel = U.qsel or 1; scr = "recipes"; inval() end
+    openRecipe = function(ri) U.rec = nil; U.qsel, U.ssel = ri, 1; scr = "recipe"; inval() end
     local function homePick(i)
       local h = HOME[i]
       if not h then return end
@@ -637,6 +698,7 @@
       end
       if scr == "recipes" or scr == "recipe" then
         local d = tonumber(ch)
+        if d == 0 and scr == "recipes" then d = 10 end
         if d and d > 0 then
           if scr == "recipes" and RECIPES[d] then U.qsel, U.ssel = d, 1; scr = "recipe"; inval()
           elseif scr == "recipe" and RECIPES[U.qsel].steps[d] then startStep(U.qsel, d) end

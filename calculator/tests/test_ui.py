@@ -224,6 +224,91 @@ if 'Steps (each opens its page)' not in t: fails.append('ESC from a recipe step 
 key('escapeKey'); key('escapeKey')
 if 'Find my question' not in check_screen('recipe esc home'): fails.append('ESC from the recipes does not go home')
 
+# multi-step: carried numbers, kept boxes, a step that jumps (nxt), the ANSWER line, 0 = recipe 10 (own numbers)
+def rslots(ti): return {sl.key: sl for sl in G.CORE.TYPES[ti].slots.values()}
+def recipe_no(prefix):
+    return next(i for i in range(1, len(R) + 1) if str(R[i].t).startswith(prefix))
+def open_step(ri, k):
+    for _ in range(6): key('escapeKey')
+    key('charIn', 'm')
+    if ri == 10: key('charIn', '0')
+    elif ri < 10: key('charIn', str(ri))
+    else:
+        for _ in range(ri - 1): key('arrowKey', 'down')
+        key('enterKey')
+    key('charIn', str(k))
+if len(R) > 10: fails.append(f'M lists {len(R)} recipes: only 1-9 and 0 have a key')
+# different lives: NPV of A (-100, 3 x 50) and B (-150, 5 x 45) at 8.5%, then the EAA page has both NPVs and k = 8.5
+ri = recipe_no('Different lives'); open_step(ri, 1)
+sl = rslots(7)
+if sl['cmp'].opts[sl['cmp'].idx] != 'A and B': fails.append('different lives: step 1 does not open with A and B')
+for kk, v in [('k', '8.5'), ('A0', '-100'), ('Alev', '50'), ('Ayrs', '3'), ('B0', '-150'), ('Blev', '45'), ('Byrs', '5')]: sl[kk].buf = v
+key('enterKey'); t = check_screen('different lives step 1 answer')
+if 'ANSWER: A: NPV' not in t or 'Press M' not in t: fails.append('different lives: no ANSWER line or no next step after the NPVs')
+key('charIn', 'm'); sl8 = rslots(8)
+if sl8['k'].buf != '8.5' or not sl8['NPVA'].buf.startswith('27.70') or not sl8['NPVB'].buf.startswith('27.32'):
+    fails.append(f"different lives: step 2 holds k={sl8['k'].buf!r} NPVA={sl8['NPVA'].buf!r} NPVB={sl8['NPVB'].buf!r}")
+sl8['tA'].buf, sl8['tB'].buf = '3', '5'
+key('enterKey'); t = check_screen('different lives step 2 answer')
+if 'LAST STEP' not in t or 'ANSWER: A: EAA' not in t: fails.append('different lives: the last step does not show its ANSWER lines')
+# a rate given another way: 7% compounded quarterly -> APR with monthly compounding, carried into r of the payments page
+ri = recipe_no('Rate given another way'); open_step(ri, 1)
+sl = rslots(10); sl['r'].buf = '7'
+for o in ('m', 'm2'):
+    s_ = sl[o]; want = '4 (' if o == 'm' else '12 ('
+    s_.idx = next(j for j in range(1, len(s_.opts) + 1) if str(s_.opts[j]).startswith(want))
+key('enterKey'); key('charIn', 'm')
+if not rslots(2)['r'].buf.startswith('6.959'): fails.append(f"rate recipe: r on the payments page is {rslots(2)['r'].buf!r}, not 6.959...")
+# project NPV: the WACC step jumps straight to the NPV step (step 2 is the other way to the rate)
+ri = recipe_no('Project NPV:'); open_step(ri, 1)
+sl = rslots(20)
+for kk, v in [('E', '60'), ('D', '40'), ('re', '13'), ('rd', '5'), ('Tc', '30')]: sl[kk].buf = v
+key('enterKey'); t = check_screen('project NPV step 1 answer')
+if 'Press M: step 3' not in t: fails.append('project NPV: the WACC step does not lead to step 3')
+key('charIn', 'm'); t = check_screen('project NPV step 3')
+if 'STEP 3/3' not in t or rslots(7)['k'].buf != '9.2': fails.append(f"project NPV: step 3 does not open with k = 9.2 ({rslots(7)['k'].buf!r})")
+# levered vs unlevered: rU from EBIT 420, Tc 20, VU 3200 (= 10.5%); Tc typed in step 1 is kept for step 2
+ri = recipe_no('Levered vs unlevered'); open_step(ri, 1)
+sl = rslots(21)
+for kk, v in [('EBIT', '420'), ('Tc', '20'), ('VU', '3200')]: sl[kk].buf = v
+key('enterKey'); key('charIn', 'm'); sl = rslots(21)
+if sl['rU'].buf != '10.5' or sl['Tc'].buf != '20': fails.append(f"levered recipe: step 2 holds rU={sl['rU'].buf!r} Tc={sl['Tc'].buf!r}")
+for kk, v in [('rd', '7'), ('DE', '0.5')]: sl[kk].buf = v
+key('enterKey'); t = check_screen('levered recipe step 2 answer')
+if 'ANSWER: rE = 11.9 %' not in t: fails.append('levered recipe: rE 11.9% not in the ANSWER line')
+# WACC from scratch: a bond (7% coupon, semi-annual, 8 years left, price $960, Tc 28%) -> its rD and Tc reach the WACC page
+ri = recipe_no('WACC from scratch'); open_step(ri, 2)
+sl = rslots(20)
+for kk, v in [('cpn', '7'), ('yrs', '8'), ('price', '960'), ('face', '1000'), ('Tc', '28')]: sl[kk].buf = v
+sl['m'].idx = next(j for j in range(1, len(sl['m'].opts) + 1) if str(sl['m'].opts[j]).startswith('2'))
+key('enterKey'); t = check_screen('WACC recipe bond step')
+if 'ANSWER: after-tax rD' not in t: fails.append('WACC recipe: the bond step shows no after-tax rD ANSWER line')
+key('escapeKey'); key('escapeKey'); key('charIn', '4'); sl = rslots(20)
+if not sl['rd'].buf.startswith('7.825') or sl['Tc'].buf != '28': fails.append(f"WACC recipe: the WACC page holds rD={sl['rd'].buf!r} Tc={sl['Tc'].buf!r}")
+# search finds a multi-step question by the question's words; ENTER opens its steps
+for _ in range(6): key('escapeKey')
+key('charIn', 's'); app.type('billing firm charges')
+if not str(G.CORE.U.hits[1].e.t).startswith('MULTI-STEP'): fails.append('search: billing firm does not find the multi-step question first')
+key('enterKey')
+if 'Steps (each opens its page)' not in check_screen('search opens a recipe'): fails.append('search: ENTER on a MULTI-STEP line does not open its steps')
+# finder leaves that are multi-step questions open their steps
+for path, leaf in leaves(FINDER, [], []):
+    if leaf.recipe is None: continue
+    for _ in range(6): key('escapeKey')
+    key('charIn', 'f')
+    for idx in path:
+        G.CORE.U.fsel = idx
+        key('enterKey')
+    t = check_screen(f'finder {path} {leaf.t}')
+    if 'Steps (each opens its page)' not in t: fails.append(f'finder {path} {leaf.t}: does not open its multi-step question')
+# a page that is step 1 of a multi-step question says where the next step is, and its notes list the M questions
+for _ in range(6): key('escapeKey')
+key('charIn', '3'); key('charIn', '3'); key('enterKey')
+if 'often next' not in G.CORE.rtext(): fails.append('type 9 answer page: no "often next" line')
+key('escapeKey'); key('charIn', 'n')
+if 'OFTEN COMES WITH' not in G.CORE.ntext(): fails.append('type 9 notes: no OFTEN COMES WITH section')
+for _ in range(6): key('escapeKey')
+
 # glossary: jump through letters and open one entry per letter
 for _ in range(4): key('escapeKey')
 key('charIn', 'g')

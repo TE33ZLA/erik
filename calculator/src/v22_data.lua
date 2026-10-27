@@ -34,14 +34,14 @@ for gi, g in ipairs(GROUPS) do for _, ti in ipairs(g.types) do TYPES[ti].group =
 do
 local LOOKS = {
   "invest today | grows to | worth in n years | how long to double | what rate | compounded",
-  "each year | per month | annuity | forever | perpetuity | growing | first payment in | annuity due | deposits | then declines | then grows forever | falls each year forever | two stages | after year",
+  "each year | per month | annuity | forever | perpetuity | growing | first payment in | annuity due | deposits | then declines | then grows forever | falls each year forever | two stages | after year | value today of the cash flows | in perpetuity | decline at",
   "borrow | mortgage | repayment | loan | balance owing | still owe | rate rises | amortisation",
   "bond | coupon | face value | par | yield to maturity | YTM | price of the bond | semi-annual",
   "sold the bond | held for | realised yield | sold before maturity | return you earned",
   "dividend | share price | grows at | required return | constant growth | two-stage | DDM",
   "NPV | IRR | payback | profitability index | PI | accept | reject | crossover | mutually exclusive",
   "different lives | EAA | EAC | equivalent annual | replace | unequal lives",
-  "free cash flow | depreciation | tax | salvage | book value | working capital | incremental | EBIT | lost sales | erosion | cannibalisation | inventory | receivables | payables | sunk cost | opportunity cost",
+  "free cash flow | depreciation | tax | salvage | book value | working capital | incremental | EBIT | lost sales | erosion | cannibalisation | inventory | receivables | payables | sunk cost | opportunity cost | incremental cash flows | income statement | pro forma | side effect",
   "EAR | APR | effective | nominal | compounded monthly | continuous | real rate | inflation | Fisher",
 }
 for i2 = 1, 10 do TYPES[i2].looks = LOOKS[i2] end
@@ -197,6 +197,7 @@ FINDER = {
         { t = "payments that grow", go = { type = 2, want = "PV", say = "type the growth g" } },
         { t = "first payment later, or at the start", go = { type = 2, want = "PV", say = "set 'first payment at t' or the timing" } },
         { t = "n payments, then growing or falling forever", go = { type = 2, want = "PV", say = "type n (the first stage), then g2 (e.g. -4 for a 4% fall)" } },
+        { t = "STEPS: rate compounded another way, then PV", s = "'6.5% compounded quarterly' but monthly payments, or an EAR: convert, then the PV", recipe = "Rate given another way" },
       } } },
     { t = "A LOAN or mortgage", s = "'borrow $400,000 over 25 years'", kids = {
       q = "What do they ask for?", opts = {
@@ -219,12 +220,16 @@ FINDER = {
         { t = "the price in one year", go = { type = 6, want = "P1" } },
         { t = "the required return", go = { type = 6, want = "rE" } },
         { t = "fast growth, then steady (2 stages)", go = { type = 6, want = "P0", say = "type the high-growth years and g1" } },
+        { t = "STEPS: beta (CAPM), then the share price", s = "a beta AND dividends: rE from CAPM, then the price", recipe = "Share price from beta" },
       } } },
     { t = "A PROJECT: NPV, IRR, payback", s = "'cash flows', 'accept?'", kids = {
       q = "What does the question give you?", opts = {
         { t = "the cash flow of each year", go = { type = 7 } },
-        { t = "two projects with different lives", go = { type = 8 } },
-        { t = "revenue, costs, tax, depreciation", go = { type = 9 } },
+        { t = "two projects with different lives (NPVs known)", go = { type = 8 } },
+        { t = "revenue, costs, tax, depreciation (one FCF)", go = { type = 9 } },
+        { t = "STEPS: FCF, then its PV or NPV", s = "'value of the project': the FCF, then n years of it (then forever); a cost today -> NPV", recipe = "Project value" },
+        { t = "STEPS: a rate (WACC or beta), then NPV", s = "the WACC or the project's own beta, then the NPV of its cash flows", recipe = "Project NPV:" },
+        { t = "STEPS: different lives: NPV, then EAA", s = "cash flows of two projects with different lives: each NPV, then the EAA", recipe = "Different lives" },
         { t = "replace an old machine (the whole table)", go = { type = 22 } },
         { t = "a graph of NPV against the rate", go = { type = 7, set = { cmp = "graph" } } },
         { t = "which method or rule is right?", theory = "npv" },
@@ -268,22 +273,23 @@ FINDER = {
             { t = "buy or sell? over- or undervalued?", go = { type = 19, set = { mode = "buy or sell" } } },
             { t = "find rf or the market risk premium", go = { type = 19, set = { mode = "find rf" } } },
             { t = "beta from covariance or correlation", go = { type = 19, set = { mode = "beta" } } },
-            { t = "a portfolio's beta and return", go = { type = 19, set = { mode = "portfolio" } } },
+            { t = "a portfolio's beta and return", go = { type = 19, set = { mode = "portfolio" } }, say = "shares held? '$ in share' takes shares x price, e.g. 300*24" },
             { t = "a target return: the weights", go = { type = 19, set = { mode = "target" } } },
             { t = "rf and premium from two shares (SML)", go = { type = 19, set = { mode = "two shares" } } },
           } } },
       } } },
     { t = "WACC and capital structure", s = "'WACC', 'cost of debt', 'MM'", kids = {
       q = "What do they ask for?", opts = {
+        { t = "STEPS: rE, rD, rP, then the WACC", s = "several costs asked (debt, preference, equity), then the overall cost of capital", recipe = "WACC from scratch" },
         { t = "the WACC", go = { type = 20 } },
         { t = "the weights for the WACC", go = { type = 20, set = { mode = "the weights" } } },
         { t = "cost of equity", go = { type = 20, set = { mode = "rE:" } } },
         { t = "cost of debt (after tax)", go = { type = 20, set = { mode = "rD: cost of debt (one" } } },
-        { t = "cost of preference shares", go = { type = 20, set = { mode = "rP:" } } },
-        { t = "cost of equity with debt (MM)", go = { type = 21 } },
-        { t = "unlevered cost of capital", go = { type = 21, set = { mode = "unlev" } } },
-        { t = "tax shield, levered value", go = { type = 21, set = { mode = "tax" } } },
+        { t = "cost of preference (preferred) shares", go = { type = 20, set = { mode = "rP:" } } },
+        { t = "cost of equity with debt (MM)", go = { type = 21 }, s = "rU known: rE at a D/E. rU not known? use 8 (rU first)" },
+        { t = "unlevered cost rU, then rE + WACC", s = "a firm with debt and its all-equity twin: rU from rE, rD, E, D or from EBIT and VU; then rE", recipe = "Levered vs" },
         { t = "value or share price from EBIT / cash flow", go = { type = 21, set = { mode = "value" } } },
+        { t = "tax shield, levered value", go = { type = 21, set = { mode = "tax" } } },
       } } },
     { t = "PAYOUT: dividends, buy-backs, tax", s = "'ex-dividend', 'repurchase', 'franked'", kids = {
       q = "What do they ask for?", opts = {
@@ -331,8 +337,11 @@ T  Theory: 'what happens if', true or
 M  Multi-step questions that mix topics
    (e.g. a cash flow, then its PV): pick
    the question, then each step opens its
-   page; after ENTER press M for the next
-   step, the numbers carried in.
+   page; after ENTER the green ANSWER
+   line at the top is that step's answer;
+   press M for the next step, the numbers
+   carried in. S finds them too (the
+   MULTI-STEP lines).
 L  Legend: every letter on the formula
    sheet and what it means, in the
    sheet's order (from any page).
