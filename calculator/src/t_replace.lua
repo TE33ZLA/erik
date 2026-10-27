@@ -9,28 +9,84 @@ do
   local function col(t) return string.char(66 + t) end    -- Excel: year 0 in column B, year t in the next ones
   local function sp(x) return (x < 0) and ("(" .. P(x) .. ")") or P(x) end   -- a negative number in brackets
 
-  local function solveReplace(V, out)
-    local Tc, r = V.Tc or 0, V.r
-    if not (V.newC and V.lifeN and V.n) then
-      out:need("the new asset's cost, its depreciation life and the project life (years)")
-      return
+  -- the year-by-year numbers, shared with the Excel tables page (t_excel.lua) so both show the same cash flows.
+  -- V: n, r, Tc, newC, lifeN (or depR: straight line at a rate, or diminishing value when V.dv), saleN, bvO, saleO,
+  -- depO, endO, save, rev, opex (running costs, new), opexO (running costs of the old one, saved), g (growth of
+  -- revenue and costs from year 2), avoid, avYr, nwc, nwcY. Returns R, or nil + "need"/"err" + the message.
+  XLCALC = XLCALC or {}
+  function XLCALC.replace(V)
+    local Tc = V.Tc or 0
+    local life = V.lifeN
+    if not life and V.depR and not V.dv then life = (V.depR > 0) and (1 / V.depR) or 0 end
+    if not (V.newC and V.n and (life or (V.dv and V.depR))) then
+      return nil, "need", "the new asset's cost, its depreciation life and the project life (years)"
     end
     local n = math.floor(V.n + 1e-9)
-    if n < 1 or n > 20 then out:err("the project life must be 1 to 20 years"); return end
-    if V.lifeN <= 0 then out:err("the depreciation life must be above 0"); return end
-    local newC, depN = V.newC, V.newC / V.lifeN
-    local bvO, depO, saleO = V.bvO, V.depO or 0, V.saleO or 0
-    local nwc, nwcY = V.nwc or 0, V.nwcY or 0
-    local save, rev = V.save or 0, V.rev or 0
-    local saleN, endO = V.saleN or 0, V.endO or 0
+    if n < 1 or n > 20 then return nil, "err", "the project life must be 1 to 20 years" end
+    if (life and life <= 0) or (V.dv and V.depR <= 0) then return nil, "err", "the depreciation life must be above 0" end
+    local R = { n = n, Tc = Tc, r = V.r, newC = V.newC, life = life, dv = V.dv, depR = V.depR,
+                depN = life and (V.newC / life) or nil, bvO = V.bvO, depO = V.depO or 0, saleO = V.saleO or 0,
+                nwc = V.nwc or 0, nwcY = V.nwcY or 0, save = V.save or 0, rev = V.rev or 0, opex = V.opex or 0,
+                opexO = V.opexO or 0, g = V.g or 0, saleN = V.saleN or 0, endO = V.endO or 0,
+                hasOld = (V.saleO or V.bvO) and true or false }
+    R.taxO = 0
+    if R.hasOld then R.taxO = ((R.bvO or 0) - R.saleO) * Tc end
+    R.cf0 = -R.newC + R.saleO + R.taxO - R.nwc
+    R.cfs = { [0] = R.cf0 }
+    R.rows = {}
+    local bvN, remO = R.newC, R.bvO
+    for t = 1, n do
+      local dN
+      if R.dv then dN = bvN * R.depR else dN = math.min(R.depN, bvN) end
+      bvN = bvN - dN
+      if bvN < 0.005 then bvN = 0 end
+      local dO = R.depO
+      if remO then dO = math.min(R.depO, remO); remO = remO - dO; if remO < 0.005 then remO = 0 end end
+      local inc = dN - dO
+      local av = (V.avoid and V.avYr and math.abs(t - V.avYr) < 1e-9) and V.avoid or 0
+      local gf = (1 + R.g) ^ (t - 1)
+      local y = { dN = dN, dO = dO, inc = inc, av = av, gf = gf, bvN = bvN, bvO = remO or 0,
+                  revT = R.rev * gf, saveT = R.save * gf, opexT = R.opex * gf, opexOT = R.opexO * gf }
+      y.sv = y.saveT + y.revT + y.opexOT - y.opexT + av
+      y.ebit = y.sv - inc
+      y.tax = Tc * y.ebit
+      y.nopat = y.ebit - y.tax
+      y.ocf = y.nopat + inc
+      y.extra = 0
+      if t < n and R.nwcY ~= 0 then y.extra = -R.nwcY end
+      if t == n then
+        R.bvNend, R.bvOend = bvN, remO or 0
+        R.atsN = R.saleN - (R.saleN - R.bvNend) * Tc
+        R.atsO = R.endO - (R.endO - R.bvOend) * Tc
+        R.rec = R.nwc + R.nwcY * (n - 1)
+        y.extra = y.extra + R.atsN - R.atsO + R.rec
+      end
+      y.fcf = y.ocf + y.extra
+      R.cfs[t] = y.fcf
+      R.rows[t] = y
+    end
+    return R
+  end
+
+  local function solveReplace(V, out)
+    local R, how, msg = XLCALC.replace(V)
+    if not R then
+      if how == "need" then out:need(msg) else out:err(msg) end
+      return
+    end
+    local Tc, r, n = R.Tc, R.r, R.n
+    local newC, depN = R.newC, R.depN
+    local bvO, depO, saleO = R.bvO, R.depO, R.saleO
+    local nwc, nwcY = R.nwc, R.nwcY
+    local save, rev = R.save, R.rev
+    local saleN = R.saleN
 
     -- year 0
     out:head("YEAR 0 (today)")
     out:row("new asset", -newC, "$", "its cost (with shipping and installation): an outflow", "c0new")
-    local taxO = 0
-    if V.saleO or bvO then
+    local taxO = R.taxO
+    if R.hasOld then
       local bv = bvO or 0
-      taxO = (bv - saleO) * Tc
       out:row("old asset sold now", saleO, "$", "its sale price today", "saleO")
       out:row((math.abs(taxO) < 0.005) and "tax on the old sale (none: sold at book value)" or
               ((taxO > 0) and "tax saved on the old sale (a loss)" or "tax paid on the old sale (a gain)"), taxO, "$",
@@ -42,13 +98,13 @@ do
       if not bvO then out:note("old book value blank = 0: the whole sale price is taxed") end
     end
     if nwc ~= 0 then out:row("NWC put in", -nwc, "$", "working capital needed at the start (back at the end)", "nwc0") end
-    local cf0 = -newC + saleO + taxO - nwc
+    local cf0 = R.cf0
     out:row("CF0", cf0, "$", "-new cost + old sale + tax effect - NWC = -" .. P(newC) .. " + " .. P(saleO) .. " + " ..
             sp(taxO) .. " - " .. P(nwc), "CF0")
 
     -- depreciation
     out:head("DEPRECIATION (straight line to 0)")
-    out:row("new asset: dep a year", depN, "$", "cost/life = " .. P(newC) .. "/" .. P(V.lifeN) .. "  (years 1 to " .. P(V.lifeN) .. ")", "depN")
+    out:row("new asset: dep a year", depN, "$", "cost/life = " .. P(newC) .. "/" .. P(R.life) .. "  (years 1 to " .. P(R.life) .. ")", "depN")
     if depO > 0 then
       out:row("old asset: dep a year (lost if you replace)", depO, "$",
               bvO and ("until its book value " .. P(bvO) .. " is used up: " .. P(bvO / depO) .. " more years")
@@ -58,37 +114,13 @@ do
     out:off("sldep"); out:off("incdep")
 
     -- each year
-    local cfs = { [0] = cf0 }
-    local bvN, remO = newC, bvO
-    local rowsT = {}
-    local atsN, atsO, rec, bvNend, bvOend
+    local cfs = R.cfs
+    local rowsT = R.rows
+    local atsN, atsO, rec, bvNend, bvOend, endO = R.atsN, R.atsO, R.rec, R.bvNend, R.bvOend, R.endO
     for t = 1, n do
-      local dN = math.min(depN, bvN)
-      bvN = bvN - dN
-      if bvN < 0.005 then bvN = 0 end
-      local dO = depO
-      if remO then dO = math.min(depO, remO); remO = remO - dO; if remO < 0.005 then remO = 0 end end
-      local inc = dN - dO
-      local av = (V.avoid and V.avYr and math.abs(t - V.avYr) < 1e-9) and V.avoid or 0
-      local sv = save + rev + av
-      local ebit = sv - inc
-      local tax = Tc * ebit
-      local nopat = ebit - tax
-      local ocf = nopat + inc
-      local extra = 0
-      if t < n and nwcY ~= 0 then extra = -nwcY end
-      if t == n then
-        bvNend, bvOend = bvN, remO or 0
-        atsN = saleN - (saleN - bvNend) * Tc
-        atsO = endO - (endO - bvOend) * Tc
-        rec = nwc + nwcY * (n - 1)
-        extra = extra + atsN - atsO + rec
-      end
-      local fcf = ocf + extra
-      cfs[t] = fcf
-      rowsT[t] = { sv = sv, av = av, inc = inc, dN = dN, dO = dO, ebit = ebit, tax = tax, nopat = nopat, ocf = ocf, extra = extra, fcf = fcf }
-      out.vals["dep" .. t], out.vals["EBIT" .. t], out.vals["tax" .. t] = inc, ebit, tax
-      out.vals["NOPAT" .. t], out.vals["OCF" .. t] = nopat, ocf
+      local y = rowsT[t]
+      out.vals["dep" .. t], out.vals["EBIT" .. t], out.vals["tax" .. t] = y.inc, y.ebit, y.tax
+      out.vals["NOPAT" .. t], out.vals["OCF" .. t] = y.nopat, y.ocf
     end
 
     -- the final year's extras

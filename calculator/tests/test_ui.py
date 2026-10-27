@@ -462,6 +462,103 @@ key('charIn', 'b'); key('charIn', 'e')
 if 'Everything: type all you know' not in check_screen('part B E'): fails.append('Part B: E does not open the Everything page')
 for _ in range(7): key('escapeKey')
 
+# X: Excel tables (Part C). Home row after C; the list of 4 kinds; each kind solves; T shows the Excel grid (items down,
+# years across) that scrolls sideways with the labels kept; nothing drawn past the screen's edge (own numbers)
+from nspire_mock import text_width
+def drawn(where):
+    """(text, x, y, width) of every string on the screen"""
+    font, res = ('sansserif', 'r', 10), []
+    for o in paint(where):
+        if o[0] == 'font': font = (o[1], o[2], o[3])
+        elif o[0] == 'text': res.append((o[1], o[2], o[3], text_width(o[1], font[2], font[1])))
+    return res
+def off_screen(where):
+    bad = [f'{t!r} at x={x} w={w:.0f}' for t, x, y, w in drawn(where) if x < 0 or x + w > 318.5 or y < 0 or y > 212]
+    if bad: fails.append(f'{where}: drawn past the edge: ' + '; '.join(bad[:3]))
+XT = G.XL_TI
+xq = TYPES[XT]
+xs = {sl.key: sl for sl in xq.slots.values()}
+home()
+t = check_screen('home with X')
+if 'X  Excel tables (Part C): cash flows, trees' not in t: fails.append('home: no X row')
+elif t.index('C  Part C') > t.index('X  Excel tables'): fails.append('home: X is not right after C')
+key('charIn', 'x'); t = check_screen('X list')
+for k_ in ('cash-flow table: a replacement', 'cash-flow table: a new project', 'decision tree: act now or wait',
+           'decision tree: chance and decision nodes', 'PICK WHEN'):
+    if k_ not in t: fails.append(f'X list: {k_!r} not shown')
+key('escapeKey')
+if 'Find my question' not in check_screen('X list esc'): fails.append('X list: ESC does not go home')
+XKIND = [('1', 'NEW asset: cost today', dict(n='6', r='10', Tc='30', newC='120000', lifeN='4', saleN='10000', bvO='20000', saleO='14000',
+                                              depO='4000', save='30000', avoid='15000', avYr='2'), 'Year 6', 7, 'FCF'),
+         ('2', 'operating costs a year', dict(n='5', r='12', Tc='30', rev='80000', opex='30000', g='3', newC='100000', lifeN='5',
+                                              saleN='8000', nwc='10000'), 'Year 5', 6, 'NWC change'),
+         ('3', 'cost if you act NOW', dict(c0='2000', vg='5000', pg='70', cw='2600', tm='3', ear='9'), 'p x PV', 5, 'WAIT: NPV'),
+         ('4', 'branch 1: cash flow', dict(v1='90000', p1='30', v2='60000', p2='50', v3='20000', t='1', ear='10', I='50000', alt='12000'),
+          'p x PV', 5, 'GO: NPV')]
+for d, label, vals, last, ncols, rowlab in XKIND:
+    home(); key('charIn', 'x'); key('charIn', d)
+    where = f'X kind {d}'
+    t = check_screen(where + ' input')
+    if label not in t: fails.append(f'{where}: its page does not open ({label!r} not shown)')
+    key('charIn', 'd')
+    for k_, v in vals.items(): xs[k_].buf = v
+    if d == '4': xs['tm'].buf = ''
+    key('enterKey'); t = check_screen(where + ' answer'); off_screen(where + ' answer')
+    rt = str(G.CORE.rtext())
+    if d in '12':
+        lines = [ln for ln in rt.split('\n') if ln.strip()]
+        first = next((i for i, ln in enumerate(lines) if ln.startswith('FCF EACH YEAR')), None)
+        if first is None or not lines[first + 1].startswith('Year 0 FCF') or 'NPV = ' not in rt:
+            fails.append(f'{where}: the answer does not start with the FCF row year by year and the NPV')
+        elif rt.index('Year 0 FCF') > rt.index('NPV = ') or rt.index('NPV = ') > rt.index('press T for the full Excel table'):
+            fails.append(f'{where}: order is not FCF years, NPV, then press T')
+    elif 'choose ' not in rt or 'press T for the full Excel table' not in rt: fails.append(f'{where}: no decision line or no press T line')
+    if 'Something went wrong' in rt or 'Need ' in rt: fails.append(f'{where}: solved with a Need / error line')
+    key('charIn', 't'); t = check_screen(where + ' grid'); off_screen(where + ' grid')
+    if 'TABLE' not in t or 'item' not in t: fails.append(f'{where}: T does not open the grid')
+    if d in '12' and 'Year 0' not in t: fails.append(f'{where}: the grid does not start at Year 0')
+    lw = 92 if d in '12' else 78
+    for tx, x, y, w in drawn(where + ' grid'):
+        if x == 2 and 38 <= y < 150 and w > lw - 3: fails.append(f'{where} grid: the label {tx!r} runs into the numbers')
+    for _ in range(ncols + 1):                               # right, one year at a time, up to the last
+        if last in [tx for tx, x, y, w in drawn(where) if y == 24]: break
+        key('arrowKey', 'right')
+    for _ in range(40):
+        if rowlab in [tx for tx, x, y, w in drawn(where) if x == 2 and y >= 38]: break
+        key('arrowKey', 'down')
+    t = check_screen(where + ' grid scrolled'); off_screen(where + ' grid scrolled')
+    if last not in t: fails.append(f'{where}: the grid does not scroll to {last!r}')
+    if d in '12' and 'Year 0' in t: fails.append(f'{where}: Year 0 still shown after scrolling to the last year')
+    labs = [tx for tx, x, y, w in drawn(where) if x == 2 and y >= 38]
+    if rowlab not in labs: fails.append(f'{where}: the row labels are not kept on the left when scrolled ({labs[:4]})')
+    if 'Excel ' not in t: fails.append(f'{where}: the picked cell does not show its Excel formula')
+    key('escapeKey'); key('escapeKey'); key('escapeKey')
+    if 'What does the question ask for?' not in check_screen(where + ' back'): fails.append(f'{where}: ESC does not go back to the kinds')
+key('escapeKey')
+if 'Find my question' not in check_screen('X back home'): fails.append('X: ESC from the kinds does not go home')
+home(); key('charIn', 'c'); key('charIn', '3')
+if 'What does the question ask for?' not in check_screen('part C 3'): fails.append('Part C 3 does not open the Excel tables')
+key('escapeKey')
+if 'PART C' not in check_screen('part C 3 back'): fails.append('Part C 3: ESC does not go back to Part C')
+home(); key('charIn', 'b'); key('charIn', 'x')
+if 'What does the question ask for?' not in check_screen('part B X'): fails.append('Part B X does not open the Excel tables')
+key('escapeKey')
+if 'PART B' not in check_screen('part B X back'): fails.append('Part B X: ESC does not go back to Part B')
+for _ in range(7): key('escapeKey')
+# home fits 13 rows (the public ones + one private row from EXTRA_HOME); a click picks the row under it
+app2 = NspireApp(src)
+G2 = app2.lua.globals()
+G2.EXTRA_HOME = app2.lua.eval('{ { k = "P", t = "Private row for the test", s = "private", open = function() end } }')
+ops2 = app2.ops()
+t2 = ' | '.join(o[1] for o in ops2 if o[0] == 'text')
+if 'Private row for the test' not in t2 or 'v more' in t2: fails.append('home: 13 rows do not fit on one screen')
+hy = {o[1].split('  ')[0]: o[3] for o in ops2 if o[0] == 'text' and '  ' in str(o[1])}
+app2.key('mouseDown', 40, hy.get('X', 0) + 5)
+if G2.CORE.U.homeSel != 4: fails.append(f'home: a click on the X row picks row {G2.CORE.U.homeSel}')
+app2.key('mouseDown', 40, hy.get('P', 0) + 5)
+if G2.CORE.U.homeSel != 13: fails.append(f'home: a click on the private row picks row {G2.CORE.U.homeSel}')
+for _ in range(4): key('escapeKey')
+
 # every test case of test_solvers.py, typed into the boxes (rates as %) and solved as on the calculator
 sys.path.insert(0, HERE)
 from test_solvers import CASES, close

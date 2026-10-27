@@ -35,6 +35,15 @@ The home screen:
   "(uses X from ...)". A few links cross sections: CAPM's E[Ri] -> re and rE, SD = sqrt(variance), and rU, rE, rD, E, D
   typed in one capital-structure world are used in the other. Nothing solvable? ONE VALUE SHORT says what each
   formula still needs. `src/everything.lua`, `src/ui_every.lua`, tested by `tests/test_everything.py`.
+- **X  Excel tables (Part C).** The Excel parts have few inputs, so type them and the answer IS the Excel layout.
+  Four kinds: 1 a replacement (old machine vs new), 2 a new project, 3 a decision tree "act now or wait", 4 a chance node
+  (2-4 branches) with a choice today. Cash flows: ITEMS DOWN the rows in the order they are typed into Excel (revenue or
+  saving, cost avoided, costs, new dep, old dep given up, incremental dep, EBIT, tax, after-tax profit, + dep, CapEx, old
+  sale and its tax, new sale and its tax, NWC, FCF, PV, NPV), YEARS ACROSS (Year 0 in column B). The answer page starts
+  with the FCF of each year and the NPV; T shows the grid (labels stay on the left, left/right moves along the years) and
+  each cell's Excel formula (`=C7*0.3`, `=NPV(0.1,C16:H16)+B16`). Trees: one row per branch (probability, cash flow,
+  when, PV, probability x PV), then the decision. The numbers come from the same code as the replacement page and the
+  tree page. `src/t_excel.lua`.
 - **F  Find my question type.** Answer two short questions ("What is it about?", "What do they ask for?"). The right
   solver opens with the answer box marked **FIND** and any choices already set.
 - **1-8** pick a week, then a question type (23 types). A type that covers several kinds of question opens a numbered

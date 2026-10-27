@@ -254,7 +254,113 @@ CASES = [
   (18, 'v24 weights from 4 holdings', dict(mode='weights from holdings', n1=10, px1=20, n2=20, px2=15, n3=5, px3=40, n4=10, px4=30), dict(tot=1000, w1=.2, w4=.3)),
   (20, 'v25 weights only, with preference shares', dict(nE=4e6, pE=25, D=60e6, Pv=15e6), dict(E=100e6, V=175e6, wE=.571429, wP=.085714, wD=.342857, _sheet='v')),
   (21, 'v23 FCF given directly', dict(mode='value from cash flows (EBIT or FCF)', FCF=900, Tc=.3, rU=.12, D=1000), dict(VU=7500, VL=7800, E=6800)),
+  # ---- 24 Excel tables (Part C), own numbers, worked out independently (Python) first
+  (24, 'Excel: replacement, avoided repair, dep turns negative', dict(mode='cash-flow table: a replacement', n=6, r=.10, Tc=.3,
+   newC=120000, lifeN=4, saleN=10000, bvO=20000, saleO=14000, depO=4000, save=30000, avoid=15000, avYr=2),
+   dict(FCF0=-104200, FCF1=28800, FCF2=39300, FCF3=28800, FCF4=28800, FCF5=19800, FCF6=28000, NPV=23869.32, taxO0=1800,
+        avoid2=15000, inc4=26000, inc5=-4000, inc6=0, EBIT2=19000, tax5=10200, taxN6=-3000, _sheet='fcf,salv,npv,irr', _clean=True)),
+  (24, 'Excel: replacement, gain on the old sale, running costs, DV dep, old end value', dict(mode='cash-flow table: a replacement',
+   n=4, r=.08, Tc=.25, newC=60000, depR=.30, depM='diminishing value', saleN=15000, bvO=5000, saleO=9000, depO=2500, endO=1000,
+   opexO=22000, opexN=8000, nwc=3000),
+   dict(taxO0=-1000, FCF0=-55000, FCF1=14375, FCF2=13025, FCF3=12705, FCF4=29145, NPV=985.107, depN2=12600, inc3=8820, endO4=-1000,
+        taxE4=250, nwc4=3000, _clean=True)),
+  (24, 'Excel: new project, revenue and costs grow 3%', dict(mode='cash-flow table: a new project', n=5, r=.12, Tc=.3, rev=80000,
+   opex=30000, g=.03, newC=100000, lifeN=5, saleN=8000, nwc=10000),
+   dict(FCF0=-110000, FCF1=41000, FCF2=42050, FCF5=60992.81, NPV=53557.03, rev3=84872, opex2=-30900, taxN5=-2400, nwc5=10000, _clean=True)),
+  (24, 'Excel: new project, dep rate, sold at 0 (tax refund on the loss), NWC each year', dict(mode='cash-flow table: a new project',
+   n=3, r=.15, Tc=.3, rev=50000, opex=20000, newC=45000, depR=.25, nwc=5000, nwcY=1000),
+   dict(FCF0=-50000, FCF1=23375, FCF2=23375, FCF3=34750, NPV=10849.63, taxN3=3375, nwc1=-1000, nwc3=7000, _clean=True)),
+  (24, 'Excel tree: act now or wait (waiting wins)', dict(mode='decision tree: act now or wait', c0=2000, vg=5000, pg=.7, cw=2600, tm=3, ear=.09),
+   dict(npvNow=1425.397, npvWait=1644.192, optw=218.795, Enow=3500, Ewait=1680, _clean=True)),
+  (24, 'Excel tree: act now or wait (acting now wins)', dict(mode='decision tree: act now or wait', c0=300, vg=1000, pg=.9, vb=200,
+   cw=700, tm=6, ear=.12), dict(npvNow=569.318, npvWait=255.126, _clean=True)),
+  (24, 'Excel tree: chance node and a choice today', dict(mode='decision tree: chance and decision nodes', v1=90000, p1=.3, v2=60000,
+   p2=.5, v3=20000, t=1, ear=.10, I=50000, alt=12000), dict(E=61000, pv=55454.55, npvGo=5454.55, alt=12000, _clean=True)),
+  (24, 'Excel tree: chance node, a blank probability, months', dict(mode='decision tree: chance and decision nodes', v1=1000, p1=.25,
+   v2=400, tm=18, ear=.07), dict(E=550, pv=496.9206, _clean=True)),
 ]
+
+# type 24 (Excel tables) must agree with the pages it shares its maths with: type 22 (replacement) and type 12 (trees).
+# (inputs for type 24, the other type, its inputs, [(key on 24, key on the other)])
+FCF6 = [('FCF0', 'CF0')] + [('FCF%d' % t, 'FCF%d' % t) for t in range(1, 7)]
+XL_AGREE = [
+  (dict(mode='cash-flow table: a replacement', n=6, r=.10, Tc=.3, newC=120000, lifeN=4, saleN=10000, bvO=20000, saleO=14000, depO=4000,
+        save=30000, avoid=15000, avYr=2), 22,
+   dict(n=6, r=.10, Tc=.3, newC=120000, lifeN=4, saleN=10000, bvO=20000, saleO=14000, depO=4000, save=30000, avoid=15000, avYr=2),
+   FCF6 + [('NPV', 'NPV'), ('IRR', 'IRR'), ('taxO0', 'taxO'), ('inc5', 'dep5'), ('EBIT5', 'EBIT5'), ('tax5', 'tax5'), ('atp5', 'NOPAT5')]),
+  (dict(mode='cash-flow table: a replacement', n=8, r=.10, Tc=.3, newC=90000, lifeN=4, saleN=11000, bvO=24000, saleO=15000, depO=3000,
+        endO=2000, save=18000, avoid=25000, avYr=3, nwc=4000, nwcY=500), 22,
+   dict(n=8, r=.10, Tc=.3, newC=90000, lifeN=4, saleN=11000, bvO=24000, saleO=15000, depO=3000, endO=2000, save=18000, avoid=25000,
+        avYr=3, nwc=4000, nwcY=500),
+   [('FCF0', 'CF0')] + [('FCF%d' % t, 'FCF%d' % t) for t in range(1, 9)] + [('NPV', 'NPV'), ('inc6', 'dep6')]),
+  (dict(mode='cash-flow table: a new project', n=5, r=.12, Tc=.3, rev=80000, opex=30000, newC=100000, lifeN=5, saleN=8000, nwc=10000, nwcY=2000), 22,
+   dict(n=5, r=.12, Tc=.3, rev=50000, newC=100000, lifeN=5, saleN=8000, nwc=10000, nwcY=2000),
+   [('FCF0', 'CF0')] + [('FCF%d' % t, 'FCF%d' % t) for t in range(1, 6)] + [('NPV', 'NPV'), ('IRR', 'IRR')]),
+  (dict(mode='decision tree: act now or wait', c0=2000, vg=5000, pg=.7, cw=2600, tm=3, ear=.09), 12,
+   dict(mode='act now or wait (option to wait)', c0=2000, vg=5000, pg=.7, cw=2600, tm=3, r=.09),
+   [('npvNow', 'npvNow'), ('npvWait', 'npvWait'), ('optw', 'optw'), ('Enow', 'Enow'), ('Ewait', 'Ewait')]),
+  (dict(mode='decision tree: act now or wait', c0=300, vg=1000, pg=.9, vb=200, cw=700, t=.5, ear=.12), 12,
+   dict(mode='act now or wait (option to wait)', c0=300, vg=1000, pg=.9, vb=200, cw=700, t=.5, r=.12),
+   [('npvNow', 'npvNow'), ('npvWait', 'npvWait')]),
+  (dict(mode='decision tree: chance and decision nodes', v1=90000, p1=.3, v2=60000, p2=.5, v3=20000, t=1, ear=.10), 12,
+   dict(mode='chance node (expected value)', v1=90000, p1=.3, v2=60000, p2=.5, v3=20000, t=1, r=.10), [('E', 'E'), ('pv', 'pv')]),
+]
+
+def sheet_cells(out, years):
+    """Every cell of type 24's table as Excel would hold it: (column letter, row) -> formula text (row 1 = the years)."""
+    T = out.tbl
+    cells, want = {}, {}
+    for c in range(1, len(T.cols) + 1):
+        if years: cells[('ABCDEFGHIJKLMNOPQRSTUVWXYZ'[c], 1)] = str(c - 1)
+    for i in range(1, len(T.rows) + 1):
+        rw = T.rows[i]
+        for c in range(1, len(T.cols) + 1):
+            if rw.xf[c] is not None:
+                cells[('ABCDEFGHIJKLMNOPQRSTUVWXYZ'[c], i + 1)] = str(rw.xf[c])
+                want[('ABCDEFGHIJKLMNOPQRSTUVWXYZ'[c], i + 1)] = rw.vals[c]
+    return cells, want
+
+def sheet_eval(cells):
+    """Work out a small spreadsheet: numbers, + - * / ^, cell refs, SUM, NPV, MAX over ranges. Blank cells are 0."""
+    import re
+    COLS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    memo = {}
+    def cell(c, r):
+        key = (c, r)
+        if key in memo: return memo[key]
+        f = cells.get(key)
+        if f is None: v = 0.0
+        else:
+            e = f.lstrip('=')
+            e = re.sub(r'([A-Z])(\d+):([A-Z])(\d+)', lambda m: 'R("%s",%s,"%s",%s)' % m.groups(), e)
+            e = re.sub(r'\b([A-Z])(\d+)\b', lambda m: 'C("%s",%s)' % m.groups(), e)
+            e = e.replace('^', '**')
+            v = float(eval(e, {'__builtins__': {}}, {'R': rng, 'C': cell, 'SUM': SUM, 'NPV': NPV, 'MAX': max}))
+        memo[key] = v
+        return v
+    def rng(c1, r1, c2, r2):
+        return [cell(COLS[c], r) for c in range(COLS.index(c1), COLS.index(c2) + 1) for r in range(r1, r2 + 1)]
+    def SUM(*a): return sum(sum(x) if isinstance(x, list) else x for x in a)
+    def NPV(rate, xs): return sum(x / (1 + rate) ** (k + 1) for k, x in enumerate(xs))
+    return {k: cell(*k) for k in cells}
+
+def sheet_from_lines(texts, years):
+    """Type 24's EXCEL lines ('row 7 EBIT: C7 =SUM(C2:C3)-C6, copy right to H7; ...') typed into a spreadsheet."""
+    import re
+    COLS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    cells = {}
+    for t in texts:
+        m = re.match(r'row (\d+) [^:]+: (.*)$', t)
+        if not m: continue
+        for col, rn, f, to in re.findall(r'([A-Z])(\d+) (=\S+?)(?:, copy right to ([A-Z])\d+)?(?=; [A-Z]\d+ =|, [A-Z]\d+ =|$)', m.group(2)):
+            c0 = COLS.index(col)
+            for c in range(c0, (COLS.index(to) if to else c0) + 1):
+                d = c - c0
+                cells[(COLS[c], int(rn))] = re.sub(r'\b([A-Z])(\d+)\b', lambda mm: COLS[COLS.index(mm.group(1)) + d] + mm.group(2), f)
+    if years:
+        n = max(COLS.index(c) for c, r in cells) - 1
+        for k in range(n + 1): cells[(COLS[k + 1], 1)] = str(k)
+    return cells
 
 # Excel layouts on the result page: rebuilt as a spreadsheet (tests/excel_rows.py) they must match the solver
 EXCEL_CASES = [
@@ -336,6 +442,30 @@ def main():
         if not ok:
             fails += 1
             print(f'FAIL excel rows type {t} {name}: {got}')
+    # type 24: every cell's formula, worked out as Excel would, gives the cell's number; the EXCEL lines typed in give
+    # the same FCF row and NPV; and the numbers agree with type 22 / type 12 for the same inputs
+    for t, name, V, _ in [c for c in CASES if c[0] == 24]:
+        out = CORE.run(t, lua.table_from(V))
+        years = str(V['mode']).startswith('cash-flow')
+        cells, want = sheet_cells(out, years)
+        try:
+            got = sheet_eval(cells)
+            bad = [f'{k}: {cells[k]} = {got[k]}, table shows {w}' for k, w in want.items() if w is not None and abs(got[k] - w) > 0.005]
+            texts = [str(r.text) for r in out.rows.values() if r.kind == 'xl']
+            got2 = sheet_eval(sheet_from_lines(texts, years))
+            for k, w in want.items():
+                if w is not None and abs(got2.get(k, 1e99) - w) > 0.005: bad.append(f'EXCEL lines {k}: {got2.get(k)} vs {w}')
+        except Exception as e:
+            bad = [repr(e)]
+        if bad:
+            fails += 1
+            print(f'FAIL excel table type 24 {name}: ' + '; '.join(bad[:5]))
+    for V24, t2, V2, pairs in XL_AGREE:
+        a, b = CORE.run(24, lua.table_from(V24)).vals, CORE.run(t2, lua.table_from(V2)).vals
+        bad = [f'{k1}={a[k1]} vs type {t2} {k2}={b[k2]}' for k1, k2 in pairs if a[k1] is None or b[k2] is None or abs(a[k1] - b[k2]) > 1e-6]
+        if bad:
+            fails += 1
+            print(f'FAIL type 24 vs type {t2} ({V24["mode"]}): ' + '; '.join(bad))
     pfails = 0
     for text, kind, want, note in PARSE:
         res = CORE.parseBuf(text, kind)
@@ -346,7 +476,8 @@ def main():
         if not ok:
             pfails += 1
             print(f'FAIL parse {text!r} ({kind}): got {x}, note {cnote!r}, error {err!r}; want {want}, note {note!r}')
-    print(f'{len(CASES) + len(EXCEL_CASES) - fails} passed, {fails} failed; number boxes: {len(PARSE) - pfails} passed, {pfails} failed')
+    total = len(CASES) + len(EXCEL_CASES) + len([c for c in CASES if c[0] == 24]) + len(XL_AGREE)
+    print(f'{total - fails} passed, {fails} failed; number boxes: {len(PARSE) - pfails} passed, {pfails} failed')
     sys.exit(1 if fails or pfails else 0)
 
 if __name__ == '__main__':

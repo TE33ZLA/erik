@@ -12,6 +12,7 @@
     local HOME = { { k = "A", t = "Part A: multiple choice -> definitions", s = "type 2-3 words from the question: definitions and rules first" },
                    { k = "B", t = "Part B: numbers -> the right page", s = "all the ways to find a page: finder, multi-step, search, weeks" },
                    { k = "C", t = "Part C: written + Excel answers", s = "how to answer 'why' parts and Excel tables / trees; the number pages" },
+                   { k = "X", t = "Excel tables (Part C): cash flows, trees", s = "type the few numbers: the answer IS the Excel table (years across, or one row per branch)" },
                    { k = "F", t = "Find my question type", s = "answer 2 short questions" },
                    { k = "M", t = "Multi-step: questions that mix topics", s = "e.g. a cash flow, then its PV; rE + rD + rP, then the WACC" },
                    { k = "W", t = "Weeks 1-8 (or press the week number)", s = "1 Wk1-2 TVM, 2 bonds/shares, 3 projects, 4 risk, 5 WC, 6 CAPM, 7 WACC/MM, 8 payout" },
@@ -62,7 +63,7 @@
     local function paintHome(gc)
       extraHome()
       title(gc, "BFC2140 SOLVER " .. VERSION .. " - all weeks")
-      local y = drawRows(gc, HOME, U.homeSel, 23, 13, SH - 27, function(i, r) return r.k end)
+      local y = drawRows(gc, HOME, U.homeSel, 23, 12, SH - 27, function(i, r) return r.k end)   -- 13 rows fit
       note(gc, HOME[U.homeSel].s, SH - 26)
       footer(gc, "key or arrows + ENTER | H help | G glossary")
     end
@@ -187,7 +188,7 @@
       "shares|dividend", "npv|irr|capital budget", "lives|eaa|replace", "fcf|relevant", "apr|ear|rate",
       "break-even|forecast", "decision tree|expected", "probabilit", "cycle|working capital", "trade credit",
       "credit policy|receivable", "return|risk", "portfolio|correlation", "capm|beta|sml", "wacc|cost of", "capital structure|mm",
-      "replacement|replace", "dividends|payout" }
+      "replacement|replace", "dividends|payout", "replacement|replace" }
     local function topicForType(ti)
       for word in (TYPE_TOPIC[ti] or ""):gmatch("[^|]+") do
         for k2, t in ipairs(THEORY) do if t.topic:lower():find(word, 1, true) then return k2 end end
@@ -450,7 +451,7 @@
     local function openGroupType(i)
       local ti = GROUPS[U.group].types[i]
       if not ti then return end
-      U.gsel, U.want, U.say = i, nil, nil
+      U.gsel, U.want, U.say, U.mback = i, nil, nil, nil
       if modeSlotOf(ti) then openModes(ti); return end
       openType(ti)
       firstBox()
@@ -474,6 +475,7 @@
       if not h then return end
       local e = h.e
       if e.kind == 1 then
+        U.mback = nil
         openFrom({ type = e.ti })
         if modeSlotOf(e.ti) then openModes(e.ti) end
       elseif e.kind == 2 then openTopic(e.topic, e.item)
@@ -612,9 +614,11 @@
                     { k = "W", t = "By week (1-8)", s = "the week's page types, then the kind of question" },
                     { k = "R", t = "Root formulas: fill the slots", s = "one formula-sheet line, leave ONE slot blank" },
                     { k = "L", t = "Legend: what a letter means", s = "every letter on the formula sheet" },
-                    { k = "E", t = "Everything: type all you know", s = "every letter on the sheet in one page; every answer listed" } }
+                    { k = "E", t = "Everything: type all you know", s = "every letter on the sheet in one page; every answer listed" },
+                    { k = "X", t = "Excel tables: cash flows, trees", s = "the answer laid out as the Excel table (Part C); also X on home" } }
     XP.PARTC = { { t = "How to answer: number and 'why' parts", s = "formula -> numbers -> answer; claim -> cause -> rule" },
                     { t = "Excel parts: cash-flow table, decision tree", s = "the file, the rows in order, the tree, formulas in cells" },
+                    { t = "Excel: build the table on the solver", s = "X: type the numbers, the answer is the Excel table with each cell's formula" },
                     { t = "The number pages (as Part B)", s = "finder, multi-step, search, weeks" },
                     { t = "'Why' content: words from the question", s = "definitions and question cards (as Part A)" },
                     { t = "Theory topics, week by week", s = "the WHAT IF rules and the cards of each topic" } }
@@ -640,20 +644,30 @@
       elseif r.k == "W" then U.wsel = 1; scr = "weeks"; inval()
       elseif r.k == "R" then U.rlev, U.rsel = 1, 1; scr = "roots"; inval()
       elseif r.k == "L" then toLegend()
-      elseif r.k == "E" then EVERY.open() end
+      elseif r.k == "E" then EVERY.open()
+      elseif r.k == "X" then XP.openExcel("partB") end
+    end
+    -- the Excel tables type (home X): its list of kinds; ESC there goes back to where it was opened from
+    function XP.openExcel(back)
+      if not XL_TI then return end
+      U.rec, U.want, U.say = nil, nil, nil
+      openModes(XL_TI)
+      U.mback = back
     end
     function XP.partCPick(i)
       if i == 1 then toDoc("PART C - HOW TO ANSWER", PARTC_WRITTEN)
       elseif i == 2 then toDoc("PART C - EXCEL PARTS", PARTC_EXCEL)
-      elseif i == 3 then U.bsel = 1; scr = "partB"; inval()
-      elseif i == 4 then XP.openPartA()
-      elseif i == 5 then U.tsel = 1; scr = "theory"; inval() end
+      elseif i == 3 then XP.openExcel("partC")
+      elseif i == 4 then U.bsel = 1; scr = "partB"; inval()
+      elseif i == 5 then XP.openPartA()
+      elseif i == 6 then U.tsel = 1; scr = "theory"; inval() end
     end
     local function homePick(i)
       local h = HOME[i]
       if not h then return end
-      U.rec = nil   -- any new start from home ends a multi-step question
+      U.rec, U.mback = nil, nil   -- any new start from home ends a multi-step question
       if h.open then h.open(); return end
+      if h.k == "X" then XP.openExcel("home"); return end
       if h.k == "A" then XP.openPartA(); return
       elseif h.k == "B" then U.bsel = 1; scr = "partB"
       elseif h.k == "C" then U.csel = 1; scr = "partC"
@@ -750,7 +764,8 @@
       if scr == "home" then return end
       if scr == "menu" or scr == "theory" or scr == "search" or scr == "recipes" or scr == "weeks" or scr == "partB" or scr == "partC" or scr == "doclist" then scr = "home"; U.rec = nil
       elseif scr == "recipe" then scr = "recipes"; U.rec = nil
-      elseif scr == "modes" then scr = "menu"
+      elseif scr == "modes" then
+        if U.mback then scr = U.mback; U.mback = nil else scr = "menu" end   -- opened from home X / Part B / Part C
       elseif scr == "roots" then
         if U.rlev == 2 then U.rlev, U.rsel = 1, U.rg else scr = "home" end
       elseif scr == "finder" then
@@ -898,7 +913,7 @@
         return
       end
       if scr == "home" then
-        local i = math.floor((my - 23) / 13) + 1
+        local i = math.floor((my - 23) / 12) + 1   -- the same row height as paintHome
         if HOME[i] and my >= 23 then if i == U.homeSel then homePick(i) else U.homeSel = i; inval() end end
         return
       end

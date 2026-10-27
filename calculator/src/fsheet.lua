@@ -248,6 +248,7 @@ do
     { "mm1", "ru", "re", "rura", "vl", "its", "pvits", "ret2", "wacct", "perp", "pva" },
     { "fcf", "salv", "npv", "irr", "lam", "interp" },
     {},
+    { "fcf", "salv", "npv", "irr", "pv" },   -- 24 Excel tables (Part C)
   }
 
   local function sorted(ids)

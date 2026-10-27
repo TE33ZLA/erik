@@ -304,34 +304,51 @@ NPV new = $231,818.18]],
   end
 
   -- v23: commit now, or wait until you know and pay (a different amount) only if it went well
-  local function solveWait(V, out)
+  -- the numbers come from XLCALC.wait, shared with the Excel tables page (t_excel.lua)
+  XLCALC = XLCALC or {}
+  XLCALC.outcomes = outcomes
+  function XLCALC.wait(V)
     local r, t = V.r, V.t
     if V.tm then t = V.tm / 12 end
     if not (V.c0 and V.vg and V.pg and V.cw and t and r) then
-      out:need("the cost now, the value if it goes well and its chance, the cost if you wait, the months (or years) and r")
-      return
+      return nil, "need", "the cost now, the value if it goes well and its chance, the cost if you wait, the months (or years) and r"
     end
     local p, vb = V.pg, V.vb or 0
-    if p < 0 or p > 1 then out:err("the chance must be between 0% and 100%"); return end
-    local df = (1 + r) ^ t
+    if p < 0 or p > 1 then return nil, "err", "the chance must be between 0% and 100%" end
+    local W = { r = r, t = t, p = p, vb = vb, df = (1 + r) ^ t }
+    W.E = p * V.vg + (1 - p) * vb
+    W.pvNow = W.E / W.df
+    W.npvNow = W.pvNow - V.c0
+    W.gw, W.bw = math.max(V.vg - V.cw, 0), math.max(vb - V.cw, 0)
+    W.Ew = p * W.gw + (1 - p) * W.bw
+    W.npvWait = W.Ew / W.df
+    return W
+  end
+  local function solveWait(V, out)
+    local W, how, msg = XLCALC.wait(V)
+    if not W then
+      if how == "need" then out:need(msg) else out:err(msg) end
+      return
+    end
+    local r, t, p, vb, df = W.r, W.t, W.p, W.vb, W.df
     out:head("TIMING")
     if V.tm then out:row("t (years)", t, "years", "months/12 = " .. P(V.tm) .. "/12", "t") end
     out:note("assumed: the value AND the later cost both come at t = " .. P(t) .. " years (when you find out); the cost now is paid today")
     out:note("r is a yearly EAR, so divide by (1 + r)^t even when t is part of a year")
     out:head("COMMIT NOW")
-    local E = p * V.vg + (1 - p) * vb
+    local E = W.E
     out:row("expected value at t", E, "$", P(p) .. " x " .. P(V.vg) .. " + " .. P(1 - p) .. " x " .. P(vb), "Enow")
     out:row("PV of the expected value", E / df, "$", "E/(1 + r)^t = " .. P(E) .. "/" .. P(1 + r) .. "^" .. P(t), "PVnow")
-    local npvNow = E / df - V.c0
+    local npvNow = W.npvNow
     out:row("NPV (commit now)", npvNow, "$", "PV - cost now = " .. P(E / df) .. " - " .. P(V.c0), "npvNow")
     out:head("WAIT, THEN DECIDE")
-    local gw, bw = math.max(V.vg - V.cw, 0), math.max(vb - V.cw, 0)
+    local gw, bw = W.gw, W.bw
     out:row("if it goes well: go ahead", gw, "$", "max(" .. P(V.vg) .. " - " .. P(V.cw) .. ", 0)", "waitG")
     out:row("if it goes badly: " .. ((bw > 0) and "go ahead" or "walk away, pay nothing"), bw, "$",
             "max(" .. P(vb) .. " - " .. P(V.cw) .. ", 0)", "waitB")
-    local Ew = p * gw + (1 - p) * bw
+    local Ew = W.Ew
     out:row("expected value at t", Ew, "$", P(p) .. " x " .. P(gw) .. " + " .. P(1 - p) .. " x " .. P(bw), "Ewait")
-    local npvWait = Ew / df
+    local npvWait = W.npvWait
     out:row("NPV (wait)", npvWait, "$", "E/(1 + r)^t = " .. P(Ew) .. "/" .. P(1 + r) .. "^" .. P(t) .. "  (nothing is paid today)", "npvWait")
     out:head("DECISION")
     out:row("value of waiting = NPV(wait) - NPV(now)", npvWait - npvNow, "$", P(npvWait) .. " - " .. P(npvNow), "optw")

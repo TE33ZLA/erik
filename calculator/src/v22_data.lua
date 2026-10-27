@@ -9,6 +9,7 @@
 --@include t_week10.lua
 --@include t_replace.lua
 --@include t_week12.lua
+--@include t_excel.lua
 
 -- notes pages of the new types, laid out like the first ten
 for i2 = 11, #TYPES do
@@ -21,7 +22,7 @@ end
 GROUPS = {
   { t = "Wk 1-2  Time value of money", s = "lump sums, annuities, loans, rates", types = { 1, 2, 3, 10 } },
   { t = "Wk 3    Bonds and shares", s = "price, yield, sold early, dividends", types = { 4, 5, 6 } },
-  { t = "Wk 4-5  Projects and cash flows", s = "NPV, IRR, payback, PI, EAA, FCF, replacement", types = { 7, 8, 9, 22 } },
+  { t = "Wk 4-5  Projects and cash flows", s = "NPV, IRR, payback, PI, EAA, FCF, replacement, Excel tables", types = { 7, 8, 9, 22, XL_TI } },
   { t = "Wk 7    Project risk", s = "break-even, scenarios, trees, probabilities", types = { 11, 12, 13 } },
   { t = "Wk 8    Working capital", s = "days, cycles, trade credit, credit policy", types = { 14, 15, 16 } },
   { t = "Wk 9    Risk and return", s = "returns, SD, portfolios, beta, CAPM", types = { 17, 18, 19 } },
@@ -231,6 +232,7 @@ FINDER = {
         { t = "STEPS: a rate (WACC or beta), then NPV", s = "the WACC or the project's own beta, then the NPV of its cash flows", recipe = "Project NPV:" },
         { t = "STEPS: different lives: NPV, then EAA", s = "cash flows of two projects with different lives: each NPV, then the EAA", recipe = "Different lives" },
         { t = "replace an old machine (the whole table)", go = { type = 22 } },
+        { t = "Excel (Part C): the year-by-year FCF table", s = "items down, years across, each cell's formula; X on home", go = { type = XL_TI, set = { mode = "cash-flow table: a replacement" } } },
         { t = "a graph of NPV against the rate", go = { type = 7, set = { cmp = "graph" } } },
         { t = "which method or rule is right?", theory = "npv" },
       } } },
@@ -244,6 +246,7 @@ FINDER = {
         { t = "the NPV with uncertain cash flow", go = { type = 12, set = { mode = "project" } } },
         { t = "sell (abandon) or keep", go = { type = 12, set = { mode = "sell" } } },
         { t = "act now or wait (book now or wait and see)", go = { type = 12, set = { mode = "act" } } },
+        { t = "Excel (Part C): a decision tree table", s = "one row per branch: probability, cash flow, when, PV; X on home", go = { type = XL_TI, set = { mode = "decision tree: act now" } } },
         { t = "a joint or 'given' probability", go = { type = 13 } },
       } } },
     { t = "WORKING CAPITAL, trade credit", s = "'inventory days', '2/10 net 30'", kids = {
@@ -333,6 +336,15 @@ B  Part B, numbers: every way to the
 C  Part C, written + Excel: how to
    answer number and 'why' parts, how to
    lay out an Excel table or tree.
+X  Excel tables (Part C): type the
+   question's few numbers, ENTER: the
+   answer IS the Excel table. Cash flows:
+   items down, Year 0 ... Year n across
+   (FCF row and NPV first). Trees: one
+   row per branch (probability, cash
+   flow, when, PV). T shows the table;
+   left/right moves along the years,
+   the bottom says each cell's formula.
 W  the weeks list (or press 1-8 on home)
 F  Find my question: answer 2 short
    questions; the right solver opens

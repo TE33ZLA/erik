@@ -11,7 +11,7 @@
 ----------------------------------------------------------------------
 
 if platform then platform.apilevel = "2.0" end
-local VERSION = "v27"
+local VERSION = "v28"
 
 ----------------------------------------------------------------------
 -- 1. SMALL HELPERS + NUMBER FORMATTING
@@ -4617,7 +4617,7 @@ if platform then
         end
       end
     end
-    if curTbl then
+    if curTbl and not curTbl.wide then   -- a wide (Excel) table says so itself, under its first answers
       table.insert(rlines, 1, { kind = "note", text = "press T for the table + how each cell was solved" })
     end
     if #rlines == 0 then
@@ -4770,6 +4770,10 @@ if platform then
 
   -- table geometry: label column + value columns spread over the width
   local function colX(ci)
+    if curTbl and curTbl.wide then
+      -- a wide table (Excel layout): the labels keep their column, the others scroll sideways from column c0
+      return curTbl.lw + (ci - (curTbl.c0 or 1)) * curTbl.cw + 3, curTbl.cw
+    end
     local nc = curTbl and #curTbl.cols or 1
     local cw = math.floor((SW - 46) / nc)
     return 46 + (ci - 1) * cw, cw
@@ -4897,7 +4901,7 @@ if platform then
   end
 
   local TROWH = 15
-  local function tVisRows() return math.max(1, math.floor((SH - 38 - 66) / TROWH)) end
+  local function tVisRows() return math.max(1, math.floor((SH - 38 - 66) / ((curTbl and curTbl.wide) and 13 or TROWH))) end
 
   local function clampT()
     if not curTbl then return end
@@ -4907,16 +4911,49 @@ if platform then
     local vis = tVisRows()
     if tRow - 1 < scrollT then scrollT = tRow - 1 end
     if tRow > scrollT + vis then scrollT = tRow - vis end
+    if curTbl.wide then   -- the columns that fit beside the labels; keep the picked one in view
+      curTbl.nv = math.max(1, math.floor((SW - curTbl.lw) / curTbl.cw))
+      local c0 = curTbl.c0 or 1
+      if tCol < c0 then c0 = tCol end
+      if tCol > c0 + curTbl.nv - 1 then c0 = tCol - curTbl.nv + 1 end
+      curTbl.c0 = math.max(1, math.min(c0, math.max(1, nc - curTbl.nv + 1)))
+    end
   end
 
   local function paintTable(gc)
-    bar(gc, TYPES[curT].name .. " - TABLE", "arrows or click a cell | ESC back")
+    bar(gc, TYPES[curT].name .. " - TABLE", (curTbl and curTbl.hint) or "arrows or click a cell | ESC back")
     if not curTbl then return end
+    local wide = curTbl.wide
+    local rh = wide and 13 or TROWH
+    if wide then clampT() end
     gc:setFont("sansserif", "r", 9)
     gc:setColorRGB(COL.dim[1], COL.dim[2], COL.dim[3])
     for ci, c in ipairs(curTbl.cols) do
       local x = colX(ci)
-      gc:drawString(c.k .. ((c.u ~= "") and (" " .. c.u:sub(1, 1)) or ""), x, 24, "top")
+      if not wide then
+        gc:drawString(c.k .. ((c.u ~= "") and (" " .. c.u:sub(1, 1)) or ""), x, 24, "top")
+      elseif x >= curTbl.lw and x + curTbl.cw <= SW + 4 then
+        gc:setFont("sansserif", (ci == tCol) and "b" or "r", 9)
+        gc:setColorRGB(COL.head[1], COL.head[2], COL.head[3])
+        gc:drawString(c.k, x, 24, "top")
+      end
+    end
+    if wide then   -- more years to the left / right; a line between the labels and the numbers
+      gc:setFont("sansserif", "b", 9)
+      gc:setColorRGB(COL.need[1], COL.need[2], COL.need[3])
+      local c0 = curTbl.c0 or 1
+      if c0 > 1 then gc:drawString("<", curTbl.lw - 9, 24, "top") end
+      if c0 + (curTbl.nv or 1) - 1 < #curTbl.cols then gc:drawString(">", SW - 8, 24, "top") end
+      gc:setFont("sansserif", "r", 9)
+      gc:setColorRGB(COL.dim[1], COL.dim[2], COL.dim[3])
+      gc:drawString("item", 2, 24, "top")
+      gc:setFont("sansserif", "b", 9)
+      gc:setColorRGB(COL.need[1], COL.need[2], COL.need[3])
+      local more = ((scrollT > 0) and "^" or "") .. ((scrollT + tVisRows() < #curTbl.rows) and "v" or "")
+      if more ~= "" then gc:drawString(more .. " rows", 28, 24, "top") end
+      gc:setColorRGB(COL.dim[1], COL.dim[2], COL.dim[3])
+      gc:drawLine(curTbl.lw - 1, 36, curTbl.lw - 1, 38 + tVisRows() * rh)
+      gc:drawLine(2, 36, SW - 2, 36)
     end
     local y = 38
     local vis = tVisRows()
@@ -4925,23 +4962,31 @@ if platform then
       if ri == tRow then
         local x, cw = colX(tCol)
         gc:setColorRGB(COL.selBg[1], COL.selBg[2], COL.selBg[3])
-        gc:fillRect(x - 3, y - 1, cw, TROWH)
+        if wide then gc:fillRect(0, y - 1, curTbl.lw - 2, rh) end
+        gc:fillRect(x - 3, y - 1, cw, rh)
       end
-      gc:setFont("sansserif", "r", 9)
+      gc:setFont("sansserif", (wide and (rw.em or ri == tRow)) and "b" or "r", 9)
       gc:setColorRGB(COL.text[1], COL.text[2], COL.text[3])
-      gc:drawString(rw.label, 2, y, "top")
+      local lab = rw.label
+      if wide then
+        while #lab > 3 and gc:getStringWidth(lab) > curTbl.lw - 5 do lab = lab:sub(1, -2) end
+      end
+      gc:drawString(lab, 2, y, "top")
+      gc:setFont("sansserif", (wide and rw.em) and "b" or "r", 9)
       gc:setColorRGB(COL.val[1], COL.val[2], COL.val[3])
       for ci, c in ipairs(curTbl.cols) do
         local x = colX(ci)
-        gc:drawString(cellStr(rw.vals[ci], c.u), x, y, "top")
+        if not wide or (x >= curTbl.lw and x + curTbl.cw <= SW + 4) then
+          gc:drawString(cellStr(rw.vals[ci], c.u), x, y, "top")
+        end
       end
-      y = y + TROWH
+      y = y + rh
     end
-    if scrollT + vis < #curTbl.rows then
+    if scrollT + vis < #curTbl.rows and not wide then
       gc:setColorRGB(COL.dim[1], COL.dim[2], COL.dim[3])
       gc:drawString("v", SW - 10, y - 4, "top")
     end
-    y = 38 + vis * TROWH + 2
+    y = 38 + vis * rh + 2
     gc:setColorRGB(COL.dim[1], COL.dim[2], COL.dim[3])
     gc:drawLine(2, y, SW - 2, y)
     y = y + 3
@@ -4951,11 +4996,21 @@ if platform then
       local val = rw.vals[tCol]
       gc:setFont("sansserif", "b", 10)
       gc:setColorRGB(COL.head[1], COL.head[2], COL.head[3])
-      gc:drawString(rw.label .. "  " .. c.k .. " = " .. (val and fmtU(val, c.u) or "-"), 6, y, "top")
+      local top = rw.label .. "  " .. c.k .. " = " .. (val and fmtU(val, (c.u == "$0") and "$" or c.u) or "-")
+      if wide and gc:getStringWidth(top) > SW - 8 then gc:setFont("sansserif", "b", 9) end
+      gc:drawString(top, 6, y, "top")
       y = y + 16
       gc:setColorRGB(COL.text[1], COL.text[2], COL.text[3])
       local how = rw.how[tCol] or ""
-      if how:find("=") or how:find("%^") then
+      if wide then
+        gc:setFont("sansserif", "r", 9)
+        if how == "" then how = "(blank in Excel: nothing in this year)" end
+        for _, ln2 in ipairs(wrap(how, 54)) do
+          if y > SH - 24 then break end
+          gc:drawString(ln2, 6, y, "top")
+          y = y + 11
+        end
+      elseif how:find("=") or how:find("%^") then
         y = y + drawMathLine(gc, how, 6, y, 10, SW - 12)
       else
         gc:setFont("sansserif", "r", 9)
@@ -5365,13 +5420,14 @@ if platform then
       end
     elseif scr == "table" then
       if curTbl then
-        local ri = scrollT + math.floor((my - 38) / TROWH) + 1
-        if ri >= 1 and ri <= #curTbl.rows and my >= 37 then
+        local ri = scrollT + math.floor((my - 38) / (curTbl.wide and 13 or TROWH)) + 1
+        if ri >= 1 and ri <= #curTbl.rows and my >= 37 and ri <= scrollT + tVisRows() then
           tRow = ri
           local c = 1
           for ci = #curTbl.cols, 1, -1 do
             if mx >= colX(ci) - 3 then c = ci; break end
           end
+          if curTbl.wide and mx < curTbl.lw then c = tCol end   -- a click on a label keeps the year
           tCol = c
           clampT()
           inval()
@@ -5419,6 +5475,10 @@ if platform then
     if cl == "h" and scr ~= "help" then toHelp(); return end
     if scr == "result" and cl == "t" and curTbl then
       tRow, tCol, scrollT = 1, 1, 0
+      curTbl.c0 = 1
+      if curTbl.wide then   -- the first year with a number in the first row (Year 0 stays in view)
+        for c = 1, #curTbl.cols do if curTbl.rows[1] and curTbl.rows[1].vals[c] ~= nil then tCol = c; break end end
+      end
       scr = "table"
       inval()
       return

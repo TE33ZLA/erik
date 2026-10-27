@@ -104,8 +104,9 @@ PARTC_EXCEL = [[## PART C: EXCEL PARTS
 6. Under the table: NPV =
    =NPV(rate, Year 1 to Year n FCF) +
    Year 0 FCF. Only if it is asked.
-Solver check: home 3, 4 (replacement)
-then T for the table.
+Solver: home X, 1 (replacement) or 2 (a
+new project): the answer IS this table,
+T shows it with each cell's formula.
 
 ## A DECISION TREE
 1. Today: a square = a decision. One
@@ -123,5 +124,6 @@ then T for the table.
    them (formulas, not typed totals).
 7. End with the decision in words, in a
    cell: which choice, and its value.
-Solver check: home 4, 2, 5 (act now or
-wait).]]
+Solver: home X, 3 (act now or wait) or
+4 (chance and decision nodes): one row
+per branch, T shows the table.]]
