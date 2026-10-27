@@ -340,6 +340,11 @@ if 'WACC' not in check_screen('home 7'): fails.append('the week number 7 on home
 home(); key('charIn', 'w'); key('charIn', '6')
 if 'Risk and return' not in check_screen('weeks 6'): fails.append('W then 6 does not open Week 9')
 
+# the tenth kind is on key 0 (Cost of capital: ALL parts on one page)
+for _ in range(7): key('escapeKey')
+key('charIn', '7'); key('charIn', '1'); key('charIn', '0')
+if 'debt weight (%)' not in check_screen('7 1 0'): fails.append('key 0 does not open the tenth kind (ALL parts)')
+
 # glossary: jump through letters and open one entry per letter
 for _ in range(4): key('escapeKey')
 key('charIn', 'g')

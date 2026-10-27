@@ -50,7 +50,7 @@ RECIPES = {
     } },
   { t = "WACC from scratch: rE, rD, rP, then WACC",
     s = "'beta', 'bond price' or 'YTM', 'preference dividend', then 'cost of capital' or 'WACC'",
-    how = "Work out each cost on its own page (any order), then the WACC page has them typed in. Skip a step if its cost is given.",
+    how = "All parts on ONE page: 7, 1, 0. Or one cost per step below; the WACC page gets them typed in",
     words = "overall cost of capital | cost of preferred equity | preferred stock | cost of ordinary equity | after-tax rD | cost of debt after tax | bond price to wacc | yield to maturity | capital structure weights",
     steps = {
       { t = "rE: cost of equity", page = "7, 1, 3", go = { type = 20, set = { mode = "rE:" } }, take = { reC = "re", reD = "re" }, read = { "reC", "reD" },

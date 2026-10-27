@@ -8,8 +8,8 @@ do
   local M20 = { wacc = "the WACC", weights = "the weights (E/V, P/V, D/V)", re = "rE: cost of equity",
                 rd = "rD: cost of debt (one bond)", rd2 = "rD: cost of debt (two bond issues)", rp = "rP: cost of preference shares",
                 bookmv = "book AND market weights", proj = "which projects to accept (betas)",
-                npv = "a project's NPV (WACC, issue costs)" }
-  local MODES20 = { M20.wacc, M20.weights, M20.re, M20.rd, M20.rd2, M20.rp, M20.bookmv, M20.proj, M20.npv }
+                npv = "a project's NPV (WACC, issue costs)", all = "ALL parts: rD, rP, rE, WACC, projects" }
+  local MODES20 = { M20.wacc, M20.weights, M20.re, M20.rd, M20.rd2, M20.rp, M20.bookmv, M20.proj, M20.npv, M20.all }
   local function mCount(s) return tonumber(tostring(s or "1"):match("^%d+")) or 1 end
   -- a bond's yield per coupon period, from its price as a fraction of face (0.95 = 95%)
   local function yieldOf(cpn, yrs, frac, m)
@@ -19,6 +19,70 @@ do
   end
   local function solveWACC(V, out)
     local mode = V.mode or M20.wacc
+    if mode == M20.all then
+      -- the classic cost of capital question on ONE page, answered in its usual order:
+      -- (a) cost of debt, (b) preference, (c) equity, (d) the WACC with the target weights, (e) projects of the same risk
+      local Tc = V.Tc or 0
+      out:head("(a) COST OF DEBT")
+      local rd = V.rd
+      if not rd and V.cpn and V.yrs and V.ppct then
+        local m = mCount(V.m)
+        local y = yieldOf(V.cpn, V.yrs, V.ppct, m)
+        if y then
+          rd = (1 + y) ^ m - 1
+          out:row("rD from the bond price", rd, "%", "yield per period " .. pct(y) .. "%, yearly (1 + y)^" .. m .. " - 1 (APR: " .. pct(y * m) .. "%)", "rd")
+        end
+      elseif rd then
+        out:row("rD pre-tax = the YTM", rd, "%", "the yield to maturity (NOT the coupon rate)", "rd")
+      end
+      if rd then
+        out:row("rD after tax", rd * (1 - Tc), "%", "rD x (1 - Tc) = " .. pct(rd) .. "% x " .. P(1 - Tc), "rdat")
+      else out:need("(a) the YTM of the bonds (or a bond's coupon %, years left and price % of face)") end
+      out:head("(b) COST OF PREFERENCE SHARES")
+      local rp
+      if V.divp and V.pp then
+        rp = V.divp / (V.pp - (V.pfc or 0))
+        out:row("rP", rp, "%", "DIVp/Pp = " .. P(V.divp) .. "/" .. P(V.pp - (V.pfc or 0)) .. " (no tax adjustment)", "rp")
+      else out:note("(b) none, or type the preference dividend and its price") end
+      out:head("(c) COST OF ORDINARY EQUITY")
+      local re
+      if V.rf and V.beta and (V.mrp or V.rm) then
+        local mrp = V.mrp or (V.rm - V.rf)
+        re = V.rf + V.beta * mrp
+        out:row("rE (CAPM)", re, "%", "rf + beta x premium = " .. pct(V.rf) .. "% + " .. P(V.beta) .. " x " .. pct(mrp) .. "%", "re")
+        out:uses("capm")
+      elseif (V.D0 or V.D1) and V.P0 and V.g then
+        local D1 = V.D1 or V.D0 * (1 + V.g)
+        re = D1 / V.P0 + V.g
+        out:row("rE (dividend growth)", re, "%", "D1/P0 + g = " .. P(D1) .. "/" .. P(V.P0) .. " + " .. pct(V.g) .. "%", "re")
+      else out:need("(c) rf, beta and the market premium (or E[RM]); or D0, P0 and g") end
+      out:head("(d) THE WACC")
+      local wD, wP, wE = V.wD2, V.wP2 or 0, V.wE2
+      if not (wD and wE) then out:need("(d) the weights: debt %, preference % and equity % (the target capital structure)"); return end
+      local tot = wD + wP + wE
+      if math.abs(tot - 1) > 0.001 then out:add("bad", "CHECK: the weights add to " .. pct(tot) .. "%, not 100%") end
+      if not (rd and re and (rp or wP == 0)) then out:need("(d) the costs in (a), (b) and (c) first"); return end
+      local w = wD * rd * (1 - Tc) + wP * (rp or 0) + wE * re
+      out:row("WACC", w, "%", "wD x rD(1 - Tc) + wP x rP + wE x rE = " .. pct(wD) .. "% x " .. pct(rd * (1 - Tc)) .. "% + " ..
+              pct(wP) .. "% x " .. pct(rp or 0) .. "% + " .. pct(wE) .. "% x " .. pct(re) .. "%", "wacc")
+      out:uses("wacc")
+      out:head("(e) WHICH PROJECTS (same risk as the firm)")
+      local np = 0
+      for k = 1, 5 do
+        local ir = V[(k == 1) and "irr" or ("irr" .. k)]
+        if ir then
+          np = np + 1
+          local ok = ir >= w - 1e-12
+          out.vals["acc" .. k] = ok and 1 or 0
+          out:add(ok and "ok" or "bad", "project " .. k .. ": " .. pct(ir) .. "% " .. (ok and ">=" or "<") .. " WACC " .. pct(w) .. "%: " .. (ok and "ACCEPT" or "REJECT"))
+        end
+      end
+      if np > 0 then
+        out:note("why: same risk as the firm, so the WACC is the hurdle rate: a return above it -> NPV > 0")
+        out:note("no limit on money: accept EVERY project above the WACC")
+      else out:note("(e) type each project's rate of return in the project boxes (in order: 1 = A, 2 = B, ...)") end
+      return
+    end
     if mode == M20.re then
       local any = false
       if V.rf and V.beta and (V.rm or V.mrp) then
@@ -354,6 +418,7 @@ do
       S("face", "bond face value ($)", "money", nil, nil, "1000"),
       S("m", "coupons a year", "choice", { "1 (annual)", "2 (semi-annual)", "4 (quarterly)" }, 1),
       S("divp", "preference dividend ($)", "money"),
+      S("wD2", "debt weight (%)", "pct"), S("wP2", "preference weight (%)", "pct"), S("wE2", "equity weight (%)", "pct"),
       S("divpct", "or: dividend % of par", "pct"), S("par", "and par value ($)", "money"),
       S("pp", "preference share price ($)", "money"), S("pfc", "issue cost per share ($)", "money"),
       S("bvps", "book value per share ($)", "money"), S("BE", "or: book equity total ($)", "money"),
@@ -385,12 +450,15 @@ do
       "'book-value AND market-value weights': book value per share, bonds' face and price %",
       "projects with their OWN betas: the SML vs the WACC. Same risk as the firm? 1 the WACC",
       "a project's cash flows at the WACC (+/- a risk adjustment), or a given NPV less issue costs",
+      "a long question: (a) rD (b) rP (c) rE (d) the WACC from the weights (e) which projects: all on ONE page",
     },
     desc = "WACC, cost of equity (CAPM or dividend growth), cost of debt (YTM, effective, after tax), preference shares, book vs market weights, several bond issues, projects vs the SML, project NPV at the WACC",
     looks = "WACC | cost of equity | cost of debt | after-tax | pretax | preference shares | preferred stock | preferred equity | preferred shares | overall cost of capital | market values | book values | capital structure weights | target capital structure | two bond issues | percent of par | security market line | hurdle rate | incorrectly accepted | incorrectly rejected | adjustment factor | flotation costs | issuance costs | cost savings grow",
     slots = slots20,
     vis = function(Sm)
       local m = Sm.mode.opts[Sm.mode.idx]
+      if m == M20.all then return { "mode", "wD2", "wP2", "wE2", "Tc", "rd", "cpn", "yrs", "ppct", "divp", "pp", "rf", "beta", "mrp", "rm",
+                                     "D0", "P0", "g", "irr", "irr2", "irr3", "irr4", "irr5" } end
       if m == M20.weights then return { "mode", "E", "nE", "pE", "D", "nD", "pD", "DE", "Pv" } end
       if m == M20.re then return { "mode", "rf", "beta", "rm", "mrp", "D0", "D1", "P0", "g", "h1", "h2", "h3", "h4", "h5" } end
       if m == M20.rd then return { "mode", "rd", "cpn", "yrs", "price", "ppct", "face", "m", "Tc" } end
@@ -402,6 +470,8 @@ do
       return { "mode", "E", "nE", "pE", "D", "nD", "pD", "DE", "Pv", "re", "rd", "rp", "Tc", "irr", "irr2", "irr3", "irr4", "irr5" }
     end,
     hints = {
+      wD2 = "debt's share of the capital structure, e.g. 30", wP2 = "preference share's %, e.g. 10 (none: blank)",
+      wE2 = "ordinary (common) equity's %, e.g. 60",
       mode = "left/right changes the kind; ESC: back to the list",
       E = "market value of equity, or its WEIGHT, e.g. 65 (for 65%)",
       nE = "or shares on issue x share price",
@@ -468,6 +538,9 @@ Pick by what the question ASKS for:
   with its own beta)
 9 a project's NPV (WACC, or a given
   NPV less issue costs)
+0 ALL parts on one page: (a) rD,
+  (b) rP, (c) rE, (d) the WACC from the
+  weights, (e) which projects
 The grey line under the list says
 when to pick each one.
 

@@ -99,7 +99,7 @@
       local rows = {}
       for _, o in ipairs(sl.opts) do rows[#rows + 1] = { t = o } end
       if U.msel > #rows then U.msel = #rows end
-      drawRows(gc, rows, U.msel, 40, 14, SH - 39, function(i) return tostring(i) end)
+      drawRows(gc, rows, U.msel, 40, 14, SH - 39, function(i) return (i == 10) and "0" or tostring(i) end)
       -- when to pick the highlighted kind (two lines), so the right one is clear
       setc(gc, COL.dim); gc:drawLine(2, SH - 39, SW - 2, SH - 39)
       note(gc, (qt.modeHelp and qt.modeHelp[U.msel]) and ("PICK WHEN: " .. qt.modeHelp[U.msel]) or "ENTER opens a page with only the boxes this kind needs", SH - 37)
@@ -768,7 +768,7 @@
       end
       if scr == "modes" then
         local d = tonumber(ch)
-        if d then pickMode(d); return end
+        if d then pickMode(d == 0 and 10 or d); return end   -- 0 = the tenth kind
         curT = U.mt
         if cl == "n" then toNotes() elseif cl == "a" then toAssume() elseif cl == "w" then toWorked()
         elseif cl == "h" then toHelp() elseif cl == "g" then toGlossary() elseif cl == "l" then toLegend()
