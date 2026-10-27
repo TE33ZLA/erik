@@ -83,6 +83,36 @@ More risk -> a higher average return.
 IN QUESTIONS: 'lowest level of risk',
 'least risky', 'most volatile'.
 -> TYPE 17
+## prime cost vs diminishing value
+two ways to depreciate for tax.
+prime cost = STRAIGHT LINE: the same
+amount every year = cost x rate, e.g.
+20% of 100k = 20k a year for 5 years.
+diminishing value (DV): the rate x the
+book value LEFT, so it shrinks each
+year (20% of 100k, then of 80k, ...).
+IN QUESTIONS: '20% on prime cost',
+'straight line over 5 years'.
+-> TYPE 9
+## tax refund on a loss (sold below book)
+sell an asset for LESS than its book
+value: the loss cuts the firm's tax.
+refund = (book value - sale) x Tc,
+e.g. book 60k, sold 50k, tax 30%: a
+10k loss -> 3k less tax (a cash IN).
+Sold ABOVE book value: tax on the gain.
+Both are the after-tax salvage line:
+SV - (SV - BV) x Tc.
+-> TYPE 22
+## cost avoided (a saving)
+a cost you would pay ONLY if you keep
+the old way, e.g. a repair the old
+machine would need. Replace it and you
+avoid it: count it as a SAVING (cash in)
+in the year it would have happened,
+before tax if it would have been
+expensed.
+-> TYPE 22
 ## capital structure
 the mix of money raised from INVESTORS:
 debt (loans, bonds), preference shares
