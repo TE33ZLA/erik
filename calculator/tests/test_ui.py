@@ -151,8 +151,13 @@ for q, want in [("Which of the following are included in a firm's capital struct
     for _ in range(4): key('escapeKey')
     key('charIn', 's')
     app.type(q)
-    top = G.CORE.U.hits[1].e.t if len(G.CORE.U.hits) else ''
-    if want.lower() not in str(top).lower(): fails.append(f'search {q!r}: first hit is {top!r}')
+    hits = [G.CORE.U.hits[i] for i in range(1, len(G.CORE.U.hits) + 1)]
+    # the card is found, and the groups come in order: meaning / what decides it, then pages, then examples (with numbers)
+    pos = next((i for i, h in enumerate(hits) if want.lower() in str(h.e.t).lower()), None)
+    if pos is None: fails.append(f'search {q!r}: the card {want!r} is not listed')
+    cats = [h.cat for h in hits]
+    if cats != sorted(cats): fails.append(f'search {q!r}: the groups are out of order {cats}')
+    if pos is not None: G.CORE.U.hsel = pos + 1
     key('enterKey'); t = check_screen(f'search {q!r} opened')
     if want == 'included in a firm' and 'NOT IN' not in t: fails.append(f'search {q!r}: the answer is not on the page')
 
@@ -288,7 +293,10 @@ if not sl['rd'].buf.startswith('7.825') or sl['Tc'].buf != '28': fails.append(f"
 # search finds a multi-step question by the question's words; ENTER opens its steps
 for _ in range(6): key('escapeKey')
 key('charIn', 's'); app.type('billing firm charges')
-if not str(G.CORE.U.hits[1].e.t).startswith('MULTI-STEP'): fails.append('search: billing firm does not find the multi-step question first')
+hits = [str(G.CORE.U.hits[i].e.t) for i in range(1, len(G.CORE.U.hits) + 1)]
+mi = next((i for i, t in enumerate(hits) if t.startswith('MULTI-STEP')), None)
+if mi is None: fails.append('search: billing firm does not list the multi-step question')
+else: G.CORE.U.hsel = mi + 1
 key('enterKey')
 if 'Steps (each opens its page)' not in check_screen('search opens a recipe'): fails.append('search: ENTER on a MULTI-STEP line does not open its steps')
 # finder leaves that are multi-step questions open their steps

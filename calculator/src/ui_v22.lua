@@ -53,7 +53,14 @@
     end
 
     ------------------------------------------------------------------ home
+    -- extra home rows a separate (private) file can add: EXTRA_HOME = { { k, t, s, open = function } }
+    local function extraHome()
+      if U.extra or not EXTRA_HOME then return end
+      for _, r in ipairs(EXTRA_HOME) do HOME[#HOME + 1] = r end
+      U.extra = true
+    end
     local function paintHome(gc)
+      extraHome()
       title(gc, "BFC2140 SOLVER " .. VERSION .. " - all weeks")
       local y = drawRows(gc, HOME, U.homeSel, 23, 13, SH - 27, function(i, r) return r.k end)
       note(gc, HOME[U.homeSel].s, SH - 26)
@@ -200,7 +207,13 @@
       for ti, qt in ipairs(TYPES) do
         local parts = { qt.name, qt.desc or "", qt.looks or "", qt.words or "" }
         if not qt.every then for _, sl in ipairs(qt.slots) do parts[#parts + 1] = sl.label end end
-        ix[#ix + 1] = { kind = 1, t = "SOLVE: " .. qt.name, text = table.concat(parts, " "):lower(), ti = ti }
+        -- the preview says what you type on that page (its first boxes)
+        local typed = {}
+        for _, sl in ipairs(qt.slots) do
+          if sl.kind ~= "choice" and #typed < 5 then typed[#typed + 1] = (sl.label:gsub("%s*%(.-%)", "")) end
+        end
+        ix[#ix + 1] = { kind = 1, t = "SOLVE: " .. qt.name, text = table.concat(parts, " "):lower(), ti = ti,
+                        prev = (#typed > 0) and ("you type: " .. table.concat(typed, ", ") .. " ...") or nil }
       end
       for ti, t in ipairs(THEORY) do
         -- the whole topic page, found by its name ('formula when', 'no taxes')
@@ -209,7 +222,8 @@
           ix[#ix + 1] = { kind = 2, t = "THEORY: " .. it.q, text = (it.q .. " " .. it.a .. " " .. (it.words or "") .. " " .. t.topic):lower(), topic = ti, item = ii,
                           prev = it.a }
         end
-        for _, r in ipairs(t.rules) do ix[#ix + 1] = { kind = 2, t = "RULE: " .. r, text = (r .. " " .. t.topic):lower(), topic = ti } end
+        -- (a rule is found by its own words; the topic's name finds the TOPIC line)
+        for _, r in ipairs(t.rules) do ix[#ix + 1] = { kind = 2, t = "RULE: " .. r, text = r:lower(), topic = ti, prev = r } end
       end
       -- the multi-step questions (M), found by the words such questions use
       for ri, R in ipairs(RECIPES or {}) do
@@ -264,14 +278,30 @@
               m = m + 1
               sc = sc + #w + ((a == 1 or e.text:sub(a - 1, a - 1):find("[%s%(]")) and 3 or 0)
               if not e.notitle and findWord(tl, w) then sc = sc + 4 end   -- the word is in the question / name itself
+              if tl:find("^%u*[%a%-]+: " .. w:gsub("%W", "%%%0")) then sc = sc + 2 end   -- the name STARTS with it ('decision node')
             end
           end
-          if m >= need then U.hits[#U.hits + 1] = { e = e, sc = m * 1000 + sc * 10 - (e.rank or e.kind) + ((partA and e.kind == 3) and 500 or 0) } end
+          if m >= need then U.hits[#U.hits + 1] = { e = e, m = m, sc = m * 1000 + sc * 10 - (e.rank or e.kind) + ((partA and e.kind == 3) and 500 or 0) } end
         end
       end
-      table.sort(U.hits, function(a, b) return a.sc > b.sc end)
+      -- three groups, in this order: what it means / what decides it; the pages to solve it; examples (cards with numbers)
+      -- inside the first group, for the same number of words matched: definitions, then rules, then topic pages, then cards
+      for _, h in ipairs(U.hits) do
+        local e = h.e
+        if e.kind == 1 or e.kind == 4 then h.cat = 2
+        elseif e.kind == 2 and e.t:find("^THEORY:") and e.t:find("[%d%$]") then h.cat = 3
+        else h.cat = 1 end
+        h.sub = (e.kind == 3) and 1 or (e.t:find("^RULE:") and 2) or (e.t:find("^TOPIC:") and 3) or 4
+      end
+      table.sort(U.hits, function(a, b)
+        if a.cat ~= b.cat then return a.cat < b.cat end
+        if a.cat == 1 and a.m ~= b.m then return a.m > b.m end
+        if a.cat == 1 and a.sub ~= b.sub then return a.sub < b.sub end
+        return a.sc > b.sc
+      end)
       while #U.hits > 40 do table.remove(U.hits) end
     end
+    local CATHEAD = { "-- WHAT IT MEANS / WHAT DECIDES IT --", "-- PAGES TO SOLVE IT (what you type) --", "-- EXAMPLES --" }
     local function paintSearch(gc)
       title(gc, (U.smode == "A") and "PART A - words from the question" or "SEARCH - type a word, ENTER opens")
       setc(gc, COL.val); gc:setFont("sansserif", "b", 11)
@@ -284,12 +314,17 @@
       elseif #U.hits == 0 then
         setc(gc, COL.need); gc:setFont("sansserif", "r", 10); gc:drawString("nothing found - try a shorter word", 6, 44, "top")
       else
-        local rows = {}
-        for _, h in ipairs(U.hits) do rows[#rows + 1] = { t = h.e.t } end
-        drawRows(gc, rows, U.hsel, 44, 15, SH - 40)
+        -- a heading row where the group changes (the cursor only lands on real lines)
+        local rows, at, cat = {}, 1, nil
+        for i, h in ipairs(U.hits) do
+          if h.cat ~= cat then cat = h.cat; rows[#rows + 1] = { t = CATHEAD[cat] or "" } end
+          rows[#rows + 1] = { t = h.e.t }
+          if i == U.hsel then at = #rows end
+        end
+        drawRows(gc, rows, at, 44, 15, SH - 40)
         local e = U.hits[U.hsel].e
-        -- Part A: a preview of the definition (or the card's answer); else the whole of the picked line
-        note(gc, (U.smode == "A" and e.prev) and (e.t:gsub("^%u+: ", "") .. ": " .. e.prev) or e.t, SH - 38)
+        -- a preview: the definition, the rule, the card's answer, or what you type on the page
+        note(gc, e.prev and (e.t:gsub("^[%u%-]+[^:]*: ", "") .. ": " .. e.prev) or e.t, SH - 38)
       end
       footer(gc, "type | up/down pick | ENTER open | ESC home")
     end
@@ -618,6 +653,7 @@
       local h = HOME[i]
       if not h then return end
       U.rec = nil   -- any new start from home ends a multi-step question
+      if h.open then h.open(); return end
       if h.k == "A" then XP.openPartA(); return
       elseif h.k == "B" then U.bsel = 1; scr = "partB"
       elseif h.k == "C" then U.csel = 1; scr = "partC"
@@ -637,7 +673,7 @@
     local old = { paint = on.paint, arrowKey = on.arrowKey, enterKey = on.enterKey, escapeKey = on.escapeKey,
                   charIn = on.charIn, backspaceKey = on.backspaceKey, mouseDown = on.mouseDown, deleteKey = on.deleteKey }
     local NEW = { home = true, menu = true, finder = true, theory = true, search = true, input = true, modes = true, roots = true,
-                  recipes = true, recipe = true, weeks = true, partB = true, partC = true }
+                  recipes = true, recipe = true, weeks = true, partB = true, partC = true, doclist = true }
 
     function on.paint(gc)
       if NEW[scr] then
@@ -650,6 +686,8 @@
         elseif scr == "finder" then paintFinder(gc)
         elseif scr == "recipes" then paintRecipes(gc)
         elseif scr == "weeks" then XP.paintWeeks(gc)
+        elseif scr == "doclist" then
+          XP.paintList2(gc, U.dl.t, "Pick one: ENTER opens it", U.dl.items, U.dsel, function(i) return (i < 10) and tostring(i) or ((i == 10) and "0" or "") end)
         elseif scr == "partB" then XP.paintPartB(gc)
         elseif scr == "partC" then XP.paintPartC(gc)
         elseif scr == "recipe" then paintRecipe(gc)
@@ -680,6 +718,7 @@
       elseif scr == "finder" then U.fsel = move(U.fsel, #fnode().opts, key)
       elseif scr == "recipes" then U.qsel = move(U.qsel, #RECIPES, key)
       elseif scr == "weeks" then U.wsel = move(U.wsel, #GROUPS, key)
+      elseif scr == "doclist" then U.dsel = move(U.dsel, #U.dl.items, key)
       elseif scr == "partB" then U.bsel = move(U.bsel, #XP.PARTB, key)
       elseif scr == "partC" then U.csel = move(U.csel, #XP.PARTC, key)
       elseif scr == "recipe" then U.ssel = move(U.ssel, #RECIPES[U.qsel].steps, key)
@@ -697,6 +736,7 @@
       elseif scr == "finder" then finderPick(U.fsel)
       elseif scr == "recipes" then U.ssel = 1; scr = "recipe"; inval()
       elseif scr == "weeks" then XP.openGroup(U.wsel)
+      elseif scr == "doclist" then local it = U.dl.items[U.dsel]; if it then toDoc(it.t, it.text) end
       elseif scr == "partB" then XP.partBPick(U.bsel)
       elseif scr == "partC" then XP.partCPick(U.csel)
       elseif scr == "recipe" then startStep(U.qsel, U.ssel)
@@ -708,7 +748,7 @@
     function on.returnKey() on.enterKey() end
     function on.escapeKey()
       if scr == "home" then return end
-      if scr == "menu" or scr == "theory" or scr == "search" or scr == "recipes" or scr == "weeks" or scr == "partB" or scr == "partC" then scr = "home"; U.rec = nil
+      if scr == "menu" or scr == "theory" or scr == "search" or scr == "recipes" or scr == "weeks" or scr == "partB" or scr == "partC" or scr == "doclist" then scr = "home"; U.rec = nil
       elseif scr == "recipe" then scr = "recipes"; U.rec = nil
       elseif scr == "modes" then scr = "menu"
       elseif scr == "roots" then
@@ -757,6 +797,12 @@
         for i, h in ipairs(HOME) do if h.k:lower() == cl then U.homeSel = i; homePick(i); return end end
         local d = tonumber(ch)
         if d and GROUPS[d] then U.rec = nil; XP.openGroup(d) end   -- a week number: straight to that week
+        return
+      end
+      if scr == "doclist" then
+        local d = tonumber(ch)
+        if d then d = (d == 0) and 10 or d; local it = U.dl.items[d]; if it then U.dsel = d; toDoc(it.t, it.text) end; return end
+        if cl == "h" then toHelp() elseif cl == "l" then toLegend() elseif cl == "g" then toGlossary() end
         return
       end
       if scr == "weeks" or scr == "partB" or scr == "partC" then
@@ -875,5 +921,8 @@
       old.mouseDown(mx, my)
     end
     CORE.U = U
+    -- a list of guide pages (title + text each): ENTER opens one, ESC comes back to the list, ESC again goes home
+    CORE.toDoc = toDoc
+    CORE.openDocList = function(t, items) U.dl, U.dsel = { t = t, items = items }, 1; scr = "doclist"; inval() end
     CORE.runSearch = runSearch
   end
