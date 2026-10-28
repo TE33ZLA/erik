@@ -39,6 +39,18 @@ The home screen:
   typed in one capital-structure world are used in the other, section 9's VL, D, VU and rU are the Tax World's (both
   ways), its rd is Cost of Capital's, and its E (when only one line gave it) goes to the Tax World and the WACC
   weights. Nothing solvable? ONE VALUE SHORT says what each formula still needs. `src/everything.lua`, `src/ui_every.lua`, tested by `tests/test_everything.py`.
+  More lines NOT on the sheet sit in their own sections, one pack per file (`src/every_core.lua` explains the
+  format): `every_s1.lua` (r = APR/m, payments that start later or now, a start amount plus payments, a loan's
+  balance and a rate change), `every_s2.lua` (price in t years, growth that changes year by year, two-stage growth,
+  level dividends then a price), `every_s3.lua` (EBIT, earnings, OCF, the year's cash flow with after-tax salvage,
+  change in NWC from the balance-sheet items, depreciation, the depreciation tax shield, tax on a sale),
+  `every_s3b.lua` (NPV with an even or growing stream, with a PV found elsewhere, with a growing tail, at the real
+  rate; payback, PI from the cost, crossover with project B, units and break-even, expected values, tree chances),
+  `every_s4.lua` (NWC, operating cycle, cost of trade credit, lockbox/float, credit policy) and `every_s5.lua`
+  (capital gains and dividend yield, holding-period and geometric returns, share j from past data or states,
+  beta from past data or Var(M), weights from dollars or shares, one share plus the risk-free asset). A 'blank = 0'
+  letter is used only when nothing else moves; a line marked 'only if ...' is listed but never passed on (e.g. the
+  annuity due). Each pack is tested by `tests/test_every_s*.py`.
 - **X  Excel tables (Part C).** The Excel parts have few inputs, so type them and the answer IS the Excel layout.
   Four kinds: 1 a replacement (old machine vs new), 2 a new project, 3 a decision tree "act now or wait", 4 a chance node
   (2-4 branches) with a choice today. Cash flows: ITEMS DOWN the rows in the order they are typed into Excel (revenue or

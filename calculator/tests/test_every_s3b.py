@@ -69,6 +69,7 @@ CASES = [   # (line, {letter: value}, letters given but never the unknown, lette
     ('s3b_psum', {'pHH': .5, 'pHL': .2, 'pLH': .05, 'pLL': .25}, [], []),
     ('s3b_phh', {'pHgH': .5 / .7, 'pHH': .5, 'pHL': .2}, [], []),
     ('s3b_phl', {'pHgL': .05 / .3, 'pLH': .05, 'pLL': .25}, [], []),
+    ('s3b_npvr', {'NPV': npvl(L3, .04), 'real': .04, **{f'NCF{t}': c for t, c in L3.items()}}, [f'NCF{t}' for t in L3] + ['real'], []),
 ]
 seen, nback = set(), 0
 for did, full, given, must in CASES:
@@ -242,6 +243,16 @@ nt = str(CORE.TYPES[EVERY.ti].notes)
 for w in ['NPV = NCF0 + PVx', 'PB = Y + (cost not yet back after year Y)/NCF(Y+1)', 'EV = p1*X1 + p2*X2 + p3*X3', 'C = ((P - v)*Q - FC - Dep)*(1 - tc) + Dep']:
     if w not in nt: fails.append(f'notes: {w!r} missing')
 
+# real cash flows: nominal + inflation (Fisher) -> real rate -> NPV listed 'only if REAL'; r typed: no real-rate NPV (own numbers)
+V = {'3:NCF0': -800, '3:NCF1': 300, '3:NCF2': 300, '3:NCF3': 300, '3:nominal': .092, '3:inflation': .05}
+out, res, errs = every(V)
+real = 1.092 / 1.05 - 1
+want = -800 + sum(300 / (1 + real) ** t for t in (1, 2, 3))
+nr = [r for r in res if r['d'] == 's3b_npvr']
+if not nr or not close(nr[0]['value'], want) or nr[0]['passed'] or not nr[0]['chained']: fails.append(f'real NPV: {nr}, want {want}')
+if 'only if the cash flows are REAL' not in ' '.join(str(r.text) for r in lt(out.rows)): fails.append('real NPV: not marked only if REAL')
+out, res, errs = every(dict(V, **{'3:r': .092}))
+if any(r['d'] == 's3b_npvr' for r in res): fails.append('real NPV: listed although r is typed')
 print(f'{len(MORE)} section 3 lines of the s3b pack: {nback} letters left out and found again')
 print(f'{len(fails)} problem(s)')
 for f in fails[:60]: print(' -', f)

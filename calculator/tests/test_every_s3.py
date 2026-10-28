@@ -181,7 +181,7 @@ for V, want in [
         ({'3:Rev': 5000}, []),
         ({'3:OCF': 5000, '3:tc': .3}, []),
         ({'3:Cost': 20000}, []),
-        ({'3:NCF0': -1000, '3:NCF1': 600, '3:NCF2': 700, '3:r': .1}, ['irr', 'npv']),
+        ({'3:NCF0': -1000, '3:NCF1': 600, '3:NCF2': 700, '3:r': .1}, ['irr', 'npv', 's3b_pb', 's3b_pi']),
         ({'3:nominal': .08, '3:inflation': .03}, ['fisher'])]:
     got = ds(V)
     if got != want: fails.append(f'noise: {V} lists {got}, want {want}')

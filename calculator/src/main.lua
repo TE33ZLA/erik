@@ -11,7 +11,7 @@
 ----------------------------------------------------------------------
 
 if platform then platform.apilevel = "2.0" end
-local VERSION = "v31"
+local VERSION = "v32"
 
 ----------------------------------------------------------------------
 -- 1. SMALL HELPERS + NUMBER FORMATTING

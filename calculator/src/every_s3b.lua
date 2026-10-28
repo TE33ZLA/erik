@@ -105,7 +105,8 @@ do
   local strm = { id = "s3b_strm", sec = 3, name = "NPV: cost + even stream", short = "NPV with a stream",
     eq = "NPV = NCF0 + NCF1/(1 + r) + ... + C/(r - g)*(1 - ((1 + g)/(1 + r))^n)/(1 + r)^(k - 1)",
     why = "the NPV line, with the same C each year (an annuity: PV = C/r*(1 - 1/(1 + r)^n), a perpetuity C/r, growing: C/(r - g)) added in place of many NCFs; a start in year k: bring it back k - 1 more years",
-    vars = cfList({ NPV, NCF0, C, r, g, n, k }, "NCF", "", 1),
+    vars = cfList({ NPV, X("NCF0", nil, NCF0.label, "money", "the cost today as a NEGATIVE. Blank = 0: the value of the stream", { weak = true }),
+                    C, r, g, n, k }, "NCF", "", 1),
     need = function(x)
       if x.r and x.g and not x.n and x.r <= x.g then return "r more than g (growth forever)" end
       if x.k and x.k < 1 then return "k = 1 or more (the year of the first C)" end
@@ -348,9 +349,21 @@ do
   local BOXB = {}
   for y = 0, 10 do BOXB[#BOXB + 1] = "3:B" .. y end
   -- the sheet's NPV / IRR lines see only part of the cash flows when a stream or a tail is typed
+  ------------------------------------------------------------------ real cash flows: the NPV at the real rate
+  local npvreal = { id = "s3b_npvr", sec = 3, name = "NPV of REAL cash flows", short = "NPV at the real rate",
+    eq = "NPV = NCF0 + NCF1/(1 + real) + ... + NCFn/(1 + real)^n",
+    why = "real cash flows (today's dollars) are discounted at the real rate; nominal cash flows at the nominal rate (Fisher: 1 + real = (1 + nominal)/(1 + inflation))",
+    vars = cfList({ NPV, X("real", nil, "real rate (%)", "pct", "growth in buying power: the rate AFTER inflation", { rate = true }) }, "NCF", ""),
+    need = function(x) if lastOf(x, "NCF") < 1 then return "the cash flows (NCF0 = the cost, negative, then NCF1, ...)" end end,
+    eqf = function(x) return "NPV = " .. terms(x, "NCF", "real") end,
+    f = function(x) return pvList(x, "NCF", x.real) - x.NPV end,
+    ex = { real = 0.04, NCF0 = -800, NCF1 = 300, NCF2 = 300, NCF3 = 300 } }
+
   local function partial(K) return K["3:C"] ~= nil or K["3:gT"] ~= nil end
   EVERY_ADD{
-    lines = { strm, pvx, tail, pi0, pb, rx, npvb, irrb, sales, qacc, dnpv, ev, evnpv, psum, phh, phl },
+    lines = { strm, pvx, tail, pi0, pb, rx, npvb, irrb, sales, qacc, dnpv, ev, evnpv, psum, phh, phl, npvreal },
+    second = { s3b_npvr = "the cash flows are REAL (in today's dollars)" },
+    weakok = { s3b_strm = { NCF0 = true } },   -- no cost typed: the value today of the stream alone
     bridges = {
       -- a year's cash flow found by another line is the stream's C (not when the EV comes once, at t)
       { "3:FCF", "3:C", false, nil, "FCF", "3:CF" },
@@ -361,9 +374,11 @@ do
       { "9:PV", "3:PVx", false, nil, "PV", "1:PV", true },
       { "1:PV", "3:X1", false, nil, "PV", nil, true },
     },
-    fam = { npv = "npvx", s3b_strm = "npvx", s3b_pvx = "npvx", s3b_tail = "npvx", s3b_evnpv = "npvx", pi = "pi", s3b_pi = "pi" },
+    fam = { npv = "npvx", s3b_npvr = "npvx", s3b_strm = "npvx", s3b_pvx = "npvx", s3b_tail = "npvx", s3b_evnpv = "npvx", pi = "pi", s3b_pi = "pi" },
     skip = {
       npv = partial, irr = partial,
+      -- the real-rate NPV: only when no rate r is typed and the real rate is known (typed, or from Fisher)
+      s3b_npvr = function(K, kn) return K["3:r"] ~= nil or kn["3:real"] == nil or partial(K) end,
       -- k typed: n counts the years of C, not the project's life
       eav = function(K) return K["3:k"] ~= nil end, npvinf = function(K) return K["3:k"] ~= nil end,
       -- payback: only a full list that pays back the cost (all costs: no line)
@@ -381,7 +396,9 @@ do
         if kn["3:C"] == nil then
           return not (any(K, { "3:g", "3:k", "3:P", "3:v", "3:Q" }) or K["3:NPV"] ~= nil and K["3:NCF0"] ~= nil and not any(K, LATER))
         end
-        return K["3:C"] == nil and any(K, LATER) or K["3:gT"] ~= nil
+        if K["3:C"] == nil and any(K, LATER) or K["3:gT"] ~= nil then return true end
+        -- no cost known: the value of the stream alone, only when its own letters (C, g, k) are typed
+        return kn["3:NCF0"] == nil and not any(K, { "3:C", "3:g", "3:k" })
       end,
       s3b_pvx = function(K, kn) return kn["3:PVx"] == nil or K["3:C"] ~= nil or K["3:gT"] ~= nil or any(K, LATER) end,
       -- PI from -NCF0: a cost today, Resource blank, some cash coming back (not a list of costs only)
