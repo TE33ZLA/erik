@@ -43,6 +43,11 @@ do
   local xTc = xs("Tc", nil, "Tc company tax rate (%)", "pct", "the company tax rate, e.g. 30")
   local xrd = xs("rd", nil, "rd PRE-tax cost of debt (%)", "pct", "the yield on the debt, before tax")
   local xrdat = xs("rdat", "rd_at", "rd_at after-tax cost of debt (%)", "pct", "what the debt really costs after tax: rd x (1 - Tc)")
+  local xPV2 = xs("PV", nil, "PV value today, both stages ($)", "money", "today's value of n years of C, then growth forever")
+  local xC2 = xs("C", nil, "C cash flow each year, years 1 to n ($)", "money", "the SAME cash flow each year for n years (e.g. the FCF)")
+  local xr2 = xs("r", nil, "r discount rate (%)", "pct", "the project's discount rate (cost of capital)", { rate = true })
+  local xn2 = xs("n", nil, "n years at the same C", "num", "how many years C stays the same (stage 1)", { pos = true })
+  local xg2 = xs("g2", nil, "g2 growth after year n (%)", "pct", "the growth from year n + 1 on, forever (falls 4% a year: -4)")
   local EXTRA = {
     { id = "eqvl", off = "eqvl", name = "Equity after borrowing", short = "E = VL - D", eq = "E = VL - D",
       why = "the firm is split between its owners: VL = E + D (like E + D = U = A on the sheet)",
@@ -65,6 +70,14 @@ do
       vars = { xVU, xEBIT, xTc, xrU }, f = function(x) return x.EBIT * (1 - x.Tc) / x.rU - x.VU end,
       rearr = { EBIT = "EBIT = VU*rU/(1 - Tc)", Tc = "Tc = 1 - VU*rU/EBIT", rU = "rU = EBIT*(1 - Tc)/VU" },
       ex = { EBIT = 150, Tc = 0.3, rU = 0.1 } },
+    { id = "twostg", off = "twostg", name = "Value: n years, then growth forever", short = "two stages: annuity + growing perpetuity",
+      eq = "PV = C/r*(1 - 1/(1 + r)^n) + C*(1 + g2)/(r - g2)/(1 + r)^n",
+      why = "an annuity for years 1 to n, then a growing perpetuity: its first cash flow C*(1 + g2) is in year n + 1, so C(n+1)/(r - g2) is the value at year n; bring it back n years",
+      vars = { xPV2, xC2, xr2, xn2, xg2 },
+      f = function(x) return x.C / x.r * (1 - 1 / (1 + x.r) ^ x.n) + x.C * (1 + x.g2) / (x.r - x.g2) / (1 + x.r) ^ x.n - x.PV end,
+      need = function(x) if x.r and x.g2 and x.r <= x.g2 then return "r must be MORE than g2 (growth forever)" end end,
+      rearr = { C = "C = PV/((1 - 1/(1 + r)^n)/r + (1 + g2)/(r - g2)/(1 + r)^n)" },
+      ex = { C = 50, r = 0.08, n = 10, g2 = -0.03 } },
     { id = "rdat", off = "rdat", name = "After-tax cost of debt", short = "rd after tax", eq = "rd_at = rd*(1 - Tc)",
       why = "the rd*(1 - Tc) part of the WACC line: interest saves tax",
       vars = { xrdat, xrd, xTc }, f = function(x) return x.rd * (1 - x.Tc) - x.rdat end,
@@ -160,14 +173,15 @@ do
             "5:Rbar", "5:Rbarj", "5:VarR", "5:Cov", "5:Corr", "5:SDi", "5:SDj", "5:CV", "5:Rt", "5:DIV", "5:P1", "5:P0",
             "5:w1", "5:E1", "5:Bk1", "5:w2", "5:E2", "5:Bk2", "5:w3", "5:E3", "5:Bk3", "5:w4", "5:E4", "5:Bk4",
             "5:ERp", "5:Bp", "5:wi", "5:wj", "5:Varp", "5:Sharpe", "5:rf", "5:SDp" },
-    [XSEC] = { "9:VL", "9:D", "9:E", "9:shares", "9:price", "9:VU", "9:FCF", "9:EBIT", "Tc", "9:rU", "9:rd", "9:rdat" },
+    [XSEC] = { "9:VL", "9:D", "9:E", "9:shares", "9:price", "9:VU", "9:FCF", "9:EBIT", "Tc", "9:rU", "9:rd", "9:rdat",
+             "9:PV", "9:C", "9:r", "9:n", "9:g2" },
   }
   -- alternative lines (the same letters, a different situation): they never feed each other
   local FAM = { fv = "tvm", pv = "tvm", pva = "tvm", pvad = "tvm", fva = "tvm", fvad = "tvm", perp = "tvm", gperp = "tvm",
                 gann = "tvm", bond = "bond", zbond = "bond", p0z = "share", p0g = "share", p0n = "share",
                 covp = "cov", covs = "cov", ru = "mm", re = "mm", vucf = "vu", vuebit = "vu" }
   -- 'blank = 0' letters (no preference shares, no tax, no CapEx); every other blank is an unknown
-  local WEAKOK = { wacc = { rp = true, P = true, Tc = true }, v = { P = true }, fcf = { CapEx = true, dNWC = true } }
+  local WEAKOK = { wacc = { rp = true, P = true, Tc = true }, v = { P = true }, fcf = { Dep = true, CapEx = true, dNWC = true } }
   -- lines that do not fit what was typed: a growth rate rules out the level formulas, a coupon the zero-coupon bond
   local function nz(known, b) return known[b] ~= nil and known[b] ~= 0 end
   local SKIP = {
@@ -195,7 +209,8 @@ do
     BRIDGE[#BRIDGE + 1] = { "9:" .. k, "8:" .. k }
   end
   for _, br in ipairs({ { "7:rU", "9:rU", true }, { "9:rU", "7:rU", true }, { "8:rU", "9:rU" }, { "9:rU", "8:rU" },
-                        { "6:rd", "9:rd" }, { "9:rd", "6:rd" }, { "9:E", "8:E" }, { "9:E", "6:E" } }) do
+                        { "6:rd", "9:rd" }, { "9:rd", "6:rd" }, { "9:E", "8:E" }, { "9:E", "6:E" },
+                        { "3:FCF", "9:C" }, { "3:r", "9:r" }, { "3:n", "9:n" } }) do
     BRIDGE[#BRIDGE + 1] = br
   end
 
@@ -565,6 +580,7 @@ rU, rE, rD, E and D typed in one Capital Structure section are used in the other
 Extra lines <-> Tax World: VL, D, VU and rU (both ways). rU typed in the No Tax World is used too.
 Extra lines <-> Cost of Capital: rd (both ways).
 E from the extra lines -> E in the Tax World and in Cost of Capital (the WACC weights), when only one line gave it.
+Capital Budgeting -> extra lines: the FCF becomes C of the two-stage line; r and n typed there are used too.
 ## 9. EXTRA LINES (NOT ON THE SHEET)
 Lines the sheet leaves out, each with its own boxes. Write them out in full in the exam: they are not on the sheet.
 - E = VL - D   (equity after borrowing: VL = E + D)
@@ -573,8 +589,11 @@ Lines the sheet leaves out, each with its own boxes. Write them out in full in t
 - VU = FCF/rU   (all-equity value: the same FCF forever)
 - VU = EBIT*(1 - Tc)/rU   (the same, from EBIT: no growth, Dep = CapEx)
 - rd_at = rd*(1 - Tc)   (after-tax cost of debt)
+- PV = C/r*(1 - 1/(1 + r)^n) + C*(1 + g2)/(r - g2)/(1 + r)^n   (a project: the same C for n years, then growth g2 forever; falls 4% a year: g2 = -4)
 The two VU lines are alternatives: they never feed each other.
 Example: Tc 30, D 400 (Tax World), FCF 96, rU 12%, shares 40 (extra lines): VU = 800, PV(ITS) = 120, VL = 920, E = 520, price = 13.
+Example 2: Rev 400, Costs 180, tc 30 (Capital Budgeting; Dep blank = 0); r 7, n 12, g2 -4 (extra lines): FCF = 154, then PV of both stages.
+A project's FCF: lost sales elsewhere go IN Costs; a sunk asset (built before) and its Dep: leave out.
 ## SAME LETTER, DIFFERENT MEANING
 Each section has its own boxes: C = payment (Financial Maths) but coupon (Bonds); r = rate per period, the discount rate (Capital Budgeting) or the interpolated r; n = periods, coupon periods left or the project's life; g = payment growth or dividend growth.
 ## LEFT OUT ON PURPOSE

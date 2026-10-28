@@ -507,7 +507,7 @@ do
     vars = { slot("FCF", nil, "FCF free cash flow ($)", "money", "the year's free cash flow", "the free cash flow for the year."),
              slot("Rev", nil, "Rev revenue ($)", "money", "sales for the year (incremental)", "the extra revenue (sales) from the project this year."),
              slot("Costs", nil, "Costs operating costs ($)", "money", "costs for the year, NOT depreciation", "the extra operating costs this year. Not depreciation, not interest. Lost sales elsewhere: add them here (erosion)."),
-             slot("Dep", nil, "Dep depreciation ($)", "money", "depreciation for the year (blank = 0)", "the depreciation this year: cost/life for straight line. It cuts tax, then is added back."),
+             slot("Dep", nil, "Dep depreciation ($)", "money", "depreciation for the year (blank = 0)", "the depreciation this year: cost/life for straight line. It cuts tax, then is added back. Sunk asset (already bought): its Dep is NOT incremental, leave blank (= 0).", { weak = true }),
              tc,
              slot("CapEx", nil, "CapEx capital spending ($)", "money", "money spent on assets this year (blank = 0)", "capital expenditure this year (new equipment). Blank = 0.", { weak = true }),
              slot("dNWC", nil, "dNWC change in NWC ($)", "money", "this year's NWC minus last year's (blank = 0)", "the CHANGE in net working capital: this year's (inventory + A/R - A/P) minus last year's. Blank = 0.", { weak = true }) },

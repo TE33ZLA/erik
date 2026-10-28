@@ -220,6 +220,7 @@ do
     vucf = { "VU = FCF/rU   (FCF = EBIT*(1 - Tc))", "PV of a perpetuity = C/r with C = FCF and r = rU" },
     rucf = { "rU = FCF/VU = EBIT*(1 - Tc)/VU", "PV of a perpetuity = C/r, solved for r" },
     vuebit = { "VU = EBIT*(1 - Tc)/rU", "PV of a perpetuity = C/r with C = EBIT*(1 - Tc): an all-equity firm, no growth (Dep = CapEx, no change in NWC)" },
+    twostg = { "PV = C/r*(1 - 1/(1 + r)^n) + C*(1 + g2)/(r - g2)/(1 + r)^n", "an annuity for n years + a growing perpetuity from year n + 1, brought back n years" },
     tradeoff = { "VL = VU + PV(Interest tax shield) - PV(financial distress costs)", "trade-off theory (Week 11 lecture): the VL line minus distress costs" },
     unlev = { "the unlevered firm's WACC = rU", "no debt: rWACC = rE = rU" },
   }

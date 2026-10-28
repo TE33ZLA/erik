@@ -134,7 +134,8 @@ for V in [{'1:r': -1, '1:C': 5, '1:n': 0}, {'1:r': 0, '1:C': 1}, {'2:rE': .05, '
 EXTRA = {d.id: d for d in lt(EVERY.EXTRA)}
 FULL = {'eqvl': {'E': 850, 'VL': 1250, 'D': 400}, 'price': {'price': 21.25, 'E': 850, 'shares': 40},
         'mv': {'E': 620, 'shares': 50, 'price': 12.4}, 'vucf': {'VU': 800, 'FCF': 96, 'rU': .12},
-        'vuebit': {'VU': 1050, 'EBIT': 150, 'Tc': .3, 'rU': .1}, 'rdat': {'rdat': .049, 'rd': .07, 'Tc': .3}}
+        'vuebit': {'VU': 1050, 'EBIT': 150, 'Tc': .3, 'rU': .1}, 'rdat': {'rdat': .049, 'rd': .07, 'Tc': .3},
+        'twostg': {'PV': 539.7302896935013, 'C': 50, 'r': .08, 'n': 10, 'g2': -.03}}
 TWIN = {'price': 'mv', 'mv': 'price'}   # the same relation written for E and for the price: they agree
 nextra = 0
 if sorted(EXTRA) != sorted(FULL): fails.append(f'extra lines: {sorted(EXTRA)}, want {sorted(FULL)}')
@@ -214,6 +215,27 @@ if not vu or not close(vu[0]['value'], 90 / ru) or not vu[0]['chained']: fails.a
 out, res, errs = every({'7:rU': .1, '9:FCF': 90})
 vu = [r for r in res if r['d'] == 'vucf']
 if not vu or not close(vu[0]['value'], 900): fails.append(f'extra rU typed in the No Tax World -> VU: {vu}')
+# a project's FCF (Dep blank = 0: a sunk asset's Dep is left out) -> n years, then growth forever (own numbers)
+out, res, errs = every({'3:Rev': 400, '3:Costs': 180, '3:tc': .3, '9:r': .07, '9:n': 12, '9:g2': -.04})
+byd = {r['d']: r for r in res}
+fc = 220 * .7
+pv2 = fc / .07 * (1 - 1 / 1.07 ** 12) + fc * .96 / .11 / 1.07 ** 12
+if 'fcf' not in byd or not close(byd['fcf']['value'], fc): fails.append(f'FCF with Dep blank: {byd.get("fcf")}')
+if 'twostg' not in byd or not close(byd['twostg']['value'], pv2) or not byd['twostg']['chained']: fails.append(f'FCF -> two stages: {byd.get("twostg")}, want {pv2}')
+frow = [r for r in lt(out.rows) if r.kind == 'val' and str(r.text).startswith('Free cash flow')]
+ex = ' '.join(str(e[2]) for e in lt(frow[0].explain)) if frow else ''
+if 'blank, so 0: Dep, CapEx, dNWC' not in ex: fails.append(f'FCF blank-as-0 note: {ex[:300]}')
+trow = [r for r in lt(out.rows) if r.kind == 'val' and str(r.text).startswith('Value: n years')]
+ex = ' '.join(str(e[2]) for e in lt(trow[0].explain)) if trow else ''
+for w in ['C = FCF from Free cash flow (one year): $154.00', 'NOT ON THE FORMULA SHEET', 'growing perpetuity']:
+    if w not in ex: fails.append(f'two stages explanation lacks {w!r}: {ex[:400]}')
+# the rate typed in Capital Budgeting reaches the two-stage line too
+out, res, errs = every({'3:FCF': 154, '3:r': .07, '9:n': 12, '9:g2': -.04})
+byd = {r['d']: r for r in res}
+if 'twostg' not in byd or not close(byd['twostg']['value'], pv2): fails.append(f'3:r -> two stages: {byd.get("twostg")}')
+# r below g2: no value, no crash
+out, res, errs = every({'9:C': 10, '9:r': .03, '9:n': 5, '9:g2': .05})
+if errs or any(r['d'] == 'twostg' for r in res): fails.append(f'two stages r < g2: {res} {errs}')
 # alternatives: VU from FCF and VU from EBIT never feed each other; different answers are both listed, not passed on
 out, res, errs = every({'9:FCF': 90, '9:EBIT': 150, 'Tc': .3, '9:rU': .1, '8:PVITS': 100})
 vus = {r['d']: r for r in res if r['box'] == '9:VU'}
