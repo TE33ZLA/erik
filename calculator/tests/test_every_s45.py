@@ -72,6 +72,7 @@ FULL = {
     's4_float': {'Freed': 96000, 'Daily': 32000, 'Fdays': 3},
     's4_rper': {'r': .0075, 'APR': .09, 'm': 12},
     's4_lockbox': {'NPVf': 96000 - 500 / .006, 'Freed': 96000, 'fee': 500, 'r': .006},
+    's4_pvfee': {'PVfees': 500 / .006, 'fee': 500, 'r': .006},
     's4_credit': {'NPVc': cred, 'Q': 400, 'P': 80, 'c': 50, 's': .4, 'd': .02, 'r': .015},
     's4_switch': {'dNPV': -70000, 'NPVc': 1450000, 'NPVold': 1520000},
     's5_cgy': {'CGY': 3.5 / 38, 'P1': 41.5, 'P0': 38},
