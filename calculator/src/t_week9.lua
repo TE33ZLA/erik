@@ -244,7 +244,9 @@ avg 8.75%; SD = 23.51%
       out:row("portfolio variance", var, "", "wA^2 sA^2 + wB^2 sB^2 + 2 wA wB Cov = " .. P(wA ^ 2) .. " x " .. P(sA ^ 2) .. " + " ..
               P(wB ^ 2) .. " x " .. P(sB ^ 2) .. " + 2 x " .. P(wA) .. " x " .. P(wB) .. " x " .. P(cov), "varp")
       sdp = sqrt(var)
-      out:row("portfolio SD", sdp, "%", "square root of the variance", "sdp")
+      out:row("portfolio SD", sdp, "%", "SD = square root of the variance = sqrt(" .. P(wA ^ 2) .. " x " .. P(sA ^ 2) .. " + " ..
+              P(wB ^ 2) .. " x " .. P(sB ^ 2) .. " + 2 x " .. P(wA) .. " x " .. P(wB) .. " x " .. P(cov) .. ") = sqrt(" .. P(var) .. ") = " ..
+              P(sdp) .. " = " .. pct(sdp) .. "%", "sdp")
       out:uses("varpf"); out:off("sd")
       if hasF then out:note("the risk-free part has no risk and no covariance: it adds nothing to the variance")
       else out:note("SD of the portfolio is below the weighted average unless the correlation is +1") end
