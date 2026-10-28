@@ -11,7 +11,7 @@
 ----------------------------------------------------------------------
 
 if platform then platform.apilevel = "2.0" end
-local VERSION = "v28"
+local VERSION = "v29"
 
 ----------------------------------------------------------------------
 -- 1. SMALL HELPERS + NUMBER FORMATTING
@@ -163,8 +163,8 @@ function Out:interp(f, root, sfx, what, line)
   local lam = A1 / (A1 - A2)
   sfx = sfx or ""
   self:head("BY HAND: INTERPOLATE (on the sheet)")
-  self:row("A1 = " .. what .. " at r1 = " .. pct(r1) .. "%", A1, "$", "trial rate r1: just below the answer", "intA1" .. sfx)
-  self:row("A2 = " .. what .. " at r2 = " .. pct(r2) .. "%", A2, "$", "trial rate r2 = r1 + " .. pct(st) .. "%", "intA2" .. sfx)
+  self:row("A1 = " .. what .. " at r1 = " .. pct(r1) .. "%", A1, "$", "trial rate r1 = " .. pct(r1) .. "%, just below the answer: " .. what .. " at " .. pct(r1) .. "% = " .. P(A1), "intA1" .. sfx)
+  self:row("A2 = " .. what .. " at r2 = " .. pct(r2) .. "%", A2, "$", "trial rate r2 = r1 + " .. pct(st) .. "% = " .. pct(r2) .. "%: " .. what .. " at " .. pct(r2) .. "% = " .. P(A2), "intA2" .. sfx)
   local function b(x) return (x < 0) and ("(" .. P(x) .. ")") or P(x) end
   self:row("lambda", lam, "", "A1/(A1 - A2) = " .. b(A1) .. "/(" .. b(A1) .. " - " .. b(A2) .. ")", "lam" .. sfx)
   self:row("interpolated r", r1 + lam * (r2 - r1), "%", "r1 + lambda*(r2 - r1) = " .. P(r1) .. " + " .. P(lam) .. "*" .. P(r2 - r1), "rint" .. sfx)
@@ -310,6 +310,11 @@ local function solveLump(V, out)
   local i = r and ((not cont) and r / m or nil)
   local N = n and ((not cont) and n * m or nil)
   local how = {}
+  if V.mult and not (V.PV and V.FV) then
+    if V.PV then how.FV = "FV = multiple x PV = " .. P(V.mult) .. " x " .. P(PV)
+    elseif V.FV then how.PV = "PV = FV/multiple = " .. P(FV) .. "/" .. P(V.mult)
+    else how.PV = "PV = 1 (only the ratio matters)"; how.FV = "FV = multiple x PV = " .. P(V.mult) .. " x 1" end
+  end
   if cnt >= 3 then
     if not FV then
       if cont then FV = PV * math.exp(r * n)
@@ -355,10 +360,10 @@ local function solveLump(V, out)
     N = n and ((not cont) and n * m or nil)
   end
   out:head("RESULT")
-  out:row("PV", PV, "$", how.PV, "PV")
-  out:row("FV", FV, "$", how.FV, "FV")
-  out:row("r (p.a.)", r, "%", how.r, "r")
-  out:row("n (years)", n, "years", how.n, "n")
+  out:row("PV", PV, "$", how.PV or ("given: " .. fmtU(PV, "$")), "PV")
+  out:row("FV", FV, "$", how.FV or ("given: " .. fmtU(FV, "$")), "FV")
+  out:row("r (p.a.)", r, "%", how.r or ("given: " .. fmtU(r, "%")), "r")
+  out:row("n (years)", n, "years", how.n or ("given: " .. fmtN(n or 0) .. " years"), "n")
   if cnt < 3 then
     if r and cnt == 1 then
       out:note("only the rate given: its conversions are below. Fill any two of PV, FV, n for values.")
@@ -382,7 +387,7 @@ local function solveLump(V, out)
         out:row("EAR", (1 + i) ^ m - 1, "%", "EAR = (1 + r/m)^m - 1 = (" .. P(1 + i) .. ")^" .. m .. " - 1", "EAR")
         out:uses("ear")
       else
-        out:row("EAR", r, "%", "m = 1 so EAR = r", "EAR")
+        out:row("EAR", r, "%", "m = 1 so EAR = r = " .. pct(r) .. "%", "EAR")
       end
     end
   end
@@ -528,25 +533,25 @@ local function solveAnn(V, out)
   end
   -- print everything derivable
   out:head("SETUP")
-  out:row("i (rate per period)", i, "%", (m > 1) and ("i = r/m = " .. P(r or 0) .. "/" .. m) or "m = 1 so i = r", "i")
+  out:row("i (rate per period)", i, "%", (m > 1) and ("i = r/m = " .. P(r or 0) .. "/" .. m) or ("m = 1 so i = r = " .. pct(r or 0) .. "%"), "i")
   if i and m > 1 then out:off("iper") end
-  if g ~= 0 then out:row("g (growth per period)", g, "%", nil, "g") end
-  if g2 then out:row("g2 (growth after payment " .. P(n) .. ")", g2, "%", "then forever", "g2") end
-  out:row("C (first payment)", C, "$", how.C, "C")
+  if g ~= 0 then out:row("g (growth per period)", g, "%", "given: " .. fmtU(g, "%"), "g") end
+  if g2 then out:row("g2 (growth after payment " .. P(n) .. ")", g2, "%", "given: " .. fmtU(g2, "%") .. ", then forever", "g2") end
+  out:row("C (first payment)", C, "$", how.C or ("given: " .. fmtU(C, "$")), "C")
   if perp then
     out:note("n blank = PERPETUITY (forever)")
   else
-    out:row("N (number of payments)", n, "payments", how.n, "N")
-    if n and m > 1 then out:row("years", n / m, "years", "years = N/m", "years") end
+    out:row("N (number of payments)", n, "payments", how.n or ("given: " .. P(n or 0) .. " payments"), "N")
+    if n and m > 1 then out:row("years", n / m, "years", "years = N/m = " .. P(n) .. "/" .. m, "years") end
   end
-  out:row("r (p.a.)", r, "%", how.r, "r")
+  out:row("r (p.a.)", r, "%", how.r or ("given: " .. fmtU(r, "%")), "r")
   if not i or not C then
     if not C and not i then out:need("r and C (plus PV or FV) to continue") end
     return
   end
   local f = fac(i)
-  out:row("first payment at t", tf, "", due and "annuity DUE: payments at the START of each period" or
-          ((tf == 1) and "ordinary annuity: first payment one period from now" or
+  out:row("first payment at t", tf, "", due and "annuity DUE: payments at the START of each period, so t = 0" or
+          ((tf == 1) and "ordinary annuity: first payment one period from now, so t = 1" or
            "DEFERRED: the formula values the stream at t = " .. P(k) .. ", then discount " .. P(k) .. " more periods"), "tf")
   out:head(g2 and "VALUE OF STAGE 1 (the first " .. P(n) .. " payments)" or "VALUE")
   local fname = perp and (g ~= 0 and "1/(i - g)" or "1/i")
@@ -577,7 +582,7 @@ local function solveAnn(V, out)
     out:row(pvLab, PV0, "$", "PV0 = " .. P(PVb) .. "/(" .. P(1 + i) .. ")^" .. P(k) ..
             ((k < 0) and "  (= x(1 + i), annuity due)" or ""), pvKey)
   else
-    out:row(pvLab, PV0, "$", "no extra discounting: t = 0 is one period before the 1st payment", pvKey)
+    out:row(pvLab, PV0, "$", "no extra discounting: t = 0 is one period before the 1st payment, so PV = " .. P(PV0), pvKey)
   end
   local PVall = PV0
   local Cn
@@ -632,7 +637,7 @@ local function solveAnn(V, out)
     local df = 1 / (1 + i) ^ t
     sumpv = sumpv + cf * df
     out:trow("t=" .. P(t), { t, cf, df, cf * df },
-             { "", (j == 0) and "first payment C" or ("C*(1 + g)^" .. j .. " = " .. P(C) .. "*" .. P(1 + g) .. "^" .. j),
+             { "", (j == 0) and ("first payment C = " .. P(C)) or ("C*(1 + g)^" .. j .. " = " .. P(C) .. "*" .. P(1 + g) .. "^" .. j),
                "DF = 1/(1 + i)^t = 1/(" .. P(1 + i) .. ")^" .. P(t),
                "PV = CF*DF = " .. P(cf) .. "*" .. P(df) })
   end
@@ -640,7 +645,7 @@ local function solveAnn(V, out)
     local t = tf + n
     local df = 1 / (1 + i) ^ t
     out:trow("t=" .. P(t), { t, Cn, df, Cn * df },
-             { "", "stage 2 starts: C(n+1) = last payment*(1 + g2)", "DF = 1/(1 + i)^t = 1/(" .. P(1 + i) .. ")^" .. P(t),
+             { "", "stage 2 starts: C(n+1) = last payment*(1 + g2) = " .. P(Cn), "DF = 1/(1 + i)^t = 1/(" .. P(1 + i) .. ")^" .. P(t),
                "PV = CF*DF = " .. P(Cn) .. "*" .. P(df) })
     out:note("table: stage 1" .. ((n > rowsN) and (" (first " .. rowsN .. " of " .. P(n) .. " payments)") or "") ..
              ", then the first payment of stage 2 (it grows at g2 forever)")
@@ -690,27 +695,29 @@ local function solveLoan(V, out)
   elseif not i and L and PMT and N then
     local fr = function(ii) return PMT * annFac(ii, N) - L end
     i = findRoot(fr, 1e-6, 1.0, 0.001)
-    if i then r = i * m; how.r = "i found by search so that PMT*factor = L | r = i*m"
+    if i then r = i * m
+      how.r = "search for the i where PMT*factor = L: at i = " .. pct(i) .. "%, " .. P(PMT) .. "*" .. P(annFac(i, N)) ..
+              " = " .. money(PMT * annFac(i, N)) .. " | r = i*m = " .. P(i) .. "*" .. m
       out:off("rsearch")
       out:interp(fr, i, "", "PMT*factor - L", "pva")
     else out:err("no rate fits those numbers"); return end
   end
   if i and m > 1 then out:off("iper") end
   out:head("LOAN")
-  out:row("L (amount borrowed)", L, "$", how.L, "L")
+  out:row("L (amount borrowed)", L, "$", how.L or ("given: " .. fmtU(L, "$")), "L")
   out:row("i (rate per period)", i, "%", i and ("i = r/m = " .. P(r) .. "/" .. m), "i")
   out:row("N (payments)", N, "payments", how.N or (N and ("N = years*m = " .. P(yrs) .. "*" .. m)), "N")
-  out:row("PMT (per period)", PMT, "$", how.PMT, "PMT")
-  out:row("r (p.a.)", r, "%", how.r, "r")
+  out:row("PMT (per period)", PMT, "$", how.PMT or ("given: " .. fmtU(PMT, "$")), "PMT")
+  out:row("r (p.a.)", r, "%", how.r or ("given: " .. fmtU(r, "%")), "r")
   if not (L and i and N and PMT) then
     out:need("any THREE of L, r, years, PMT")
     return
   end
   out:off("loanint")
   out:row("total paid", PMT * N, "$", "PMT*N = " .. P(PMT) .. "*" .. P(N), "totpaid")
-  out:row("total interest", PMT * N - L, "$", "PMT*N - L", "totint")
+  out:row("total interest", PMT * N - L, "$", "PMT*N - L = " .. P(PMT * N) .. " - " .. P(L), "totint")
   out:row("interest in payment 1", L * i, "$", "i*L = " .. P(i) .. "*" .. P(L), "int1")
-  out:row("principal in payment 1", PMT - L * i, "$", "PMT - interest", "prin1")
+  out:row("principal in payment 1", PMT - L * i, "$", "PMT - interest = " .. P(PMT) .. " - " .. P(L * i), "prin1")
   local function balAfter(j)
     return L * (1 + i) ^ j - PMT * fvaFac(i, j)
   end
@@ -721,11 +728,11 @@ local function solveLoan(V, out)
             P(N - k) .. ")/i", "Bk")
     out:uses("pva"); out:off("loanbal")
     out:note("same thing: L*(1 + i)^k - PMT*((1 + i)^k - 1)/i = " .. fmtU(balAfter(k), "$"))
-    out:row("principal repaid so far", L - Bk, "$", "L - balance", "prinSoFar")
-    out:row("interest paid so far", PMT * k - (L - Bk), "$", "PMT*k - principal repaid", "intSoFar")
+    out:row("principal repaid so far", L - Bk, "$", "L - balance = " .. P(L) .. " - " .. P(Bk), "prinSoFar")
+    out:row("interest paid so far", PMT * k - (L - Bk), "$", "PMT*k - principal repaid = " .. P(PMT) .. "*" .. P(k) .. " - " .. P(L - Bk), "intSoFar")
     if k < N then
       out:row("interest in payment " .. P(k + 1), i * Bk, "$", "i*balance = " .. P(i) .. "*" .. P(Bk), "intk1")
-      out:row("principal in payment " .. P(k + 1), PMT - i * Bk, "$", "PMT - interest", "prink1")
+      out:row("principal in payment " .. P(k + 1), PMT - i * Bk, "$", "PMT - interest = " .. P(PMT) .. " - " .. P(i * Bk), "prink1")
     end
     if r2 then
       local i2 = r2 / m
@@ -734,7 +741,7 @@ local function solveLoan(V, out)
       out:row("i2 (new rate per period)", i2, "%", "i2 = " .. P(r2) .. "/" .. m, "i2")
       out:row("new PMT", PMT2, "$", "balance / factor(i2, " .. P(N - k) .. ") = " .. P(Bk) .. " / " ..
               P(annFac(i2, N - k)), "PMT2")
-      out:row("change per period", PMT2 - PMT, "$", "new PMT - old PMT", "dPMT")
+      out:row("change per period", PMT2 - PMT, "$", "new PMT - old PMT = " .. P(PMT2) .. " - " .. P(PMT), "dPMT")
       out:off("loanpmt2")
     end
   elseif r2 then
@@ -845,7 +852,7 @@ local function solveBond(V, out)
     out:row("PV of coupons (annuity)", pvC, "$", "CPN*(1 - 1/(1 + y)^N)/y = " .. P(CPN) .. "*" .. P(annFac(yp, N)), "pvC")
     out:row("PV of face value", pvF, "$", "F/(1 + y)^N = " .. P(F) .. "/(" .. P(1 + yp) .. ")^" .. P(N), "pvF")
   end
-  out:row("P (bond price)", Pr, "$", how.P and (how.P .. " = " .. P(pvC) .. " + " .. P(pvF)) or nil, "P")
+  out:row("P (bond price)", Pr, "$", how.P and (how.P .. " = " .. P(pvC) .. " + " .. P(pvF)) or ("given: " .. fmtU(Pr, "$")), "P")
   local tag
   if math.abs(c - y) < 1e-9 then tag = "coupon rate = yield -> PAR (price = face)"
   elseif c > y then tag = "coupon rate " .. pct(c) .. "% > yield " .. pct(y) .. "% -> PREMIUM (price > face)"
@@ -875,7 +882,7 @@ local function solveBond(V, out)
     local cf = cfAt(t)
     local df = 1 / (1 + yp) ^ t
     out:trow("t=" .. t, { cf, df, cf * df },
-             { (t == N) and ("coupon + face" .. ((skip > 0) and " + deferred coupons" or "")) or ((t <= skip) and "deferred - nothing paid" or "coupon CPN"),
+             { (t == N) and ("coupon + face" .. ((skip > 0) and " + deferred coupons" or "") .. " = " .. P(cf)) or ((t <= skip) and "deferred - nothing paid, 0" or ("coupon CPN = " .. P(cf))),
                "1/(1 + y)^t = 1/(" .. P(1 + yp) .. ")^" .. t, "CF*DF = " .. P(cf) .. "*" .. P(df) })
   end
   out:head("EXCEL")
@@ -921,7 +928,7 @@ local function solveReal(V, out)
       return
     end
   else
-    out:row("sale price", Ps, "$", nil, "Ps")
+    out:row("sale price", Ps, "$", "given: " .. fmtU(Ps, "$"), "Ps")
   end
   local cfs = { [0] = -P0 }
   local Ni = math.floor(N + 1e-9)
@@ -930,7 +937,8 @@ local function solveReal(V, out)
   local ip = irrOf(cfs, Ni)
   if not ip then out:err("no IRR found"); return end
   out:head("REALISED YIELD = IRR of what you paid and got")
-  out:row("IRR per period", ip, "%", "rate where -P0 + sum CPN/(1 + i)^t + Ps/(1 + i)^N = 0", "ip")
+  out:row("IRR per period", ip, "%", "search for the i where -P0 + sum CPN/(1 + i)^t + Ps/(1 + i)^N = 0: at i = " .. pct(ip) ..
+          "%, that sum = " .. money(npvAt(ip, cfs, Ni)), "ip")
   out:row("realised yield nominal (p.a.)", ip * m, "%", "IRR per period * m = " .. P(ip) .. "*" .. m, "ry")
   out:row("realised yield effective (p.a.)", (1 + ip) ^ m - 1, "%", "(1 + i)^m - 1 = (" .. P(1 + ip) .. ")^" .. m .. " - 1", "rye")
   out:uses("irr"); out:off("realised")
@@ -938,9 +946,9 @@ local function solveReal(V, out)
   out:row("total coupons received", CPN * Ni, "$", P(CPN) .. "*" .. Ni, "coupons")
   out:row("capital gain on sale", Ps - P0, "$", P(Ps) .. " - " .. P(P0), "gain")
   out:tcols({ { k = "CF", u = "$" } })
-  out:trow("t=0", { -P0 }, { "price paid (outflow)" })
-  for t = 1, math.min(Ni - 1, 3) do out:trow("t=" .. t, { CPN }, { "coupon" }) end
-  if Ni > 4 then out:trow("...", { CPN }, { "coupons continue every period" }) end
+  out:trow("t=0", { -P0 }, { "price paid (outflow): -" .. P(P0) })
+  for t = 1, math.min(Ni - 1, 3) do out:trow("t=" .. t, { CPN }, { "coupon: " .. P(CPN) }) end
+  if Ni > 4 then out:trow("...", { CPN }, { "coupons continue every period: " .. P(CPN) }) end
   out:trow("t=" .. Ni, { cfs[Ni] }, { "last coupon + sale price = " .. P(CPN) .. " + " .. P(Ps) })
   out:head("EXCEL")
   out:xl("=IRR({-" .. P(P0) .. ", " .. P(CPN) .. " x" .. (Ni - 1) .. ", " .. P(cfs[Ni]) .. "})  then x" .. m)
@@ -1023,12 +1031,12 @@ local function solveShare(V, out)
     end
   end
   out:head("DIVIDENDS")
-  out:row("Div0 (just paid)", D0, "$", nil, "D0")
+  out:row("Div0 (just paid)", D0, "$", "given: " .. fmtU(D0, "$"), "D0")
   out:row("Div1 (next dividend)", D1, "$", how.D1, "D1")
-  if D1 and (V.g or how.g) then out:row("Div2", D1 * (1 + g), "$", "Div1*(1 + g)", "D2") end
+  if D1 and (V.g or how.g) then out:row("Div2", D1 * (1 + g), "$", "Div1*(1 + g) = " .. P(D1) .. "*" .. P(1 + g), "D2") end
   out:head("PRICE + RETURN")
-  out:row("g (growth)", g, "%", how.g, "g")
-  out:row("rE (required return)", rE, "%", how.rE, "rE")
+  out:row("g (growth)", g, "%", how.g or ("given: " .. fmtU(g, "%")), "g")
+  out:row("rE (required return)", rE, "%", how.rE or ("given: " .. fmtU(rE, "%")), "rE")
   out:row("P0 (price today)", P0, "$", how.P0, "P0")
   out:row("P1 (price in one year)", P1, "$", how.P1, "P1")
   if P0 and D1 and rE and P1 and D1 then
@@ -1041,7 +1049,8 @@ local function solveShare(V, out)
     out:head("YIELDS")
     if D1 then out:row("dividend yield", D1 / P0, "%", "Div1/P0 = " .. P(D1) .. "/" .. P(P0), "dy") end
     if P1 then out:row("capital gain yield", (P1 - P0) / P0, "%", "(P1 - P0)/P0 = (" .. P(P1) .. " - " .. P(P0) .. ")/" .. P(P0), "cgy") end
-    if D1 and P1 then out:row("total return", (D1 + P1 - P0) / P0, "%", "dividend yield + capital gain yield", "tr"); out:uses("ret") end
+    if D1 and P1 then out:row("total return", (D1 + P1 - P0) / P0, "%", "dividend yield + capital gain yield = " .. pct(D1 / P0) .. "% + " ..
+                                    pct((P1 - P0) / P0) .. "%", "tr"); out:uses("ret") end
     if D1 or P1 then out:off("yields") end
   end
   if not (P0 or (D1 and rE)) then
@@ -1052,7 +1061,8 @@ local function solveShare(V, out)
     local d = D1
     for t = 1, 4 do
       local df = 1 / (1 + rE) ^ t
-      out:trow("t=" .. t, { d, df, d * df }, { (t == 1) and "Div1" or ("Div1*(1 + g)^" .. (t - 1)), "1/(1 + rE)^" .. t, "Div*DF" })
+      out:trow("t=" .. t, { d, df, d * df }, { (t == 1) and ("Div1 = " .. P(d)) or ("Div1*(1 + g)^" .. (t - 1) .. " = " .. P(D1) .. "*" .. P(1 + g) .. "^" .. (t - 1)),
+                                         "1/(1 + rE)^" .. t .. " = 1/" .. P(1 + rE) .. "^" .. t, "Div*DF = " .. P(d) .. "*" .. P(df) })
       d = d * (1 + g)
     end
     out:note("dividends go on forever; the CDGM sums them all: P0 = Div1/(rE - g)")
@@ -1096,7 +1106,7 @@ local function analyseProject(out, name, cfs, nmax, k)
             "For a project, type the outlay at t = 0 as NEGATIVE, e.g. -60 (use the (-) key)")
   end
   if irr then
-    out:row(name .. ": IRR", irr, "%", "rate where NPV = 0 (found by search)", "IRR" .. name)
+    out:row(name .. ": IRR", irr, "%", "search for the rate where NPV = 0: NPV at " .. pct(irr) .. "% = " .. money(npvAt(irr, cfs, nmax)), "IRR" .. name)
     out:uses("irr")
     if k then
       out:add(irr >= k and "ok" or "bad", name .. ": IRR " .. (irr >= k and ">= k -> accept by IRR rule" or "< k -> reject by IRR rule"))
@@ -1127,7 +1137,7 @@ local function analyseProject(out, name, cfs, nmax, k)
         local pv = (cfs[t] or 0) / (1 + k) ^ t
         if cumd + pv >= 0 and not dpb then
           dpb = (t - 1) + ((pv ~= 0) and (-cumd / pv) or 0)
-          out:row(name .. ": discounted payback", dpb, "years", "same rule on the PV column", "DPB" .. name)
+          out:row(name .. ": discounted payback", dpb, "years", "same rule on the PV column: " .. (t - 1) .. " + " .. P(-cumd) .. "/" .. P(pv), "DPB" .. name)
           out:off("dpayback")
         end
         cumd = cumd + pv
@@ -1153,8 +1163,8 @@ local function solveGraph(V, out)
   local rising = (V.rise ~= "DECLINING cash flows")
   out:uses("irr"); out:off("graph"); out:off("crossover")
   out:head("NPV PROFILE - READING THE GRAPH")
-  out:row("crossover rate", cross, "%", "where the two NPV lines meet: both projects have the SAME NPV there", "cross")
-  out:row("k (cost of capital)", k, "%", "the rate you actually discount at", "k")
+  out:row("crossover rate", cross, "%", "given: " .. pct(cross or 0) .. "%, where the two NPV lines meet (both projects have the SAME NPV there)", "cross")
+  out:row("k (cost of capital)", k, "%", "given: " .. pct(k or 0) .. "%, the rate you actually discount at", "k")
   if not cross then out:need("the crossover rate (where the profiles cross)") end
   if k and cross then
     if k < cross then
@@ -1187,7 +1197,7 @@ local function solveGraph(V, out)
       out:add(why == "possible" and "ok" or "note", "option " .. o.i .. " = " .. pct(o.v) .. "% : " .. why)
     end
     if #left == 1 then
-      out:row("answer", left[1].v, "%", "the only option that fits", "ans")
+      out:row("answer", left[1].v, "%", "the only option that fits: option " .. left[1].i .. " = " .. pct(left[1].v) .. "%", "ans")
     elseif #left > 1 then
       local t = {}
       for _, o in ipairs(left) do table.insert(t, pct(o.v) .. "%") end
@@ -1216,9 +1226,9 @@ local function solveCF(V, out)
       local df = k and (1 / (1 + k) ^ t) or 1
       cum = cum + c * df
       out:trow(name .. t, { c, df, c * df, cum },
-               { (t == 0) and "today - not discounted" or "cash flow at t = " .. t,
+               { (t == 0) and ("today - not discounted: " .. P(c)) or ("cash flow at t = " .. t .. ": " .. P(c)),
                  k and ("1/(1 + k)^t = 1/(" .. P(1 + k) .. ")^" .. t) or "no k given",
-                 "CF*DF = " .. P(c) .. "*" .. P(df), "running total of PV -> NPV at the end" })
+                 "CF*DF = " .. P(c) .. "*" .. P(df), "running total of PV -> NPV at the end: " .. P(cum) })
     end
   end
   local npvA, irrA = analyseProject(out, "A", A, nA, k)
@@ -1235,7 +1245,7 @@ local function solveCF(V, out)
     local cross = irrOf(inc, nmax)
     out:note("incremental (A - B): {" .. excelList(inc, nmax) .. "}")
     if cross then
-      out:row("crossover rate = IRR(A - B)", cross, "%", "rate where NPV_A = NPV_B", "cross")
+      out:row("crossover rate = IRR(A - B)", cross, "%", "search for the rate where NPV_A = NPV_B: at " .. pct(cross) .. "%, NPV(A - B) = " .. money(npvAt(cross, inc, nmax)), "cross")
       out:off("crossover")
       if k then
         if k < cross then
@@ -1290,12 +1300,12 @@ local function solveEAA(V, out)
       out:row(nm .. ": annuity factor", f, "", "(1 - 1/(1 + k)^t)/k = (1 - 1/(" .. P(1 + k) .. ")^" .. P(t) .. ")/" .. P(k), "fac" .. nm)
       if npv and not eaa then
         eaa = npv / f
-        out:row(nm .. ": NPV", npv, "$", nil, "NPV" .. nm)
+        out:row(nm .. ": NPV", npv, "$", "given: " .. fmtU(npv, "$"), "NPV" .. nm)
         out:row(nm .. ": " .. (costs and "EAC" or "EAA"), eaa, "$", "NPV*k/(1 - 1/(1 + k)^t) = " .. P(npv) .. "/" .. P(f), "EAA" .. nm)
         out:uses("eav")
       elseif eaa and not npv then
         npv = eaa * f
-        out:row(nm .. ": " .. (costs and "EAC" or "EAA"), eaa, "$", nil, "EAA" .. nm)
+        out:row(nm .. ": " .. (costs and "EAC" or "EAA"), eaa, "$", "given: " .. fmtU(eaa, "$"), "EAA" .. nm)
         out:row(nm .. ": NPV", npv, "$", "EAA*factor = " .. P(eaa) .. "*" .. P(f), "NPV" .. nm)
         out:off("eavnpv")
       elseif eaa and npv then
@@ -1366,7 +1376,7 @@ local function solveFCF(V, out)
       if V.EBIT then
         ebit = V.EBIT - lost
         if V.Rev or V.Costs then out:note("EBIT is given, so revenue and costs are not used") end
-        out:row("EBIT", ebit, "$", (lost ~= 0) and ("EBIT given - lost sales = " .. P(V.EBIT) .. " - " .. P(lost)) or "given", "EBIT")
+        out:row("EBIT", ebit, "$", (lost ~= 0) and ("EBIT given - lost sales = " .. P(V.EBIT) .. " - " .. P(lost)) or ("given: " .. P(V.EBIT)), "EBIT")
         out:off("ebitfcf")
       else
         out:row((lost ~= 0) and "EBIT = Rev - Costs - lost sales - Dep" or "EBIT = Rev - Costs - Dep", Rev - Costs - lost - Dep, "$", P(Rev) .. " - " .. P(Costs) ..
@@ -1423,14 +1433,14 @@ local function solveFCF(V, out)
           out:trow("yr" .. y, { dep, bv }, { "rate*opening BV = " .. P(d) .. "*" .. P(open), "opening BV - dep = " .. P(open) .. " - " .. P(dep) })
         end
       end
-      out:row("diminishing value dep in year " .. P(upto), dep, "$", "rate * book value at start of that year", "DV")
+      out:row("diminishing value dep in year " .. P(upto), dep, "$", "rate * book value at start of that year = " .. P(d) .. "*" .. P(dep / d), "DV")
       out:row("book value after year " .. P(upto) .. " (DV)", bv, "$", "cost*(1 - rate)^years = " .. P(cost) .. "*" .. P(1 - d) .. "^" .. P(upto), "BVdv")
       if not V.BV and not (life and yr) then BV = bv end
     elseif life and not V.dvr then
       out:tcols({ { k = "dep", u = "$" }, { k = "BV", u = "$" } })
       local sl = (cost - salv) / life
       for y = 1, math.min(math.floor(life + 1e-9), 12) do
-        out:trow("yr" .. y, { sl, cost - sl * y }, { "(cost - salvage)/life", "cost - " .. y .. "*SL" })
+        out:trow("yr" .. y, { sl, cost - sl * y }, { "(cost - salvage)/life = (" .. P(cost) .. " - " .. P(salv) .. ")/" .. P(life), "cost - " .. y .. "*SL = " .. P(cost) .. " - " .. y .. "*" .. P(sl) })
       end
     end
     if not life and not V.dvr then out:need("life (for straight-line) or DV rate") end
@@ -1505,8 +1515,8 @@ local function solveRates(V, out)
       out:row("EAR from continuous", EAR, "%", "e^rc - 1 = e^" .. P(rc) .. " - 1", "EAR")
       per = (1 + EAR) ^ (1 / m) - 1
       r = per * m
-      out:row("i (rate per period)", per, "%", "(1 + EAR)^(1/m) - 1", "i")
-      out:row("r (nominal p.a.)", r, "%", "i*m", "r")
+      out:row("i (rate per period)", per, "%", "(1 + EAR)^(1/m) - 1 = " .. P(1 + EAR) .. "^(1/" .. m .. ") - 1", "i")
+      out:row("r (nominal p.a.)", r, "%", "i*m = " .. P(per) .. "*" .. m, "r")
       out:off("contear")
       if m > 1 then out:off("iperear"); out:off("aprear") end
     end
@@ -4619,6 +4629,7 @@ if platform then
     end
     if curTbl and not curTbl.wide then   -- a wide (Excel) table says so itself, under its first answers
       table.insert(rlines, 1, { kind = "note", text = "press T for the table + how each cell was solved" })
+      for j = 1, #rSelList do rSelList[j] = rSelList[j] + 1 end   -- the value lines moved down one
     end
     if #rlines == 0 then
       table.insert(rlines, { kind = "note", text = "Nothing to solve yet - fill some slots." })

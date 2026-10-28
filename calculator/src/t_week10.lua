@@ -33,7 +33,7 @@ do
           out:row("rD from the bond price", rd, "%", "yield per period " .. pct(y) .. "%, yearly (1 + y)^" .. m .. " - 1 (APR: " .. pct(y * m) .. "%)", "rd")
         end
       elseif rd then
-        out:row("rD pre-tax = the YTM", rd, "%", "the yield to maturity (NOT the coupon rate)", "rd")
+        out:row("rD pre-tax = the YTM", rd, "%", "given: the yield to maturity " .. pct(rd) .. "% (NOT the coupon rate)", "rd")
       end
       if rd then
         out:row("rD after tax", rd * (1 - Tc), "%", "rD x (1 - Tc) = " .. pct(rd) .. "% x " .. P(1 - Tc), "rdat")
@@ -140,7 +140,8 @@ do
         if not V.price then out:row("bond price", price, "$", P(V.ppct) .. " x the face " .. P(face), "price") end
         out:row("coupon each period", C, "$", "coupon rate x face/m = " .. P(V.cpn) .. " x " .. P(face) .. "/" .. m, "C")
         out:row("periods left", N, "", "years LEFT x m = " .. P(V.yrs) .. " x " .. m, "N")
-        out:row("yield per period", y, "%", "the rate that makes the PV of the bond = its price", "y")
+        out:row("yield per period", y, "%", "the rate that makes the PV of the bond = its price: at " .. pct(y) .. "%, PV = " ..
+                P(bondPrice(y, C, face, N)) .. " = price " .. P(price), "y")
         if m > 1 then
           -- the lectures turn the per-period yield into an EFFECTIVE yearly cost of debt
           rd, apr = (1 + y) ^ m - 1, y * m
@@ -150,7 +151,7 @@ do
           out:uses("ear")
         else
           rd = y
-          out:row("rD (YTM, yearly)", rd, "%", "the yield = the pre-tax cost of debt", "rd")
+          out:row("rD (YTM, yearly)", rd, "%", "the yield = the pre-tax cost of debt = " .. pct(y) .. "% (m = 1)", "rd")
         end
         out:head("ON YOUR TI-NSPIRE")
         out:xl("tvmI(" .. P(N) .. ",-" .. P(price) .. "," .. P(C) .. "," .. P(face) .. "," .. m .. "," .. m .. ")")
@@ -189,27 +190,27 @@ do
       -- book weights (face values, book equity) vs market weights (prices)
       local Em = V.E or ((V.nE and V.pE) and V.nE * V.pE)
       local Eb = V.BE or ((V.nE and V.bvps) and V.nE * V.bvps)
-      local Db, Dm, any = 0, 0, false
+      local Db, Dm, any, fl, ml = 0, 0, false, {}, {}
       for k = 1, 3 do
         local F = V["F" .. k]
-        if F then Db = Db + F; Dm = Dm + F * (V["q" .. k] or 1); any = true end
+        if F then Db = Db + F; Dm = Dm + F * (V["q" .. k] or 1); any = true; fl[#fl + 1] = P(F); ml[#ml + 1] = P(F * (V["q" .. k] or 1)) end
       end
       if not any or not (Em or Eb) then out:need("the shares (number, price, book value per share) and each bond issue's face value and price % of face"); return end
       if Eb then
         out:head("BOOK VALUES")
-        out:row("E (book)", Eb, "$", V.BE and "given" or ("shares x book value per share = " .. P(V.nE) .. " x " .. P(V.bvps)), "Eb")
-        out:row("D (book) = face values", Db, "$", "the face values added up", "Db")
+        out:row("E (book)", Eb, "$", V.BE and ("given: " .. P(V.BE)) or ("shares x book value per share = " .. P(V.nE) .. " x " .. P(V.bvps)), "Eb")
+        out:row("D (book) = face values", Db, "$", "the face values added up = " .. table.concat(fl, " + "), "Db")
         out:row("equity weight (book)", Eb / (Eb + Db), "%", P(Eb) .. "/" .. P(Eb + Db), "wEb")
         out:row("debt weight (book)", Db / (Eb + Db), "%", P(Db) .. "/" .. P(Eb + Db), "wDb")
       end
       if Em then
         out:head("MARKET VALUES")
-        out:row("E (market)", Em, "$", V.E and "given" or ("shares x price = " .. P(V.nE) .. " x " .. P(V.pE)), "Em")
+        out:row("E (market)", Em, "$", V.E and ("given: " .. P(V.E)) or ("shares x price = " .. P(V.nE) .. " x " .. P(V.pE)), "Em")
         for k = 1, 3 do
           local F = V["F" .. k]
           if F then out:row("issue " .. k .. " market value", F * (V["q" .. k] or 1), "$", "face x price % = " .. P(F) .. " x " .. P(V["q" .. k] or 1), "Dm" .. k) end
         end
-        out:row("D (market)", Dm, "$", "the issues added up", "Dm")
+        out:row("D (market)", Dm, "$", "the issues added up = " .. table.concat(ml, " + "), "Dm")
         out:row("equity weight (market)", Em / (Em + Dm), "%", P(Em) .. "/" .. P(Em + Dm), "wEm")
         out:row("debt weight (market)", Dm / (Em + Dm), "%", P(Dm) .. "/" .. P(Em + Dm), "wDm")
         out:note("use the MARKET weights in the WACC: they are today's values")
@@ -220,7 +221,7 @@ do
     if mode == M20.rd2 then
       -- the cost of debt of several issues: each yield, weighted by market value
       local m = mCount(V.m)
-      local tot, sumE, sumA, n = 0, 0, 0, 0
+      local tot, sumE, sumA, n, mvl, wE, wA = 0, 0, 0, 0, {}, {}, {}
       for k = 1, 3 do
         local F, c, yrs, q = V["F" .. k], V["c" .. k], V["n" .. k], V["q" .. k]
         if F and c and yrs and q then
@@ -228,25 +229,28 @@ do
           if not y then out:err("issue " .. k .. ": no yield found - check its price"); return end
           local ear, apr, mv = (1 + y) ^ m - 1, y * m, F * q
           out:head("ISSUE " .. k)
-          out:row("issue " .. k .. ": yield per period", y, "%", "PV of the bond = its price (per $100 face: " .. P(q * 100) .. ")", "y" .. k)
+          out:row("issue " .. k .. ": yield per period", y, "%", "the rate where PV of the bond = its price: at " .. pct(y) .. "%, PV per $100 face = " ..
+                  P(bondPrice(y, c * 100 / m, 100, yrs * m)) .. " = " .. P(q * 100), "y" .. k)
           if m > 1 then
-            out:row("issue " .. k .. ": rD effective", ear, "%", "(1 + y)^" .. m .. " - 1", "rd" .. k)
-            out:row("issue " .. k .. ": rD as an APR", apr, "%", "y x " .. m, "rdApr" .. k)
+            out:row("issue " .. k .. ": rD effective", ear, "%", "(1 + y)^" .. m .. " - 1 = (1 + " .. P(y) .. ")^" .. m .. " - 1", "rd" .. k)
+            out:row("issue " .. k .. ": rD as an APR", apr, "%", "y x " .. m .. " = " .. P(y) .. " x " .. m, "rdApr" .. k)
           else
-            out:row("issue " .. k .. ": rD", ear, "%", "the yield", "rd" .. k)
+            out:row("issue " .. k .. ": rD", ear, "%", "the yield = " .. pct(y) .. "% (m = 1)", "rd" .. k)
           end
           out:row("issue " .. k .. ": market value", mv, "$", "face x price % = " .. P(F) .. " x " .. P(q), "mv" .. k)
           tot, sumE, sumA, n = tot + mv, sumE + mv * ear, sumA + mv * apr, n + 1
+          mvl[#mvl + 1] = P(mv); wE[#wE + 1] = { mv, ear }; wA[#wA + 1] = { mv, apr }
         end
       end
       if n == 0 then out:need("each issue's face value, coupon rate, years left and price % of face"); return end
       out:head("THE FIRM'S COST OF DEBT")
-      out:row("D: total market value", tot, "$", "the issues added up", "D")
-      out:row("rD (weighted)", sumE / tot, "%", "each rD x its share of D's market value", "rd")
-      if m > 1 then out:row("rD (weighted, APR)", sumA / tot, "%", "the same with the APRs (textbook)", "rdApr") end
+      local function wsum(l) local t = {}; for _, x in ipairs(l) do t[#t + 1] = pct(x[2]) .. "% x " .. P(x[1] / tot) end; return table.concat(t, " + ") end
+      out:row("D: total market value", tot, "$", "the issues added up = " .. table.concat(mvl, " + "), "D")
+      out:row("rD (weighted)", sumE / tot, "%", "each rD x its share of D's market value = " .. wsum(wE), "rd")
+      if m > 1 then out:row("rD (weighted, APR)", sumA / tot, "%", "the same with the APRs (textbook) = " .. wsum(wA), "rdApr") end
       if V.Tc then
-        out:row("after-tax rD", sumE / tot * (1 - V.Tc), "%", "rD x (1 - Tc)", "rdat")
-        if m > 1 then out:row("after-tax rD (APR)", sumA / tot * (1 - V.Tc), "%", "APR x (1 - Tc)", "rdatApr") end
+        out:row("after-tax rD", sumE / tot * (1 - V.Tc), "%", "rD x (1 - Tc) = " .. pct(sumE / tot) .. "% x " .. P(1 - V.Tc), "rdat")
+        if m > 1 then out:row("after-tax rD (APR)", sumA / tot * (1 - V.Tc), "%", "APR x (1 - Tc) = " .. pct(sumA / tot) .. "% x " .. P(1 - V.Tc), "rdatApr") end
       end
       if m > 1 then out:uses("ear") end
       out:off("rdmix"); out:off("ytm")
@@ -783,7 +787,8 @@ NPV = 10m - 0.5m = 9.5m]],
                 pct(rU - V.rd) .. "%" .. (tax and (" x " .. P(1 - Tc)) or ""), "re")
         local wE, wD = 1 / (1 + DE), DE / (1 + DE)
         local w = re * wE + V.rd * (1 - Tc) * wD
-        out:row("WACC", w, "%", "rE*E/(E + D) + rD*D/(E + D)" .. (tax and "*(1 - Tc)" or "") .. ", E/V = " .. P(wE) .. ", D/V = " .. P(wD), "wacc")
+        out:row("WACC", w, "%", "rE*E/(E + D) + rD*D/(E + D)" .. (tax and "*(1 - Tc)" or "") .. " = " .. pct(re) .. "% x " .. P(wE) .. " + " .. pct(V.rd) .. "% x " .. P(wD) ..
+                (tax and (" x " .. P(1 - Tc)) or "") .. "  (E/V = " .. P(wE) .. ", D/V = " .. P(wD) .. ")", "wacc")
         if tax then out:uses("ret2", "wacct") else out:uses("re", "ru") end
         out:note("give D in $ as well to value the levered firm and its shares")
         return
@@ -810,7 +815,7 @@ NPV = 10m - 0.5m = 9.5m]],
       out:off("tradeoff")
       out:note("trade-off theory (Week 11 lecture): the PV of distress costs is NOT on the formula sheet")
     else
-      out:row("VL", VL, "$", tax and ("VU + Tc*D = " .. P(VU) .. " + " .. P(Tc * V.D)) or "VL = VU", "VL")
+      out:row("VL", VL, "$", tax and ("VU + Tc*D = " .. P(VU) .. " + " .. P(Tc * V.D)) or ("VL = VU = " .. P(VU)), "VL")
       if tax then out:uses("vl") end
     end
     local E = VL - V.D
@@ -828,7 +833,8 @@ NPV = 10m - 0.5m = 9.5m]],
       out:row("rE", re, "%", "rU + D/E*(rU - rD)" .. (tax and "*(1 - Tc)" or "") .. " = " .. pct(rU) .. "% + " .. P(DE) .. " x " ..
               pct(rU - V.rd) .. "%" .. (tax and (" x " .. P(1 - Tc)) or ""), "re")
       local w = re * E / VL + V.rd * (1 - Tc) * V.D / VL
-      out:row("WACC", w, "%", "rE*E/(E + D) + rD*D/(E + D)" .. (tax and "*(1 - Tc)" or ""), "wacc")
+      out:row("WACC", w, "%", "rE*E/(E + D) + rD*D/(E + D)" .. (tax and "*(1 - Tc)" or "") .. " = " .. pct(re) .. "% x " .. P(E / VL) ..
+              " + " .. pct(V.rd) .. "% x " .. P(V.D / VL) .. (tax and (" x " .. P(1 - Tc)) or ""), "wacc")
       if tax then
         out:uses("ret2", "wacct")
         out:note("check: FCF/WACC = " .. fmtU(fcf and fcf / w or 0, "$") .. " = VL (with tax the WACC is below rU)")
@@ -858,12 +864,14 @@ NPV = 10m - 0.5m = 9.5m]],
           return
         end
         rU = V.re * V.E / (V.E + V.D) + V.rd * V.D / (V.E + V.D)
-        out:row("rU (unlevered)", rU, "%", "rE(E/(E + D)) + rD(D/(E + D)) = the pre-tax WACC", "rU")
+        out:row("rU (unlevered)", rU, "%", "rE(E/(E + D)) + rD(D/(E + D)), the pre-tax WACC = " .. pct(V.re) .. "% x " ..
+                P(V.E / (V.E + V.D)) .. " + " .. pct(V.rd) .. "% x " .. P(V.D / (V.E + V.D)), "rU")
         out:uses("ru")
       end
       if mode == MODES21[4] then
         if not (V.newDE and V.rd) then out:need("the new D/E and rD"); return end
-        out:row("new rE", reOf(rU, V.rd, V.newDE), "%", "rU + D/E (rU - rD)" .. (tax and "(1 - Tc)" or "") .. " with D/E = " .. P(V.newDE), "re2")
+        out:row("new rE", reOf(rU, V.rd, V.newDE), "%", "rU + D/E (rU - rD)" .. (tax and "(1 - Tc)" or "") .. " = " .. pct(rU) .. "% + " .. P(V.newDE) .. " x " ..
+                pct(rU - V.rd) .. "%" .. (tax and (" x " .. P(1 - Tc)) or ""), "re2")
         out:uses(tax and "ret2" or "re")
       end
       return
@@ -893,7 +901,7 @@ NPV = 10m - 0.5m = 9.5m]],
           pvts = pvts + pvT
           bal = bal - math.min(V.repay, bal)
         end
-        out:row("PV of the tax shield", pvts, "$", "each year's shield, discounted at rD, added (" .. t .. " years)", "pvts")
+        out:row("PV of the tax shield", pvts, "$", "each year's shield, discounted at rD, added (" .. t .. " years, listed below) = " .. P(pvts), "pvts")
         out:note("the loan is repaid " .. P(V.repay) .. " a year, so it lasts " .. t .. " years and the interest falls each year")
         for _, y in ipairs(sched) do
           out:row("year " .. y.t .. ": tax shield", y.sh, "$", "Tc x rD x balance owed = " .. P(Tc) .. " x " .. P(V.rd) .. " x " .. P(y.bal) ..
@@ -916,21 +924,22 @@ NPV = 10m - 0.5m = 9.5m]],
         local VL = V.VU + pvts
         out:head("THE LEVERED FIRM")
         out:row("VL levered value", VL, "$", "VU + PV(tax shield) = " .. P(V.VU) .. " + " .. P(pvts), "VL")
-        out:row("E after the buyback", VL - D, "$", "VL - D", "E2")
+        out:row("E after the buyback", VL - D, "$", "VL - D = " .. P(VL) .. " - " .. P(D), "E2")
         out:uses("vl"); out:off("eqvl")
         if V.shares then
           -- the price jumps when the debt is announced; the buyback happens at that price
           local pr = VL / V.shares
           out:row("share price (after the news)", pr, "$", "VL/shares = " .. P(VL) .. "/" .. P(V.shares), "price")
-          out:row("shares bought back", D / pr, "", "D/price", "nbuy")
-          out:row("shares left", V.shares - D / pr, "", "shares - bought back", "nleft")
+          out:row("shares bought back", D / pr, "", "D/price = " .. P(D) .. "/" .. P(pr), "nbuy")
+          out:row("shares left", V.shares - D / pr, "", "shares - bought back = " .. P(V.shares) .. " - " .. P(D / pr), "nleft")
           out:off("pricerecap")
         end
         if V.rU and V.rd and not V.yrsD and not V.repay then
           local E2 = VL - D
           local re2 = reOf(V.rU, V.rd, D / E2)
           out:row("rE after", re2, "%", "rU + D/E (rU - rD)(1 - Tc) = " .. pct(V.rU) .. "% + " .. P(D / E2) .. " x " .. pct(V.rU - V.rd) .. "% x " .. P(1 - Tc), "re2")
-          out:row("WACC after", re2 * E2 / VL + V.rd * (1 - Tc) * D / VL, "%", "rE x E/V + rD x (1 - Tc) x D/V", "wacc2")
+          out:row("WACC after", re2 * E2 / VL + V.rd * (1 - Tc) * D / VL, "%", "rE x E/V + rD x (1 - Tc) x D/V = " .. pct(re2) .. "% x " .. P(E2 / VL) ..
+                  " + " .. pct(V.rd) .. "% x " .. P(1 - Tc) .. " x " .. P(D / VL), "wacc2")
           out:uses("ret2", "wacct")
         end
       end
@@ -951,12 +960,14 @@ NPV = 10m - 0.5m = 9.5m]],
       local ECF = 0
       for k = 1, #cfs do ECF = ECF + ps[k] * cfs[k] end
       out:head("THE FIRM (NO DEBT)")
-      out:row("expected cash flow", ECF, "$", "sum of chance x cash flow", "ECF")
+      local et = {}
+      for k = 1, #cfs do et[k] = P(ps[k]) .. " x " .. P(cfs[k]) end
+      out:row("expected cash flow", ECF, "$", "sum of chance x cash flow = " .. table.concat(et, " + "), "ECF")
       local Vf = V.Vf or (V.rU and ECF / (1 + V.rU))
       if not Vf then out:need("the firm's value today, or rU to find it"); return end
       if not V.Vf then out:row("firm value today", Vf, "$", "E[CF]/(1 + rU) = " .. P(ECF) .. "/" .. P(1 + V.rU), "V") end
       local rU = ECF / Vf - 1
-      out:row("rU: expected return, no debt", rU, "%", "E[CF]/V - 1", "rU")
+      out:row("rU: expected return, no debt", rU, "%", "E[CF]/V - 1 = " .. P(ECF) .. "/" .. P(Vf) .. " - 1", "rU")
       for k = 1, #cfs do out:row("state " .. k .. ": return, no debt", cfs[k] / Vf - 1, "%", P(cfs[k]) .. "/" .. P(Vf) .. " - 1", "ru" .. k) end
       if not V.D then out:need("D (the amount borrowed) and rD, for the levered equity"); return end
       local rd = V.rd or 0
@@ -991,7 +1002,7 @@ NPV = 10m - 0.5m = 9.5m]],
       out:row("VL = E + D", EL + V.D, "$", P(EL) .. " + " .. P(V.D), "VL")
       out:head("WHAT MM SAYS")
       local VLf = VU + Tc * V.D
-      out:row("VL should be", VLf, "$", tax and ("VU + Tc x D = " .. P(VU) .. " + " .. P(Tc * V.D)) or "VU (no tax: MM I)", "VLf")
+      out:row("VL should be", VLf, "$", tax and ("VU + Tc x D = " .. P(VU) .. " + " .. P(Tc * V.D)) or ("VU (no tax: MM I) = " .. P(VU)), "VLf")
       local Ef = VLf - V.D
       out:row("fair price, levered share", Ef / V.nL, "$", "(VL - D)/shares = " .. P(Ef) .. "/" .. P(V.nL), "pfair")
       out:uses(tax and "vl" or "mm1")
@@ -1001,9 +1012,11 @@ NPV = 10m - 0.5m = 9.5m]],
       if V.EBIT and V.rd then
         local rU = V.EBIT * (1 - Tc) / VU
         out:head("CHECK WITH RETURNS")
-        out:row("rU", rU, "%", "EBIT(1 - Tc)/VU", "rU")
-        out:row("levered equity: return it pays", (V.EBIT - V.rd * V.D) * (1 - Tc) / EL, "%", "(EBIT - interest)(1 - Tc)/E", "reAct")
-        out:row("levered equity: return MM needs", reOf(rU, V.rd, V.D / EL), "%", "rU + D/E (rU - rD)" .. (tax and "(1 - Tc)" or ""), "reMM")
+        out:row("rU", rU, "%", "EBIT(1 - Tc)/VU = " .. P(V.EBIT) .. " x " .. P(1 - Tc) .. "/" .. P(VU), "rU")
+        out:row("levered equity: return it pays", (V.EBIT - V.rd * V.D) * (1 - Tc) / EL, "%", "(EBIT - interest)(1 - Tc)/E = (" .. P(V.EBIT) .. " - " .. P(V.rd * V.D) .. ") x " ..
+                P(1 - Tc) .. "/" .. P(EL), "reAct")
+        out:row("levered equity: return MM needs", reOf(rU, V.rd, V.D / EL), "%", "rU + D/E (rU - rD)" .. (tax and "(1 - Tc)" or "") .. " = " ..
+                pct(rU) .. "% + " .. P(V.D / EL) .. " x " .. pct(rU - V.rd) .. "%" .. (tax and (" x " .. P(1 - Tc)) or ""), "reMM")
         out:uses(tax and "ret2" or "re")
       end
       out:off("mmarb")
@@ -1022,8 +1035,9 @@ NPV = 10m - 0.5m = 9.5m]],
           local e = p1 * math.max(x1 - Dd, 0) + p2 * math.max((x2 or 0) - Dd, 0)
           out:head("STRATEGY " .. nm)
           out:row(nm .. ": expected payoff (firm)", f, "$", P(p1) .. " x " .. P(x1) .. (x2 and (" + " .. P(p2) .. " x " .. P(x2)) or ""), "f" .. nm)
-          out:row(nm .. ": to equity", e, "$", "the part above the debt of " .. P(Dd), "e" .. nm)
-          out:row(nm .. ": to debt", f - e, "$", "firm - equity", "d" .. nm)
+          out:row(nm .. ": to equity", e, "$", "the part above the debt of " .. P(Dd) .. " = " .. P(p1) .. " x " .. P(math.max(x1 - Dd, 0)) ..
+                  (x2 and (" + " .. P(p2) .. " x " .. P(math.max(x2 - Dd, 0))) or ""), "e" .. nm)
+          out:row(nm .. ": to debt", f - e, "$", "firm - equity = " .. P(f) .. " - " .. P(e), "d" .. nm)
           rows[#rows + 1] = { nm, f, e }
           if not best or f > best[2] then best = rows[#rows] end
           if not bestE or e > bestE[3] then bestE = rows[#rows] end
@@ -1069,7 +1083,7 @@ NPV = 10m - 0.5m = 9.5m]],
     local re = reOf(V.rU, V.rd, DE)
     out:row("rE", re, "%", "rU + D/E (rU - rD)" .. (tax and "(1 - Tc)" or "") .. " = " .. pct(V.rU) .. "% + " .. P(DE) .. " x " .. pct(V.rU - V.rd) .. "%" .. (tax and (" x " .. P(1 - Tc)) or ""), "re")
     local wE, wD = 1 / (1 + DE), DE / (1 + DE)
-    out:row("WACC", re * wE + V.rd * (1 - Tc) * wD, "%", "rE(E/V) + rD(1 - Tc)(D/V)", "wacc")
+    out:row("WACC", re * wE + V.rd * (1 - Tc) * wD, "%", "rE(E/V) + rD(1 - Tc)(D/V) = " .. pct(re) .. "% x " .. P(wE) .. " + " .. pct(V.rd) .. "% x " .. P(1 - Tc) .. " x " .. P(wD), "wacc")
     if tax then out:uses("ret2", "wacct") else out:uses("re", "ru") end
     if not tax then out:note("no tax: the WACC stays equal to rU whatever the leverage") end
   end

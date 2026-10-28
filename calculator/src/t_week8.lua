@@ -76,7 +76,8 @@ do
       end
       pvf = pvf + pv
     end
-    out:row("PV of all the fees (value today of the charges)", pvf, "$", (V.feeM and V.feeY) and "monthly + yearly" or "as above", "pvfees")
+    out:row("PV of all the fees (value today of the charges)", pvf, "$", (V.feeM and V.feeY) and ("monthly + yearly = " .. P(out.vals.pvM) .. " + " .. P(out.vals.pvY)) or
+            ("the same as the line above = " .. P(pvf)), "pvfees")
     out:head("DECISION")
     local npv = freed - pvf
     out:row("NPV", npv, "$", "cash freed - PV(fees) = " .. P(freed) .. " - " .. P(pvf), "NPV")
@@ -112,9 +113,9 @@ do
       if ar then out:row("A/R days", ar, "days", "receivables/(sales/" .. Y .. ") = " .. P(V.ar) .. "/" .. P(dS), "arD"); out:uses("ard") end
       if ap then out:row("A/P days", ap, "days", "payables/(COGS/" .. Y .. ") = " .. P(V.ap) .. "/" .. P(dC), "apD"); out:uses("apd") end
       out:head("CYCLES")
-      if inv and ar then out:row("operating cycle", inv + ar, "days", "inventory days + A/R days", "oc"); out:off("opcycle") end
+      if inv and ar then out:row("operating cycle", inv + ar, "days", "inventory days + A/R days = " .. P(inv) .. " + " .. P(ar), "oc"); out:off("opcycle") end
       if inv and ar and ap then
-        out:row("cash cycle (CCC)", inv + ar - ap, "days", "inventory days + A/R days - A/P days", "ccc")
+        out:row("cash cycle (CCC)", inv + ar - ap, "days", "inventory days + A/R days - A/P days = " .. P(inv) .. " + " .. P(ar) .. " - " .. P(ap), "ccc")
         out:uses("ccc")
         if V.paynet then out:row("CCC if you pay on day " .. P(V.paynet), inv + ar - V.paynet, "days", "A/P days replaced by " .. P(V.paynet), "ccc2") end
       else
@@ -125,7 +126,7 @@ do
     if mode == MODES14[2] then
       if not (V.invD and V.arD) then out:need("inventory days and A/R days"); return end
       out:head("CYCLES")
-      out:row("operating cycle", V.invD + V.arD, "days", "inventory days + A/R days", "oc")
+      out:row("operating cycle", V.invD + V.arD, "days", "inventory days + A/R days = " .. P(V.invD) .. " + " .. P(V.arD), "oc")
       out:off("opcycle")
       if V.apD then out:row("cash cycle (CCC)", V.invD + V.arD - V.apD, "days", "inventory days + A/R days - A/P days = " .. P(V.invD) .. " + " .. P(V.arD) .. " - " .. P(V.apD), "ccc"); out:uses("ccc") end
       out:note("a negative cash cycle: suppliers are paid AFTER customers pay")
@@ -140,7 +141,8 @@ do
       out:row("one day of " .. (which == "receivables (A/R)" and "sales" or "COGS"), day, "$", P(base) .. "/" .. Y, "day")
       local d = V.newD - V.oldD
       local freed = (which == "payables (A/P)") and d * day or -d * day
-      out:row("cash freed", freed, "$", (which == "payables (A/P)") and "(new - old A/P days) x one day" or "(old - new days) x one day", "freed")
+      out:row("cash freed", freed, "$", (which == "payables (A/P)") and ("(new - old A/P days) x one day = (" .. P(V.newD) .. " - " .. P(V.oldD) .. ") x " .. P(day))
+        or ("(old - new days) x one day = (" .. P(V.oldD) .. " - " .. P(V.newD) .. ") x " .. P(day)), "freed")
       out:off("freed")
       out:note(freed >= 0 and "positive: cash is released" or "negative: more cash is tied up")
       return
@@ -148,9 +150,10 @@ do
     if mode == MODES14[4] then
       local ca = (V.cash or 0) + (V.ar or 0) + (V.inv or 0) + (V.oca or 0)
       local cl = (V.ap or 0) + (V.ocl or 0)
-      out:row("current assets", ca, "$", "cash + receivables + inventory + other", "ca")
-      out:row("current liabilities", cl, "$", "payables + other current liabilities", "cl")
-      out:row("NWC", ca - cl, "$", "current assets - current liabilities", "nwc")
+      out:row("current assets", ca, "$", "cash + receivables + inventory + other = " .. P(V.cash or 0) .. " + " .. P(V.ar or 0) .. " + " ..
+              P(V.inv or 0) .. " + " .. P(V.oca or 0), "ca")
+      out:row("current liabilities", cl, "$", "payables + other current liabilities = " .. P(V.ap or 0) .. " + " .. P(V.ocl or 0), "cl")
+      out:row("NWC", ca - cl, "$", "current assets - current liabilities = " .. P(ca) .. " - " .. P(cl), "nwc")
       out:off("nwcbs")
       return
     end
@@ -158,7 +161,8 @@ do
     if not (V.ni and V.dep and V.r) then out:need("net income, depreciation and r (and capex, dNWC, g)"); return end
     local g = V.g or 0
     local fcf = V.ni + V.dep - (V.capex or 0) - (V.dnwc or 0)
-    out:row("FCF next year", fcf, "$", "NI + Dep - CapEx - dNWC", "fcf")
+    out:row("FCF next year", fcf, "$", "NI + Dep - CapEx - dNWC = " .. P(V.ni) .. " + " .. P(V.dep) .. " - " .. P(V.capex or 0) ..
+            " - " .. P(V.dnwc or 0), "fcf")
     out:off("fcfni")
     if V.r <= g then out:err("r must be above g"); return end
     out:row("firm value V", fcf / (V.r - g), "$", "V = FCF/(r - g) = " .. P(fcf) .. "/(" .. P(V.r) .. " - " .. P(g) .. ")", "V")
@@ -166,7 +170,7 @@ do
     if V.cut and V.dnwc then
       local save = V.cut * V.dnwc
       out:row("yearly cash saved", save, "$", "cut x dNWC = " .. P(V.cut) .. " x " .. P(V.dnwc), "save")
-      out:row("rise in firm value", save / (V.r - g), "$", "saving/(r - g)", "dV")
+      out:row("rise in firm value", save / (V.r - g), "$", "saving/(r - g) = " .. P(save) .. "/(" .. P(V.r) .. " - " .. P(g) .. ")", "dV")
     end
   end
 
@@ -471,8 +475,10 @@ EAR = (1 + 1/99)^(365/65) - 1 = 5.81%]],
       if pol[2] then
         local npv, cf0, later = policyNPV(pol[2], V.p, V.c, pol[3], pol[4], V.r)
         out:head(pol[1] .. " POLICY (" .. P(pol[2]) .. " units a month)")
-        out:row("month 0 cash flow", cf0, "$", "-cost x units + cash sales at the discounted price", pol[1] .. "0")
-        out:row("each later month", later, "$", "month-0 flow + last month's credit sales collected", pol[1] .. "L")
+        out:row("month 0 cash flow", cf0, "$", "-cost x units + cash share x units x price x (1 - discount) = -" .. P(V.c) .. " x " ..
+                P(pol[2]) .. " + " .. P(pol[3]) .. " x " .. P(pol[2]) .. " x " .. P(V.p) .. " x " .. P(1 - pol[4]), pol[1] .. "0")
+        out:row("each later month", later, "$", "month-0 flow + last month's credit sales collected = " .. P(cf0) .. " + " ..
+                P(later - cf0), pol[1] .. "L")
         out:row("NPV", npv, "$", "CF0 + later/r = " .. P(cf0) .. " + " .. P(later) .. "/" .. P(V.r), pol[1] .. "N")
         out:uses("npv", "perp"); out:off("creditcf")
         rows[#rows + 1] = npv
@@ -480,7 +486,7 @@ EAR = (1 + 1/99)^(365/65) - 1 = 5.81%]],
     end
     if #rows == 2 then
       out:head("SWITCH?")
-      out:row("NPV of switching", rows[2] - rows[1], "$", "NPV new - NPV current", "sw")
+      out:row("NPV of switching", rows[2] - rows[1], "$", "NPV new - NPV current = " .. P(rows[2]) .. " - " .. P(rows[1]), "sw")
       out:add("ok", rows[2] > rows[1] and "positive: SWITCH to the new policy" or "negative: KEEP the current policy")
     else
       out:need("units a month for both policies")

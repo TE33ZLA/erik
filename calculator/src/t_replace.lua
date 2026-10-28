@@ -83,11 +83,11 @@ do
 
     -- year 0
     out:head("YEAR 0 (today)")
-    out:row("new asset", -newC, "$", "its cost (with shipping and installation): an outflow", "c0new")
+    out:row("new asset", -newC, "$", "its cost (with shipping and installation), an outflow = -" .. P(newC), "c0new")
     local taxO = R.taxO
     if R.hasOld then
       local bv = bvO or 0
-      out:row("old asset sold now", saleO, "$", "its sale price today", "saleO")
+      out:row("old asset sold now", saleO, "$", "its sale price today = " .. P(saleO), "saleO")
       out:row((math.abs(taxO) < 0.005) and "tax on the old sale (none: sold at book value)" or
               ((taxO > 0) and "tax saved on the old sale (a loss)" or "tax paid on the old sale (a gain)"), taxO, "$",
               "(BV - sale)*Tc = (" .. P(bv) .. " - " .. P(saleO) .. ")*" .. P(Tc) ..
@@ -97,7 +97,7 @@ do
       out:uses("salv"); out:off("oldsale")
       if not bvO then out:note("old book value blank = 0: the whole sale price is taxed") end
     end
-    if nwc ~= 0 then out:row("NWC put in", -nwc, "$", "working capital needed at the start (back at the end)", "nwc0") end
+    if nwc ~= 0 then out:row("NWC put in", -nwc, "$", "working capital needed at the start (back at the end) = -" .. P(nwc), "nwc0") end
     local cf0 = R.cf0
     out:row("CF0", cf0, "$", "-new cost + old sale + tax effect - NWC = -" .. P(newC) .. " + " .. P(saleO) .. " + " ..
             sp(taxO) .. " - " .. P(nwc), "CF0")
@@ -108,7 +108,7 @@ do
     if depO > 0 then
       out:row("old asset: dep a year (lost if you replace)", depO, "$",
               bvO and ("until its book value " .. P(bvO) .. " is used up: " .. P(bvO / depO) .. " more years")
-                  or "every year of the project (no old book value given)", "depO")
+                  or ("every year of the project (no old book value given): given " .. P(depO)), "depO")
     end
     out:note("incremental dep = new dep - old dep; it turns NEGATIVE once the new asset is fully depreciated while the old one would still be")
     out:off("sldep"); out:off("incdep")
@@ -132,7 +132,7 @@ do
               P(endO) .. " - (" .. P(endO) .. " - " .. P(bvOend) .. ")*" .. P(Tc) .. ")", "atsO")
     end
     if rec ~= 0 then
-      out:row("NWC recovered", rec, "$", (nwcY ~= 0) and ("start " .. P(nwc) .. " + " .. P(nwcY) .. " x " .. (n - 1) .. " years") or "all of it comes back, untaxed", "nwcRec")
+      out:row("NWC recovered", rec, "$", (nwcY ~= 0) and ("start " .. P(nwc) .. " + " .. P(nwcY) .. " x " .. (n - 1) .. " years") or ("all of it comes back, untaxed = " .. P(rec)), "nwcRec")
     end
     out:uses("salv"); out:off("terminal")
 
@@ -177,7 +177,7 @@ do
     end
     local irr = irrOf(cfs, n)
     if irr then
-      out:row("IRR", irr, "%", "the rate where NPV = 0 (found by search)", "IRR")
+      out:row("IRR", irr, "%", "search for the rate where NPV = 0: NPV at " .. pct(irr) .. "% = " .. money(npvAt(irr, cfs, n)), "IRR")
       out:uses("irr")
       if r then out:add(irr >= r and "ok" or "bad", (irr >= r) and "IRR >= r: replace by the IRR rule too" or "IRR < r: keep by the IRR rule too") end
     end

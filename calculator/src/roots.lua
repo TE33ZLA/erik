@@ -605,7 +605,8 @@ do
     f = function(x) local s = 0; for k = 1, 5 do if x["R" .. k] or x["p" .. k] then s = s + (x["R" .. k] or 0) * (x["p" .. k] or 0) end end; return s - x.ER end,
     extra = function(x) end,
     ex = { R1 = -0.14, p1 = 0.25, R2 = 0.14, p2 = 0.5, R3 = 0.29, p3 = 0.25 } }
-  local function sdRow(t) return function(x, out) out:row("SD = sqrt(" .. t .. ")", math.sqrt(math.max(x.Var, 0)), "%", "the square root of the variance", "sd") end end
+  local function sdRow(t) return function(x, out) local sd = math.sqrt(math.max(x.Var, 0))
+    out:row("SD = sqrt(" .. t .. ")", sd, "%", "the square root of the variance = sqrt(" .. P(x.Var) .. ") = " .. P(sd) .. " = " .. pct(sd) .. "%", "sd") end end
   def{ id = "varp", grp = 6, name = "Variance (states)", short = "Var(i)", eq = "Var(i) = Sum of (Rik - E(Ri))^2*Pk",
     words = "each state's squared gap from E(Ri), times its chance, added up",
     vars = pairs3({ slot("Var", "Var(i)", "Var(i) variance (decimal)", "num", "the variance (a decimal, e.g. 0.0242)",
@@ -718,7 +719,8 @@ do
              slot("Vj", "Var(j)", "or: Var(j) variance of j", "num", "a matrix's diagonal number for j", "optional: share j's variance; SDj = its root.", { opt = true }) },
     f = function(x) return x.wi ^ 2 * x.SDi ^ 2 + x.wj ^ 2 * x.SDj ^ 2 + 2 * x.wi * x.wj * x.Corr * x.SDi * x.SDj - x.Varp end,
     rearr = { Corr = "Corr(i,j) = (Var(p) - wi^2*SDi^2 - wj^2*SDj^2)/(2*wi*wj*SDi*SDj)" },
-    extra = function(x, out) out:row("SD(p) = sqrt(Var(p))", math.sqrt(math.max(x.Varp, 0)), "%", "the square root of the variance", "sdp") end,
+    extra = function(x, out) local sd = math.sqrt(math.max(x.Varp, 0))
+      out:row("SD(p) = sqrt(Var(p))", sd, "%", "the square root of the variance = sqrt(" .. P(x.Varp) .. ") = " .. P(sd) .. " = " .. pct(sd) .. "%", "sdp") end,
     ex = { wi = 0.65, wj = 0.35, SDi = 0.206, SDj = 0.172, Corr = 0.4 } }
   local rf = slot("rf", nil, "rf risk-free rate (%)", "pct", "the risk-free rate (T-bills, government bonds)", "the risk-free rate, e.g. the Treasury bill rate.")
   def{ id = "sharpe", grp = 7, name = "Sharpe ratio", short = "Sharpe Ratio", eq = "Sharpe = (E[Rp] - rf)/SDp",

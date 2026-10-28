@@ -63,20 +63,21 @@ do
         local M = { Q = V.Q, P = V.P, v = V.v, FC = FC, Dep = dep, T = T, r = V.r, n = V.n, I = V.I }
         local npv, ocf = marginNPV(M)
         out:head("THIS PROJECT (Q = " .. P(V.Q) .. ")")
-        out:row("OCF each year", ocf, "$", "((P - v)Q - FC - Dep)(1 - T) + Dep", "ocf")
+        out:row("OCF each year", ocf, "$", "((P - v)Q - FC - Dep)(1 - T) + Dep = (" .. P(mgn) .. " x " .. P(V.Q) .. " - " .. P(FC) .. " - " .. P(dep) .. ") x " .. P(1 - T) .. " + " .. P(dep), "ocf")
         out:row("NPV", npv, "$", "NPV = OCF x factor - I = " .. P(ocf) .. " x " .. P(f) .. " - " .. P(V.I), "NPV")
         out:uses("fcf", "npv", V.n and "pva" or "perp"); out:off("ocfq")
         out:add(npv >= 0 and "ok" or "bad", npv >= 0 and "NPV >= 0: accept" or "NPV < 0: reject")
         -- break-even for the other inputs (NPV is a straight line in each of them)
         local base = (need - dep) / (1 - T) + FC + dep     -- (P - v)Q needed
         out:head("BREAK-EVEN OF EACH INPUT (NPV = 0)")
-        out:row("price P", V.v + base / V.Q, "$", "P = v + ((OCF needed - Dep)/(1 - T) + FC + Dep)/Q", "Pbe")
-        out:row("cost per unit v", V.P - base / V.Q, "$", "v = P - (same)/Q", "vbe")
+        out:row("price P", V.v + base / V.Q, "$", "P = v + ((OCF needed - Dep)/(1 - T) + FC + Dep)/Q = " .. P(V.v) .. " + " .. P(base) .. "/" .. P(V.Q), "Pbe")
+        out:row("cost per unit v", V.P - base / V.Q, "$", "v = P - (same)/Q = " .. P(V.P) .. " - " .. P(base) .. "/" .. P(V.Q), "vbe")
         out:off("bein")
         local irr = findRoot(function(r)
           local g = annFac(r, V.n); if not g then return nil end
           return ocf * g - V.I end, 0.0005, 5, 0.0025)
-        if irr then out:row("discount rate (IRR)", irr, "%", "the r that makes OCF x factor = I", "irr"); out:uses("irr") end
+        if irr then out:row("discount rate (IRR)", irr, "%", "search for the r where OCF x factor = I: at " .. pct(irr) .. "%, " ..
+          P(ocf) .. " x " .. P(annFac(irr, V.n)) .. " = " .. P(ocf * annFac(irr, V.n)) .. " (I = " .. P(V.I) .. ")", "irr"); out:uses("irr") end
       end
       out:head("ON YOUR TI-NSPIRE")
       if V.n then out:xl("tvmPmt(" .. P(V.n) .. "," .. pct(V.r) .. ",-" .. P(V.I) .. ",0,1,1)  -> OCF needed")
@@ -90,7 +91,7 @@ do
     local npv0, ocf0, f0 = marginNPV(base)
     if not npv0 then out:err("the rate must be above zero"); return end
     out:head("BASE CASE")
-    out:row("OCF each year", ocf0, "$", "((P - v)Q - FC - Dep)(1 - T) + Dep", "ocf0")
+    out:row("OCF each year", ocf0, "$", "((P - v)Q - FC - Dep)(1 - T) + Dep = (" .. P(mgn) .. " x " .. P(V.Q) .. " - " .. P(FC) .. " - " .. P(dep) .. ") x " .. P(1 - T) .. " + " .. P(dep), "ocf0")
     out:row("NPV base", npv0, "$", "OCF x " .. factorText(V.r, V.n) .. " - I", "npv0")
     out:uses("fcf", "npv", V.n and "pva" or "perp"); out:off("ocfq")
 
@@ -108,9 +109,9 @@ do
       local npv1 = marginNPV(M)
       out:head("CHANGE ONE INPUT: " .. which)
       out:row("new NPV", npv1, "$", "same formula, only " .. key .. " changed: " .. P(old) .. " -> " .. P(new), "npv1")
-      out:row("change in NPV", npv1 - npv0, "$", "NPV new - NPV base", "dnpv")
-      if npv0 ~= 0 then out:row("% change in NPV", (npv1 - npv0) / math.abs(npv0), "%", "(NPV new - NPV base)/NPV base", "pnpv") end
-      if old and old ~= 0 then out:row("% change in the input", (new - old) / old, "%", "(new - old)/old", "pin") end
+      out:row("change in NPV", npv1 - npv0, "$", "NPV new - NPV base = " .. P(npv1) .. " - " .. P(npv0), "dnpv")
+      if npv0 ~= 0 then out:row("% change in NPV", (npv1 - npv0) / math.abs(npv0), "%", "(NPV new - NPV base)/NPV base = " .. P(npv1 - npv0) .. "/" .. P(math.abs(npv0)), "pnpv") end
+      if old and old ~= 0 then out:row("% change in the input", (new - old) / old, "%", "(new - old)/old = (" .. P(new) .. " - " .. P(old) .. ")/" .. P(old), "pin") end
       out:note("the input whose change moves the NPV most is the one the NPV is MOST sensitive to")
       return
     end
@@ -130,8 +131,9 @@ do
     out:row("NPV best", nb, "$", "Q " .. P(Mb.Q) .. ", P " .. P(Mb.P) .. ", v " .. P(Mb.v), "nb")
     if V.pw and V.pb then
       local pb0 = 1 - V.pw - V.pb
-      out:row("probability of base", pb0, "%", "1 - worst - best", "pbase")
-      out:row("expected NPV", V.pw * nw + pb0 * npv0 + V.pb * nb, "$", "p_w x NPV_w + p_b x NPV_b + p_base x NPV_base", "enpv")
+      out:row("probability of base", pb0, "%", "1 - worst - best = 1 - " .. P(V.pw) .. " - " .. P(V.pb), "pbase")
+      out:row("expected NPV", V.pw * nw + pb0 * npv0 + V.pb * nb, "$", "p_w x NPV_w + p_b x NPV_b + p_base x NPV_base = " .. P(V.pw) .. " x " .. P(nw) ..
+              " + " .. P(V.pb) .. " x " .. P(nb) .. " + " .. P(pb0) .. " x " .. P(npv0), "enpv")
       out:off("enpv")
     end
   end
@@ -380,7 +382,7 @@ NPV new = $231,818.18]],
       if not best then out:need("the value of each option (at the decision date)"); return end
       out:head("DECISION NODE: keep the BEST option")
       out:row("best option", bi, "", "option " .. bi .. " has the highest value", "bi")
-      out:row("node value (at t = " .. P(t) .. ")", best, "$", "max of the options", "node")
+      out:row("node value (at t = " .. P(t) .. ")", best, "$", "max of the options = option " .. bi .. " = " .. P(best), "node")
       out:off("decnode")
       if r and t > 0 then out:row("value today", best / (1 + r) ^ t, "$", "node/(1 + r)^t = " .. P(best) .. "/" .. P(1 + r) .. "^" .. P(t), "pv"); out:uses("pv") end
       return
@@ -425,14 +427,14 @@ NPV new = $231,818.18]],
     if not sell then out:need("the sale value (or % of cost and the cost)"); return end
     if not r then out:need("r"); return end
     out:head("SELL (ABANDON) OR KEEP?")
-    out:row("sell now", sell, "$", V.sell and "given" or ("% x cost = " .. P(V.sellp) .. " x " .. P(V.cost)), "sell")
+    out:row("sell now", sell, "$", V.sell and ("given: " .. P(V.sell)) or ("% x cost = " .. P(V.sellp) .. " x " .. P(V.cost)), "sell")
     local keep = E * f / (1 + r)
     out:row("keep: expected next-year value", E * f, "$", table.concat(terms, " + "), "Ekeep")
     out:row("keep: value now", keep, "$", "E/(1 + r) = " .. P(E * f) .. "/" .. P(1 + r), "keep")
     local node = math.max(sell, keep)
-    out:row("node value", node, "$", "the larger of sell and keep", "node")
+    out:row("node value", node, "$", "the larger of sell and keep = max(" .. P(sell) .. ", " .. P(keep) .. ")", "node")
     out:add("ok", sell > keep and "SELL (abandon): it is worth more" or "KEEP: it is worth more")
-    out:row("value of the option to sell", node - keep, "$", "node - keep (never below zero)", "opt")
+    out:row("value of the option to sell", node - keep, "$", "node - keep (never below zero) = " .. P(node) .. " - " .. P(keep), "opt")
     out:uses("pv"); out:off("decnode"); out:off("optval")
   end
 
@@ -642,7 +644,13 @@ PV = 105/1.1^0.5 = $100.11
       for _, k2 in ipairs({ "HH", "HL", "LH", "LL" }) do
         if t[k2] then given = given + 1; sum = sum + t[k2] elseif blank then out:need("at least 3 of the 4 path probabilities"); return else blank = k2 end
       end
-      if blank then t[blank] = 1 - sum; out:row("P(" .. blank .. ") (missing path)", t[blank], "%", "1 - the other three", "miss"); sum = 1; out:off("paths") end
+      if blank then
+        t[blank] = 1 - sum
+        local three = {}
+        for _, k2 in ipairs({ "HH", "HL", "LH", "LL" }) do if k2 ~= blank then three[#three + 1] = P(t[k2]) end end
+        out:row("P(" .. blank .. ") (missing path)", t[blank], "%", "1 - the other three = 1 - (" .. table.concat(three, " + ") .. ")", "miss")
+        sum = 1; out:off("paths")
+      end
       if math.abs(sum - 1) > 0.0005 then out:err("the four paths must add to 100% (now " .. pct(sum) .. "%)"); return end
       HH, HL, LH, LL = t.HH, t.HL, t.LH, t.LL
     else
@@ -657,24 +665,34 @@ PV = 105/1.1^0.5 = $100.11
       out:off("joint")
     end
     local H1, L1 = HH + HL, LH + LL
+    local ph = {}   -- how each path probability came about, with the numbers
+    if mode == MODES13[1] then
+      for _, k2 in ipairs({ "HH", "HL", "LH", "LL" }) do ph[k2] = V[k2] and (", given: " .. pct(V[k2]) .. "%") or (" = 1 - the other three = 1 - " .. P((V.HH or 0) + (V.HL or 0) + (V.LH or 0) + (V.LL or 0))) end
+    else
+      local hh, ll = HH / V.H1, LL / (1 - V.H1)
+      ph.HH = " = P(H1) x P(H2 | H1) = " .. P(V.H1) .. " x " .. P(hh)
+      ph.HL = " = P(H1) x P(L2 | H1) = " .. P(V.H1) .. " x " .. P(1 - hh)
+      ph.LH = " = P(L1) x P(H2 | L1) = " .. P(1 - V.H1) .. " x " .. P(1 - ll)
+      ph.LL = " = P(L1) x P(L2 | L1) = " .. P(1 - V.H1) .. " x " .. P(ll)
+    end
     out:head("PATHS (JOINT PROBABILITIES)")
-    out:row("P(HH)", HH, "%", "high then high", "HH")
-    out:row("P(HL)", HL, "%", "high then low", "HL")
-    out:row("P(LH)", LH, "%", "low then high", "LH")
-    out:row("P(LL)", LL, "%", "low then low", "LL")
+    out:row("P(HH)", HH, "%", "high then high" .. ph.HH, "HH")
+    out:row("P(HL)", HL, "%", "high then low" .. ph.HL, "HL")
+    out:row("P(LH)", LH, "%", "low then high" .. ph.LH, "LH")
+    out:row("P(LL)", LL, "%", "low then low" .. ph.LL, "LL")
     out:head("YEAR 1 AND YEAR 2")
-    out:row("P(H1)", H1, "%", "P(HH) + P(HL)", "H1")
-    out:row("P(L1)", L1, "%", "P(LH) + P(LL)", "L1")
-    out:row("P(H2)", HH + LH, "%", "P(HH) + P(LH)", "H2")
-    out:row("P(L2)", HL + LL, "%", "P(HL) + P(LL)", "L2")
+    out:row("P(H1)", H1, "%", "P(HH) + P(HL) = " .. P(HH) .. " + " .. P(HL), "H1")
+    out:row("P(L1)", L1, "%", "P(LH) + P(LL) = " .. P(LH) .. " + " .. P(LL), "L1")
+    out:row("P(H2)", HH + LH, "%", "P(HH) + P(LH) = " .. P(HH) .. " + " .. P(LH), "H2")
+    out:row("P(L2)", HL + LL, "%", "P(HL) + P(LL) = " .. P(HL) .. " + " .. P(LL), "L2")
     out:head("GIVEN YEAR 1 (CONDITIONAL)")
     out:off("cond")
     if H1 > 0 then
       out:row("P(H2 | H1)", HH / H1, "%", "P(HH)/P(H1) = " .. P(HH) .. "/" .. P(H1), "HgH")
-      out:row("P(L2 | H1)", HL / H1, "%", "P(HL)/P(H1)", "LgH")
+      out:row("P(L2 | H1)", HL / H1, "%", "P(HL)/P(H1) = " .. P(HL) .. "/" .. P(H1), "LgH")
     end
     if L1 > 0 then
-      out:row("P(H2 | L1)", LH / L1, "%", "P(LH)/P(L1)", "HgL")
+      out:row("P(H2 | L1)", LH / L1, "%", "P(LH)/P(L1) = " .. P(LH) .. "/" .. P(L1), "HgL")
       out:row("P(L2 | L1)", LL / L1, "%", "P(LL)/P(L1) = " .. P(LL) .. "/" .. P(L1), "LgL")
     end
   end

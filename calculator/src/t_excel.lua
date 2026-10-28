@@ -105,14 +105,14 @@ do
       if math.abs(d - R.depN) < 1e-9 then
         return d, "=" .. N(R.newC) .. "/" .. N(R.life), "straight line: cost/life = " .. P(R.newC) .. "/" .. P(R.life)
       end
-      return d, "=" .. N(d), (d == 0) and "the new machine is fully depreciated: no more depreciation" or "only what is left of its book value"
+      return d, "=" .. N(d), (d == 0) and "the new machine is fully depreciated: no more depreciation, 0" or ("only what is left of its book value: " .. P(d))
     end)
     if kind == 1 and R.depO > 0 then
       spec("depO", "old dep given up", "the old machine's depreciation (lost if you replace)", function(t)
         if t == 0 then return nil end
         local d = Y[t].dO
         return d, "=" .. N(d), (d == R.depO) and ("the old machine's dep a year: " .. P(d) .. " (you lose it)") or
-               ((d == 0) and "the old machine would be fully depreciated by now: 0" or "only what was left of its book value")
+               ((d == 0) and "the old machine would be fully depreciated by now: 0" or ("only what was left of its book value: " .. P(d)))
       end)
     end
     if kind == 1 then
@@ -143,16 +143,16 @@ do
     end)
     spec("add", "+ dep (add back)", "+ depreciation added back (not cash)", function(t)
       if t == 0 then return nil end
-      return Y[t].inc, "=" .. ref(depId), "depreciation is not a cash flow: add the same number back"
+      return Y[t].inc, "=" .. ref(depId), "depreciation is not a cash flow: add the same number back, " .. X.sp(Y[t].inc)
     end)
     spec("capex", "CapEx", "CapEx: the new asset's cost (MINUS)", function(t)
       if t ~= 0 then return nil end
-      return -R.newC, "=-" .. N(R.newC), "the cost today (with shipping and installation): a MINUS"
+      return -R.newC, "=-" .. N(R.newC), "the cost today (with shipping and installation), a MINUS: -" .. P(R.newC)
     end)
     if kind == 1 and R.hasOld then
       spec("saleO", "sale of old (now)", "the old machine sold now", function(t)
         if t ~= 0 then return nil end
-        return R.saleO, "=" .. N(R.saleO), "the old machine's sale price today: a PLUS"
+        return R.saleO, "=" .. N(R.saleO), "the old machine's sale price today, a PLUS: " .. P(R.saleO)
       end)
       spec("taxO", "tax on old sale", "tax on the old sale: refund on a loss, tax on a gain", function(t)
         if t ~= 0 then return nil end
@@ -165,7 +165,7 @@ do
     if R.saleN ~= 0 or R.bvNend > 0 then
       spec("saleN", "sale of new (end)", "the new machine sold at the end", function(t)
         if t ~= n then return nil end
-        return R.saleN, "=" .. N(R.saleN), "what it sells for in the last year"
+        return R.saleN, "=" .. N(R.saleN), "what it sells for in the last year: " .. P(R.saleN)
       end)
       spec("taxN", "tax on new sale", "tax on the new machine's sale: -(sale - book value) x Tc", function(t)
         if t ~= n then return nil end
@@ -177,7 +177,7 @@ do
     if kind == 1 and (R.endO ~= 0 or R.bvOend > 0) then
       spec("endO", "old end value lost", "the old machine's end value, given up (MINUS)", function(t)
         if t ~= n then return nil end
-        return -R.endO, "=-" .. N(R.endO), "you would have sold the old machine for this at the end: given up"
+        return -R.endO, "=-" .. N(R.endO), "you would have sold the old machine for this at the end, given up: -" .. P(R.endO)
       end)
       spec("taxE", "tax on it (lost)", "the tax on that sale, not paid any more", function(t)
         if t ~= n then return nil end
@@ -189,11 +189,11 @@ do
       spec("nwc", "NWC change", "change in NWC: put in (MINUS), back at the end (PLUS)", function(t)
         if t == 0 then
           if R.nwc == 0 then return nil end
-          return -R.nwc, "=-" .. N(R.nwc), "working capital put in at the start: a MINUS"
+          return -R.nwc, "=-" .. N(R.nwc), "working capital put in at the start, a MINUS: -" .. P(R.nwc)
         end
         if t < n then
           if R.nwcY == 0 then return nil end
-          return -R.nwcY, "=-" .. N(R.nwcY), "more working capital this year: a MINUS"
+          return -R.nwcY, "=-" .. N(R.nwcY), "more working capital this year, a MINUS: -" .. P(R.nwcY)
         end
         return R.rec, "=-SUM(B" .. rowOf.nwc .. ":<" .. rowOf.nwc .. ")", "all the working capital comes back at the end (no tax): " .. P(R.rec)
       end)
@@ -236,11 +236,25 @@ do
       end
       T.rows[#T.rows + 1] = rw
     end
+    -- each FCF cell adds up its column's items (after-tax profit down to the last item): the numbers it adds
+    local fcfRow, fcfSum = T.rows[rowOf.FCF - 1], {}
+    for t = 0, n do
+      local parts = {}
+      for i = rowOf.atp - 1, rowOf[lastItem] - 1 do
+        local v = T.rows[i].vals[t + 1]
+        if v ~= nil then parts[#parts + 1] = X.sp(v) end
+      end
+      fcfSum[t] = ((#parts > 0) and table.concat(parts, " + ") or "0")
+      if fcfRow.how[t + 1] then
+        fcfRow.how[t + 1] = "Excel " .. X.L(t) .. rowOf.FCF .. ": " .. fcfRow.xf[t + 1] .. "\nFCF: the items above added up = " .. fcfSum[t]
+      end
+    end
 
     -- the answer page: the FCF row first, then the NPV
     out:head("FCF EACH YEAR (the Excel FCF row " .. rowOf.FCF .. ")")
     for t = 0, n do
-      out:row("Year " .. t .. " FCF (" .. X.L(t) .. rowOf.FCF .. ")", R.cfs[t], "$", nil, "FCF" .. t)
+      out:row("Year " .. t .. " FCF (" .. X.L(t) .. rowOf.FCF .. ")", R.cfs[t], "$", X.cellOf(fcfRow.pat[t] or "", t) ..
+              ": the items above added up = " .. fcfSum[t], "FCF" .. t)
     end
     out:note("each FCF cell: " .. X.L(1) .. rowOf.FCF .. " " .. X.cellOf(T.rows[rowOf.FCF - 1].pat[1] or "", 1) .. ", copy right (and left to B)")
     out.vals.CF0 = R.cfs[0]
@@ -273,7 +287,7 @@ do
               P(R.bvO or 0) .. ")*" .. P(Tc), "atsO0")
       out:uses("salv"); out:off("oldsale")
     end
-    out:row("book value of the new asset at the end", R.bvNend, "$", "cost - all depreciation so far", "bvNend")
+    out:row("book value of the new asset at the end", R.bvNend, "$", "cost - all depreciation so far = " .. P(R.newC) .. " - " .. P(R.newC - R.bvNend), "bvNend")
     if R.saleN ~= 0 or R.bvNend > 0 then
       out:row("after-tax sale of the new asset", R.atsN, "$", "SV - (SV - BV)*tc = " .. P(R.saleN) .. " - (" .. P(R.saleN) .. " - " ..
               P(R.bvNend) .. ")*" .. P(Tc), "atsN")
@@ -300,10 +314,14 @@ do
       local rw = { label = b.label, name = b.name or b.label, em = b.em, vals = {}, how = {}, xf = {} }
       if b.sum then
         rw.vals[5], rw.xf[5] = b.v, "=SUM(F" .. b.sum[1] .. ":F" .. b.sum[2] .. ")"
-        rw.how[5] = "Excel F" .. rn .. ": " .. rw.xf[5] .. "\n" .. b.words
+        local parts = {}   -- the numbers added up (the F cells of the rows above)
+        for rr = b.sum[1], b.sum[2] do local a = T.rows[rr - 1]; if a and a.vals[5] then parts[#parts + 1] = X.sp(a.vals[5]) end end
+        rw.how[5] = "Excel F" .. rn .. ": " .. rw.xf[5] .. "\n" .. b.words .. ": " .. table.concat(parts, " + ") .. " = " .. P(b.v)
       elseif b.diff then
         rw.vals[5], rw.xf[5] = b.v, "=F" .. b.diff[1] .. "-F" .. b.diff[2]
-        rw.how[5] = "Excel F" .. rn .. ": " .. rw.xf[5] .. "\n" .. b.words
+        local a1, a2 = T.rows[b.diff[1] - 1], T.rows[b.diff[2] - 1]
+        rw.how[5] = "Excel F" .. rn .. ": " .. rw.xf[5] .. "\n" .. b.words .. ": " .. P(a1 and a1.vals[5] or 0) .. " - " .. X.sp(a2 and a2.vals[5] or 0) ..
+                    " = " .. P(b.v)
       else
         local pv = b.cf / (1 + (r or 0)) ^ b.t
         rw.vals = { b.p, b.cf, b.t, pv, b.p * pv }
@@ -421,7 +439,7 @@ do
     if I then out:row("NPV go ahead", go, "$", "value today - cost today (cell F" .. goRow .. ")", "npvGo") end
     if I or alt then
       local other = alt or 0
-      out:row("the other choice", other, "$", alt and "given: its value today" or "do nothing: 0", "alt")
+      out:row("the other choice", other, "$", alt and ("given: its value today = " .. P(alt)) or "do nothing: 0", "alt")
       if go >= other then
         out:add("ok", "choose GO AHEAD: value " .. fmtU(go, "$") .. " (other choice " .. fmtU(other, "$") .. ")")
       else

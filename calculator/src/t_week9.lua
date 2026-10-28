@@ -13,6 +13,10 @@ do
   end
   local function mean(xs) local s = 0; for _, x in ipairs(xs) do s = s + x end; return s / #xs end
   local function join(xs, f) local t = {}; for _, x in ipairs(xs) do t[#t + 1] = f(x) end; return table.concat(t, ", ") end
+  -- the numbers of a sum: "0.25 x -0.14 + 0.5 x 0.14 + ..." (ps nil: "a + b + ...")
+  local function sumOf(ps, xs) local t = {}; for k2, x in ipairs(xs) do local px = (x < 0) and ("(" .. P(x) .. ")") or P(x); t[#t + 1] = ps and (P(ps[k2]) .. " x " .. px) or px end; return table.concat(t, " + ") end
+  -- a square root shown with its numbers: "sqrt(0.0242) = 0.155563 = 15.5563%"
+  local function sqrtOf(var) return "sqrt(" .. P(var) .. ") = " .. P(sqrt(var)) .. " = " .. pct(sqrt(var)) .. "%" end
 
   local MODES17 = { "realised return (one year)", "several years: annualised", "forecast: states of the economy",
                     "past returns (a sample)", "CV and Sharpe ratio" }
@@ -33,7 +37,7 @@ do
       out:head("REALISED RETURN")
       out:row("dividend yield", div / V.P0, "%", "Div/P0 = " .. P(div) .. "/" .. P(V.P0), "dy")
       out:row("capital gain yield", (V.P1 - V.P0) / V.P0, "%", "(P1 - P0)/P0 = (" .. P(V.P1) .. " - " .. P(V.P0) .. ")/" .. P(V.P0), "cg")
-      out:row("total return R", (div + V.P1 - V.P0) / V.P0, "%", "(Div + P1 - P0)/P0", "R")
+      out:row("total return R", (div + V.P1 - V.P0) / V.P0, "%", "(Div + P1 - P0)/P0 = (" .. P(div) .. " + " .. P(V.P1) .. " - " .. P(V.P0) .. ")/" .. P(V.P0), "R")
       out:uses("ret"); out:off("yields")
       return
     end
@@ -43,9 +47,9 @@ do
       local g = 1
       for _, x in ipairs(rs) do g = g * (1 + x) end
       out:head("OVER " .. #rs .. " YEARS")
-      out:row("holding-period return", g - 1, "%", "(1 + R1)(1 + R2)... - 1", "hpr")
-      out:row("annualised (compound) return", g ^ (1 / #rs) - 1, "%", "(1 + HPR)^(1/" .. #rs .. ") - 1", "ann")
-      out:row("arithmetic average", mean(rs), "%", "(R1 + R2 + ...)/" .. #rs, "avg")
+      out:row("holding-period return", g - 1, "%", "(1 + R1)(1 + R2)... - 1 = " .. join(rs, function(x) return P(1 + x) end):gsub(", ", " x ") .. " - 1", "hpr")
+      out:row("annualised (compound) return", g ^ (1 / #rs) - 1, "%", "(1 + HPR)^(1/" .. #rs .. ") - 1 = " .. P(g) .. "^(1/" .. #rs .. ") - 1", "ann")
+      out:row("arithmetic average", mean(rs), "%", "(R1 + R2 + ...)/" .. #rs .. " = (" .. sumOf(nil, rs) .. ")/" .. #rs, "avg")
       out:off("hpr"); out:off("annret"); out:uses("mean")
       out:note("the annualised (geometric) return is never above the arithmetic average")
       return
@@ -60,9 +64,11 @@ do
       for k2 = 1, #rs do ER = ER + ps[k2] * rs[k2] end
       for k2 = 1, #rs do var = var + ps[k2] * (rs[k2] - ER) ^ 2 end
       out:head("FORECAST")
-      out:row("expected return E[R]", ER, "%", "sum p x R", "ER")
-      out:row("variance", var, "", "sum p x (R - E[R])^2", "var")
-      out:row("SD", sqrt(var), "%", "square root of the variance", "sd")
+      local dev = {}
+      for k2 = 1, #rs do dev[k2] = P(ps[k2]) .. " x (" .. P(rs[k2]) .. " - " .. P(ER) .. ")^2" end
+      out:row("expected return E[R]", ER, "%", "sum p x R = " .. sumOf(ps, rs), "ER")
+      out:row("variance", var, "", "sum p x (R - E[R])^2 = " .. table.concat(dev, " + "), "var")
+      out:row("SD", sqrt(var), "%", "square root of the variance = " .. sqrtOf(var), "sd")
       out:uses("er", "varp"); out:off("sd")
       riskTail(out, ER, sqrt(var), V.rf)
       return
@@ -74,9 +80,9 @@ do
       for _, x in ipairs(rs) do ss = ss + (x - m) ^ 2 end
       local var = ss / (#rs - 1)
       out:head("PAST RETURNS (SAMPLE, n = " .. #rs .. ")")
-      out:row("average return", m, "%", "sum R / " .. #rs, "avg")
+      out:row("average return", m, "%", "sum R / " .. #rs .. " = (" .. sumOf(nil, rs) .. ")/" .. #rs, "avg")
       out:row("variance", var, "", "sum (R - avg)^2 / (n - 1) = " .. P(ss) .. "/" .. (#rs - 1), "var")
-      out:row("SD", sqrt(var), "%", "square root of the variance", "sd")
+      out:row("SD", sqrt(var), "%", "square root of the variance = " .. sqrtOf(var), "sd")
       out:uses("mean", "vars"); out:off("sd")
       riskTail(out, m, sqrt(var), V.rf)
       do
@@ -85,10 +91,10 @@ do
         local sd, se = sqrt(var), sqrt(var) / sqrt(#rs)
         out:head("RANGES (textbook, not on the sheet)")
         out:row("95% of yearly returns: from", m - 2 * sd, "%", "avg - 2 x SD = " .. pct(m) .. "% - 2 x " .. pct(sd) .. "%", "lo95")
-        out:row("95% of yearly returns: to", m + 2 * sd, "%", "avg + 2 x SD", "hi95")
+        out:row("95% of yearly returns: to", m + 2 * sd, "%", "avg + 2 x SD = " .. pct(m) .. "% + 2 x " .. pct(sd) .. "%", "hi95")
         out:row("standard error of the average", se, "%", "SD/sqrt(n) = " .. pct(sd) .. "%/sqrt(" .. #rs .. ")", "se")
-        out:row("95% confidence interval for E[R]: from", m - 2 * se, "%", "avg - 2 x SE", "ciLo")
-        out:row("95% confidence interval for E[R]: to", m + 2 * se, "%", "avg + 2 x SE", "ciHi")
+        out:row("95% confidence interval for E[R]: from", m - 2 * se, "%", "avg - 2 x SE = " .. pct(m) .. "% - 2 x " .. pct(se) .. "%", "ciLo")
+        out:row("95% confidence interval for E[R]: to", m + 2 * se, "%", "avg + 2 x SE = " .. pct(m) .. "% + 2 x " .. pct(se) .. "%", "ciHi")
         out:off("range95"); out:off("sterr")
       end
       out:head("ON YOUR TI-NSPIRE")
@@ -235,7 +241,7 @@ avg 8.75%; SD = 23.51%
         end
       else
         ERp = wA * ERA + wB * ERB
-        out:row("E[Rp]", ERp, "%", "wA x E[RA] + wB x E[RB]", "ERp")
+        out:row("E[Rp]", ERp, "%", "wA x E[RA] + wB x E[RB] = " .. P(wA) .. " x " .. P(ERA) .. " + " .. P(wB) .. " x " .. P(ERB), "ERp")
         out:uses("erp")
       end
     end
@@ -295,8 +301,8 @@ avg 8.75%; SD = 23.51%
       local varp = var1 / n + (1 - 1 / n) * cov
       out:head("EQUAL WEIGHTS: " .. P(n) .. " SHARES")
       out:row("portfolio variance", varp, "", "(1/n) x Var + (1 - 1/n) x Cov = " .. P(var1) .. "/" .. P(n) .. " + " .. P(1 - 1 / n) .. " x " .. P(cov), "varp")
-      out:row("portfolio SD", sqrt(varp), "%", "square root of the variance", "sdp")
-      if cov >= 0 then out:row("SD with very many shares", sqrt(cov), "%", "sqrt(Cov): the risk that never goes away (systematic)", "sdinf") end
+      out:row("portfolio SD", sqrt(varp), "%", "square root of the variance = " .. sqrtOf(varp), "sdp")
+      if cov >= 0 then out:row("SD with very many shares", sqrt(cov), "%", "sqrt(Cov), the risk that never goes away (systematic) = " .. sqrtOf(cov), "sdinf") end
       out:off("ewport"); out:off("sd")
       out:note("more shares -> the Var/n part (unsystematic) shrinks; the Cov part (systematic) stays")
       return
@@ -331,10 +337,12 @@ avg 8.75%; SD = 23.51%
         cv = cv + ps[k2] * (ra[k2] - EA) * (rb[k2] - EB)
       end
       out:head("EACH SHARE")
-      out:row("E[RA]", EA, "%", "sum p x RA", "EA"); out:row("E[RB]", EB, "%", "sum p x RB", "EB")
-      out:row("SD A", sqrt(vA), "%", "sqrt(sum p (RA - E[RA])^2)", "sA"); out:row("SD B", sqrt(vB), "%", "sqrt(sum p (RB - E[RB])^2)", "sB")
-      out:row("covariance", cv, "", "sum p (RA - E[RA])(RB - E[RB])", "cov")
-      out:row("correlation", cv / (sqrt(vA) * sqrt(vB)), "", "Cov/(sA x sB)", "rho")
+      local cvt = {}
+      for k2 = 1, #ps do cvt[k2] = P(ps[k2]) .. " x (" .. P(ra[k2] - EA) .. ") x (" .. P(rb[k2] - EB) .. ")" end
+      out:row("E[RA]", EA, "%", "sum p x RA = " .. sumOf(ps, ra), "EA"); out:row("E[RB]", EB, "%", "sum p x RB = " .. sumOf(ps, rb), "EB")
+      out:row("SD A", sqrt(vA), "%", "sqrt(sum p (RA - E[RA])^2) = " .. sqrtOf(vA), "sA"); out:row("SD B", sqrt(vB), "%", "sqrt(sum p (RB - E[RB])^2) = " .. sqrtOf(vB), "sB")
+      out:row("covariance", cv, "", "sum p (RA - E[RA])(RB - E[RB]) = " .. table.concat(cvt, " + "), "cov")
+      out:row("correlation", cv / (sqrt(vA) * sqrt(vB)), "", "Cov/(sA x sB) = " .. P(cv) .. "/(" .. P(sqrt(vA)) .. " x " .. P(sqrt(vB)) .. ")", "rho")
       out:uses("er", "varp", "covp", "corr"); out:off("sd")
       if wA then port(out, wA, EA, EB, sqrt(vA), sqrt(vB), givenCov(out, V, sqrt(vA), sqrt(vB), cv)) end
       return
@@ -346,13 +354,16 @@ avg 8.75%; SD = 23.51%
       for k2 = 1, #ra do sa = sa + (ra[k2] - mA) ^ 2; sb = sb + (rb[k2] - mB) ^ 2; sc = sc + (ra[k2] - mA) * (rb[k2] - mB) end
       local n1 = #ra - 1
       out:head("PAST RETURNS (SAMPLE, n = " .. #ra .. ")")
-      out:row("average return A (Rbar)", mA, "%", "sum RA / n", "mA"); out:row("average return B (Rbar)", mB, "%", "sum RB / n", "mB")
+      out:row("average return A (Rbar)", mA, "%", "sum RA / n = (" .. sumOf(nil, ra) .. ")/" .. #ra, "mA")
+      out:row("average return B (Rbar)", mB, "%", "sum RB / n = (" .. sumOf(nil, rb) .. ")/" .. #rb, "mB")
       out:row("variance A", sa / n1, "", "sum (RA - avg)^2/(n - 1) = " .. P(sa) .. "/" .. n1, "varA")
       out:row("variance B", sb / n1, "", "sum (RB - avg)^2/(n - 1) = " .. P(sb) .. "/" .. n1, "varB")
-      out:row("SD A (volatility)", sqrt(sa / n1), "%", "square root of the variance A", "sA"); out:row("SD B (volatility)", sqrt(sb / n1), "%", "square root of the variance B", "sB")
+      out:row("SD A (volatility)", sqrt(sa / n1), "%", "square root of the variance A = " .. sqrtOf(sa / n1), "sA")
+      out:row("SD B (volatility)", sqrt(sb / n1), "%", "square root of the variance B = " .. sqrtOf(sb / n1), "sB")
       out:note("variance is a decimal (no %); the averages and SDs are in %")
       out:row("covariance", sc / n1, "", "sum (RA - avgA)(RB - avgB)/(n - 1) = " .. P(sc) .. "/" .. n1, "cov")
-      out:row("correlation", (sc / n1) / (sqrt(sa / n1) * sqrt(sb / n1)), "", "Cov/(sA x sB)", "rho")
+      out:row("correlation", (sc / n1) / (sqrt(sa / n1) * sqrt(sb / n1)), "", "Cov/(sA x sB) = " .. P(sc / n1) .. "/(" .. P(sqrt(sa / n1)) .. " x " ..
+              P(sqrt(sb / n1)) .. ")", "rho")
       out:uses("mean", "vars", "covs", "corr"); out:off("sd")
       if wA then port(out, wA, mA, mB, sqrt(sa / n1), sqrt(sb / n1), givenCov(out, V, sqrt(sa / n1), sqrt(sb / n1), sc / n1)) end
       return
@@ -361,10 +372,10 @@ avg 8.75%; SD = 23.51%
       local w = wA
       if not (w and V.sA) then out:need("the weight in the share and its SD"); return end
       out:head("SHARE + RISK-FREE ASSET")
-      if V.ERA and V.rf then out:row("E[Rp]", w * V.ERA + (1 - w) * V.rf, "%", "w x E[R] + (1 - w) x rf", "ERp"); out:uses("erp") end
+      if V.ERA and V.rf then out:row("E[Rp]", w * V.ERA + (1 - w) * V.rf, "%", "w x E[R] + (1 - w) x rf = " .. P(w) .. " x " .. P(V.ERA) .. " + " .. P(1 - w) .. " x " .. P(V.rf), "ERp"); out:uses("erp") end
       out:row("portfolio SD", w * V.sA, "%", "w x SD (the risk-free asset has no risk) = " .. P(w) .. " x " .. P(V.sA), "sdp")
       out:off("sdrf")
-      if V.ERA and V.rf then out:row("Sharpe ratio", (V.ERA - V.rf) / V.sA, "", "(E[R] - rf)/SD: the same for any mix", "sh"); out:uses("sharpe") end
+      if V.ERA and V.rf then out:row("Sharpe ratio", (V.ERA - V.rf) / V.sA, "", "(E[R] - rf)/SD, the same for any mix = (" .. P(V.ERA) .. " - " .. P(V.rf) .. ")/" .. P(V.sA), "sh"); out:uses("sharpe") end
       return
     end
     local vals, tot = {}, 0
@@ -373,7 +384,9 @@ avg 8.75%; SD = 23.51%
       if n and pr then vals[k2] = n * pr; tot = tot + n * pr end
     end
     if tot == 0 then out:need("shares and price for each holding"); return end
-    out:row("total value", tot, "$", "sum of shares x price", "tot")
+    local tv = {}
+    for k2 = 1, 5 do if vals[k2] then tv[#tv + 1] = P(V["n" .. k2]) .. " x " .. P(V["px" .. k2]) end end
+    out:row("total value", tot, "$", "sum of shares x price = " .. table.concat(tv, " + "), "tot")
     out:off("weights")
     for k2 = 1, 5 do if vals[k2] then out:row("weight " .. k2, vals[k2] / tot, "%", P(vals[k2]) .. "/" .. P(tot), "w" .. k2) end end
   end
@@ -604,7 +617,7 @@ many shares: sqrt(0.048) = 21.91%]],
         bp = bp + w * bs[k2]; wsum = wsum + w
         if cap then erw = erw + w * capm(V.rf, bs[k2], rm) end
         parts[#parts + 1] = P(w) .. " x " .. P(bs[k2])
-        out:row("weight " .. ks[k2], w, "%", useAmt and (P(ws[k2]) .. "/" .. P(tot)) or "given", "w" .. ks[k2])
+        out:row("weight " .. ks[k2], w, "%", useAmt and (P(ws[k2]) .. "/" .. P(tot)) or ("given: " .. pct(w) .. "%"), "w" .. ks[k2])
       end
       out:row("portfolio beta", bp, "", "w1 x beta1 + w2 x beta2 ... = " .. table.concat(parts, " + "), "bp")
       out:uses("betap")
@@ -618,7 +631,7 @@ many shares: sqrt(0.048) = 21.91%]],
                 "rf + beta_p x (E[RM] - rf) = " .. pct(V.rf) .. "% + " .. P(bp) .. " x " .. pct(rm - V.rf) .. "%", "erp")
         out:note("check: w1 x E[R1] + w2 x E[R2] ... = " .. pct(erw) .. "% (the same)")
         out:uses("erp")
-        out:row("step: market risk premium", rm - V.rf, "%", "E[RM] - rf (a step, not an answer)", "mrp")
+        out:row("step: market risk premium", rm - V.rf, "%", "E[RM] - rf (a step, not an answer) = " .. pct(rm) .. "% - " .. pct(V.rf) .. "%", "mrp")
       end
       return
     end
@@ -629,7 +642,7 @@ many shares: sqrt(0.048) = 21.91%]],
       if not (V.bA and V.bB) then out:off("betaT"); out:need("both betas, for the weights"); return end
       local w = (bp - V.bB) / (V.bA - V.bB)
       out:row("weight in A", w, "%", "(beta_p - beta_B)/(beta_A - beta_B) = (" .. P(bp) .. " - " .. P(V.bB) .. ")/(" .. P(V.bA) .. " - " .. P(V.bB) .. ")", "wA")
-      out:row("weight in B", 1 - w, "%", "1 - wA", "wB")
+      out:row("weight in B", 1 - w, "%", "1 - wA = 1 - " .. P(w), "wB")
       out:off("betaT"); out:off("wtarget")
       return
     end
@@ -642,7 +655,7 @@ many shares: sqrt(0.048) = 21.91%]],
       out:row("market risk premium (the slope)", mrp, "%", "(E[RA] - E[RB])/(betaA - betaB) = (" .. pct(V.erA) .. "% - " .. pct(V.erB) .. "%)/(" ..
               P(V.bA) .. " - " .. P(V.bB) .. ")", "mrp")
       out:row("risk-free rate (beta 0)", rf0, "%", "E[RA] - betaA x premium = " .. pct(V.erA) .. "% - " .. P(V.bA) .. " x " .. pct(mrp) .. "%", "rf")
-      out:row("market return E[RM] (beta 1)", rf0 + mrp, "%", "rf + premium", "rm")
+      out:row("market return E[RM] (beta 1)", rf0 + mrp, "%", "rf + premium = " .. pct(rf0) .. "% + " .. pct(mrp) .. "%", "rm")
       out:uses("capm"); out:off("sml2")
       return
     end
@@ -661,7 +674,7 @@ many shares: sqrt(0.048) = 21.91%]],
       if not (V.rf and rm) then out:need("rf and E[RM] (or the market risk premium)"); return end
       out:head((V.P0 and V.P1) and "STEP 2: CAPM SOLVED FOR BETA" or "CAPM SOLVED FOR BETA")
       out:row("ANSWER: beta", (fc - V.rf) / (rm - V.rf), "", "(E[Ri] - rf)/(E[RM] - rf) = (" .. pct(fc) .. "% - " .. pct(V.rf) .. "%)/" .. pct(rm - V.rf) .. "%", "beta")
-      out:row("market risk premium", rm - V.rf, "%", "E[RM] - rf (a step)", "mrp")
+      out:row("market risk premium", rm - V.rf, "%", "E[RM] - rf (a step) = " .. pct(rm) .. "% - " .. pct(V.rf) .. "%", "mrp")
       out:uses("capm"); out:off("capmb")
       out:note("with this beta the forecast is ON the SML: CAPM agrees with it")
       return
@@ -689,7 +702,7 @@ many shares: sqrt(0.048) = 21.91%]],
           out:head("CAPM SOLVED FOR rf")
           out:row("ANSWER: risk-free rate", rf0, "%", "(E[Ri] - beta x E[RM])/(1 - beta) = (" .. pct(fc) .. "% - " .. P(V.beta) .. " x " .. pct(V.rm) .. "%)/(1 - " ..
                   P(V.beta) .. ")", "rf")
-          out:row("market risk premium", V.rm - rf0, "%", "E[RM] - rf", "mrp")
+          out:row("market risk premium", V.rm - rf0, "%", "E[RM] - rf = " .. pct(V.rm) .. "% - " .. pct(rf0) .. "%", "mrp")
         end
         out:uses("capm"); out:off("capmrf")
         return
@@ -704,7 +717,7 @@ many shares: sqrt(0.048) = 21.91%]],
     out:head("CAPM")
     -- the answer first; the market risk premium is only a step (it is NOT the share's expected return)
     out:row("ANSWER: expected return E[Ri]", req, "%", "rf + beta x (E[RM] - rf) = " .. pct(V.rf) .. "% + " .. P(V.beta) .. " x " .. pct(rm - V.rf) .. "%", "req")
-    out:row("step: market risk premium", rm - V.rf, "%", "E[RM] - rf (a step, not the answer)", "mrp")
+    out:row("step: market risk premium", rm - V.rf, "%", "E[RM] - rf (a step, not the answer) = " .. pct(rm) .. "% - " .. pct(V.rf) .. "%", "mrp")
     out:note("the market's SD is not needed for CAPM: only beta measures the share's risk here")
     out:uses("capm")
     if not fc and mode == MODES19[3] then out:need("the forecast return (or the prices) to compare with") end

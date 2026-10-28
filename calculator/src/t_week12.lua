@@ -35,7 +35,7 @@ do
       if not V.Pc then out:row("price cum-dividend", Pc, "$", "V/N = " .. P(V.Vf) .. "/" .. P(N), "Pc") end
       if not V.div then out:row("dividend per share", div, "$", "cash paid/N = " .. P(V.cash) .. "/" .. P(N), "div") end
       out:row("price ex-dividend", Pc - div, "$", "P(cum) - Div = " .. P(Pc) .. " - " .. P(div), "Pex")
-      if V.Vf and N then out:row("firm value after", V.Vf - div * N, "$", "V - cash paid out", "Vafter") end
+      if V.Vf and N then out:row("firm value after", V.Vf - div * N, "$", "V - cash paid out = " .. P(V.Vf) .. " - " .. P(div) .. " x " .. P(N), "Vafter") end
       if V.n then
         out:row("your wealth before", V.n * Pc, "$", P(V.n) .. " x " .. P(Pc), "wB")
         out:row("after: shares + cash", V.n * (Pc - div) + V.n * div, "$", P(V.n) .. " x " .. P(Pc - div) .. " + " .. P(V.n) .. " x " .. P(div), "wA")
@@ -99,13 +99,13 @@ do
       out:note("the credit is the company tax already paid: you are taxed once, at your own rate")
       out:head("CLASSICAL SYSTEM (NO CREDIT)")
       out:row("tax on the dividend", V.div * V.tp, "$", "Div x your rate = " .. P(V.div) .. " x " .. P(V.tp), "taxC")
-      out:row("cash kept after tax", V.div * (1 - V.tp), "$", "Div x (1 - rate)", "keptC")
+      out:row("cash kept after tax", V.div * (1 - V.tp), "$", "Div x (1 - rate) = " .. P(V.div) .. " x " .. P(1 - V.tp), "keptC")
       if fr >= 1 then
         local profit = V.div / (1 - Tc)
         out:head("TOTAL TAX ON THE PROFIT")
         out:row("company profit before tax", profit, "$", "Div/(1 - Tc) = " .. P(V.div) .. "/" .. P(1 - Tc), "profit")
         out:row("total tax: imputation", profit - kept, "$", "profit - cash kept = " .. P(profit) .. " - " .. P(kept), "totI")
-        out:row("total tax: classical", profit - V.div * (1 - V.tp), "$", "company tax + tax on the dividend", "totC")
+        out:row("total tax: classical", profit - V.div * (1 - V.tp), "$", "company tax + tax on the dividend = " .. P(profit - V.div) .. " + " .. P(V.div * V.tp), "totC")
       end
       out:off("franking")
       return
