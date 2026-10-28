@@ -376,7 +376,10 @@ do
     words = "a bond is an annuity of coupons plus the face value at the end",
     vars = { PB, cp(C, { label = "C coupon EACH period ($)", hint = "coupon rate x face / coupons a year: 8% half-yearly on 1000 -> 40",
                          how = "the coupon paid EACH period: coupon rate x face / coupons a year. 8% paid half-yearly on 1000: 40." }), i, nb, Fb, mb },
-    f = function(x) return x.C / x.i * (1 - 1 / (1 + x.i) ^ x.n) + x.FVn / (1 + x.i) ^ x.n - x.PBond end,
+    f = function(x)   -- i = 0: no discounting, the coupons and the face simply add up
+      local ann = (x.i == 0) and x.n or (1 - 1 / (1 + x.i) ^ x.n) / x.i
+      return x.C * ann + x.FVn / (1 + x.i) ^ x.n - x.PBond
+    end,
     rearr = { C = "C = (PBond - FVn/(1 + i)^n)*i/(1 - 1/(1 + i)^n)", FVn = "FVn = (PBond - C/i*(1 - 1/(1 + i)^n))*(1 + i)^n" },
     extra = yearly,
     ex = { C = 40, i = 0.035, n = 20, FVn = 1000, m = 2 } }
@@ -466,7 +469,7 @@ do
     words = "every cash flow brought back to today and added; the cost is negative",
     vars = cfSlots({ slot("NPV", nil, "NPV ($)", "money", "the net present value (leave blank to find it)",
                           "the net present value: every cash flow discounted to today and added. Accept if NPV > 0."), r }),
-    need = function(x) if lastCF(x) < 0 then return "the cash flows (NCF0 = the cost, negative)" end end,
+    need = function(x) if lastCF(x) < 1 then return "the cash flows (NCF0 = the cost, negative, then NCF1, ...)" end end,
     eqf = function(x) return "NPV = " .. npvTerms(x):gsub("RATE", "r") end,
     f = function(x) return npvOf(x, x.r) - x.NPV end,
     ex = { r = 0.1, NCF0 = -1000, NCF1 = 300, NCF2 = 400, NCF3 = 500 } }
@@ -474,7 +477,12 @@ do
     words = "the rate that makes the NPV zero",
     vars = cfSlots({ slot("IRR", nil, "IRR (%)", "pct", "the rate that makes NPV = 0 (leave blank)",
                           "the internal rate of return: the discount rate where the NPV is exactly 0. Accept if IRR > the cost of capital.", { rate = true }) }),
-    need = function(x) if lastCF(x) < 1 then return "the cash flows (NCF0 negative, then the later ones)" end end,
+    need = function(x)
+      if lastCF(x) < 1 then return "the cash flows (NCF0 negative, then the later ones)" end
+      local pos, neg = false, false
+      for t = 0, 10 do local v = x["NCF" .. t]; if v and v > 0 then pos = true elseif v and v < 0 then neg = true end end
+      if not (pos and neg) then return "a cost (a NEGATIVE cash flow) and an inflow: the IRR needs a change of sign" end
+    end,
     eqf = function(x) return npvTerms(x):gsub("RATE", "IRR") .. " = 0" end,
     f = function(x) return npvOf(x, x.IRR) end,
     ex = { NCF0 = -1000, NCF1 = 300, NCF2 = 400, NCF3 = 500 } }

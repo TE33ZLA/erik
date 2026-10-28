@@ -88,7 +88,18 @@ do
   for _, d in ipairs(ROOTDEFS) do DEFS[#DEFS + 1] = d end
   local order = {}
   for n, e in ipairs(FSHEET.list) do order[e[1]] = n end
+  -- the packs of every_s*.lua: more lines NOT on the sheet, each in its own section (every_core.lua)
+  local MORE = {}
+  for _, pk in ipairs(EVERY_MORE) do
+    for _, d in ipairs(pk.lines or {}) do
+      d.short = d.short or d.name
+      d.off = d.off or d.id
+      if not FSHEET.off[d.off] then FSHEET.off[d.off] = { d.eq or d.name, d.why or "not on the formula sheet" } end
+      MORE[#MORE + 1] = d
+    end
+  end
   for i, d in ipairs(EXTRA) do d.sec = XSEC; DEFS[#DEFS + 1] = d; order[d.id] = #FSHEET.list + i end
+  for i, d in ipairs(MORE) do DEFS[#DEFS + 1] = d; order[d.id] = #FSHEET.list + #EXTRA + i end
   table.sort(DEFS, function(a, b) return (order[a.id] or 999) < (order[b.id] or 999) end)
   local function secOf(d) return d.sec or FSHEET.byId[d.id].sec end
 
@@ -180,12 +191,15 @@ do
   local FAM = { fv = "tvm", pv = "tvm", pva = "tvm", pvad = "tvm", fva = "tvm", fvad = "tvm", perp = "tvm", gperp = "tvm",
                 gann = "tvm", bond = "bond", zbond = "bond", p0z = "share", p0g = "share", p0n = "share",
                 covp = "cov", covs = "cov", ru = "mm", re = "mm", vucf = "vu", vuebit = "vu" }
+  -- lines whose answer is only listed (another case of the same words), never passed on: 'only if ...'
+  local SECOND = { pvad = "the payments are at the START of each period (annuity due)",
+                   fvad = "the payments are at the START of each period (annuity due)" }
   -- 'blank = 0' letters (no preference shares, no tax, no CapEx); every other blank is an unknown
   local WEAKOK = { wacc = { rp = true, P = true, Tc = true }, v = { P = true }, fcf = { Dep = true, CapEx = true, dNWC = true } }
   -- lines that do not fit what was typed: a growth rate rules out the level formulas, a coupon the zero-coupon bond
   local function nz(known, b) return known[b] ~= nil and known[b] ~= 0 end
   local SKIP = {
-    perp = function(K) return nz(K, "1:g") end, pva = function(K) return nz(K, "1:g") end,
+    perp = function(K) return nz(K, "1:g") or K["1:n"] ~= nil end, gperp = function(K) return K["1:n"] ~= nil end, pva = function(K) return nz(K, "1:g") end,
     pvad = function(K) return nz(K, "1:g") end, fva = function(K) return nz(K, "1:g") end,
     fvad = function(K) return nz(K, "1:g") end, p0z = function(K) return nz(K, "2:g") end,
     zbond = function(K) return nz(K, "2:C") end,
@@ -212,6 +226,26 @@ do
                         { "6:rd", "9:rd" }, { "9:rd", "6:rd" }, { "9:E", "8:E" }, { "9:E", "6:E" },
                         { "3:FCF", "9:C" }, { "3:r", "9:r" }, { "3:n", "9:n" } }) do
     BRIDGE[#BRIDGE + 1] = br
+  end
+  -- the packs' bridges, blank-as-0 letters, families, skips, labels and box order
+  for _, pk in ipairs(EVERY_MORE) do
+    for _, br in ipairs(pk.bridges or {}) do BRIDGE[#BRIDGE + 1] = br end
+    for id, t in pairs(pk.weakok or {}) do
+      WEAKOK[id] = WEAKOK[id] or {}
+      for k, v in pairs(t) do WEAKOK[id][k] = v end
+    end
+    for id, f in pairs(pk.fam or {}) do FAM[id] = f end
+    for id, f in pairs(pk.skip or {}) do
+      local old = SKIP[id]
+      SKIP[id] = old and function(K, kn) return old(K, kn) or f(K, kn) end or f
+    end
+    for id, w in pairs(pk.second or {}) do SECOND[id] = w end
+    for b, t in pairs(pk.lbl or {}) do LBL[b] = t end
+    for b, t in pairs(pk.hint or {}) do HINT[b] = t end
+    for sn, list in pairs(pk.order or {}) do
+      ORDER[sn] = ORDER[sn] or {}
+      for _, b in ipairs(list) do table.insert(ORDER[sn], b) end
+    end
   end
 
   ------------------------------------------------------------------ the boxes
@@ -301,8 +335,8 @@ do
       elseif va.weak and WEAKOK[d.id] and WEAKOK[d.id][va.k] then weak[#weak + 1] = va
       else blanks[#blanks + 1] = va end
     end
-    if #blanks == 0 and #weak == 1 then blanks[1] = weak[1] end
-    return blanks
+    if #blanks == 0 and #weak == 1 then blanks[1] = weak[1]; return blanks, 0 end
+    return blanks, #weak
   end
   -- run the root solver on one line; its output is caught and read back
   local function runDef(d, x, u)
@@ -357,7 +391,8 @@ do
         for _, br in ipairs(BRIDGE) do
           local from, to = br[1], br[2]
           if known[to] == nil and not ambig[to] and known[from] ~= nil and not ambig[from] and (not br[3] or info[from].how == "typed")
-             and not (br[6] and known[br[6]] ~= nil) and not (br[4] and known[from] < 0) then
+             and not (br[6] and known[br[6]] ~= nil) and not (br[4] == math.sqrt and known[from] < 0)
+             and not (br[7] and info[from].how == "typed") then
             known[to] = br[4] and br[4](known[from]) or known[from]
             info[to] = { how = "bridge", from = from, src = info[from], ftext = br[5] }
             more = true
@@ -367,22 +402,25 @@ do
     end
     bridges()
     local results, done, failed = {}, {}, {}
-    local round = 0
-    while round < 12 do
+    local round, weakPhase = 0, false   -- a 'blank = 0' letter is used only when nothing else moves (another line may give it)
+    while round < 30 do
       round = round + 1
       local new, newOrder = {}, {}
       for di, d in ipairs(DEFS) do
-        if not done[d.id] and not failed[d.id] and not (SKIP[d.id] and SKIP[d.id](typedK)) then
+        if not done[d.id] and not failed[d.id] and not (SKIP[d.id] and SKIP[d.id](typedK, known)) then
           local x, used = gather(d, known, info)
-          local bl = blanksOf(d, x)
+          local bl, nzero = blanksOf(d, x)
           local msg = bl and #bl == 1 and d.need and select(2, pcall(d.need, x))
-          if bl and #bl == 1 and not (type(msg) == "string") then
+          if bl and #bl == 1 and (nzero == 0 or weakPhase) and not (type(msg) == "string") then
             local u = bl[1]
             local r, why = runDef(d, x, u)
             if r then
               done[d.id] = true
               local b = boxOf(d, u)
               r.d, r.u, r.b, r.used, r.round, r.di, r.x = d, u, b, used, round, di, x
+              local w = SECOND[d.id]
+              if type(w) == "function" then w = w(typedK, known) end
+              r.second = w
               if not new[b] then new[b] = {}; newOrder[#newOrder + 1] = b end
               table.insert(new[b], r)
             else
@@ -391,34 +429,42 @@ do
           end
         end
       end
-      if #newOrder == 0 then break end
-      for _, b in ipairs(newOrder) do
-        -- answers that agree are one answer; different answers for the same box are alternatives
-        local groups = {}
-        for _, r in ipairs(new[b]) do
-          local g
-          for _, gg in ipairs(groups) do if same(gg[1].value, r.value) then g = gg end end
-          if g then g[#g + 1] = r else groups[#groups + 1] = { r } end
+      if #newOrder == 0 then
+        if weakPhase then break end
+        weakPhase = true
+      else
+        weakPhase = false
+        for _, b in ipairs(newOrder) do
+          -- answers that agree are one answer; different answers for the same box are alternatives
+          local groups, side = {}, {}
+          for _, r in ipairs(new[b]) do if r.second then side[#side + 1] = r end end
+          for _, r in ipairs(side) do r.also, r.alts, r.alt = {}, 1, 1; results[#results + 1] = r end
+          for _, r in ipairs(new[b]) do if not r.second then
+            local g
+            for _, gg in ipairs(groups) do if same(gg[1].value, r.value) then g = gg end end
+            if g then g[#g + 1] = r else groups[#groups + 1] = { r } end
+          end end
+          for gi, g in ipairs(groups) do
+            local prim = g[1]
+            for _, r in ipairs(g) do if boxOf(r.d, r.d.vars[1]) == b then prim = r; break end end
+            prim.also = {}
+            for _, r in ipairs(g) do if r ~= prim then prim.also[#prim.also + 1] = r.d.name end end
+            prim.alts, prim.alt, g.prim = #groups, gi, prim
+            results[#results + 1] = prim
+          end
+          if #groups == 0 then
+          elseif #groups == 1 and known[b] == nil and not ambig[b] then
+            local fam = {}
+            for _, r in ipairs(new[b]) do if FAM[r.d.id] then fam[FAM[r.d.id]] = true end end
+            known[b] = groups[1][1].value
+            info[b] = { how = "def", name = groups[1].prim.d.name, fam = fam }
+            for _, r in ipairs(groups[1]) do r.passed = true end
+          else
+            ambig[b] = true
+          end
         end
-        for gi, g in ipairs(groups) do
-          local prim = g[1]
-          for _, r in ipairs(g) do if boxOf(r.d, r.d.vars[1]) == b then prim = r; break end end
-          prim.also = {}
-          for _, r in ipairs(g) do if r ~= prim then prim.also[#prim.also + 1] = r.d.name end end
-          prim.alts, prim.alt, g.prim = #groups, gi, prim
-          results[#results + 1] = prim
-        end
-        if #groups == 1 and known[b] == nil and not ambig[b] then
-          local fam = {}
-          for _, r in ipairs(new[b]) do if FAM[r.d.id] then fam[FAM[r.d.id]] = true end end
-          known[b] = groups[1][1].value
-          info[b] = { how = "def", name = groups[1].prim.d.name, fam = fam }
-          for _, r in ipairs(groups[1]) do r.passed = true end
-        else
-          ambig[b] = true
-        end
+        bridges()
       end
-      bridges()
     end
 
     ------------------------------------------------------------------ the list
@@ -507,6 +553,7 @@ do
                                unit = unitOf(u.kind), formula = nums, explain = ex })
       if #uses > 0 then out:note("  (uses " .. table.concat(uses, "; ") .. ")") end
       if r.alts > 1 then out:note("  (" .. r.alt .. " of " .. r.alts .. " answers for " .. u.t .. ": not passed on)") end
+      if r.second then out:note("  (only if " .. r.second .. ": not passed on)") end
       out.every[#out.every + 1] = { box = r.b, value = r.value, def = d.id, chained = #r.used > 0, alts = r.alts, passed = r.passed and true or false }
       -- what the line shows besides (an SD under a variance, the yearly yield of a bond)
       for _, c in ipairs(r.extras) do
@@ -527,7 +574,7 @@ do
     ------------------------------------------------------------------ one value short
     local short1 = {}
     for di, d in ipairs(DEFS) do
-      if not done[d.id] and not (SKIP[d.id] and SKIP[d.id](typedK)) then
+      if not done[d.id] and not (SKIP[d.id] and SKIP[d.id](typedK, known)) then
         local x, _, nt = gather(d, known, info)
         if nt > 0 then
           local bl = blanksOf(d, x)
@@ -641,8 +688,20 @@ A growth rate g (not 0) leaves out the level annuity and perpetuity lines; a cou
   TYPES[ti] = qt
   FSHEET.types[ti] = {}
   for _, d in ipairs(DEFS) do if not d.off then table.insert(FSHEET.types[ti], d.id) end end
+  local mt = {}
+  for sn = 1, #SECN do
+    local hd = false
+    for _, d in ipairs(MORE) do
+      if d.sec == sn then
+        if not hd then hd = true; mt[#mt + 1] = sn .. ". " .. SECN[sn] .. ":" end
+        mt[#mt + 1] = "- " .. d.eq .. "   (" .. d.name .. ")"
+      end
+    end
+  end
+  if #mt > 0 then NOTES = NOTES .. "\n## MORE LINES NOT ON THE SHEET (in their sections)\nWrite them out in full in the exam.\n" .. table.concat(mt, "\n") end
   qt.notes = NOTES .. "\n\n" .. FSHEET.notes(ti):gsub("^## FORMULA SHEET %((%d+) for this type%)", "## THE WHOLE FORMULA SHEET (%1 lines)")
   EVERY.ti, EVERY.BOX, EVERY.SECBOX, EVERY.EXAMPLE, EVERY.EXTRA = ti, BOX, SECBOX, EXAMPLE, EXTRA
+  EVERY.MORE = MORE
   EVERY.boxOf = function(id, k)
     for _, d in ipairs(DEFS) do
       if d.id == id then for _, va in ipairs(d.vars) do if va.k == k then return boxOf(d, va) end end end

@@ -4076,6 +4076,13 @@ RESULTS
 --@include v22_data.lua
 --@include fsheet.lua
 --@include roots.lua
+--@include every_core.lua
+--@include every_s1.lua
+--@include every_s2.lua
+--@include every_s3.lua
+--@include every_s3b.lua
+--@include every_s4.lua
+--@include every_s5.lua
 --@include everything.lua
 
 ----------------------------------------------------------------------

@@ -66,19 +66,24 @@ for d in lt(DEFS):
         if not any(r['box'] == box and r['d'] == d.id or close(r['value'], full[k]) for r in got):
             fails.append(f'{d.id} without {k}: the line itself is not listed')
 
-# 2. alternatives: C 100, r 5%, n 10 -> PV of an annuity, an annuity due and a perpetuity, each listed, none passed on
+# 2. alternatives: C 100, r 5%, n 10 -> the annuity PV is passed on; the annuity due is listed only ('only if ...');
+#    n typed leaves out the perpetuity (it never ends); C and r alone -> the perpetuity
 out, res, errs = every({'1:C': 100, '1:r': 0.05, '1:n': 10})
 pv = {r['d']: r for r in res if r['box'] == '1:PV'}
-want = {'pva': 772.173493, 'pvad': 810.782168, 'perp': 2000.0}
-for k, v in want.items():
-    if k not in pv or not close(pv[k]['value'], v): fails.append(f'alternatives: {k} PV = {pv.get(k)}, want {v}')
-    elif pv[k]['passed'] or pv[k]['alts'] != 3: fails.append(f'alternatives: {k} PV is passed on or not marked one of 3 ({pv[k]})')
+if set(pv) != {'pva', 'pvad'}: fails.append(f'alternatives: PV lines {sorted(pv)}, want pva and pvad')
+if 'pva' not in pv or not close(pv['pva']['value'], 772.173493) or not pv['pva']['passed']: fails.append(f'alternatives: pva {pv.get("pva")}')
+if 'pvad' not in pv or not close(pv['pvad']['value'], 810.782168) or pv['pvad']['passed']: fails.append(f'alternatives: pvad {pv.get("pvad")}')
+t = ' '.join(str(r.text) for r in lt(out.rows))
+if 'only if the payments are at the START' not in t: fails.append('alternatives: the annuity due is not marked only if')
 if any(r['d'] in ('fv', 'pv') for r in res): fails.append('alternatives: a PV from an annuity line fed the lump-sum lines')
-if any(r['chained'] for r in res): fails.append(f'alternatives: an answer used another line\'s PV {res}')
-# a growth rate leaves out the level lines; the growing perpetuity and annuity are listed
+out, res, errs = every({'1:C': 100, '1:r': 0.05})
+pv = [r for r in res if r['d'] == 'perp']
+if not pv or not close(pv[0]['value'], 2000): fails.append(f'perpetuity: {pv}')
+# a growth rate leaves out the level lines; n typed -> the growing annuity, no n -> the growing perpetuity
 out, res, errs = every({'1:C': 100, '1:r': 0.08, '1:g': 0.03, '1:n': 20})
 ds = sorted(r['d'] for r in res if r['box'] == '1:PV')
-if ds != ['gann', 'gperp']: fails.append(f'growth: PV lines {ds}, want the growing annuity and perpetuity only')
+if ds != ['gann']: fails.append(f'growth: PV lines {ds}, want the growing annuity only')
+out, res, errs = every({'1:C': 100, '1:r': 0.08, '1:g': 0.03})
 gp = [r for r in res if r['d'] == 'gperp']
 if not gp or not close(gp[0]['value'], 2000): fails.append(f'growth: growing perpetuity {gp}, want 2000')
 # a typed box is never overwritten: PV typed with C, r, n -> no PV line; the lines solve other letters instead
