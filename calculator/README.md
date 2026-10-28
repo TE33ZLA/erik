@@ -27,14 +27,18 @@ The home screen:
 - **E  Everything: type all you know.** The fall back: one page with a box for every letter on the formula sheet,
   grouped under the sheet's section titles in the sheet's order (the cursor skips the titles; left/right jumps a
   section). The same letter in different sections is a different box (C payment vs C coupon, r, n, g, PV); Tc is one
-  box shared by Cost of Capital and the Tax World. ENTER solves every sheet line that has exactly one blank letter,
+  box shared by Cost of Capital, the Tax World and section 9. Section 9, "Extra lines (not on the sheet)", adds lines
+  the sheet leaves out, each with its own boxes: E = VL - D, share price = E/shares (so the number of shares too),
+  E = shares x price, VU = FCF/rU, VU = EBIT(1 - Tc)/rU and rd after tax = rd(1 - Tc); their answers say they are
+  not on the sheet (in I and under NOT ON THE SHEET). ENTER solves every line that has exactly one blank letter,
   again and again, and lists each answer as "formula: letter = answer" under its section; I (or clicking the line)
   explains it: the formula, the formula solved for that letter, the numbers in it, the answer and a check.
-  Alternatives (annuity / annuity due / perpetuity, bond / zero-coupon bond, the share price lines, the two covariances)
-  are listed separately and never feed each other; an answer is passed on only when one line gave it, and it then says
-  "(uses X from ...)". A few links cross sections: CAPM's E[Ri] -> re and rE, SD = sqrt(variance), and rU, rE, rD, E, D
-  typed in one capital-structure world are used in the other. Nothing solvable? ONE VALUE SHORT says what each
-  formula still needs. `src/everything.lua`, `src/ui_every.lua`, tested by `tests/test_everything.py`.
+  Alternatives (annuity / annuity due / perpetuity, bond / zero-coupon bond, the share price lines, the two covariances,
+  the two VU lines) are listed separately and never feed each other; an answer is passed on only when one line gave it, and it then says
+  "(uses X from ...)". A few links cross sections: CAPM's E[Ri] -> re and rE, SD = sqrt(variance), rU, rE, rD, E, D
+  typed in one capital-structure world are used in the other, section 9's VL, D, VU and rU are the Tax World's (both
+  ways), its rd is Cost of Capital's, and its E (when only one line gave it) goes to the Tax World and the WACC
+  weights. Nothing solvable? ONE VALUE SHORT says what each formula still needs. `src/everything.lua`, `src/ui_every.lua`, tested by `tests/test_everything.py`.
 - **X  Excel tables (Part C).** The Excel parts have few inputs, so type them and the answer IS the Excel layout.
   Four kinds: 1 a replacement (old machine vs new), 2 a new project, 3 a decision tree "act now or wait", 4 a chance node
   (2-4 branches) with a choice today. Cash flows: ITEMS DOWN the rows in the order they are typed into Excel (revenue or
@@ -134,7 +138,8 @@ and tests use their own numbers.
     that box is left blank, every rearranged form checks numerically, and every R page opens;
   - `python3 calculator/tests/test_everything.py`: the Everything page (E) gets back every letter of every root
     formula's example left out of its boxes, never overwrites a typed box, lists alternatives separately and passes
-    an answer on only when one line gave it;
+    an answer on only when one line gave it; the same for the extra lines of section 9, and the chain
+    FCF, rU -> VU -> VL -> E = VL - D -> share price;
   - `python3 calculator/tests/check_theory.py calculator/src/theory_c.lua THEORY_C` (and `theory_a`/`theory_b`): the
     theory data format.
   `tests/mock/nspire_mock.py` is a small TI-Nspire Lua mock that draws the screen to SVG; `tests/ui_tour.py` saves

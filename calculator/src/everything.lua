@@ -13,16 +13,71 @@
 --     covariances, the no-tax rU / MM II pair) never feed each other.
 --   * an answer is passed on only when one formula gave it (or all
 --     that gave it agree) and never over a typed box.
+--   * section 9 (after the sheet's 8): a few lines that are NOT on the
+--     sheet (E = VL - D, the share price, E = shares x price, VU from a
+--     perpetual FCF or EBIT, rd after tax), linked to the sheet's boxes.
 ----------------------------------------------------------------------
 EVERY = {}
 do
-  local SECN = FSHEET.secs
-  local DEFS = {}                         -- the sheet's lines in the sheet's order
+  local SECN = {}                         -- the sheet's 8 sections, then the extra lines
+  for s = 1, #FSHEET.secs do SECN[s] = FSHEET.secs[s] end
+  local XSEC = #SECN + 1
+  SECN[XSEC] = "Extra lines (not on the sheet)"
+
+  ------------------------------------------------------------------ the extra lines (NOT on the sheet)
+  -- the same shape as a root formula (roots.lua), solved by ROOT_SOLVE; off = their FSHEET.off id, why = where they come from
+  local function xs(k, t, label, kind, hint, more)
+    local va = { k = k, t = t or k, label = label, kind = kind, hint = hint, how = hint }
+    for kk, vv in pairs(more or {}) do va[kk] = vv end
+    return va
+  end
+  local xE = xs("E", nil, "E equity value ($)", "money", "what all the shares are worth: VL - D, or shares x price")
+  local xVL = xs("VL", nil, "VL levered value ($)", "money", "the firm's value WITH debt: VU + PV(ITS)")
+  local xD = xs("D", nil, "D debt value ($)", "money", "the debt (borrowed, market value)")
+  local xN = xs("shares", nil, "shares number of shares", "num", "how many shares there are (after a buyback: the ones left)", { pos = true })
+  local xP = xs("price", nil, "price share price ($)", "money", "the price of ONE share")
+  local xVU = xs("VU", nil, "VU unlevered value ($)", "money", "the firm's value with NO debt (all equity)")
+  local xFCF = xs("FCF", nil, "FCF free cash flow a year ($)", "money", "the same FCF every year forever (no growth)")
+  local xEBIT = xs("EBIT", nil, "EBIT a year, forever ($)", "money", "the same EBIT every year forever (no growth)")
+  local xrU = xs("rU", nil, "rU unlevered cost (%)", "pct", "the cost of capital with NO debt", { rate = true })
+  local xTc = xs("Tc", nil, "Tc company tax rate (%)", "pct", "the company tax rate, e.g. 30")
+  local xrd = xs("rd", nil, "rd PRE-tax cost of debt (%)", "pct", "the yield on the debt, before tax")
+  local xrdat = xs("rdat", "rd_at", "rd_at after-tax cost of debt (%)", "pct", "what the debt really costs after tax: rd x (1 - Tc)")
+  local EXTRA = {
+    { id = "eqvl", off = "eqvl", name = "Equity after borrowing", short = "E = VL - D", eq = "E = VL - D",
+      why = "the firm is split between its owners: VL = E + D (like E + D = U = A on the sheet)",
+      vars = { xE, xVL, xD }, f = function(x) return x.VL - x.D - x.E end,
+      rearr = { VL = "VL = E + D", D = "D = VL - E" }, ex = { VL = 1250, D = 400 } },
+    { id = "price", off = "price", name = "Share price", short = "share price", eq = "price = E/shares",
+      why = "every share is worth the same part of the equity",
+      vars = { xP, xE, xN }, f = function(x) return x.E / x.shares - x.price end,
+      rearr = { E = "E = price*shares", shares = "shares = E/price" }, ex = { E = 850, shares = 40 } },
+    { id = "mv", off = "mv", name = "Market value of equity", short = "E = shares x price", eq = "E = shares*price",
+      why = "the market value of equity: every share times its price (the E of the WACC weights)",
+      vars = { xE, xN, xP }, f = function(x) return x.shares * x.price - x.E end,
+      rearr = { shares = "shares = E/price", price = "price = E/shares" }, ex = { shares = 50, price = 12.4 } },
+    { id = "vucf", off = "vucf", name = "All-equity value (FCF forever)", short = "VU = FCF/rU", eq = "VU = FCF/rU",
+      why = "PV of a perpetuity = C/r with C = the FCF and r = rU",
+      vars = { xVU, xFCF, xrU }, f = function(x) return x.FCF / x.rU - x.VU end,
+      rearr = { FCF = "FCF = VU*rU", rU = "rU = FCF/VU" }, ex = { FCF = 96, rU = 0.12 } },
+    { id = "vuebit", off = "vuebit", name = "All-equity value (EBIT forever)", short = "VU = EBIT*(1 - Tc)/rU", eq = "VU = EBIT*(1 - Tc)/rU",
+      why = "PV of a perpetuity = C/r with C = EBIT*(1 - Tc): no debt, no growth, Dep = CapEx",
+      vars = { xVU, xEBIT, xTc, xrU }, f = function(x) return x.EBIT * (1 - x.Tc) / x.rU - x.VU end,
+      rearr = { EBIT = "EBIT = VU*rU/(1 - Tc)", Tc = "Tc = 1 - VU*rU/EBIT", rU = "rU = EBIT*(1 - Tc)/VU" },
+      ex = { EBIT = 150, Tc = 0.3, rU = 0.1 } },
+    { id = "rdat", off = "rdat", name = "After-tax cost of debt", short = "rd after tax", eq = "rd_at = rd*(1 - Tc)",
+      why = "the rd*(1 - Tc) part of the WACC line: interest saves tax",
+      vars = { xrdat, xrd, xTc }, f = function(x) return x.rd * (1 - x.Tc) - x.rdat end,
+      rearr = { rd = "rd = rd_at/(1 - Tc)", Tc = "Tc = 1 - rd_at/rd" }, ex = { rd = 0.07, Tc = 0.3 } },
+  }
+
+  local DEFS = {}                         -- the sheet's lines in the sheet's order, then the extra lines
   for _, d in ipairs(ROOTDEFS) do DEFS[#DEFS + 1] = d end
   local order = {}
   for n, e in ipairs(FSHEET.list) do order[e[1]] = n end
+  for i, d in ipairs(EXTRA) do d.sec = XSEC; DEFS[#DEFS + 1] = d; order[d.id] = #FSHEET.list + i end
   table.sort(DEFS, function(a, b) return (order[a.id] or 999) < (order[b.id] or 999) end)
-  local function secOf(d) return FSHEET.byId[d.id].sec end
+  local function secOf(d) return d.sec or FSHEET.byId[d.id].sec end
 
   -- which box a letter of a sheet line uses: "<section>:<letter>" unless listed here (false = no box)
   local MAP = {
@@ -41,7 +96,7 @@ do
     local m = MAP[d.id]
     if m and m[va.k] ~= nil then return m[va.k] end
     local s, k = secOf(d), va.k
-    if k == "Tc" and (s == 6 or s == 8) then return "Tc" end
+    if k == "Tc" and (s == 6 or s == 8 or s == XSEC) then return "Tc" end
     local L, num = k:match("^(%a+)(%d)$")
     if s == 5 and L then
       if (d.id == "er" or d.id == "varp") and L == "R" then return "5:Si" .. num end
@@ -84,7 +139,7 @@ do
     ["5:Beta"] = "the share's beta: the beta line works it out, CAPM uses it",
     ["5:ERc"] = "CAPM's E[Ri]: also used as re (Cost of Capital) and rE (shares)",
     ["6:re"] = "cost of equity; blank: CAPM's E[Ri] is used when there is one",
-    ["Tc"] = "company tax rate: ONE box for Cost of Capital AND the Tax World",
+    ["Tc"] = "company tax rate: ONE box for Cost of Capital, the Tax World and the extra lines",
   }
   for k = 1, 5 do
     LBL["5:p" .. k] = "state " .. k .. ": probability (%)"
@@ -105,11 +160,12 @@ do
             "5:Rbar", "5:Rbarj", "5:VarR", "5:Cov", "5:Corr", "5:SDi", "5:SDj", "5:CV", "5:Rt", "5:DIV", "5:P1", "5:P0",
             "5:w1", "5:E1", "5:Bk1", "5:w2", "5:E2", "5:Bk2", "5:w3", "5:E3", "5:Bk3", "5:w4", "5:E4", "5:Bk4",
             "5:ERp", "5:Bp", "5:wi", "5:wj", "5:Varp", "5:Sharpe", "5:rf", "5:SDp" },
+    [XSEC] = { "9:VL", "9:D", "9:E", "9:shares", "9:price", "9:VU", "9:FCF", "9:EBIT", "Tc", "9:rU", "9:rd", "9:rdat" },
   }
   -- alternative lines (the same letters, a different situation): they never feed each other
   local FAM = { fv = "tvm", pv = "tvm", pva = "tvm", pvad = "tvm", fva = "tvm", fvad = "tvm", perp = "tvm", gperp = "tvm",
                 gann = "tvm", bond = "bond", zbond = "bond", p0z = "share", p0g = "share", p0n = "share",
-                covp = "cov", covs = "cov", ru = "mm", re = "mm" }
+                covp = "cov", covs = "cov", ru = "mm", re = "mm", vucf = "vu", vuebit = "vu" }
   -- 'blank = 0' letters (no preference shares, no tax, no CapEx); every other blank is an unknown
   local WEAKOK = { wacc = { rp = true, P = true, Tc = true }, v = { P = true }, fcf = { CapEx = true, dNWC = true } }
   -- lines that do not fit what was typed: a growth rate rules out the level formulas, a coupon the zero-coupon bond
@@ -131,6 +187,16 @@ do
   for _, k in ipairs({ "rU", "rE", "rD", "E", "D" }) do
     BRIDGE[#BRIDGE + 1] = { "7:" .. k, "8:" .. k, true }
     BRIDGE[#BRIDGE + 1] = { "8:" .. k, "7:" .. k, true }
+  end
+  -- the extra lines (section 9) and the sheet: VL, D, VU and rU are the Tax World's (both ways), rU typed in the
+  -- No Tax World too, rd the Cost of Capital's; E goes out only (Tax World, Cost of Capital); Tc is the shared box
+  for _, k in ipairs({ "VL", "D", "VU" }) do
+    BRIDGE[#BRIDGE + 1] = { "8:" .. k, "9:" .. k }
+    BRIDGE[#BRIDGE + 1] = { "9:" .. k, "8:" .. k }
+  end
+  for _, br in ipairs({ { "7:rU", "9:rU", true }, { "9:rU", "7:rU", true }, { "8:rU", "9:rU" }, { "9:rU", "8:rU" },
+                        { "6:rd", "9:rd" }, { "9:rd", "6:rd" }, { "9:E", "8:E" }, { "9:E", "6:E" } }) do
+    BRIDGE[#BRIDGE + 1] = br
   end
 
   ------------------------------------------------------------------ the boxes
@@ -251,14 +317,16 @@ do
   end
 
   local SHORTN = { "Financial Maths", "Bonds and Shares", "Capital Budgeting", "Working Capital", "Risk and Return",
-                   "Cost of Capital", "the No Tax World", "the Tax World" }
+                   "Cost of Capital", "the No Tax World", "the Tax World", "the extra lines" }
   local function fromText(e, tok)   -- '(uses X from ...)'
     local inf = e.inf
     if inf.how == "def" then return tok .. " from " .. inf.name end
     local ft = inf.ftext or BOX[inf.from].t
     local head = (ft == tok) and tok or (tok .. " = " .. ft)
-    if inf.src.how == "def" then return head .. " from " .. inf.src.name end
-    return head .. " typed in " .. SHORTN[BOX[inf.from].sec]
+    local from, src = inf.from, inf.src   -- a value that crossed twice: where it started
+    while src.how == "bridge" do from, src = src.from, src.src end
+    if src.how == "def" then return head .. " from " .. src.name end
+    return head .. " typed in " .. SHORTN[BOX[from].sec]
   end
 
   function EVERY.solve(V, out)
@@ -268,12 +336,17 @@ do
       if BOX[b] and type(v) == "number" then known[b] = v; typedK[b] = v; info[b] = { how = "typed" }; ntyped = ntyped + 1 end
     end
     local function bridges()
-      for _, br in ipairs(BRIDGE) do
-        local from, to = br[1], br[2]
-        if known[to] == nil and known[from] ~= nil and not ambig[from] and (not br[3] or info[from].how == "typed")
-           and not (br[6] and known[br[6]] ~= nil) and not (br[4] and known[from] < 0) then
-          known[to] = br[4] and br[4](known[from]) or known[from]
-          info[to] = { how = "bridge", from = from, src = info[from], ftext = br[5] }
+      local more = true
+      while more do   -- a value can cross twice (No Tax World -> Tax World -> extra lines)
+        more = false
+        for _, br in ipairs(BRIDGE) do
+          local from, to = br[1], br[2]
+          if known[to] == nil and not ambig[to] and known[from] ~= nil and not ambig[from] and (not br[3] or info[from].how == "typed")
+             and not (br[6] and known[br[6]] ~= nil) and not (br[4] and known[from] < 0) then
+            known[to] = br[4] and br[4](known[from]) or known[from]
+            info[to] = { how = "bridge", from = from, src = info[from], ftext = br[5] }
+            more = true
+          end
         end
       end
     end
@@ -360,7 +433,7 @@ do
       local xls = r.xls
       local eq, re, nums, ans = xls[1], nil, xls[#xls - 1], xls[#xls]
       if #xls >= 4 then re = xls[2] end
-      local ex = { { "note", "the formula on the sheet:" }, { "xl", eq or d.eq } }
+      local ex = { { "note", d.off and "the formula (NOT on the formula sheet):" or "the formula on the sheet:" }, { "xl", eq or d.eq } }
       if re then
         ex[#ex + 1] = { "note", "solved for " .. u.t .. ":" }
         ex[#ex + 1] = { "xl", re }
@@ -380,6 +453,10 @@ do
       if r.check then
         ex[#ex + 1] = { "note", "check (every number in):" }
         ex[#ex + 1] = { "xl", r.check }
+      end
+      if d.off then
+        ex[#ex + 1] = { "head", "NOT ON THE FORMULA SHEET" }
+        ex[#ex + 1] = { "text", "write it out in full: " .. d.why }
       end
       local uses = {}
       if #r.used > 0 then
@@ -428,7 +505,7 @@ do
                                                { "xl", tostring(c[2]) }, { "xl", tostring(c[5] or "") }, { "val", tostring(c[2]) .. " = " .. fmtU(c[3], c[4]) } } })
         end
       end
-      out:uses(d.id)
+      if d.off then out:off(d.off) else out:uses(d.id) end
       for _, o in ipairs(r.offs) do out:off(o[1], o[2]) end
     end
 
@@ -471,20 +548,33 @@ do
   ------------------------------------------------------------------ the page
   local NOTES = [[## EVERYTHING: HOW IT WORKS
 1. Type every number you know, in the box of its letter, in its part of the sheet. Rates as % (7 = 7%). Leave the rest blank.
-2. ENTER. Every formula-sheet line that has all but ONE of its letters filled is solved and listed: "formula: letter = answer".
+2. ENTER. Every formula-sheet line (and every extra line, section 9) that has all but ONE of its letters filled is solved and listed: "formula: letter = answer".
 3. An answer is passed on to other lines when only ONE line gave it. It then says (uses X from ...).
-4. Lines that are alternatives (annuity, annuity due, perpetuity; bond, zero-coupon bond; the share price lines; covariance from states or past data) are listed separately and are NOT passed on: pick the one that fits the question.
+4. Lines that are alternatives (annuity, annuity due, perpetuity; bond, zero-coupon bond; the share price lines; covariance from states or past data; VU from FCF or from EBIT) are listed separately and are NOT passed on: pick the one that fits the question.
 5. I (or click the line twice) explains an answer: the formula, the formula solved for the letter, your numbers in it, the answer and a check.
 6. Nothing solved? ONE VALUE SHORT says which value each formula still needs.
 ## KEYS
 up/down: next box (the section titles are skipped)
 left/right: next / previous section
 D: clear every box. ESC: home.
-## THE SAME BOX IN TWO SECTIONS
-Tc (company tax rate) is ONE box: Cost of Capital and the Tax World both use it.
+## THE SAME BOX IN THREE SECTIONS
+Tc (company tax rate) is ONE box: Cost of Capital, the Tax World and the extra lines all use it.
 ## PASSED BETWEEN SECTIONS (when that box is blank)
 E[Ri] from CAPM -> re (Cost of Capital) and rE (Bonds and Shares).
 rU, rE, rD, E and D typed in one Capital Structure section are used in the other one too.
+Extra lines <-> Tax World: VL, D, VU and rU (both ways). rU typed in the No Tax World is used too.
+Extra lines <-> Cost of Capital: rd (both ways).
+E from the extra lines -> E in the Tax World and in Cost of Capital (the WACC weights), when only one line gave it.
+## 9. EXTRA LINES (NOT ON THE SHEET)
+Lines the sheet leaves out, each with its own boxes. Write them out in full in the exam: they are not on the sheet.
+- E = VL - D   (equity after borrowing: VL = E + D)
+- price = E/shares   (share price; number of shares = E/price)
+- E = shares*price   (market value of equity: the E of the WACC)
+- VU = FCF/rU   (all-equity value: the same FCF forever)
+- VU = EBIT*(1 - Tc)/rU   (the same, from EBIT: no growth, Dep = CapEx)
+- rd_at = rd*(1 - Tc)   (after-tax cost of debt)
+The two VU lines are alternatives: they never feed each other.
+Example: Tc 30, D 400 (Tax World), FCF 96, rU 12%, shares 40 (extra lines): VU = 800, PV(ITS) = 120, VL = 920, E = 520, price = 13.
 ## SAME LETTER, DIFFERENT MEANING
 Each section has its own boxes: C = payment (Financial Maths) but coupon (Bonds); r = rate per period, the discount rate (Capital Budgeting) or the interpolated r; n = periods, coupon periods left or the project's life; g = payment growth or dividend growth.
 ## LEFT OUT ON PURPOSE
@@ -531,9 +621,9 @@ A growth rate g (not 0) leaves out the level annuity and perpetuity lines; a cou
   end })
   TYPES[ti] = qt
   FSHEET.types[ti] = {}
-  for _, d in ipairs(DEFS) do table.insert(FSHEET.types[ti], d.id) end
+  for _, d in ipairs(DEFS) do if not d.off then table.insert(FSHEET.types[ti], d.id) end end
   qt.notes = NOTES .. "\n\n" .. FSHEET.notes(ti):gsub("^## FORMULA SHEET %((%d+) for this type%)", "## THE WHOLE FORMULA SHEET (%1 lines)")
-  EVERY.ti, EVERY.BOX, EVERY.SECBOX, EVERY.EXAMPLE = ti, BOX, SECBOX, EXAMPLE
+  EVERY.ti, EVERY.BOX, EVERY.SECBOX, EVERY.EXAMPLE, EVERY.EXTRA = ti, BOX, SECBOX, EXAMPLE, EXTRA
   EVERY.boxOf = function(id, k)
     for _, d in ipairs(DEFS) do
       if d.id == id then for _, va in ipairs(d.vars) do if va.k == k then return boxOf(d, va) end end end

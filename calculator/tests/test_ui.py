@@ -384,11 +384,11 @@ if '1. Financial Mathematics' not in t or 'Type all you know' not in t: fails.ap
 if cur_label() != 'PV money today ($)': fails.append(f'everything: the cursor starts on {cur_label()!r}, not the first box')
 heads = [sl.label for sl in evslots.values() if sl.kind == 'sec']
 want_heads = ['Financial Mathematics', 'Valuation of Bonds and Shares', 'Capital Budgeting', 'Working Capital', 'Risk and Return',
-              'Cost of Capital', 'Capital Structure - No Tax World', 'Capital Structure - Tax World']
+              'Cost of Capital', 'Capital Structure - No Tax World', 'Capital Structure - Tax World', 'Extra lines (not on the sheet)']
 if [h.split('. ', 1)[1] for h in heads] != want_heads: fails.append(f'everything: sections {heads}')
 # up/down never stop on a section title; one full round passes every box once
 labels_seen = set()
-for _ in range(sum(1 for sl in evslots.values() if sl.kind != 'sec')):   # Tc is listed twice: in Cost of Capital and the Tax World
+for _ in range(sum(1 for sl in evslots.values() if sl.kind != 'sec')):   # Tc is listed 3 times: Cost of Capital, Tax World, extra lines
     lab = cur_label()
     if lab in heads: fails.append(f'everything: the cursor stopped on the title {lab!r}'); break
     labels_seen.add(lab)
@@ -397,7 +397,7 @@ if cur_label() != 'PV money today ($)': fails.append('everything: down does not 
 key('arrowKey', 'up')
 if cur_label() in heads: fails.append('everything: up stopped on a section title')
 # left/right: the first box of the next / previous section, its title on screen
-key('arrowKey', 'right')   # from the last box (Tax World): round to Financial Maths
+key('arrowKey', 'right')   # from the last box (the extra lines): round to Financial Maths
 if cur_label() != 'PV money today ($)': fails.append(f'everything: right from the last section goes to {cur_label()!r}')
 key('arrowKey', 'right')
 if cur_label() != 'PBond bond price ($)': fails.append(f'everything: right goes to {cur_label()!r}, not the first Bonds box')
@@ -405,7 +405,15 @@ if '2. Valuation of Bonds and Shares' not in check_screen('everything right'): f
 key('arrowKey', 'left')
 if cur_label() != 'PV money today ($)': fails.append(f'everything: left goes to {cur_label()!r}')
 key('arrowKey', 'left')
-if cur_label() != 'VL levered value ($)' or 'Tax World' not in check_screen('everything left wraps'): fails.append('everything: left from the first section does not wrap to the last')
+if cur_label() != 'VL levered value ($)' or '9. Extra lines (not on the sheet)' not in check_screen('everything left wraps'): fails.append('everything: left from the first section does not wrap to the last')
+key('arrowKey', 'left')
+if cur_label() != 'VL levered value ($)' or '8. Capital Structure - Tax World' not in check_screen('everything left to the Tax World'): fails.append('everything: left from the extra lines does not go to the Tax World')
+key('arrowKey', 'up')
+if cur_label() in heads: fails.append('everything: up from the first Tax World box stopped on its title')
+key('arrowKey', 'right'); key('arrowKey', 'right')
+if cur_label() != 'VL levered value ($)' or '9. Extra lines (not on the sheet)' not in check_screen('everything right to the extra lines'): fails.append('everything: right does not reach the extra lines')
+key('arrowKey', 'up')
+if cur_label() in heads or '9. Extra lines' in str(cur_label()): fails.append('everything: up from the first extra box stopped on its title')
 # type: Financial Maths C 250, r 2, APR 6, m 12; Risk and Return rf 3, beta 1.2, E[RM] 9; Cost of Capital E 600, D 400, rd 6, Tc 30
 key('charIn', 'd')
 for lab, v in [('C payment each period ($)', '250'), ('r rate per period (%)', '2'), ('APR quoted yearly rate (%)', '6'),
@@ -415,7 +423,7 @@ for lab, v in [('C payment each period ($)', '250'), ('r rate per period (%)', '
     if ev_go(lab): app.type(v)
 if len({sl.key for sl in evslots.values() if sl.buf != ''}) != 11: fails.append('everything: the typed values did not all land in boxes')
 tc = [sl for sl in evslots.values() if sl.key == 'Tc']
-if len(tc) != 2 or tc[0].buf != '30' or tc[1].buf != '30': fails.append('everything: Tc is not one box in both sections')
+if len(tc) != 3 or any(x.buf != '30' for x in tc): fails.append('everything: Tc is not one box in its three sections')
 key('enterKey'); t = check_screen('everything answers')
 rt = G.CORE.rtext()
 for w in ['EVERY ANSWER', '1. Financial Mathematics', 'EAR from an APR: EAR = 6.1678 %', 'PV of a perpetuity: PV = $12,500.00',

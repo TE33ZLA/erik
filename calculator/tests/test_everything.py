@@ -3,7 +3,8 @@
 For every root formula's example (def.ex): the example's letters typed into the Everything boxes with ONE letter left
 out must give that letter back (as on the R pages, test_roots.py); a typed box is never overwritten; alternative lines
 (annuity / annuity due / perpetuity, ...) are listed separately and never feed each other; answers are passed on only
-when one line gave them. Own numbers only."""
+when one line gave them. Section 9 (the extra lines, NOT on the sheet): each letter of each line comes back, the chain
+FCF, rU -> VU -> VL -> E = VL - D -> share price, E = shares x price -> the WACC weights. Own numbers only."""
 import os, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, 'mock'))
@@ -129,7 +130,118 @@ for V in [{'1:r': -1, '1:C': 5, '1:n': 0}, {'1:r': 0, '1:C': 1}, {'2:rE': .05, '
     out, res, errs = every(V)
     if errs: fails.append(f'odd input {list(V)[:4]}: {errs}')
 
+# 4. section 9, the extra lines (NOT on the sheet): each one, every letter left out in turn, comes back (own numbers)
+EXTRA = {d.id: d for d in lt(EVERY.EXTRA)}
+FULL = {'eqvl': {'E': 850, 'VL': 1250, 'D': 400}, 'price': {'price': 21.25, 'E': 850, 'shares': 40},
+        'mv': {'E': 620, 'shares': 50, 'price': 12.4}, 'vucf': {'VU': 800, 'FCF': 96, 'rU': .12},
+        'vuebit': {'VU': 1050, 'EBIT': 150, 'Tc': .3, 'rU': .1}, 'rdat': {'rdat': .049, 'rd': .07, 'Tc': .3}}
+TWIN = {'price': 'mv', 'mv': 'price'}   # the same relation written for E and for the price: they agree
+nextra = 0
+if sorted(EXTRA) != sorted(FULL): fails.append(f'extra lines: {sorted(EXTRA)}, want {sorted(FULL)}')
+for did, full in FULL.items():
+    d = EXTRA.get(did)
+    if d is None: continue
+    if abs(d.f(lua.table_from(full))) > 1e-9: fails.append(f'extra {did}: the test numbers do not fit the line')
+    if [va.k for va in lt(d.vars)] != list(full): fails.append(f'extra {did}: letters {[va.k for va in lt(d.vars)]}')
+    for k in full:
+        box = EVERY.boxOf(did, k)
+        if not box or not (box == 'Tc' or box.startswith('9:')): fails.append(f'extra {did}: {k} has the box {box}')
+        Vb = {EVERY.boxOf(did, kk): vv for kk, vv in full.items() if kk != k}
+        out, res, errs = every(Vb)
+        nextra += 1
+        if errs: fails.append(f'extra {did} without {k}: {errs}'); continue
+        got = [r for r in res if r['box'] == box and r['d'] in (did, TWIN.get(did))]
+        if not got or not all(close(r['value'], full[k]) for r in got):
+            fails.append(f'extra {did}: without {k} ({box}) gives {[(r["d"], r["value"]) for r in got]}, want {full[k]}')
+        for r in res:
+            if r['box'] in Vb: fails.append(f'extra {did} without {k}: the typed box {r["box"]} was solved again by {r["d"]}')
+        # marked as NOT on the sheet: in its explanation and in the NOT ON THE SHEET section, never as a sheet line
+        rows = [r for r in lt(out.rows) if r.kind == 'val' and r.explain is not None and str(r.label).endswith(': ' + str(lt(d.vars)[[va.k for va in lt(d.vars)].index(k)].t))]
+        ex = ' '.join(str(e[2]) for r in rows for e in lt(r.explain))
+        for w in ['the formula (NOT on the formula sheet):', 'NOT ON THE FORMULA SHEET', 'your numbers in it:']:
+            if w not in ex: fails.append(f'extra {did} without {k}: explanation lacks {w!r}')
+        if not any(c.isdigit() for c in ex): fails.append(f'extra {did} without {k}: the explanation has no numbers')
+        t = ' '.join(str(r.text) for r in lt(out.rows))
+        if '9. Extra lines (not on the sheet)' not in t or 'NOT ON THE SHEET' not in t: fails.append(f'extra {did} without {k}: no section 9 / NOT ON THE SHEET')
+        if out.fsbad is not None: fails.append(f'extra {did} without {k}: unknown formula ids {list(out.fsbad.values())}')
+        if any(i in EXTRA for i in lt(out.fsids)): fails.append(f'extra {did} without {k}: listed as a sheet line')
+        offs = [str(o[1]) for o in lt(out.fsoff)]
+        want = [G.FSHEET.off[x.off][1] for x in (d, EXTRA.get(TWIN.get(did))) if x is not None]   # the line listed (or its twin)
+        if not any(w in offs for w in want): fails.append(f'extra {did} without {k}: {d.off} not under NOT ON THE SHEET ({offs})')
+
+# the chain: FCF 96 and rU 12% -> VU 800 (extra lines); Tc 30% and D 400 (Tax World) -> PV(ITS) 120 -> VL 920 (Tax World)
+# -> E = VL - D = 520 -> price = 520/40 shares = 13. D typed in either section gives the same.
+for dbox in ('8:D', '9:D'):
+    out, res, errs = every({'Tc': .3, dbox: 400, '9:FCF': 96, '9:rU': .12, '9:shares': 40})
+    byd = {r['d']: r for r in res}
+    for k, v, ch in [('vucf', 800, False), ('pvits', 120, dbox == '9:D'), ('vl', 920, True), ('eqvl', 520, True), ('price', 13, True)]:
+        if k not in byd or not close(byd[k]['value'], v) or byd[k]['chained'] != ch or not byd[k]['passed']:
+            fails.append(f'extra chain (D in {dbox}): {k} = {byd.get(k)}, want {v} (chained {ch})')
+    t = ' '.join(str(r.text) for r in lt(out.rows))
+    for w in ['uses VU from All-equity value (FCF forever)', 'uses VL from Levered value (MM with tax)', 'uses E from Equity after borrowing',
+              'Share price: price = $13.00']:
+        if w not in t: fails.append(f'extra chain (D in {dbox}): {w!r} missing')
+    prow = [r for r in lt(out.rows) if r.kind == 'val' and str(r.text).startswith('Share price: price')]
+    ex = ' '.join(str(e[2]) for e in lt(prow[0].explain)) if prow else ''
+    for w in ['price = E/shares', 'price = 520/40', 'price = 13.00', 'E from Equity after borrowing: $520.00', 'NOT ON THE FORMULA SHEET']:
+        if w not in ex: fails.append(f'extra chain: the price explanation lacks {w!r}')
+# the number of shares from the price: E = VL - D, then shares = E/price
+out, res, errs = every({'9:VL': 1300, '9:D': 500, '9:price': 16})
+sh = [r for r in res if r['box'] == '9:shares']
+if not sh or not close(sh[0]['value'], 50) or not sh[0]['chained']: fails.append(f'extra: shares from E = VL - D and the price {sh}, want 50')
+t = ' '.join(str(o[1]) for o in lt(out.fsoff))
+if 'shares = E/price' not in t: fails.append(f'extra: the rearranged shares = E/price is not under NOT ON THE SHEET ({t})')
+# E = shares x price feeds the WACC weights (Cost of Capital) and the Tax World's WACC
+out, res, errs = every({'9:shares': 50, '9:price': 12.4, '6:D': 380, '6:re': .11, '6:rd': .06, 'Tc': .3})
+byd = {r['d']: r for r in res}
+for k, v, ch in [('mv', 620, False), ('v', 1000, True), ('wacc', .11 * 620 / 1000 + .06 * .7 * 380 / 1000, True), ('rdat', .042, True)]:
+    if k not in byd or not close(byd[k]['value'], v) or byd[k]['chained'] != ch: fails.append(f'extra E -> WACC: {k} = {byd.get(k)}, want {v}')
+t = ' '.join(str(r.text) for r in lt(out.rows))
+if 'uses E from Market value of equity' not in t or 'uses rd typed in Cost of Capital' not in t: fails.append(f'extra E -> WACC: the uses notes {t[:400]}')
+out, res, errs = every({'9:shares': 50, '9:price': 12.4, '8:rE': .12, '8:rD': .06, '8:D': 380, 'Tc': .3})
+w = [r for r in res if r['d'] == 'wacct']
+if not w or not close(w[0]['value'], .12 * .62 + .06 * .38 * .7) or not w[0]['chained']: fails.append(f'extra E -> Tax World WACC: {w}')
+# rd after tax, the other way: rd_at and Tc -> rd -> the WACC's rd
+out, res, errs = every({'9:rdat': .042, 'Tc': .3, '6:E': 600, '6:D': 400, '6:re': .1})
+byd = {r['d']: r for r in res}
+if 'rdat' not in byd or not close(byd['rdat']['value'], .06): fails.append(f'extra rd from rd_at: {byd.get("rdat")}')
+if 'wacc' not in byd or not close(byd['wacc']['value'], .1 * .6 + .042 * .4) or not byd['wacc']['chained']: fails.append(f'extra rd -> WACC: {byd.get("wacc")}')
+# rU found in the Tax World (MM II with tax) -> VU = FCF/rU; rU typed in the No Tax World is used too
+out, res, errs = every({'8:rE': .13, '8:rD': .05, '8:D': 300, '8:E': 700, 'Tc': .3, '9:FCF': 90})
+ru = (.13 + 300 / 700 * .7 * .05) / (1 + 300 / 700 * .7)
+vu = [r for r in res if r['d'] == 'vucf']
+if not vu or not close(vu[0]['value'], 90 / ru) or not vu[0]['chained']: fails.append(f'extra rU (MM II with tax) -> VU: {vu}, want {90 / ru}')
+out, res, errs = every({'7:rU': .1, '9:FCF': 90})
+vu = [r for r in res if r['d'] == 'vucf']
+if not vu or not close(vu[0]['value'], 900): fails.append(f'extra rU typed in the No Tax World -> VU: {vu}')
+# alternatives: VU from FCF and VU from EBIT never feed each other; different answers are both listed, not passed on
+out, res, errs = every({'9:FCF': 90, '9:EBIT': 150, 'Tc': .3, '9:rU': .1, '8:PVITS': 100})
+vus = {r['d']: r for r in res if r['box'] == '9:VU'}
+if set(vus) != {'vucf', 'vuebit'} or any(r['passed'] or r['alts'] != 2 for r in vus.values()): fails.append(f'extra VU alternatives: {vus}')
+if any(r['d'] == 'vl' for r in res): fails.append('extra VU alternatives: an ambiguous VU reached VL = VU + PV(ITS)')
+out, res, errs = every({'9:FCF': 105, '9:EBIT': 150, 'Tc': .3, '9:rU': .1, '8:PVITS': 100})
+vl = [r for r in res if r['d'] == 'vl']
+if not vl or not close(vl[0]['value'], 1150): fails.append(f'extra VU lines agree: VL {vl}, want 1150')
+out, res, errs = every({'9:VU': 1000, '9:EBIT': 150, '9:rU': .1})
+if [r['d'] for r in res if r['box'] == 'Tc'] != ['vuebit'] or any(r['d'] == 'vucf' and r['chained'] for r in res): fails.append(f'extra VU: {res}')
+# E is passed on only when unambiguous: E = VL - D (600) and E = shares x price (500) disagree -> neither feeds the WACC
+out, res, errs = every({'9:VL': 1000, '9:D': 400, '9:shares': 50, '9:price': 10, '6:re': .1, '6:rd': .05, '6:D': 400, 'Tc': .3})
+es = [r for r in res if r['box'] == '9:E']
+if sorted(round(r['value']) for r in es) != [500, 600] or any(r['passed'] for r in es): fails.append(f'extra ambiguous E: {es}')
+if any(r['d'] in ('wacc', 'v', 'wacct') for r in res): fails.append('extra ambiguous E: an ambiguous E fed a WACC line')
+# typed boxes are never overwritten: E typed in the Tax World stays; the extra lines' E is its own box
+out, res, errs = every({'9:VL': 1000, '9:D': 400, '8:E': 650, '8:rE': .12, '8:rD': .05, 'Tc': .3})
+if any(r['box'] in ('9:VL', '9:D', '8:E', '8:D', 'Tc') for r in res): fails.append(f'extra typed: a typed box was solved {res}')
+w = [r for r in res if r['d'] == 'wacct']
+if not w or not close(w[0]['value'], .12 * 650 / 1050 + .05 * 400 / 1050 * .7): fails.append(f'extra typed: the Tax World WACC used {w}, want E 650')
+# the N page explains the extra lines and the links
+nt = str(G.CORE.TYPES[EVERY.ti].notes)
+for w in ['9. EXTRA LINES (NOT ON THE SHEET)', 'price = E/shares', 'E = shares*price', 'VU = FCF/rU', 'VU = EBIT*(1 - Tc)/rU',
+          'rd_at = rd*(1 - Tc)', 'Extra lines <-> Tax World', 'Tc (company tax rate) is ONE box']:
+    if w not in nt: fails.append(f'notes: {w!r} missing')
+
 print(f'{len(lt(DEFS))} root formulas: {nback} letters left out and found again through the Everything boxes')
+print(f'{len(FULL)} extra lines (not on the sheet): {nextra} letters left out and found again')
 print(f'{len(fails)} problem(s)')
 for f in fails[:60]: print(' -', f)
 sys.exit(1 if fails else 0)

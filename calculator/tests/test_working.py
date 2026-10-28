@@ -4,7 +4,8 @@ A line whose working is only words ("square root of the variance", "NPV new - NP
 can check, so every 'val' row's working must hold at least one digit: the formula with the numbers in it, 'given: <number>'
 for a typed value, or the check of a search ('NPV at 12.3% = 0.00'). Checked on:
   1. every CASES and EXCEL_CASES entry of test_solvers.py (all types, all modes the cases reach);
-  2. the R pages and the Everything page: every root formula's example, and each letter left out in turn;
+  2. the R pages and the Everything page: every root formula's example, and each letter left out in turn (also the
+     Everything page's extra lines, section 9);
   3. the Excel tables type (24): the words under every filled table cell.
 WHITELIST: (type, label) -> reason, only where a number truly makes no sense. Own numbers only."""
 import os, re, sys
@@ -80,6 +81,18 @@ for d in lt(DEFS):
             b = EVERY.boxOf(d.id, kk)
             if b: Vb[b] = vv
         if Vb: check_rows(CORE.run(EVERY.ti, lua.table_from(Vb)), f'Everything ({d.id} without {k})', EVERY.ti)
+# ... and the Everything page's extra lines (section 9, not on the sheet): the example, then each letter left out
+for d in lt(EVERY.EXTRA):
+    ex = dict(d.ex.items())
+    o = CORE.run(EVERY.ti, lua.table_from({EVERY.boxOf(d.id, k): v for k, v in ex.items()}))
+    check_rows(o, f'Everything extra {d.id}', EVERY.ti)
+    first = lt(d.vars)[0]
+    got = [e.value for e in lt(o.every) if e.box == EVERY.boxOf(d.id, first.k)]
+    if not got: fails.append(f'Everything extra {d.id}: the example gives no {first.k}'); continue
+    full = dict(ex); full[first.k] = got[0]
+    for k in full:
+        Vb = {EVERY.boxOf(d.id, kk): vv for kk, vv in full.items() if kk != k}
+        check_rows(CORE.run(EVERY.ti, lua.table_from(Vb)), f'Everything extra ({d.id} without {k})', EVERY.ti)
 
 # 4. the I page itself: on a type whose answer page also has a T table (a note is put above the lines), I on the
 #    picked value line must show that line's working, not "pick a blue value line first"

@@ -219,6 +219,7 @@ do
     price = { "share price = E/number of shares", "not on the sheet" },
     vucf = { "VU = FCF/rU   (FCF = EBIT*(1 - Tc))", "PV of a perpetuity = C/r with C = FCF and r = rU" },
     rucf = { "rU = FCF/VU = EBIT*(1 - Tc)/VU", "PV of a perpetuity = C/r, solved for r" },
+    vuebit = { "VU = EBIT*(1 - Tc)/rU", "PV of a perpetuity = C/r with C = EBIT*(1 - Tc): an all-equity firm, no growth (Dep = CapEx, no change in NWC)" },
     tradeoff = { "VL = VU + PV(Interest tax shield) - PV(financial distress costs)", "trade-off theory (Week 11 lecture): the VL line minus distress costs" },
     unlev = { "the unlevered firm's WACC = rU", "no debt: rWACC = rE = rU" },
   }
