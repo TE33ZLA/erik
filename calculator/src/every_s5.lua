@@ -125,7 +125,7 @@ do
     { id = "s5_betavm", sec = 5, name = "Beta from Var(M)", short = "Beta(i)", eq = "Beta(i) = Cov(Ri,RM)/Var(M)",
       why = "the sheet's beta line with SDM^2 = Var(M), the market's variance (a matrix's diagonal)",
       vars = { xBeta, X("CovM", "Cov(Ri,RM)", "Cov(Ri,RM) with market", "num", "covariance with the market (decimal)"),
-               X("VarM", "Var(M)", "Var(M) market's variance", "num", "the market's variance (a decimal, e.g. 0.0144)", { pos = true }) },
+               X("VarM", "Var(M)", "Var(M) market's variance", "num", "the market's variance (a decimal, e.g. 0.0225)", { pos = true }) },
       f = function(x) return x.CovM / x.VarM - x.Beta end,
       rearr = { CovM = "Cov(Ri,RM) = Beta(i)*Var(M)", VarM = "Var(M) = Cov(Ri,RM)/Beta(i)" },
       ex = { CovM = 0.006, VarM = 0.012 } },
