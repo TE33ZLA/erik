@@ -112,6 +112,13 @@ for gi in range(1, len(MENU) + 1):
         if 'Which formula?' not in screen(): fails.append(f'root group {gi} formula {pos}: ESC does not go back to the list')
     key('escapeKey')
 
+# a small rate per period (monthly) solved back: never a far-off false root (own numbers)
+for C, rr, nn in [(750, 0.004, 240), (900, 0.0045, 180), (120, 0.0025, 360)]:
+    pvv = C / rr * (1 - (1 + rr) ** -nn)
+    E = G.EVERY
+    out = CORE.run(E.ti, lua.table_from({'1:PV': pvv, '1:C': C, '1:n': nn}))
+    got = [out.vals[r.key] for r in lt(out.rows) if r.kind == 'val' and str(r.text).startswith('PV of an annuity:')]
+    if not got or not close(got[0], rr): fails.append(f'small monthly r: PV {pvv:.2f}, C {C}, n {nn} -> {got}, want {rr}')
 print(f'{len(lt(DEFS))} root formulas, {nsolve} slots solved back, {nrearr} rearranged forms checked')
 if fails:
     print('\n'.join(fails[:60])); print(f'{len(fails)} problem(s)'); sys.exit(1)

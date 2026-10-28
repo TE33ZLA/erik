@@ -73,7 +73,13 @@ do
           it = it + 1
           if math.abs(fb) <= 1e-14 * fscale then break end
         end
-        if math.abs(fb) <= 1e-10 * fscale and inDom(b) then g(b); return b end
+        if math.abs(fb) <= 1e-10 * fscale and inDom(b) then
+          -- a huge start value makes any b look small: b must also be a root up close (a Newton step ~ 0)
+          local h = 1e-6 * math.max(1, math.abs(b))
+          local f1, f2 = g(b + h), g(b - h)
+          if fb == 0 or (f1 and f2 and f1 ~= f2 and math.abs(fb * 2 * h / (f1 - f2)) <= 1e-6 * math.max(1, math.abs(b))) then g(b); return b end
+          g(b)
+        end
       end
     end
     -- no luck: scan for a change of sign, then halve the gap
