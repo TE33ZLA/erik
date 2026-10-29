@@ -231,6 +231,26 @@
         ix[#ix + 1] = { kind = 4, rank = 0.5, t = "MULTI-STEP (M " .. RECIPE_KEY(ri) .. "): " .. R.t,
                         text = (R.t .. " " .. R.s .. " " .. R.how .. " " .. (R.words or "")):lower(), ri = ri }
       end
+      -- every letter on the formula sheet (the legend, key L): what the symbol means comes first
+      local sec, nth, cur = "", 0, nil
+      for line in ((LEGEND or "") .. "\n"):gmatch("(.-)\n") do
+        if line:sub(1, 2) == "@@" then sec = line:sub(3); cur = nil
+        elseif line:sub(1, 2) == "@=" then
+          nth = nth + 1
+          cur = { kind = 5, sym = line:sub(3), nth = nth, sec = sec, body = {} }
+          ix[#ix + 1] = cur
+        elseif cur and line ~= "" and not line:find("^##") then cur.body[#cur.body + 1] = line
+        else cur = nil end
+      end
+      for _, e in ipairs(ix) do
+        if e.kind == 5 and not e.t then
+          local mean = table.concat(e.body, " ")
+          e.t = "LETTER: " .. e.sym .. " = " .. mean
+          e.text = (e.sym .. " " .. mean .. " " .. e.sec):lower()
+          e.prev = mean .. " (" .. e.sec .. ")"
+          e.body = nil
+        end
+      end
       if #gEntries == 0 then buildGlossary() end
       for gi, e in ipairs(gEntries) do
         local body = {}
@@ -292,7 +312,7 @@
         if e.kind == 1 or e.kind == 4 then h.cat = 2
         elseif e.kind == 2 and e.t:find("^THEORY:") and e.t:find("[%d%$]") then h.cat = 3
         else h.cat = 1 end
-        h.sub = (e.kind == 3) and 1 or (e.t:find("^RULE:") and 2) or (e.t:find("^TOPIC:") and 3) or 4
+        h.sub = (e.kind == 5) and 0 or (e.kind == 3) and 1 or (e.t:find("^RULE:") and 2) or (e.t:find("^TOPIC:") and 3) or 4
       end
       table.sort(U.hits, function(a, b)
         if a.cat ~= b.cat then return a.cat < b.cat end
@@ -480,6 +500,7 @@
         if modeSlotOf(e.ti) then openModes(e.ti) end
       elseif e.kind == 2 then openTopic(e.topic, e.item)
       elseif e.kind == 4 then openRecipe(e.ri)
+      elseif e.kind == 5 then toLegend(e.nth)
       else gSel = e.gi; toGlossary() end
     end
     ------------------------------------------------------------------ multi-step questions (key M): recipes

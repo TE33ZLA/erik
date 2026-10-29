@@ -11,7 +11,7 @@
 ----------------------------------------------------------------------
 
 if platform then platform.apilevel = "2.0" end
-local VERSION = "v32"
+local VERSION = "v33"
 
 ----------------------------------------------------------------------
 -- 1. SMALL HELPERS + NUMBER FORMATTING
@@ -5277,10 +5277,19 @@ if platform then
   end
 
   -- the legend: every letter on the exam formula sheet, section by section (LEGEND in legend.lua)
-  local function toLegend()
+  local function toLegend(nth)   -- nth: open at the nth letter line (a LETTER line of the search)
     if not OVERLAY[scr] then prevScr = scr end
     llines = buildDoc(LEGEND or "## No legend in this build")
     scrollL = 0
+    if nth then
+      local k = 0
+      for i, l in ipairs(llines) do
+        if type(l) == "table" and l.kind == "fsl" and not l.cont then
+          k = k + 1
+          if k == nth then scrollL = math.max(0, i - 2); break end
+        end
+      end
+    end
     scr = "legend"
     inval()
   end

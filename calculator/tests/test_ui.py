@@ -161,6 +161,17 @@ for q, want in [("Which of the following are included in a firm's capital struct
     key('enterKey'); t = check_screen(f'search {q!r} opened')
     if want == 'included in a firm' and 'NOT IN' not in t: fails.append(f'search {q!r}: the answer is not on the page')
 
+# a symbol's meaning comes first: 'cost of debt' -> LETTER: rd, rD (the legend line); ENTER opens the legend there
+for q, sym in [('cost of debt', 'rd, rD'), ('unlevered', 'rU'), ('d/e', 'D/E'), ('tax shield', 'Interest tax shield')]:
+    for _ in range(4): key('escapeKey')
+    key('charIn', 's'); app.type(q)
+    hits = [G.CORE.U.hits[i] for i in range(1, len(G.CORE.U.hits) + 1)]
+    top = [str(h.e.t) for h in hits[:3]]
+    if not any(t.startswith('LETTER: ' + sym + ' =') for t in top): fails.append(f'search {q!r}: no LETTER {sym} at the top {top}')
+    if hits and not str(hits[0].e.t).startswith('LETTER:'): fails.append(f'search {q!r}: the first line is not a LETTER {top[:1]}')
+    G.CORE.U.hsel = next(i + 1 for i, h in enumerate(hits) if str(h.e.t).startswith('LETTER: ' + sym + ' ='))
+    key('enterKey'); t = check_screen(f'search {q!r} LETTER opened')
+    if 'LEGEND' not in t or sym.split(',')[0] not in t: fails.append(f'search {q!r}: the legend is not open at {sym}')
 # a topic page found by its name: CHOOSER opens 'Formula chooser: WACC and MM' (the Weeks 10-11 which-formula page)
 for _ in range(4): key('escapeKey')
 key('charIn', 's'); app.type('chooser')
