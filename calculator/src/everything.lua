@@ -208,6 +208,7 @@ do
   -- the same quantity in another section (used only where that box is blank); typedOnly: only a typed value crosses
   -- an SD is the square root of its variance (one source only: two different variances of i pass nothing on)
   local BRIDGE = { { "5:ERc", "6:re" }, { "5:ERc", "2:rE" },
+                   { "2:rE", "6:re", false, nil, nil, "5:ERc" },   -- rE from the dividend growth model -> the WACC (CAPM's wins if both)
                    { "5:VarS", "5:SDi", false, math.sqrt, "sqrt(Var(i))", "5:VarR" },
                    { "5:VarR", "5:SDi", false, math.sqrt, "sqrt(Var(R))", "5:VarS" },
                    { "5:Vj", "5:SDj", false, math.sqrt, "sqrt(Var(j))" },
@@ -622,7 +623,7 @@ D: clear every box. ESC: home.
 ## THE SAME BOX IN THREE SECTIONS
 Tc (company tax rate) is ONE box: Cost of Capital, the Tax World and the extra lines all use it.
 ## PASSED BETWEEN SECTIONS (when that box is blank)
-E[Ri] from CAPM -> re (Cost of Capital) and rE (Bonds and Shares).
+E[Ri] from CAPM -> re (Cost of Capital) and rE (Bonds and Shares). rE from the dividend growth model (Bonds and Shares) -> re, when there is no CAPM.
 rU, rE, rD, E and D typed in one Capital Structure section are used in the other one too.
 Extra lines <-> Tax World: VL, D, VU and rU (both ways). rU typed in the No Tax World is used too.
 Extra lines <-> Cost of Capital: rd (both ways).

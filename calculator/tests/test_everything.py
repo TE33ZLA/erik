@@ -111,6 +111,15 @@ wrow = [r for r in lt(out.rows) if r.kind == 'val' and str(r.text).startswith('W
 ex = ' '.join(str(e[2]) for e in lt(wrow[0].explain)) if wrow else ''
 for w in ['rWACC = re*E/V + rp*P/V + rd*(1 - Tc)*D/V', '0.102*600/1000', 'rWACC = 7.80%', 'blank, so 0: rp, P']:
     if w not in ex: fails.append(f'WACC explanation: {w!r} missing')
+# rE from the dividend growth model (Bonds and Shares) feeds the WACC when there is no CAPM (own numbers)
+out, res, errs = every({'2:D0': 2.0, '2:g': .03, '2:P0': 40, '6:E': 700, '6:D': 300, '6:rd': .07, 'Tc': .3})
+rg = 2.0 * 1.03 / 40 + .03
+w = [r for r in res if r['d'] == 'wacc']
+if not w or not close(w[0]['value'], rg * .7 + .07 * .7 * .3) or not w[0]['chained']: fails.append(f'dividend-growth rE -> WACC: {w}')
+# with CAPM too, CAPM's E[Ri] is the one used
+out, res, errs = every({'2:D0': 2.0, '2:g': .03, '2:P0': 40, '5:rf': .04, '5:Beta': 1.1, '5:ERM': .1, '6:E': 700, '6:D': 300, '6:rd': .07, 'Tc': .3})
+w = [r for r in res if r['d'] == 'wacc']
+if not w or not close(w[0]['value'], (.04 + 1.1 * .06) * .7 + .07 * .7 * .3): fails.append(f'CAPM rE wins over the dividend-growth rE: {w}')
 # rE typed in the No Tax World crosses to the Tax World (labelled); a derived rE does not
 out, res, errs = every({'7:rU': .1, '7:rD': .06, '7:D': 400, '7:E': 600, 'Tc': .3})
 r7 = [r for r in res if r['box'] == '7:rE']
