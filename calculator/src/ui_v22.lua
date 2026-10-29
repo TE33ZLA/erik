@@ -272,8 +272,13 @@
         return text:find("%f[%w]" .. w:gsub("%W", "%%%0") .. "%f[%W]")
       end
       local a = text:find(w, 1, true)
+      if a then return a, true end   -- the word itself (scores more than a shortened form)
       if not a and #w > 4 then   -- included -> includ, dividends -> dividend, paying -> pay
         local stem = w:gsub("ing$", ""):gsub("ed$", ""):gsub("es$", ""):gsub("s$", "")
+        if #stem >= 3 and stem ~= w then a = text:find(stem, 1, true) end
+      end
+      if not a and #w > 5 then   -- riskiest -> risk, riskier -> risk, safest -> saf(e), highest -> high
+        local stem = w:gsub("iest$", ""):gsub("ier$", ""):gsub("est$", "")
         if #stem >= 3 and stem ~= w then a = text:find(stem, 1, true) end
       end
       return a
@@ -289,19 +294,22 @@
       -- one or two words: every one must be there; more (words typed from the question): most of them, best first
       local need = (#toks <= 2) and #toks or math.max(2, math.ceil(#toks / 2))
       local partA = (U.smode == "A")   -- Part A: definitions and theory only, glossary words first
+      local phrase = (#toks >= 2) and table.concat(toks, " ") or nil
+      local typed = U.q:lower():gsub("^%s+", ""):gsub("%s+$", "")
       for _, e in ipairs(U.index) do
         if not (partA and (e.kind == 1 or e.kind == 4)) then
           local sc, m = 0, 0
           local tl = e.t:lower()
           for _, w in ipairs(toks) do
-            local a = findWord(e.text, w)
+            local a, exact = findWord(e.text, w)
             if a then
               m = m + 1
-              sc = sc + #w + ((a == 1 or e.text:sub(a - 1, a - 1):find("[%s%(]")) and 3 or 0)
+              sc = sc + #w + ((a == 1 or e.text:sub(a - 1, a - 1):find("[%s%(]")) and 3 or 0) + (exact and 6 or 0)
               if not e.notitle and findWord(tl, w) then sc = sc + 4 end   -- the word is in the question / name itself
               if tl:find("^%u*[%a%-]+: " .. w:gsub("%W", "%%%0")) then sc = sc + 2 end   -- the name STARTS with it ('decision node')
             end
           end
+          if phrase and e.text:find(phrase, 1, true) then sc = sc + 50 end   -- the words typed, side by side ('lowest risk')
           if m >= need then U.hits[#U.hits + 1] = { e = e, m = m, sc = m * 1000 + sc * 10 - (e.rank or e.kind) + ((partA and e.kind == 3) and 500 or 0) } end
         end
       end
@@ -312,7 +320,13 @@
         if e.kind == 1 or e.kind == 4 then h.cat = 2
         elseif e.kind == 2 and e.t:find("^THEORY:") and e.t:find("[%d%$]") then h.cat = 3
         else h.cat = 1 end
-        h.sub = (e.kind == 5) and 0 or (e.kind == 3) and 1 or (e.t:find("^RULE:") and 2) or (e.t:find("^TOPIC:") and 3) or 4
+        -- a letter comes first when the search names it ('rd') or its meaning ('cost of debt'); else after the WORD lines
+        local letterFirst = false
+        if e.kind == 5 then
+          for sym in e.sym:lower():gmatch("[^,%s]+") do if sym == typed then letterFirst = true end end
+          if typed:find(" ") and e.text:find(typed, 1, true) then letterFirst = true end   -- a phrase: 'cost of debt
+        end
+        h.sub = (e.kind == 5) and (letterFirst and 0 or 1.5) or (e.kind == 3) and 1 or (e.t:find("^RULE:") and 2) or (e.t:find("^TOPIC:") and 3) or 4
       end
       table.sort(U.hits, function(a, b)
         if a.cat ~= b.cat then return a.cat < b.cat end

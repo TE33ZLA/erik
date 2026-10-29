@@ -72,16 +72,24 @@ NWC UP 50k. Cash: same either way.
 IN QUESTIONS: 'borrows short-term',
 'long-term loan', 'invests in inventory'.
 -> TYPE 14
-## risk ranking of investments
-lowest to highest risk (long-run
-history, by the SD of yearly returns):
-1 Treasury bills (T-bills): lowest
-2 corporate bonds
-3 large shares (an index, e.g. S&P 500)
-4 small shares (small stocks): highest
-More risk -> a higher average return.
+## risk ranking of investments (risk order)
+the order of risk, LEAST risky (safest)
+to MOST risky (riskiest), by the SD of
+yearly returns over a long history:
+1 Treasury bills (T-bills): LEAST risk
+2 government bonds (long-term)
+3 corporate bonds
+4 large shares (an index, e.g. S&P 500)
+5 small shares (small stocks): MOST risk
+More risk -> a higher average return
+(the same order, low to high).
+A single share is riskier than a
+diversified portfolio of shares.
 IN QUESTIONS: 'lowest level of risk',
-'least risky', 'most volatile'.
+'lowest risk', 'least risky', 'safest',
+'highest risk', 'most risky', 'riskiest',
+'most volatile', 'which offers the
+lowest risk in general'.
 -> TYPE 17
 ## prime cost vs diminishing value
 two ways to depreciate for tax.

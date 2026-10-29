@@ -162,7 +162,7 @@ for q, want in [("Which of the following are included in a firm's capital struct
     if want == 'included in a firm' and 'NOT IN' not in t: fails.append(f'search {q!r}: the answer is not on the page')
 
 # a symbol's meaning comes first: 'cost of debt' -> LETTER: rd, rD (the legend line); ENTER opens the legend there
-for q, sym in [('cost of debt', 'rd, rD'), ('unlevered', 'rU'), ('d/e', 'D/E'), ('tax shield', 'Interest tax shield')]:
+for q, sym in [('cost of debt', 'rd, rD'), ('unlevered cost', 'rU'), ('d/e', 'D/E'), ('tax shield', 'Interest tax shield'), ('rd', 'rd, rD')]:
     for _ in range(4): key('escapeKey')
     key('charIn', 's'); app.type(q)
     hits = [G.CORE.U.hits[i] for i in range(1, len(G.CORE.U.hits) + 1)]
@@ -172,6 +172,13 @@ for q, sym in [('cost of debt', 'rd, rD'), ('unlevered', 'rU'), ('d/e', 'D/E'), 
     G.CORE.U.hsel = next(i + 1 for i, h in enumerate(hits) if str(h.e.t).startswith('LETTER: ' + sym + ' ='))
     key('enterKey'); t = check_screen(f'search {q!r} LETTER opened')
     if 'LEGEND' not in t or sym.split(',')[0] not in t: fails.append(f'search {q!r}: the legend is not open at {sym}')
+# the risk order: 'riskiest', 'most risky', 'lowest risk', 'safest investment' -> the ranking of investments first
+for q in ['riskiest', 'riskier', 'most risky', 'least risky', 'lowest risk', 'highest risk', 'risk order', 'safest investment',
+          'which offers the lowest level of risk in general']:
+    for _ in range(4): key('escapeKey')
+    key('charIn', 's'); app.type(q)
+    hits = [str(G.CORE.U.hits[i].e.t) for i in range(1, len(G.CORE.U.hits) + 1)]
+    if not hits or not hits[0].startswith('WORD: risk ranking of investments'): fails.append(f'search {q!r}: the risk order is not first {hits[:2]}')
 # a topic page found by its name: CHOOSER opens 'Formula chooser: WACC and MM' (the Weeks 10-11 which-formula page)
 for _ in range(4): key('escapeKey')
 key('charIn', 's'); app.type('chooser')

@@ -835,7 +835,7 @@ THEORY_B = {
       "Risk averse (assumed): more risk only for more expected return",
       "Risk neutral ignores risk; risk seeking wants more risk",
       "Asset classes: more risk -> more average return",
-      "Risk, low to high: T-bills < corporate bonds < large stocks < small stocks",
+      "Risk, low to high: T-bills < govt bonds < corp. bonds < large < small stocks",
       "Single shares: no clear link between SD and average return",
       "Same return -> pick the LOWER SD; same SD -> the HIGHER return",
       "CV = SD / E(R) (risk per unit of return) -> LOWEST wins",
