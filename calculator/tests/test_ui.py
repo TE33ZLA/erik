@@ -141,8 +141,8 @@ for q, want in [("Which of the following are included in a firm's capital struct
                 ('which conditions must hold to use the wacc for a project', 'conditions must hold'),
                 ('which is the least risky investment', 'LEAST risky'),
                 ('how are covariance and correlation related', 'covariance and the correlation'),
-                ('with no taxes what is the optimal capital structure', 'optimal capital structure'),
-                ('why is the cost of equity higher but the wacc lower with debt', 'cost of equity HIGHER'),
+                ('best mix of debt and equity when there is no tax', 'optimal capital structure'),
+                ('debt makes equity cost more yet the wacc falls why', 'cost of equity HIGHER'),
                 ('projects with the same risk as the firm which to accept', 'Several projects'),
                 ('a firm borrows short-term and long-term to buy inventory', 'for 6 months'),
                 ('does the cost of equity rise or fall as d/e rises', 'rise, fall'),
@@ -174,7 +174,7 @@ for q, sym in [('cost of debt', 'rd, rD'), ('unlevered cost', 'rU'), ('d/e', 'D/
     if 'LEGEND' not in t or sym.split(',')[0] not in t: fails.append(f'search {q!r}: the legend is not open at {sym}')
 # the risk order: 'riskiest', 'most risky', 'lowest risk', 'safest investment' -> the ranking of investments first
 for q in ['riskiest', 'riskier', 'most risky', 'least risky', 'lowest risk', 'highest risk', 'risk order', 'safest investment',
-          'which offers the lowest level of risk in general']:
+          'which asset class has the least risk']:
     for _ in range(4): key('escapeKey')
     key('charIn', 's'); app.type(q)
     hits = [str(G.CORE.U.hits[i].e.t) for i in range(1, len(G.CORE.U.hits) + 1)]

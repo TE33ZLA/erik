@@ -73,9 +73,10 @@ IN QUESTIONS: 'borrows short-term',
 'long-term loan', 'invests in inventory'.
 -> TYPE 14
 ## risk ranking of investments (risk order)
-the order of risk, LEAST risky (safest)
-to MOST risky (riskiest), by the SD of
-yearly returns over a long history:
+the order of risk of the asset classes,
+LEAST risky (safest) to MOST risky
+(riskiest), by the SD of yearly returns
+over a long history:
 1 Treasury bills (T-bills): LEAST risk
 2 government bonds (long-term)
 3 corporate bonds
@@ -85,11 +86,9 @@ More risk -> a higher average return
 (the same order, low to high).
 A single share is riskier than a
 diversified portfolio of shares.
-IN QUESTIONS: 'lowest level of risk',
-'lowest risk', 'least risky', 'safest',
-'highest risk', 'most risky', 'riskiest',
-'most volatile', 'which offers the
-lowest risk in general'.
+IN QUESTIONS: 'lowest risk', 'least
+risky', 'safest', 'highest risk', 'most
+risky', 'riskiest', 'most volatile'.
 -> TYPE 17
 ## prime cost vs diminishing value
 two ways to depreciate for tax.

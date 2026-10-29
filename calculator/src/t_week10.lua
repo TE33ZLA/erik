@@ -243,7 +243,7 @@ do
         end
       end
       if n == 0 then out:need("each issue's face value, coupon rate, years left and price % of face"); return end
-      out:head("THE FIRM'S COST OF DEBT")
+      out:head("COST OF DEBT (pre-tax and after tax)")
       local function wsum(l) local t = {}; for _, x in ipairs(l) do t[#t + 1] = pct(x[2]) .. "% x " .. P(x[1] / tot) end; return table.concat(t, " + ") end
       out:row("D: total market value", tot, "$", "the issues added up = " .. table.concat(mvl, " + "), "D")
       out:row("rD (weighted)", sumE / tot, "%", "each rD x its share of D's market value = " .. wsum(wE), "rd")
@@ -504,7 +504,7 @@ do
       F1 = "total face value of this issue, e.g. 40m",
       q1 = "'trades at 98% of par' -> 98",
       c1 = "this issue's coupon rate, e.g. 8",
-      wacc = "the firm's overall cost of capital",
+      wacc = "the WACC: the whole firm's cost of capital",
       b1 = "the project's beta (then its return or IRR)",
       r1 = "its expected return or IRR, e.g. 11",
       adj = "riskier project: +2; safer: -2 (blank = none)",

@@ -1134,7 +1134,7 @@ THEORY_A = {
       { q = "True or false: firms pay tax on their cash flows, not on their earnings.",
         a = "FALSE. Tax is worked out on EARNINGS (taxable income). For a project: tax = EBIT x Tc.",
         why = "That is why depreciation saves tax even though it is not cash: it lowers the earnings that are taxed. The FCF recipe taxes EBIT first, then adds the depreciation back.",
-        words = "firms pay taxes based on incremental earnings not incremental cash flows taxable income true false" },
+        words = "tax is paid on earnings (taxable income) not on cash flows true false" },
       { q = "Tax is 30%. Revenue rises by $1. What happens to cash flow?",
         a = "UP $0.70.",
         why = "You keep the dollar but pay 30 cents of tax: $1 x (1 - 0.30).",
