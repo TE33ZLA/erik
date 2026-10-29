@@ -94,10 +94,15 @@ PARTC_EXCEL = [[## PART C: EXCEL PARTS
      now in Year 0; new one at the end)
    = FCF
 3. Label every row in column A or B.
-4. Replacement: each row is the CHANGE
-   (new minus old), e.g. the saving in
-   costs; depreciation = new - old (it can
-   go negative when the new is used up).
+4. Replacement: keep NEW and OLD apart.
+   Block 1 REPLACE: the firm WITH the
+   new machine (buy it, sell the old one
+   now, new running costs, new dep, sell
+   it at the end) = FCF if REPLACE.
+   Block 2 KEEP: WITH the old machine
+   (old running costs, the overhaul, old
+   dep) = FCF if KEEP. Block 3: FCF =
+   REPLACE - KEEP, then the NPV.
 5. A cost that only the OLD machine would
    need (e.g. an overhaul): avoiding it is
    a saving in the year it would happen.
@@ -106,7 +111,8 @@ PARTC_EXCEL = [[## PART C: EXCEL PARTS
    Year 0 FCF. Only if it is asked.
 Solver: home X, 1 (replacement) or 2 (a
 new project): the answer IS this table,
-T shows it with each cell's formula.
+T shows it with each cell's formula
+(the 3 blocks: REPLACE, KEEP, new - old).
 
 ## A DECISION TREE
 1. Today: a square = a decision. One

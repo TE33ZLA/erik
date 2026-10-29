@@ -508,7 +508,7 @@ for k_ in ('cash-flow table: a replacement', 'cash-flow table: a new project', '
 key('escapeKey')
 if 'Find my question' not in check_screen('X list esc'): fails.append('X list: ESC does not go home')
 XKIND = [('1', 'NEW asset: cost today', dict(n='6', r='10', Tc='30', newC='120000', lifeN='4', saleN='10000', bvO='20000', saleO='14000',
-                                              depO='4000', save='30000', avoid='15000', avYr='2'), 'Year 6', 7, 'FCF'),
+                                              depO='4000', save='30000', avoid='15000', avYr='2'), 'Year 6', 7, 'FCF (new - old)'),
          ('2', 'operating costs a year', dict(n='5', r='12', Tc='30', rev='80000', opex='30000', g='3', newC='100000', lifeN='5',
                                               saleN='8000', nwc='10000'), 'Year 5', 6, 'NWC change'),
          ('3', 'cost if you act NOW', dict(c0='2000', vg='5000', pg='70', cw='2600', tm='3', ear='9'), 'p x PV', 5, 'WAIT: NPV'),
@@ -538,17 +538,17 @@ for d, label, vals, last, ncols, rowlab in XKIND:
     if d in '12' and 'Year 0' not in t: fails.append(f'{where}: the grid does not start at Year 0')
     lw = 92 if d in '12' else 78
     for tx, x, y, w in drawn(where + ' grid'):
-        if x == 2 and 38 <= y < 150 and w > lw - 3: fails.append(f'{where} grid: the label {tx!r} runs into the numbers')
+        if x in (2, 15) and 38 <= y < 150 and x + w > lw - 1: fails.append(f'{where} grid: the label {tx!r} runs into the numbers')
     for _ in range(ncols + 1):                               # right, one year at a time, up to the last
         if last in [tx for tx, x, y, w in drawn(where) if y == 24]: break
         key('arrowKey', 'right')
     for _ in range(40):
-        if rowlab in [tx for tx, x, y, w in drawn(where) if x == 2 and y >= 38]: break
+        if rowlab in [tx for tx, x, y, w in drawn(where) if x in (2, 15) and y >= 38]: break
         key('arrowKey', 'down')
     t = check_screen(where + ' grid scrolled'); off_screen(where + ' grid scrolled')
     if last not in t: fails.append(f'{where}: the grid does not scroll to {last!r}')
     if d in '12' and 'Year 0' in t: fails.append(f'{where}: Year 0 still shown after scrolling to the last year')
-    labs = [tx for tx, x, y, w in drawn(where) if x == 2 and y >= 38]
+    labs = [tx for tx, x, y, w in drawn(where) if x in (2, 15) and y >= 38]
     if rowlab not in labs: fails.append(f'{where}: the row labels are not kept on the left when scrolled ({labs[:4]})')
     if 'Excel ' not in t: fails.append(f'{where}: the picked cell does not show its Excel formula')
     key('escapeKey'); key('escapeKey'); key('escapeKey')

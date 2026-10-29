@@ -11,7 +11,7 @@
 ----------------------------------------------------------------------
 
 if platform then platform.apilevel = "2.0" end
-local VERSION = "v33"
+local VERSION = "v34"
 
 ----------------------------------------------------------------------
 -- 1. SMALL HELPERS + NUMBER FORMATTING
@@ -4939,7 +4939,7 @@ if platform then
   end
 
   local function paintTable(gc)
-    bar(gc, TYPES[curT].name .. " - TABLE", (curTbl and curTbl.hint) or "arrows or click a cell | ESC back")
+    bar(gc, TYPES[curT].name .. ((curTbl and curTbl.showF) and " - FORMULAS" or " - TABLE"), (curTbl and curTbl.hint) or "arrows or click a cell | ESC back")
     if not curTbl then return end
     local wide = curTbl.wide
     local rh = wide and 13 or TROWH
@@ -4951,9 +4951,16 @@ if platform then
       if not wide then
         gc:drawString(c.k .. ((c.u ~= "") and (" " .. c.u:sub(1, 1)) or ""), x, 24, "top")
       elseif x >= curTbl.lw and x + curTbl.cw <= SW + 4 then
+        local xk = x
+        if curTbl.xl then   -- the Excel column letter (year 0 = B), then the year
+          gc:setFont("sansserif", "b", 9)
+          gc:setColorRGB(COL.need[1], COL.need[2], COL.need[3])
+          gc:drawString(string.char(65 + ci), x, 24, "top")
+          xk = x + 9
+        end
         gc:setFont("sansserif", (ci == tCol) and "b" or "r", 9)
         gc:setColorRGB(COL.head[1], COL.head[2], COL.head[3])
-        gc:drawString(c.k, x, 24, "top")
+        gc:drawString(c.k, xk, 24, "top")
       end
     end
     if wide then   -- more years to the left / right; a line between the labels and the numbers
@@ -4985,17 +4992,30 @@ if platform then
       end
       gc:setFont("sansserif", (wide and (rw.em or ri == tRow)) and "b" or "r", 9)
       gc:setColorRGB(COL.text[1], COL.text[2], COL.text[3])
-      local lab = rw.label
-      if wide then
-        while #lab > 3 and gc:getStringWidth(lab) > curTbl.lw - 5 do lab = lab:sub(1, -2) end
+      local lab, lx = rw.label, 2
+      if curTbl.xl then   -- the Excel row number (row 1 holds the years)
+        gc:setFont("sansserif", "r", 8)
+        gc:setColorRGB(COL.dim[1], COL.dim[2], COL.dim[3])
+        gc:drawString(tostring(ri + 1), 2, y + 1, "top")
+        lx = 15
+        gc:setFont("sansserif", (wide and (rw.em or ri == tRow)) and "b" or "r", 9)
+        gc:setColorRGB(COL.text[1], COL.text[2], COL.text[3])
       end
-      gc:drawString(lab, 2, y, "top")
+      if wide then
+        while #lab > 3 and gc:getStringWidth(lab) > curTbl.lw - 3 - lx do lab = lab:sub(1, -2) end
+      end
+      gc:drawString(lab, lx, y, "top")
       gc:setFont("sansserif", (wide and rw.em) and "b" or "r", 9)
       gc:setColorRGB(COL.val[1], COL.val[2], COL.val[3])
       for ci, c in ipairs(curTbl.cols) do
         local x = colX(ci)
         if not wide or (x >= curTbl.lw and x + curTbl.cw <= SW + 4) then
-          gc:drawString(cellStr(rw.vals[ci], c.u), x, y, "top")
+          local s2 = cellStr(rw.vals[ci], c.u)
+          if curTbl.showF then   -- F: the cell's Excel formula instead of its number
+            s2 = (rw.xf and rw.xf[ci]) or ""
+            while #s2 > 2 and gc:getStringWidth(s2) > curTbl.cw - 4 do s2 = s2:sub(1, -3) .. "~" end
+          end
+          gc:drawString(s2, x, y, "top")
         end
       end
       y = y + rh
@@ -5484,6 +5504,12 @@ if platform then
     if cl == "g" then toGlossary(); return end
     if cl == "l" then if scr ~= "legend" then toLegend() end; return end
     if cl == "i" and scr == "result" then toInspect(); return end
+    if cl == "f" and scr == "table" and curTbl and curTbl.xl then   -- the numbers <-> each cell's Excel formula
+      curTbl.cw0 = curTbl.cw0 or curTbl.cw
+      curTbl.showF = not curTbl.showF
+      curTbl.cw = curTbl.showF and 104 or curTbl.cw0
+      clampT(); inval(); return
+    end
     if scr == "menu" then
       if cl == "n" then toNotes(); return end
       if cl == "a" then toAssume(); return end

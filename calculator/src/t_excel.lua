@@ -73,6 +73,144 @@ do
         return v, pat, ((words ~= "") and (words .. " ") or "") .. P(base) .. " a year" .. gtxt
       end
     end
+    local function depNcell(t)   -- the new asset's depreciation in year t
+      if t == 0 then return nil end
+      local d = Y[t].dN
+      if R.dv then
+        return d, (t == 1) and ("=" .. N(R.newC) .. "*" .. N(R.depR)) or ("=" .. N(R.newC) .. "*(1-" .. N(R.depR) .. ")^" .. (t - 1) .. "*" .. N(R.depR)),
+               "diminishing value: rate x book value at the start of the year = " .. P(R.depR) .. " x " .. P(d / R.depR)
+      end
+      if math.abs(d - R.depN) < 1e-9 then
+        return d, "=" .. N(R.newC) .. "/" .. N(R.life), "straight line: cost/life = " .. P(R.newC) .. "/" .. P(R.life)
+      end
+      return d, "=" .. N(d), (d == 0) and "the new machine is fully depreciated: no more depreciation, 0" or ("only what is left of its book value: " .. P(d))
+    end
+    local function saleNspecs()   -- the new asset sold at the end, and the tax on it
+      spec("saleN", "sale of new (end)", "the new machine sold at the end", function(t)
+        if t ~= n then return nil end
+        return R.saleN, "=" .. N(R.saleN), "what it sells for in the last year: " .. P(R.saleN)
+      end)
+      spec("taxN", "tax on new sale", "tax on the new machine's sale: -(sale - book value) x Tc", function(t)
+        if t ~= n then return nil end
+        return -(R.saleN - R.bvNend) * Tc, "=-(" .. ref("saleN") .. "-" .. N(R.bvNend) .. ")*" .. N(Tc),
+               "-(sale - book value) x Tc = -(" .. P(R.saleN) .. " - " .. P(R.bvNend) .. ") x " .. P(Tc) ..
+               ((R.saleN > R.bvNend) and ": tax on the gain" or ((R.saleN < R.bvNend) and ": a loss, tax refund" or ""))
+      end)
+    end
+    local function nwcSpec()   -- working capital: put in (MINUS), more each year, all back at the end
+      spec("nwc", "NWC change", "change in NWC: put in (MINUS), back at the end (PLUS)", function(t)
+        if t == 0 then
+          if R.nwc == 0 then return nil end
+          return -R.nwc, "=-" .. N(R.nwc), "working capital put in at the start, a MINUS: -" .. P(R.nwc)
+        end
+        if t < n then
+          if R.nwcY == 0 then return nil end
+          return -R.nwcY, "=-" .. N(R.nwcY), "more working capital this year, a MINUS: -" .. P(R.nwcY)
+        end
+        return R.rec, "=-SUM(B" .. rowOf.nwc .. ":<" .. rowOf.nwc .. ")", "all the working capital comes back at the end (no tax): " .. P(R.rec)
+      end)
+    end
+    local fN, fO = {}, {}   -- a replacement: FCF with the NEW machine, FCF with the OLD one (kind 1)
+    if kind == 1 then
+      -- NEW and OLD apart: block 1 the firm WITH the new machine, block 2 WITH the old one, block 3 the difference
+      local function head(id, label, name) spec(id, label, name, function() return nil end, true) end
+      local function once(at, v, pat, words)   -- a value in one year only (pat may be a function: rows are numbered later)
+        return function(t) if t ~= at then return nil end return v, (type(pat) == "function") and pat() or pat, words end
+      end
+      local function block(sfx, items, depId, depOf)   -- EBIT, tax, after-tax profit and dep back of one block
+        spec("ebit" .. sfx, "EBIT (" .. sfx .. ")", "EBIT with the " .. sfx .. " machine: income - costs - depreciation", function(t)
+          if t == 0 then return nil end
+          local terms, v = {}, 0
+          for _, it in ipairs(items) do terms[#terms + 1] = "@" .. rowOf[it[1]]; v = v + it[2](t) end
+          v = v - depOf(t)
+          return v, "=" .. table.concat(terms, "+"):gsub("%+%-", "-") .. "-" .. ref(depId), "the cash items above, minus the depreciation = " .. P(v)
+        end, true)
+        spec("tax" .. sfx, "tax (" .. sfx .. ")", "tax = -EBIT x Tc (a loss: a tax SAVING, plus)", function(t)
+          if t == 0 then return nil end
+          local e = 0
+          for _, it in ipairs(items) do e = e + it[2](t) end
+          e = e - depOf(t)
+          return -e * Tc, "=-" .. ref("ebit" .. sfx) .. "*" .. N(Tc), "-EBIT x Tc = -(" .. P(e) .. ") x " .. P(Tc) ..
+                 ((e < 0) and ": a loss, so tax is SAVED (plus)" or "")
+        end)
+        spec("atp" .. sfx, "after tax (" .. sfx .. ")", "after-tax profit = EBIT + tax", function(t)
+          if t == 0 then return nil end
+          local e = 0
+          for _, it in ipairs(items) do e = e + it[2](t) end
+          e = e - depOf(t)
+          return e * (1 - Tc), "=" .. ref("ebit" .. sfx) .. "+" .. ref("tax" .. sfx), "EBIT + tax = " .. P(e) .. " + " .. X.sp(-e * Tc)
+        end)
+        spec("add" .. sfx, "+ dep (" .. sfx .. ")", "+ depreciation added back (not cash)", function(t)
+          if t == 0 then return nil end
+          return depOf(t), "=" .. ref(depId), "depreciation is not a cash flow: add it back, " .. P(depOf(t))
+        end)
+      end
+      -- block 1: REPLACE (the new machine)
+      head("hN", "REPLACE (new)", "block 1: the firm WITH the new machine")
+      spec("buy", "buy new", "buy the new machine today (MINUS)", once(0, -R.newC, "=-" .. N(R.newC), "its cost today, a MINUS: -" .. P(R.newC)))
+      if R.hasOld then
+        spec("saleO", "sell old now", "sell the old machine today (PLUS)", once(0, R.saleO, "=" .. N(R.saleO), "the old machine's price today: " .. P(R.saleO)))
+        spec("taxO", "tax on old sale", "tax on the old sale: refund on a loss, tax on a gain", once(0, R.taxO,
+             function() return "=(" .. N(R.bvO or 0) .. "-" .. ref("saleO") .. ")*" .. N(Tc) end, "(book value - sale) x Tc = (" .. P(R.bvO or 0) .. " - " .. P(R.saleO) ..
+             ") x " .. P(Tc) .. ((R.taxO > 0) and ": sold BELOW book value, a refund (PLUS)" or ((R.taxO < 0) and ": sold ABOVE book value, tax (MINUS)" or ""))))
+      end
+      local itN = {}
+      if R.rev ~= 0 then spec("rev", "extra revenue", "extra revenue with the new machine", yearly("rev", R.rev, 1, "")); itN[#itN + 1] = { "rev", function(t) return Y[t].revT end } end
+      if R.save ~= 0 then spec("save", "cost saving", "cost saving with the new machine (before tax)", yearly("save", R.save, 1, "")); itN[#itN + 1] = { "save", function(t) return Y[t].saveT end } end
+      if R.opex ~= 0 then spec("opex", "run costs (new)", "the new machine's running costs (MINUS)", yearly("opex", R.opex, -1, "a MINUS,")); itN[#itN + 1] = { "opex", function(t) return -Y[t].opexT end } end
+      spec("depN", "dep (new)", "depreciation of the new machine", depNcell)
+      block("new", itN, "depN", function(t) return Y[t].dN end)
+      if R.nwc ~= 0 or R.nwcY ~= 0 then nwcSpec() end
+      if R.saleN ~= 0 or R.bvNend > 0 then saleNspecs() end
+      spec("fN", "FCF if REPLACE", "FCF with the new machine", function(t)
+        local items = { "buy", "saleO", "taxO", "atpnew", "addnew", "nwc", "saleN", "taxN" }
+        local v, terms = 0, {}
+        for _, id in ipairs(items) do
+          if rowOf[id] then   -- the same formula every year (a blank cell counts as 0), so it copies right
+            terms[#terms + 1] = "@" .. rowOf[id]
+            v = v + (specs[rowOf[id] - 1].cell(t) or 0)
+          end
+        end
+        fN[t] = v
+        return v, "=" .. ((#terms > 0) and table.concat(terms, "+") or "0"), "the cash rows of block 1 added up"
+      end, true)
+      -- block 2: KEEP (the old machine)
+      head("hO", "KEEP (old)", "block 2: the firm WITH the old machine")
+      local itO = {}
+      if R.opexO ~= 0 then spec("opexO", "run costs (old)", "the old machine's running costs (MINUS)", yearly("opexO", R.opexO, -1, "a MINUS,")); itO[#itO + 1] = { "opexO", function(t) return -Y[t].opexOT end } end
+      if anyAv then
+        spec("avoid", "overhaul (old)", "a one-off cost only the old machine needs (MINUS)", function(t)
+          if t == 0 or Y[t].av == 0 then return nil end
+          return -Y[t].av, "=-" .. N(Y[t].av), "only if you KEEP the old machine: a MINUS in year " .. t
+        end); itO[#itO + 1] = { "avoid", function(t) return -Y[t].av end }
+      end
+      spec("depO", "dep (old)", "depreciation of the old machine", function(t)
+        if t == 0 then return nil end
+        return Y[t].dO, "=" .. N(Y[t].dO), (Y[t].dO == 0) and "fully depreciated: 0" or ("the old machine's dep this year: " .. P(Y[t].dO))
+      end)
+      block("old", itO, "depO", function(t) return Y[t].dO end)
+      if R.endO ~= 0 or R.bvOend > 0 then
+        spec("endO", "old sold at end", "the old machine sold at the end (PLUS)", once(n, R.endO, "=" .. N(R.endO), "its value at the end: " .. P(R.endO)))
+        spec("taxE", "tax old end sale", "-(end value - book value) x Tc", once(n, -(R.endO - R.bvOend) * Tc,
+             function() return "=-(" .. ref("endO") .. "-" .. N(R.bvOend) .. ")*" .. N(Tc) end, "-(" .. P(R.endO) .. " - " .. P(R.bvOend) .. ") x " .. P(Tc)))
+      end
+      spec("fO", "FCF if KEEP", "FCF with the old machine", function(t)
+        local v, terms = 0, {}
+        for _, id in ipairs({ "atpold", "addold", "endO", "taxE" }) do
+          if rowOf[id] then   -- the same formula every year (a blank cell counts as 0), so it copies right
+            terms[#terms + 1] = "@" .. rowOf[id]
+            v = v + (specs[rowOf[id] - 1].cell(t) or 0)
+          end
+        end
+        fO[t] = v
+        return v, "=" .. ((#terms > 0) and table.concat(terms, "+") or "0"), "the cash rows of block 2 added up"
+      end, true)
+      -- block 3: the difference
+      head("hD", "NEW - OLD", "block 3: what replacing ADDS each year")
+      spec("FCF", "FCF (new - old)", "incremental FCF = FCF if REPLACE - FCF if KEEP", function(t)
+        return R.cfs[t], "=" .. ref("fN") .. "-" .. ref("fO"), "replace - keep = " .. P(fN[t] or 0) .. " - " .. X.sp(fO[t] or 0)
+      end, true)
+    else
     local incomes = {}
     if kind == 2 or R.rev ~= 0 then
       spec("rev", (kind == 1) and "extra revenue" or "revenue", (kind == 1) and "extra revenue" or "revenue (sales)",
@@ -95,18 +233,7 @@ do
       spec("opex", (kind == 1) and "- new run costs" or "- operating costs", (kind == 1) and "the new machine's running costs (MINUS)" or "operating costs (MINUS)",
            yearly("opex", R.opex, -1, "a MINUS,")); incomes[#incomes + 1] = "opex"
     end
-    spec("depN", (kind == 1) and "new dep" or "depreciation", (kind == 1) and "depreciation of the new machine" or "depreciation", function(t)
-      if t == 0 then return nil end
-      local d = Y[t].dN
-      if R.dv then
-        return d, (t == 1) and ("=" .. N(R.newC) .. "*" .. N(R.depR)) or ("=" .. N(R.newC) .. "*(1-" .. N(R.depR) .. ")^" .. (t - 1) .. "*" .. N(R.depR)),
-               "diminishing value: rate x book value at the start of the year = " .. P(R.depR) .. " x " .. P(d / R.depR)
-      end
-      if math.abs(d - R.depN) < 1e-9 then
-        return d, "=" .. N(R.newC) .. "/" .. N(R.life), "straight line: cost/life = " .. P(R.newC) .. "/" .. P(R.life)
-      end
-      return d, "=" .. N(d), (d == 0) and "the new machine is fully depreciated: no more depreciation, 0" or ("only what is left of its book value: " .. P(d))
-    end)
+    spec("depN", (kind == 1) and "new dep" or "depreciation", (kind == 1) and "depreciation of the new machine" or "depreciation", depNcell)
     if kind == 1 and R.depO > 0 then
       spec("depO", "old dep given up", "the old machine's depreciation (lost if you replace)", function(t)
         if t == 0 then return nil end
@@ -162,18 +289,7 @@ do
                ((R.taxO < 0) and ": sold ABOVE book value, tax on the gain (MINUS)" or ": sold at book value, no tax"))
       end)
     end
-    if R.saleN ~= 0 or R.bvNend > 0 then
-      spec("saleN", "sale of new (end)", "the new machine sold at the end", function(t)
-        if t ~= n then return nil end
-        return R.saleN, "=" .. N(R.saleN), "what it sells for in the last year: " .. P(R.saleN)
-      end)
-      spec("taxN", "tax on new sale", "tax on the new machine's sale: -(sale - book value) x Tc", function(t)
-        if t ~= n then return nil end
-        return -(R.saleN - R.bvNend) * Tc, "=-(" .. ref("saleN") .. "-" .. N(R.bvNend) .. ")*" .. N(Tc),
-               "-(sale - book value) x Tc = -(" .. P(R.saleN) .. " - " .. P(R.bvNend) .. ") x " .. P(Tc) ..
-               ((R.saleN > R.bvNend) and ": tax on the gain" or ((R.saleN < R.bvNend) and ": a loss, tax refund" or ""))
-      end)
-    end
+    if R.saleN ~= 0 or R.bvNend > 0 then saleNspecs() end
     if kind == 1 and (R.endO ~= 0 or R.bvOend > 0) then
       spec("endO", "old end value lost", "the old machine's end value, given up (MINUS)", function(t)
         if t ~= n then return nil end
@@ -185,24 +301,15 @@ do
                "(end value - its book value) x Tc = (" .. P(R.endO) .. " - " .. P(R.bvOend) .. ") x " .. P(Tc)
       end)
     end
-    if R.nwc ~= 0 or R.nwcY ~= 0 then
-      spec("nwc", "NWC change", "change in NWC: put in (MINUS), back at the end (PLUS)", function(t)
-        if t == 0 then
-          if R.nwc == 0 then return nil end
-          return -R.nwc, "=-" .. N(R.nwc), "working capital put in at the start, a MINUS: -" .. P(R.nwc)
-        end
-        if t < n then
-          if R.nwcY == 0 then return nil end
-          return -R.nwcY, "=-" .. N(R.nwcY), "more working capital this year, a MINUS: -" .. P(R.nwcY)
-        end
-        return R.rec, "=-SUM(B" .. rowOf.nwc .. ":<" .. rowOf.nwc .. ")", "all the working capital comes back at the end (no tax): " .. P(R.rec)
-      end)
+    if R.nwc ~= 0 or R.nwcY ~= 0 then nwcSpec() end
     end
     local lastItem = specs[#specs].id
-    spec("FCF", "FCF", "FCF (free cash flow)", function(t)
-      return R.cfs[t], "=SUM(" .. ref("atp") .. ":" .. ref(lastItem) .. ")",
-             (t == 0) and "year 0: CapEx + the old sale and its tax + NWC" or "after-tax profit + dep + CapEx, sales and NWC in this year"
-    end, true)
+    if kind ~= 1 then
+      spec("FCF", "FCF", "FCF (free cash flow)", function(t)
+        return R.cfs[t], "=SUM(" .. ref("atp") .. ":" .. ref(lastItem) .. ")",
+               (t == 0) and "year 0: CapEx + the old sale and its tax + NWC" or "after-tax profit + dep + CapEx, sales and NWC in this year"
+      end, true)
+    end
     local npv
     if r then
       spec("PV", "PV of FCF", "PV of each FCF (a check)", function(t)
@@ -218,7 +325,7 @@ do
 
     -- the table: Excel row = position + 1 (row 1 holds the years)
     for i, s in ipairs(specs) do rowOf[s.id] = i + 1 end
-    local T = { cols = {}, rows = {}, wide = true, lw = 92, cw = 56, hint = "left/right: years | up/down: rows | ESC back" }
+    local T = { cols = {}, rows = {}, wide = true, xl = true, lw = 92, cw = 56, hint = "arrows: move | F: formulas / numbers | ESC back" }
     for t = 0, n do T.cols[#T.cols + 1] = { k = "Year " .. t, u = "$0" } end
     out.tbl = T
     for i, s in ipairs(specs) do
@@ -236,17 +343,25 @@ do
       end
       T.rows[#T.rows + 1] = rw
     end
+    if kind == 1 then   -- the differences (new - old) year by year, as on the replacement page (type 22)
+      for t = 1, n do local y = Y[t]; out.vals["inc" .. t], out.vals["EBIT" .. t], out.vals["tax" .. t], out.vals["atp" .. t] = y.inc, y.ebit, y.tax, y.nopat end
+    end
     -- each FCF cell adds up its column's items (after-tax profit down to the last item): the numbers it adds
     local fcfRow, fcfSum = T.rows[rowOf.FCF - 1], {}
     for t = 0, n do
-      local parts = {}
-      for i = rowOf.atp - 1, rowOf[lastItem] - 1 do
-        local v = T.rows[i].vals[t + 1]
-        if v ~= nil then parts[#parts + 1] = X.sp(v) end
-      end
-      fcfSum[t] = ((#parts > 0) and table.concat(parts, " + ") or "0")
-      if fcfRow.how[t + 1] then
-        fcfRow.how[t + 1] = "Excel " .. X.L(t) .. rowOf.FCF .. ": " .. fcfRow.xf[t + 1] .. "\nFCF: the items above added up = " .. fcfSum[t]
+      if kind == 1 then   -- replace - keep
+        fcfSum[t] = "FCF if REPLACE - FCF if KEEP = " .. X.sp(fN[t] or 0) .. " - " .. X.sp(fO[t] or 0)
+        if fcfRow.how[t + 1] then fcfRow.how[t + 1] = "Excel " .. X.L(t) .. rowOf.FCF .. ": " .. fcfRow.xf[t + 1] .. "\n" .. fcfSum[t] end
+      else
+        local parts = {}
+        for i = rowOf.atp - 1, rowOf[lastItem] - 1 do
+          local v = T.rows[i].vals[t + 1]
+          if v ~= nil then parts[#parts + 1] = X.sp(v) end
+        end
+        fcfSum[t] = "the items above added up = " .. ((#parts > 0) and table.concat(parts, " + ") or "0")
+        if fcfRow.how[t + 1] then
+          fcfRow.how[t + 1] = "Excel " .. X.L(t) .. rowOf.FCF .. ": " .. fcfRow.xf[t + 1] .. "\nFCF: " .. fcfSum[t]
+        end
       end
     end
 
@@ -254,7 +369,7 @@ do
     out:head("FCF EACH YEAR (the Excel FCF row " .. rowOf.FCF .. ")")
     for t = 0, n do
       out:row("Year " .. t .. " FCF (" .. X.L(t) .. rowOf.FCF .. ")", R.cfs[t], "$", X.cellOf(fcfRow.pat[t] or "", t) ..
-              ": the items above added up = " .. fcfSum[t], "FCF" .. t)
+              ": " .. fcfSum[t], "FCF" .. t)
     end
     out:note("each FCF cell: " .. X.L(1) .. rowOf.FCF .. " " .. X.cellOf(T.rows[rowOf.FCF - 1].pat[1] or "", 1) .. ", copy right (and left to B)")
     out.vals.CF0 = R.cfs[0]
@@ -272,8 +387,11 @@ do
 
     out:head("EXCEL: TYPE IT IN THIS ORDER")
     out:note("column A: the labels below. Row 1: 'Year', then 0 in B1, 1 in C1 ... " .. n .. " in " .. X.L(n) .. "1 (or =B1+1, copy right)")
+    if kind == 1 then out:note("block 1 = the firm WITH the new machine, block 2 = WITH the old one, block 3 = the difference") end
     for i, rw in ipairs(T.rows) do
-      out:xl("row " .. (i + 1) .. " " .. rw.label .. ": " .. table.concat(X.rowLines(rw, i + 1, n), "; "))
+      local cl = X.rowLines(rw, i + 1, n)
+      if #cl == 0 then out:xl("row " .. (i + 1) .. " " .. rw.label .. "  (a heading: no numbers)")
+      else out:xl("row " .. (i + 1) .. " " .. rw.label .. ": " .. table.concat(cl, "; ")) end
     end
     out:note("signs: costs, tax paid, CapEx and NWC put in are MINUS; savings, sales, a tax refund and NWC back are PLUS")
     out:note("a blank cell counts as 0 in SUM(); NPV() starts at year 1, so year 0 is added outside it")
@@ -582,32 +700,35 @@ the rows, the bottom says the cell's
 formula and why.
 
 1 CASH-FLOW TABLE: A REPLACEMENT
+NEW and OLD kept apart, in 3 blocks.
 1. Column A: one label per row. Row 1:
    'Year', 0 in B1, then 1, 2, ... across.
-2. Rows, in this order: cost saving (or
-   the old running costs saved and the
-   new ones as a MINUS), extra revenue,
-   a cost avoided (only in its year).
-3. new dep, old dep given up, then
-   incremental dep =new - old (it goes
-   NEGATIVE once the new one is used up).
-4. EBIT =SUM(the items) - incremental
-   dep. Tax =EBIT*Tc. After-tax profit
-   =EBIT - tax. + dep =the incremental
-   dep cell. Copy each right.
-5. Year 0 only: CapEx =-cost, sale of
-   the old =its price, tax on it
-   =(book value - sale)*Tc (a PLUS on a
-   loss, a MINUS on a gain).
-6. Last year only: sale of the new, its
-   tax =-(sale - book value)*Tc; the old
-   one's end value given up (MINUS).
-7. NWC change: -NWC in year 0, back at
-   the end =-SUM(the NWC row so far).
-8. FCF =SUM(after-tax profit row down
-   to the NWC row). Copy right.
-9. NPV =NPV(r, year 1:year n FCF)
-   + year 0 FCF.
+2. Block 1 REPLACE (the NEW machine):
+   year 0: buy new =-cost, sell old
+   =its price, tax on it =(book value -
+   sale)*Tc (a PLUS on a loss).
+   Each year: run costs (new) as a
+   MINUS (or the saving, or extra
+   revenue), dep (new).
+3. EBIT (new) =costs - dep. Tax =-EBIT
+   *Tc (a loss: tax SAVED, a PLUS).
+   After tax =EBIT + tax. + dep =the dep
+   cell. Last year: sale of the new, its
+   tax =-(sale - book value)*Tc. NWC
+   here too.
+4. FCF if REPLACE =the cash rows of
+   block 1 added. Copy right.
+5. Block 2 KEEP (the OLD machine): run
+   costs (old) MINUS, the overhaul
+   MINUS (its year only), dep (old);
+   EBIT, tax, after tax, + dep as in 3;
+   its end value and the tax on it.
+6. FCF if KEEP =the cash rows of block
+   2 added. Copy right.
+7. Block 3: FCF (new - old) =FCF if
+   REPLACE - FCF if KEEP. Copy right.
+8. NPV =NPV(r, year 1:year n of row 7)
+   + year 0.
 
 2 CASH-FLOW TABLE: A NEW PROJECT
 The same, without the old machine:
@@ -655,8 +776,9 @@ THIS TYPE:
    per item down, labels in column A
 2. formulas that point at cells, not
    numbers from the calculator
-3. FCF row = SUM of the rows from
-   after-tax profit down
+3. replacement: block 1 REPLACE (new),
+   block 2 KEEP (old), then FCF =
+   REPLACE - KEEP
 4. NPV =NPV(r, year 1:year n) + year 0
 5. trees: one row per branch; PV, then
    probability x PV; the decision in
@@ -667,8 +789,8 @@ TRAPS
   year 0 OUTSIDE it
 - the old machine sold below book
   value: a tax REFUND (PLUS)
-- the old machine's depreciation is
-  lost: use new - old
+- keep NEW and OLD apart: each block
+  works out its own EBIT, tax and FCF
 - a cost only the old machine needs,
   avoided: a saving in ITS year
 - an EAR with months: ^(months/12)
