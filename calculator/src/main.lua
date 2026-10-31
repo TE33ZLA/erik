@@ -11,7 +11,7 @@
 ----------------------------------------------------------------------
 
 if platform then platform.apilevel = "2.0" end
-local VERSION = "v37"
+local VERSION = "v38"
 
 ----------------------------------------------------------------------
 -- 1. SMALL HELPERS + NUMBER FORMATTING
@@ -3151,6 +3151,10 @@ buying long-lived assets.
 IN QUESTIONS: 'buys equipment for $X'
 at t = 0, subtracted in FCF. Not
 depreciation: that is spread later.
+Also CapEx: selling the old machine now
+(+ its tax: (BV - sale) x Tc, a refund
+on a loss) and selling at the end
+(sale - (sale - BV) x Tc). See FCF.
 -> TYPE 9
 ## capital budgeting
 deciding which long-term projects to
@@ -3424,6 +3428,24 @@ depreciation, tax rate' -> one year's
 cash flow. Two methods, same answer.
 Add salvage + NWC back in the final
 year. Excel required in the test.
+CAPEX = cash for buying or selling
+machines (not depreciation):
+- year 0: buy new (MINUS); sell old
+  (PLUS); tax on the old sale:
+  (BV - sale) x Tc. Below book value =
+  a loss = a tax REFUND (PLUS).
+- last year: sell the asset (PLUS),
+  minus tax on it: (sale - BV) x Tc.
+  Fully depreciated (BV 0): sale x
+  (1 - Tc).
+- book value itself is NOT cash: it is
+  only used inside the tax formula.
+NWC = cash tied up in stock and
+debtors (less creditors):
+- put in at the start (MINUS), more
+  each year the change (MINUS), ALL
+  back in the last year (PLUS), no tax.
+- not mentioned in the question = 0.
 -> TYPE 9
 ## Fisher relation
 (1 + nominal) = (1 + real)(1 + infl).
@@ -5356,9 +5378,17 @@ if platform then
     elseif scr == "worked" then scrollW = scrollList(key, scrollW, #wlines)
     elseif scr == "glossary" then
       local step = (key == "left" or key == "right") and 5 or 1
-      if key == "up" or key == "left" then gSel = math.max(1, gSel - step)
-      else gSel = math.min(#gEntries, gSel + step) end
-      glossaryShow()
+      local e, nx = gEntries[gSel], gEntries[gSel + 1]
+      local last = nx and (nx.line - 1) or #glines   -- the selected entry's last line
+      if key == "down" and e and last > scrollG + 10 then
+        scrollG = scrollG + 3   -- a long entry: read the rest of it before moving on
+      elseif key == "up" and e and scrollG > e.line - 1 then
+        scrollG = math.max(e.line - 1, scrollG - 3)
+      else
+        if key == "up" or key == "left" then gSel = math.max(1, gSel - step)
+        else gSel = math.min(#gEntries, gSel + step) end
+        glossaryShow()
+      end
     elseif scr == "help" then scrollH = scrollList(key, scrollH, #hlines)
     elseif scr == "legend" then scrollL = scrollList(key, scrollL, #llines)
     elseif scr == "doc" then DOC.scroll = scrollList(key, DOC.scroll, #DOC.lines)
