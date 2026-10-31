@@ -3419,33 +3419,31 @@ it; it is repaid at maturity. If not
 stated, 1000.
 -> TYPE 4
 ## FCF
-free cash flow: cash a project throws
-off after tax, CapEx and working
-capital. (Rev - Costs - Dep)(1 - Tc)
-+ Dep - CapEx - dNWC.
+free cash flow: the cash a project makes
+after tax, CapEx and working capital.
+$$OCF = (Rev - Costs - Dep)*(1 - T_c) + Dep
+$$FCF = OCF - CapEx - dNWC
 IN QUESTIONS: 'revenue, costs,
 depreciation, tax rate' -> one year's
-cash flow. Two methods, same answer.
-Add salvage + NWC back in the final
-year. Excel required in the test.
-CAPEX = cash for buying or selling
-machines (not depreciation):
-- year 0: buy new (MINUS); sell old
-  (PLUS); tax on the old sale:
-  (BV - sale) x Tc. Below book value =
-  a loss = a tax REFUND (PLUS).
-- last year: sell the asset (PLUS),
-  minus tax on it: (sale - BV) x Tc.
-  Fully depreciated (BV 0): sale x
-  (1 - Tc).
-- book value itself is NOT cash: it is
-  only used inside the tax formula.
-NWC = cash tied up in stock and
-debtors (less creditors):
-- put in at the start (MINUS), more
-  each year the change (MINUS), ALL
-  back in the last year (PLUS), no tax.
-- not mentioned in the question = 0.
+cash flow. Add the sale and NWC back in
+the last year. Excel in the test.
+CAPEX = buying or selling machines:
+- year 0: buy new (MINUS), sell old
+  (PLUS), and the tax on the old sale:
+$$Tax = (BV - Sale)*T_c
+  sold BELOW book value = a loss = a tax
+  REFUND (PLUS).
+- last year: sell it (PLUS), after tax:
+$$ATS = Sale - (Sale - BV)*T_c
+  fully depreciated (BV = 0):
+$$ATS = Sale*(1 - T_c)
+- book value is NOT cash: it is only used
+  inside these two formulas.
+NWC = stock + debtors - creditors:
+$$dNWC = NWC_t - NWC_(t - 1)
+- start: put in (MINUS). Last year: ALL
+  back (PLUS), no tax.
+- not in the question: dNWC = 0.
 -> TYPE 9
 ## Fisher relation
 (1 + nominal) = (1 + real)(1 + infl).
@@ -5380,7 +5378,7 @@ if platform then
       local step = (key == "left" or key == "right") and 5 or 1
       local e, nx = gEntries[gSel], gEntries[gSel + 1]
       local last = nx and (nx.line - 1) or #glines   -- the selected entry's last line
-      if key == "down" and e and last > scrollG + 10 then
+      if key == "down" and e and last > scrollG + 7 then
         scrollG = scrollG + 3   -- a long entry: read the rest of it before moving on
       elseif key == "up" and e and scrollG > e.line - 1 then
         scrollG = math.max(e.line - 1, scrollG - 3)
