@@ -461,6 +461,30 @@ def main():
         if bad:
             fails += 1
             print(f'FAIL excel table type 24 {name}: ' + '; '.join(bad[:5]))
+    # type 24, a replacement with nothing typed: the empty layout (formulas in words, no numbers) and the need line
+    out = CORE.run(24, lua.table_from(dict(mode='cash-flow table: a replacement')))
+    import re as _re
+    bad = []
+    if out.tbl is None or len(out.tbl.rows) != 28: bad.append('no 28-row layout table')
+    else:
+        if not out.tbl.showF: bad.append('the layout opens on numbers, not formulas')
+        labs = [str(out.tbl.rows[i].label) for i in range(1, 29)]
+        for want in ('REPLACE (new)', 'KEEP (old)', 'NEW - OLD', 'FCF if REPLACE', 'FCF if KEEP', 'FCF (new - old)', 'NPV'):
+            if want not in labs: bad.append('missing row ' + want)
+        for i in range(1, 29):
+            rw = out.tbl.rows[i]
+            for c in range(1, 5):
+                f = rw.xf[c]
+                if rw.vals[c] is not None: bad.append(f'row {i + 1} has a number')
+                if f is not None and _re.sub(r'[A-E]\d+|\(1\+r\)', '', str(f)).strip('=') and _re.search(r'\d', _re.sub(r'[A-E]\d+|\(1\+r\)', '', str(f))):
+                    bad.append(f'row {i + 1}: {f}')
+        if str(out.tbl.rows[13].xf[1]) != '=B3+B4+B5+B10+B11+B12+B13' or str(out.tbl.rows[26].xf[3]) != '=D14-D25':
+            bad.append('FCF formulas wrong')
+    kinds = [str(r.kind) for r in out.rows.values()]
+    if 'need' not in kinds or kinds.count('xl') < 28: bad.append(f'need/xl lines missing: {kinds}')
+    if bad:
+        fails += 1
+        print('FAIL type 24 empty layout: ' + '; '.join(bad[:6]))
     for V24, t2, V2, pairs in XL_AGREE:
         a, b = CORE.run(24, lua.table_from(V24)).vals, CORE.run(t2, lua.table_from(V2)).vals
         bad = [f'{k1}={a[k1]} vs type {t2} {k2}={b[k2]}' for k1, k2 in pairs if a[k1] is None or b[k2] is None or abs(a[k1] - b[k2]) > 1e-6]

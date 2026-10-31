@@ -40,6 +40,70 @@ do
     return parts
   end
 
+  ------------------------------------------------------------------ the empty replacement layout (no numbers)
+  -- columns B..E = year 0, year 1, year 2 (and on), the last year n; "@" = this column, as in X.cellOf
+  X.LAYOUT = {
+    { "REPLACE (new)", "block 1: the firm WITH the new machine" },
+    { "buy new", "year 0: the new machine's cost, a MINUS", { [0] = "=-cost" } },
+    { "sell old now", "year 0: the old machine's price today, a PLUS", { [0] = "=old price now" } },
+    { "tax on old sale", "(book value - sale) x Tc: below book value = a refund (PLUS)", { [0] = "=(old BV-B4)*Tc" } },
+    { "run costs (new)", "every year, a MINUS (a revenue or saving row goes here too, PLUS)", { "=-new costs", "=-new costs", "=-new costs" } },
+    { "dep (new)", "straight line: cost / life (0 once it is used up)", { "=cost/life", "=cost/life", "=cost/life" } },
+    { "EBIT (new)", "the cash items above minus depreciation", { "=@6-@7", "=@6-@7", "=@6-@7" }, true },
+    { "tax (new)", "-EBIT x Tc (a loss: a tax SAVING, plus)", { "=-@8*Tc", "=-@8*Tc", "=-@8*Tc" } },
+    { "after tax (new)", "EBIT + tax", { "=@8+@9", "=@8+@9", "=@8+@9" } },
+    { "+ dep (new)", "depreciation is not cash: add it back", { "=@7", "=@7", "=@7" } },
+    { "sale of new (end)", "last year only: what it sells for", { [3] = "=sale price" } },
+    { "tax on new sale", "last year only: -(sale - book value) x Tc", { [3] = "=-(E12-BV)*Tc" } },
+    { "FCF if REPLACE", "add the cash rows of block 1 (a blank cell = 0)", { [0] = "=@3+@4+@5+@10+@11+@12+@13", "=@3+@4+@5+@10+@11+@12+@13", "=@3+@4+@5+@10+@11+@12+@13", "=@3+@4+@5+@10+@11+@12+@13" }, true },
+    { "KEEP (old)", "block 2: the firm WITH the old machine" },
+    { "run costs (old)", "every year, a MINUS", { "=-old costs", "=-old costs", "=-old costs" } },
+    { "overhaul (old)", "only in its year, only if you KEEP, a MINUS", { [2] = "=-overhaul" } },
+    { "dep (old)", "the old machine's dep a year (0 once used up)", { "=old dep", "=old dep", "=old dep" } },
+    { "EBIT (old)", "the cash items above minus depreciation", { "=@16+@17-@18", "=@16+@17-@18", "=@16+@17-@18" }, true },
+    { "tax (old)", "-EBIT x Tc", { "=-@19*Tc", "=-@19*Tc", "=-@19*Tc" } },
+    { "after tax (old)", "EBIT + tax", { "=@19+@20", "=@19+@20", "=@19+@20" } },
+    { "+ dep (old)", "add the depreciation back", { "=@18", "=@18", "=@18" } },
+    { "old sold at end", "last year only: the old machine's end value", { [3] = "=old end value" } },
+    { "tax old end sale", "last year only: -(end value - book value) x Tc", { [3] = "=-(E23-BV)*Tc" } },
+    { "FCF if KEEP", "add the cash rows of block 2", { [0] = "=@21+@22+@23+@24", "=@21+@22+@23+@24", "=@21+@22+@23+@24", "=@21+@22+@23+@24" }, true },
+    { "NEW - OLD", "block 3: what replacing ADDS each year" },
+    { "FCF (new - old)", "FCF if REPLACE - FCF if KEEP", { [0] = "=@14-@25", "=@14-@25", "=@14-@25", "=@14-@25" }, true },
+    { "PV of FCF", "a check: FCF/(1 + r)^year (row 1 holds the years)", { [0] = "=@27/(1+r)^@1", "=@27/(1+r)^@1", "=@27/(1+r)^@1", "=@27/(1+r)^@1" } },
+    { "NPV", "NPV() starts at year 1: add year 0 outside it", { [0] = "=NPV(r,C27:E27)+B27" }, true },
+  }
+  function X.layout(out)
+    local T = { cols = {}, rows = {}, wide = true, xl = true, lw = 92, cw = 104, cw0 = 56, showF = true,
+                hint = "THE LAYOUT (no numbers) | arrows: move | ESC back" }
+    for _, k in ipairs({ "Year 0", "Year 1", "Year 2 ...", "Year n" }) do T.cols[#T.cols + 1] = { k = k, u = "$0" } end
+    out:head("THE LAYOUT (no numbers yet): press T to see it")
+    out:note("column A the labels, row 1 the years (0 in B1, 1 in C1 ...); type the numbers above to fill it in")
+    for i, L in ipairs(X.LAYOUT) do
+      local rn = i + 1
+      local rw = { label = L[1], name = L[2], em = L[4] or (L[3] == nil), vals = {}, how = {}, xf = {} }
+      local P3 = L[3] or {}
+      for t = 0, 3 do
+        if P3[t] then
+          rw.xf[t + 1] = P3[t]:gsub("@", X.L(t))
+          rw.how[t + 1] = "Excel " .. X.L(t) .. rn .. ": " .. rw.xf[t + 1] .. "\n" .. L[2]
+        else
+          rw.how[t + 1] = L[2]
+        end
+      end
+      local cl = {}   -- the Excel lines: year 0, then year 1 copied right (or the one year it is in)
+      if P3[0] then cl[#cl + 1] = "B" .. rn .. " " .. rw.xf[1] end
+      if P3[1] then cl[#cl + 1] = "C" .. rn .. " " .. rw.xf[2] .. (P3[3] and ", copy right to the last year" or "")
+      else
+        for t = 2, 3 do if P3[t] then cl[#cl + 1] = X.L(t) .. rn .. " " .. rw.xf[t + 1] .. ((t == 3) and " (the last year)" or " (its year)") end end
+      end
+      T.rows[#T.rows + 1] = rw
+      if not L[3] then out:xl("row " .. rn .. " " .. L[1] .. "  (a heading: no numbers)")
+      else out:xl("row " .. rn .. " " .. L[1] .. ": " .. table.concat(cl, "; ")) end
+    end
+    out:note("signs: costs, tax paid and the cost of the new machine are MINUS; sales, savings and a tax refund are PLUS")
+    out.tbl = T
+  end
+
   ------------------------------------------------------------------ cash-flow tables (kinds 1 and 2)
   function X.cashTable(V, out, kind)
     local W = {}
@@ -50,7 +114,9 @@ do
     if W.dv and not V.depR then out:need("the diminishing-value rate (%) of the new asset"); return end
     local R, how, msg = XLCALC.replace(W)
     if not R then
-      if how == "need" then out:need((kind == 1) and msg or "the asset's cost (CapEx), its depreciation life (or rate) and the project life (years)")
+      if how == "need" then
+        if kind == 1 then X.layout(out) end   -- nothing typed yet: the empty layout, formulas in words
+        out:need((kind == 1) and msg or "the asset's cost (CapEx), its depreciation life (or rate) and the project life (years)")
       else out:err(msg) end
       return
     end
