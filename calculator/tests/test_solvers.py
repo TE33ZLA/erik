@@ -480,6 +480,8 @@ def main():
                     bad.append(f'row {i + 1}: {f}')
         if str(out.tbl.rows[13].xf[1]) != '=B3+B4+B5+B10+B11+B12+B13' or str(out.tbl.rows[26].xf[3]) != '=D14-D25':
             bad.append('FCF formulas wrong')
+    o5 = CORE.run(24, lua.table_from(dict(mode='the empty layout: a replacement (no numbers)')))
+    if o5.tbl is None or len(o5.tbl.rows) != 28 or not o5.tbl.open: bad.append('layout mode does not open its 28-row table')
     kinds = [str(r.kind) for r in out.rows.values()]
     if 'need' not in kinds or kinds.count('xl') < 28: bad.append(f'need/xl lines missing: {kinds}')
     if bad:

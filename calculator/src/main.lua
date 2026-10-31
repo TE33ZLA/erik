@@ -5371,7 +5371,7 @@ if platform then
     elseif scr == "input" then
       buildResult()
       scrollR = 0
-      scr = "result"
+      scr = (curTbl and curTbl.open) and "table" or "result"   -- a layout-only page opens straight on its table
       inval()
     elseif scr == "result" then
       scr = "input"; inval()

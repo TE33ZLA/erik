@@ -11,7 +11,8 @@
 do
   local X = {}
   X.MODES = { "cash-flow table: a replacement", "cash-flow table: a new project",
-              "decision tree: act now or wait", "decision tree: chance and decision nodes" }
+              "decision tree: act now or wait", "decision tree: chance and decision nodes",
+              "the empty layout: a replacement (no numbers)" }
   X.DEPM = { "straight line (prime cost)", "diminishing value" }
 
   function X.N(x) return sig(x, 10) end                       -- a number inside an Excel formula
@@ -644,6 +645,7 @@ do
     local m = V.mode or X.MODES[1]
     if m == X.MODES[3] then X.treeWait(V, out)
     elseif m == X.MODES[4] then X.treeNodes(V, out)
+    elseif m == X.MODES[5] then X.layout(out); out.tbl.open = true
     else X.cashTable(V, out, (m == X.MODES[2]) and 2 or 1) end
   end
 
@@ -654,6 +656,7 @@ do
       "a NEW project, no old machine: revenue, costs, CapEx, depreciation, salvage, NWC",
       "'book / commit now, or wait until you know': a cost now vs a cost later, a chance it goes well",
       "outcomes with probabilities (a chance node) at a date; maybe a choice today (go ahead or not)",
+      "just the table to copy into Excel: REPLACE, KEEP, NEW - OLD, each cell's formula in words. ENTER opens it",
     },
     desc = "the answer as the Excel layout: a year-by-year FCF table (items down, years across) or a decision tree, each cell's formula",
     looks = "excel | spreadsheet | table | year by year | cash flow table | fcf table | lay out | layout | replacement table | new project table | decision tree | tree | branches | act now or wait | book now or wait | part c",
@@ -703,6 +706,8 @@ do
                  "save", "opexO", "opexN", "rev", "g", "avoid", "avYr", "nwc", "nwcY" }
       elseif m == X.MODES[2] then
         return { "mode", "n", "r", "Tc", "rev", "opex", "g", "newC", "lifeN", "depR", "depM", "saleN", "nwc", "nwcY" }
+      elseif m == X.MODES[5] then
+        return { "mode" }
       elseif m == X.MODES[3] then
         return { "mode", "c0", "vg", "pg", "vb", "cw", "tm", "t", "ear" }
       end
