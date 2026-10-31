@@ -3146,15 +3146,16 @@ a deferred annuity.
 -> TYPE 2: C, r, n, first payment at
 t 2, price = what you want -> NPV.
 ## CapEx
-capital expenditure: cash spent
-buying long-lived assets.
-IN QUESTIONS: 'buys equipment for $X'
-at t = 0, subtracted in FCF. Not
-depreciation: that is spread later.
-Also CapEx: selling the old machine now
-(+ its tax: (BV - sale) x Tc, a refund
-on a loss) and selling at the end
-(sale - (sale - BV) x Tc). See FCF.
+$$CapEx = Buy - Sale - (BV - Sale)*T_c
+capital expenditure: cash for buying or
+selling machines and buildings (used
+for years). Tax only on SALES, never on
+buying. Below book value = a loss = a
+tax refund.
+IN QUESTIONS: 'buys equipment for $X',
+'sells the old one', 'sold at the end'.
+Not depreciation: that is spread later.
+In FCF it is SUBTRACTED. See FCF.
 -> TYPE 9
 ## capital budgeting
 deciding which long-term projects to
@@ -3427,7 +3428,9 @@ IN QUESTIONS: 'revenue, costs,
 depreciation, tax rate' -> one year's
 cash flow. Add the sale and NWC back in
 the last year. Excel in the test.
-CAPEX = buying or selling machines.
+$$CapEx = Buy - Sale - (BV - Sale)*T_c
+CAPEX = buying or selling machines. Tax
+only on sales. Split up:
 $$Tax = (BV - Sale)*T_c
 year 0: buy new (MINUS), sell old (PLUS),
 plus this tax on the old sale. Sold

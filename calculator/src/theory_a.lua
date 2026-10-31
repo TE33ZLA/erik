@@ -1108,6 +1108,8 @@ THEORY_A = {
       "Tax rate UP -> depreciation tax shield UP",
       "Depreciation -> subtract before tax, add back after tax",
       "CapEx or an increase in NWC -> FCF DOWN",
+      "CapEx = buy - sale - (BV - sale) x t_c -> tax on SALES only, not buys",
+      "NWC = stock + debtors - creditors; not in the question -> 0",
       "Interest -> never in FCF",
       "Depreciable cost -> price + shipping + installation",
     },
