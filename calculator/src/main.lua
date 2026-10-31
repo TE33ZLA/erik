@@ -3419,31 +3419,31 @@ it; it is repaid at maturity. If not
 stated, 1000.
 -> TYPE 4
 ## FCF
-free cash flow: the cash a project makes
-after tax, CapEx and working capital.
 $$OCF = (Rev - Costs - Dep)*(1 - T_c) + Dep
 $$FCF = OCF - CapEx - dNWC
+free cash flow: the cash a project makes
+after tax, CapEx and working capital.
 IN QUESTIONS: 'revenue, costs,
 depreciation, tax rate' -> one year's
 cash flow. Add the sale and NWC back in
 the last year. Excel in the test.
-CAPEX = buying or selling machines:
-- year 0: buy new (MINUS), sell old
-  (PLUS), and the tax on the old sale:
+CAPEX = buying or selling machines.
 $$Tax = (BV - Sale)*T_c
-  sold BELOW book value = a loss = a tax
-  REFUND (PLUS).
-- last year: sell it (PLUS), after tax:
+year 0: buy new (MINUS), sell old (PLUS),
+plus this tax on the old sale. Sold
+BELOW book value = a loss = a tax
+REFUND (PLUS).
 $$ATS = Sale - (Sale - BV)*T_c
-  fully depreciated (BV = 0):
+last year: the asset sold, after tax
+(PLUS).
 $$ATS = Sale*(1 - T_c)
-- book value is NOT cash: it is only used
-  inside these two formulas.
-NWC = stock + debtors - creditors:
+the same when fully depreciated (BV = 0).
+Book value is NOT cash: it is only used
+inside these formulas.
 $$dNWC = NWC_t - NWC_(t - 1)
-- start: put in (MINUS). Last year: ALL
-  back (PLUS), no tax.
-- not in the question: dNWC = 0.
+NWC = stock + debtors - creditors. Start:
+put in (MINUS). Last year: ALL back
+(PLUS), no tax. Not in the question: 0.
 -> TYPE 9
 ## Fisher relation
 (1 + nominal) = (1 + real)(1 + infl).
