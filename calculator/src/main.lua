@@ -11,7 +11,7 @@
 ----------------------------------------------------------------------
 
 if platform then platform.apilevel = "2.0" end
-local VERSION = "v38"
+local VERSION = "v39"
 
 ----------------------------------------------------------------------
 -- 1. SMALL HELPERS + NUMBER FORMATTING
@@ -3612,15 +3612,31 @@ IN QUESTIONS: 'semi-annual, 12 years'
 -> N = 24. Always years x m; the
 formulas count periods, not years.
 -> TYPE 1
-## net working capital (NWC)
-cash tied up in stock and receivables
-to run the project. Goes in at the
-start, comes back untaxed at the end.
-IN QUESTIONS: 'requires $2,000 of
-working capital' -> outflow at the
-start, recovered UNTAXED in the final
-year. Forgetting the recovery is the
-classic terminal-year error.
+## NWC (net working capital)
+$$NWC = Inventory + Receivables - Payables
+$$dNWC = NWC_t - NWC_(t - 1)
+the cash tied up in running the business:
+stock on the shelves and money customers
+still owe, less what the firm owes its
+suppliers.
+In FCF it is SUBTRACTED: NWC UP = cash
+OUT (MINUS), NWC DOWN = cash IN (PLUS).
+Never taxed.
+A project: put in at the start (MINUS),
+ALL back in the last year (PLUS).
+Not in the question: dNWC = 0.
+IN QUESTIONS: 'requires 2,000 of working
+capital', 'inventory', 'receivables',
+'payables'. Days and cycles: type 14.
+-> TYPE 9
+## working capital
+see NWC (net working capital):
+$$NWC = Inventory + Receivables - Payables
+-> TYPE 9
+## change in NWC (dNWC)
+$$dNWC = NWC_t - NWC_(t - 1)
+this year's NWC minus last year's. In
+FCF it is SUBTRACTED. See NWC.
 -> TYPE 9
 ## nominal interest rate X%, inflation Y%
 Fisher: real rate.

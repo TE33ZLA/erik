@@ -258,11 +258,6 @@ change firm value; rE = rU + D/E
 With tax: VL = VU + Tc x D and
 rE = rU + D/E (rU - rD)(1 - Tc).
 -> TYPE 21
-## net working capital (NWC)
-current assets - current liabilities
-(cash, receivables, inventory minus
-payables). An increase uses cash.
--> TYPE 14
 ## NPV break-even
 units that make NPV = 0: the yearly
 cash flow must repay the outlay like a

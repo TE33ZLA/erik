@@ -324,9 +324,13 @@
         local letterFirst = false
         if e.kind == 5 then
           for sym in e.sym:lower():gmatch("[^,%s]+") do if sym == typed then letterFirst = true end end
-          if typed:find(" ") and e.text:find(typed, 1, true) then letterFirst = true end   -- a phrase: 'cost of debt
+          if typed:find(" ") and e.t:lower():find(typed, 1, true) then letterFirst = true end   -- a phrase in its meaning (not its section): 'cost of debt
         end
         h.sub = (e.kind == 5) and (letterFirst and 0 or 1.5) or (e.kind == 3) and 1 or (e.t:find("^RULE:") and 2) or (e.t:find("^TOPIC:") and 3) or 4
+        if e.kind == 3 then   -- a word whose name IS what was typed ('working capital', 'nwc'): first, after a letter that means it
+          local nm = e.t:lower():gsub("^word: ", "")
+          if nm == typed or nm:sub(1, #typed + 2) == typed .. " (" or nm:find("%(" .. typed:gsub("%W", "%%%0") .. "%)") then h.sub = 0.5 end
+        end
       end
       table.sort(U.hits, function(a, b)
         if a.cat ~= b.cat then return a.cat < b.cat end

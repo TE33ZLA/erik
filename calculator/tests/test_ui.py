@@ -122,6 +122,14 @@ for ti in range(1, len(THEORY) + 1):
     check_screen(f'theory topic {ti} scrolled')
     key('escapeKey')
 
+# NWC: the glossary word is in the first two lines, by its short name and by its long name
+for q, want in [('nwc', 'WORD: NWC (net working capital)'), ('net working capital', 'WORD: NWC (net working capital)'),
+                ('working capital', 'WORD: working capital'), ('change in nwc', 'WORD: change in NWC (dNWC)')]:
+    for _ in range(4): key('escapeKey')
+    key('charIn', 's')
+    app.type(q)
+    top2 = [str(G.CORE.U.hits[i].e.t) for i in range(1, min(len(G.CORE.U.hits), 2) + 1)]
+    if want not in top2: fails.append(f'search {q!r}: {want!r} not in the first two lines {top2}')
 # search: a few words, open the first hit of each
 for w in ['coupon', 'perpetuity', 'break-even', 'beta', '2/10', 'sunk', 'wacc', 'ccc', 'npv', 'zzzz',
           'lockbox', 'float', 'book now or wait', 'wait and see', 'replace the old machine', 'variance-covariance',
