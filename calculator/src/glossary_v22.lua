@@ -157,9 +157,11 @@ IN QUESTIONS: 'after a low year, demand
 stays low with probability 80%'.
 -> TYPE 13
 ## correlation
-how two returns move together, from -1
-to +1: Cov / (SD1 x SD2). Below +1
-means diversification lowers risk.
+$$rho_AB = (Cov(A, B))/(SD_A*SD_B)
+how closely two returns move together,
+from -1 to +1 (covariance with the units
+taken out). Below +1: diversification
+lowers risk.
 -> TYPE 18
 ## cost of capital
 the return investors require for the
@@ -179,10 +181,11 @@ IN QUESTIONS: 'pays 10% of par $20,
 price $22.86'.
 -> TYPE 20
 ## covariance
-how two returns move together, in %^2:
-sum p(RA - E[RA])(RB - E[RB]) for a
-forecast; divide by n - 1 for a sample.
-= correlation x SD1 x SD2.
+$$Cov(A, B) = rho_AB*SD_A*SD_B
+$$Cov(A, B) = sum p_k*(R_A - E[R_A])*(R_B - E[R_B])
+how two returns move together, in %^2
+(no fixed range). For a sample: divide
+by n - 1 instead of using p.
 -> TYPE 18
 ## credit policy
 the terms a firm gives its customers
