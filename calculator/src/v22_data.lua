@@ -320,6 +320,7 @@ end
 
 --@include legend.lua
 --@include partc.lua
+--@include mistakes.lua
 HELP = [[BFC2140 SOLVER ]] .. VERSION .. [[ - HOW TO USE
 Every week of the unit, the maths AND
 the questions without numbers.

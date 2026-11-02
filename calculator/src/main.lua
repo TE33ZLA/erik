@@ -11,7 +11,7 @@
 ----------------------------------------------------------------------
 
 if platform then platform.apilevel = "2.0" end
-local VERSION = "v39"
+local VERSION = "v40"
 
 ----------------------------------------------------------------------
 -- 1. SMALL HELPERS + NUMBER FORMATTING
@@ -4906,6 +4906,7 @@ if platform then
         end
         y = y + 14
       elseif kind == "dmath" then
+        if y > SH - ((text:find("/") or text:find("%^")) and 62 or 44) then break end   -- a tall formula: keep it whole for the next page
         gc:setColorRGB(COL.head[1], COL.head[2], COL.head[3])
         y = y + drawMathLine(gc, text, 14, y + 1, 11, SW - 24) + 2
       elseif kind == "rich" then

@@ -4,7 +4,7 @@
   -- Screens v21 already had are passed through to its handlers.
   ------------------------------------------------------------------
   do
-    local U = { wsel = 1, bsel = 1, csel = 1, smode = nil, homeSel = 1, group = 1, gsel = 1, fstack = {}, fsel = 1, want = nil, say = nil, qsel = 1, ssel = 1,
+    local U = { wsel = 1, bsel = 1, csel = 1, smode = nil, homeSel = 1, homeH = 15, homeFirst = 1, group = 1, gsel = 1, fstack = {}, fsel = 1, want = nil, say = nil, qsel = 1, ssel = 1,
                 tsel = 1, tlines = {}, tscroll = 0, topic = nil, q = "", hits = {}, hsel = 1, index = nil, mt = nil, msel = 1,
                 rlev = 1, rg = 1, rsel = 1 }
     -- home: the exam's parts first (A multiple choice, B numbers, C written + Excel), then the other ways in;
@@ -20,7 +20,8 @@
                    { k = "L", t = "Legend: every letter on the sheet", s = "what each letter of the formula sheet means, in the sheet's order" },
                    { k = "T", t = "Theory + what-ifs (no numbers)", s = "'what happens if', true or false, explain" },
                    { k = "S", t = "Search a word from the question", s = "e.g. COUPON, BREAK-EVEN, BETA" },
-                   { k = "E", t = "Everything: type all you know", s = "a box for every letter on the sheet: every answer listed, I explains" } }
+                   { k = "E", t = "Everything: type all you know", s = "a box for every letter on the sheet: every answer listed, I explains" },
+                   { k = "K", t = "My mistakes: read before the exam", s = "the traps from practice, each with its formula first" } }
     scr = "home"
 
     local function setc(gc, c) gc:setColorRGB(c[1], c[2], c[3]) end
@@ -63,7 +64,10 @@
     local function paintHome(gc)
       extraHome()
       title(gc, "BFC2140 SOLVER " .. VERSION .. " - all weeks")
-      local y = drawRows(gc, HOME, U.homeSel, 23, 12, SH - 27, function(i, r) return r.k end)   -- 13 rows fit
+      local y = drawRows(gc, HOME, U.homeSel, 23, U.homeH, SH - 27, function(i, r) return r.k end)   -- scrolls with the selection
+      local vis = math.max(1, math.floor((SH - 27 - 23) / U.homeH))
+      U.homeFirst = (U.homeSel > vis) and (U.homeSel - vis + 1) or 1
+      if U.homeFirst > 1 then setc(gc, COL.dim); gc:setFont("sansserif", "r", 9); gc:drawString("^ more", SW - 90, SH - 13, "top") end
       note(gc, HOME[U.homeSel].s, SH - 26)
       footer(gc, "key or arrows + ENTER | H help | G glossary")
     end
@@ -717,6 +721,7 @@
       elseif h.k == "L" then toLegend(); return
       elseif h.k == "M" then openRecipes(); return
       elseif h.k == "E" then EVERY.open(); return
+      elseif h.k == "K" then toDoc("MY MISTAKES - read before the exam", MISTAKES_DOC); return
       elseif h.k == "S" then U.q, U.hits, U.smode = "", {}, nil; scr = "search"
       else U.group, U.gsel = h.g, 1; scr = "menu" end
       inval()
@@ -764,7 +769,7 @@
       return cur
     end
     function on.arrowKey(key)
-      if scr == "home" then U.homeSel = move(U.homeSel, #HOME, key)
+      if scr == "home" then extraHome(); U.homeSel = move(U.homeSel, #HOME, key)
       elseif scr == "menu" then U.gsel = move(U.gsel, #groupTypes(), key)
       elseif scr == "modes" then U.msel = move(U.msel, #modeSlotOf(U.mt).opts, key)
       elseif scr == "roots" then U.rsel = move(U.rsel, #rootRows(), key)
@@ -952,7 +957,7 @@
         return
       end
       if scr == "home" then
-        local i = math.floor((my - 23) / 12) + 1   -- the same row height as paintHome
+        local i = math.floor((my - 23) / U.homeH) + U.homeFirst   -- the same rows as paintHome, scroll included
         if HOME[i] and my >= 23 then if i == U.homeSel then homePick(i) else U.homeSel = i; inval() end end
         return
       end

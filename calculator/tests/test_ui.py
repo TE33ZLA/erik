@@ -404,7 +404,9 @@ def ev_go(label):
         key('arrowKey', 'down')
     fails.append(f'everything: no box {label!r}'); return False
 for _ in range(7): key('escapeKey')
+G.CORE.U.homeSel = 1; key('arrowKey', 'up')   # the home list scrolls: up from the first row shows the last rows (E, K)
 if 'Everything: type all you know' not in check_screen('home with E'): fails.append('home: no E row')
+key('arrowKey', 'down')
 key('charIn', 'e'); t = check_screen('everything page')
 if '1. Financial Mathematics' not in t or 'Type all you know' not in t: fails.append('E does not open the Everything page')
 if cur_label() != 'PV money today ($)': fails.append(f'everything: the cursor starts on {cur_label()!r}, not the first box')
@@ -579,18 +581,26 @@ if 'What does the question ask for?' not in check_screen('part B X'): fails.appe
 key('escapeKey')
 if 'PART B' not in check_screen('part B X back'): fails.append('Part B X: ESC does not go back to Part B')
 for _ in range(7): key('escapeKey')
-# home fits 13 rows (the public ones + one private row from EXTRA_HOME); a click picks the row under it
+# home scrolls (the public rows + a private row from EXTRA_HOME); a click picks the row under it, scroll included
 app2 = NspireApp(src)
 G2 = app2.lua.globals()
 G2.EXTRA_HOME = app2.lua.eval('{ { k = "P", t = "Private row for the test", s = "private", open = function() end } }')
 ops2 = app2.ops()
 t2 = ' | '.join(o[1] for o in ops2 if o[0] == 'text')
-if 'Private row for the test' not in t2 or 'v more' in t2: fails.append('home: 13 rows do not fit on one screen')
+if 'v more' not in t2: fails.append('home: no "v more" though the rows do not all fit')
 hy = {o[1].split('  ')[0]: o[3] for o in ops2 if o[0] == 'text' and '  ' in str(o[1])}
 app2.key('mouseDown', 40, hy.get('X', 0) + 5)
 if G2.CORE.U.homeSel != 4: fails.append(f'home: a click on the X row picks row {G2.CORE.U.homeSel}')
-app2.key('mouseDown', 40, hy.get('P', 0) + 5)
-if G2.CORE.U.homeSel != 13: fails.append(f'home: a click on the private row picks row {G2.CORE.U.homeSel}')
+app2.key('arrowKey', 'up'); app2.key('arrowKey', 'up'); app2.key('arrowKey', 'up'); app2.key('arrowKey', 'up')   # row 4 -> the last row (P)
+ops2 = app2.ops()
+t2 = ' | '.join(o[1] for o in ops2 if o[0] == 'text')
+if 'Private row for the test' not in t2 or '^ more' not in t2: fails.append('home: scrolling down does not show the last (private) row')
+last = G2.CORE.U.homeSel
+hy = {o[1].split('  ')[0]: o[3] for o in ops2 if o[0] == 'text' and '  ' in str(o[1])}
+app2.key('mouseDown', 40, hy.get('K', 0) + 5)
+if G2.CORE.U.homeSel != last - 1: fails.append(f'home: a click on K after scrolling picks row {G2.CORE.U.homeSel}, not {last - 1}')
+app2.key('mouseDown', 40, hy.get('K', 0) + 5)
+if 'MY MISTAKES' not in ' | '.join(o[1] for o in app2.ops() if o[0] == 'text'): fails.append('home K: the mistakes page does not open')
 for _ in range(4): key('escapeKey')
 
 # every test case of test_solvers.py, typed into the boxes (rates as %) and solved as on the calculator
